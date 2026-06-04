@@ -9,6 +9,7 @@ export function Button({
   children,
   variant = "primary",
   className = "",
+  type = "button",
   ...props
 }: ButtonProps) {
   const base =
@@ -20,7 +21,7 @@ export function Button({
 
   return (
     <button
-      type="button"
+      type={type}
       className={`${base} ${variants[variant]} ${className}`.trim()}
       {...props}
     >

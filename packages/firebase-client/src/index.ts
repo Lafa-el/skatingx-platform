@@ -1,35 +1,34 @@
-import { type FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
-
-import {
-  isFirebaseConfigComplete,
-  readFirebaseConfigFromEnv,
-} from "./config";
-
-let appInstance: FirebaseApp | null = null;
-
-/** Initialize Firebase from VITE_FIREBASE_* env vars. No-op if config is incomplete. */
-export function initFirebase(): FirebaseApp | null {
-  if (appInstance) {
-    return appInstance;
-  }
-
-  const existing = getApps();
-  if (existing.length > 0) {
-    appInstance = getApp();
-    return appInstance;
-  }
-
-  const config = readFirebaseConfigFromEnv();
-  if (!isFirebaseConfigComplete(config)) {
-    return null;
-  }
-
-  appInstance = initializeApp(config);
-  return appInstance;
-}
-
-export function getFirebaseApp(): FirebaseApp | null {
-  return appInstance ?? (getApps().length > 0 ? getApp() : null);
-}
-
+export { getFirebaseApp, initFirebase } from "./app";
+export { bootstrapUserDocuments, type BootstrapResult } from "./firestore/bootstrap";
+export { getFirestoreDb } from "./firestore/db";
+export {
+  initFirestorePersistence,
+  isPersistenceEnabled,
+  type PersistenceInitResult,
+} from "./firestore/persistence";
+export {
+  athleteGamificationRef,
+  athleteProfileRef,
+  settingsRef,
+  trainingStateRef,
+} from "./firestore/refs";
+export { subscribeToDocument } from "./firestore/subscribe";
+export {
+  getAuthErrorMessage,
+  getFirebaseAuth,
+  linkAnonymousWithEmailPassword,
+  refreshAuthUser,
+  signInAnonymouslyIfNeeded,
+  signInWithEmailPassword,
+  signOutUser,
+  subscribeToAuthState,
+  type User,
+} from "./auth";
 export { readFirebaseConfigFromEnv, isFirebaseConfigComplete } from "./config";
+export type { FirebaseEnvKey } from "./config";
+export {
+  hasPasswordProvider,
+  isAnonymousUser,
+  isRegisteredUser,
+  userNeedsAuthRefresh,
+} from "./user";

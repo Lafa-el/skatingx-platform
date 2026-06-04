@@ -1,11 +1,11 @@
-export { PLATFORM_APP_ID } from "./constants";
+export { DEFAULT_ATHLETE_ID, PLATFORM_APP_ID } from "./constants";
 export type { Language } from "./language";
 
 export type { DateString, LegacySource, Timestamp } from "./common";
 
-export type { User } from "./user";
+export type { User, UserSettings } from "./user";
 
-export type { Athlete, AthleteId } from "./athlete";
+export type { Athlete, AthleteId, AthleteProfile } from "./athlete";
 
 export type { Gamification } from "./gamification";
 
@@ -29,7 +29,19 @@ export type {
   Race,
   Reward,
   TrainingRecord,
+  TrainingState,
   TrainingTask,
+  WeeklyTemplate,
+  WeeklyTemplateByDay,
 } from "./training";
 
-export { paths } from "./paths";
+export {
+  createDefaultAthleteProfile,
+  createDefaultGamification,
+  createDefaultTrainingState,
+  createDefaultUserSettings,
+  EMPTY_WEEKLY_TEMPLATE,
+  todayDateString,
+} from "./defaults";
+
+export { pathToSegments, paths } from "./paths";

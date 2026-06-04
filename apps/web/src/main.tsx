@@ -5,7 +5,8 @@ import { BrowserRouter } from "react-router-dom";
 import { initFirebase } from "@skatingx/firebase-client";
 
 import { App } from "./app/App";
-import { ActiveAthleteProvider } from "./app/providers/activeAthleteContext";
+import { AuthProvider } from "./app/providers/AuthProvider";
+import { FirestoreProvider } from "./app/providers/FirestoreProvider";
 import "./styles/index.css";
 
 initFirebase();
@@ -18,9 +19,11 @@ if (!root) {
 createRoot(root).render(
   <StrictMode>
     <BrowserRouter>
-      <ActiveAthleteProvider>
-        <App />
-      </ActiveAthleteProvider>
+      <AuthProvider>
+        <FirestoreProvider>
+          <App />
+        </FirestoreProvider>
+      </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
 );

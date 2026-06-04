@@ -1,14 +1,14 @@
 import type { DateString, Timestamp } from "./common";
 
 /**
- * Per-athlete points and streak state (`athletes/{athleteId}/gamification/main`).
- * Canonical balance for shop redemptions and plan check-ins.
+ * Per-athlete gamification (`athletes/{athleteId}/gamification/main`).
  */
 export interface Gamification {
   points: number;
-  pointsPerTask: number;
-  dailyBonusPoints: number;
-  /** Dates (YYYY-MM-DD) when all daily tasks were completed */
+  streakDays: number;
   completedDays: DateString[];
+  /** Legacy training fields (optional until M4 migration) */
+  pointsPerTask?: number;
+  dailyBonusPoints?: number;
   updatedAt?: Timestamp;
 }

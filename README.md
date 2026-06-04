@@ -54,11 +54,11 @@ If variables are missing, the app still runs; Firebase initialization is skipped
 npm run build
 ```
 
-## Status (skeleton)
+## Status
 
-- Placeholder routes and pages only
-- No authentication
-- No Firestore reads/writes
+- Placeholder routes and pages (training/analysis features not ported)
+- **Firebase Auth (M1):** anonymous session, email link, email sign-in, logout — see `/settings`
+- No Firestore profile or athlete sync yet
 - Legacy Training and Analysis apps are **not** migrated yet
 
 See `docs/SKATINGX_ARCHITECTURE_BLUEPRINT.md` for the target architecture.
