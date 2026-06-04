@@ -19,6 +19,9 @@ import {
   settingsRef,
   trainingStateRef,
 } from "./refs";
+import { toFirestoreData } from "./sanitize";
+import { ensureDefaultDistanceRecords } from "./training-records";
+import { ensureDefaultRewardsCatalog } from "./training-rewards";
 
 export type BootstrapResult = {
   created: string[];
@@ -39,7 +42,7 @@ async function ensureDocument(
     ? { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }
     : { ...data, updatedAt: serverTimestamp() };
 
-  await setDoc(ref, payload);
+  await setDoc(ref, toFirestoreData(payload));
   return "created";
 }
 
@@ -82,8 +85,26 @@ export async function bootstrapUserDocuments(
   const trainingPath = trainingStateRef(db, userId, athleteId);
   const trainingResult = await ensureDocument(trainingPath, trainingData, false);
   (trainingResult === "created" ? created : existing).push(
-    `athletes/${athleteId}/trainingState/main`,
+    `athletes/${athleteId}/training/state`,
   );
+
+  const recordIds = await ensureDefaultDistanceRecords({
+    db,
+    userId,
+    athleteId,
+  });
+  for (const distanceId of recordIds) {
+    created.push(`athletes/${athleteId}/training/main/records/${distanceId}`);
+  }
+
+  const catalogCreated = await ensureDefaultRewardsCatalog({
+    db,
+    userId,
+    athleteId,
+  });
+  if (catalogCreated) {
+    created.push(`athletes/${athleteId}/training/main/rewards/catalog`);
+  }
 
   return { created, existing };
 }

@@ -1,11 +1,21 @@
 import type { DateString, Timestamp } from "./common";
 
+export type TrainingTaskSource = "manual" | "academy" | "system";
+
 export interface TrainingTask {
-  id: string | number;
+  id: string;
   text: string;
   target?: string;
-  desc?: string;
+  description?: string;
+  source?: TrainingTaskSource;
   completed: boolean;
+  createdAt: Timestamp;
+  completedAt?: Timestamp;
+  /** Stable id from `@skatingx/content` academy catalog */
+  academyItemId?: string;
+  tags?: string[];
+  /** @deprecated Use description */
+  desc?: string;
   isTemplate?: boolean;
 }
 
@@ -20,15 +30,25 @@ export interface WeeklyTemplateByDay {
 }
 
 /**
- * Training state (`athletes/{athleteId}/trainingState/main`).
+ * Training state (`athletes/{athleteId}/training/state` — blueprint `training/state/main`).
  */
 export interface TrainingState {
   todayTasks: TrainingTask[];
   weeklyTemplate: WeeklyTemplateByDay;
   lastLoginDate: DateString;
+  pointsPerTask: number;
+  dailyBonusPoints: number;
   updatedAt?: Timestamp;
 }
 
+/** Archived day (`athletes/{athleteId}/training/main/taskHistory/{dateId}`). */
+export interface TaskHistoryDay {
+  dateId: DateString;
+  tasks: TrainingTask[];
+  archivedAt?: Timestamp;
+}
+
+/** @deprecated Use `DistanceRecordsDocument` + `TimeEntry` from `./records`. */
 export interface TrainingRecord {
   date: DateString;
   timeSeconds: number;
@@ -42,6 +62,7 @@ export interface Race {
   date: DateString;
 }
 
+/** @deprecated Use `RewardItem` from `./rewards`. */
 export interface Reward {
   id: string;
   name: string;

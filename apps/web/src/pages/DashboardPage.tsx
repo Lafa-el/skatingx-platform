@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { normalizeTrainingState } from "@skatingx/firebase-client";
+import { formatSecondsToTime } from "@skatingx/skating-domain";
 import { Card } from "@skatingx/ui";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
@@ -6,7 +8,10 @@ import {
   useAthleteProfile,
   useGamification,
   useTrainingState,
-} from "@/hooks/firestore";
+  useUserSettings,
+} from "@/app/providers/FirestoreProvider";
+import { useRewardsShop } from "@/hooks/useRewardsShop";
+import { useTrainingRecords } from "@/hooks/useTrainingRecords";
 
 const dashboardCards = [
   {
@@ -40,26 +45,54 @@ export function DashboardPage() {
     error: gamificationError,
   } = useGamification();
   const {
-    data: training,
+    data: rawState,
     loading: trainingLoading,
     error: trainingError,
   } = useTrainingState();
+  const {
+    loading: recordsLoading,
+    error: recordsError,
+    getBestForDistance,
+    latestEntryOverall,
+  } = useTrainingRecords();
+  const { data: settings, loading: settingsLoading } = useUserSettings();
+  const {
+    latestRedemption,
+    loading: shopLoading,
+    error: shopError,
+  } = useRewardsShop();
 
-  const loading = profileLoading || gamificationLoading || trainingLoading;
-  const error = profileError ?? gamificationError ?? trainingError;
+  const loading =
+    profileLoading ||
+    gamificationLoading ||
+    trainingLoading ||
+    recordsLoading ||
+    settingsLoading ||
+    shopLoading;
+  const error =
+    profileError ??
+    gamificationError ??
+    trainingError ??
+    recordsError ??
+    shopError;
+
+  const state = rawState ? normalizeTrainingState(rawState) : null;
+  const tasks = state?.todayTasks ?? [];
+  const completedCount = tasks.filter((t) => t.completed).length;
+  const taskCount = tasks.length;
 
   const name = profile?.displayName ?? "…";
   const points = gamification?.points ?? 0;
   const streakDays = gamification?.streakDays ?? 0;
-  const taskCount = training?.todayTasks?.length ?? 0;
+  const pb500 = getBestForDistance("500m");
+  const pbFastestLap = getBestForDistance("fastest_lap");
+  const isPro = Boolean(settings?.isPro);
 
   return (
     <section>
       <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
       <p className="mt-1 text-slate-600">
-        {loading
-          ? "Loading your dashboard…"
-          : `Welcome back, ${name}`}
+        {loading ? "Loading your dashboard…" : `Welcome back, ${name}`}
       </p>
 
       <FirestoreStatusBanner className="mt-4" />
@@ -73,7 +106,7 @@ export function DashboardPage() {
         </p>
       ) : null}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card title="Athlete">
           <p className="text-lg font-semibold text-slate-900">
             {loading ? "…" : name}
@@ -91,9 +124,64 @@ export function DashboardPage() {
         </Card>
         <Card title="Today's tasks">
           <p className="text-lg font-semibold text-slate-900">
-            {loading ? "…" : taskCount}
+            {loading ? "…" : `${completedCount} / ${taskCount}`}
           </p>
-          <p className="mt-1 text-xs text-slate-500">items on today&apos;s list</p>
+          <p className="mt-1 text-xs text-slate-500">completed / total</p>
+        </Card>
+        <Card title="500m PB">
+          <p className="text-lg font-semibold font-mono text-slate-900">
+            {loading ? "…" : pb500 ? formatSecondsToTime(pb500.timeSeconds) : "—"}
+          </p>
+          {pb500 ? (
+            <p className="mt-1 text-xs text-slate-500">{pb500.date}</p>
+          ) : null}
+        </Card>
+        <Card title="Fastest lap PB">
+          <p className="text-lg font-semibold font-mono text-slate-900">
+            {loading
+              ? "…"
+              : pbFastestLap
+                ? formatSecondsToTime(pbFastestLap.timeSeconds)
+                : "—"}
+          </p>
+          {pbFastestLap ? (
+            <p className="mt-1 text-xs text-slate-500">{pbFastestLap.date}</p>
+          ) : null}
+        </Card>
+        <Card title="PRO">
+          <p className="text-lg font-semibold text-slate-900">
+            {loading ? "…" : isPro ? "Active" : "Free"}
+          </p>
+        </Card>
+        <Card title="Latest redemption">
+          <p className="text-lg font-semibold text-slate-900">
+            {loading
+              ? "…"
+              : latestRedemption
+                ? latestRedemption.rewardName
+                : "—"}
+          </p>
+          {latestRedemption ? (
+            <p className="mt-1 text-xs text-slate-500">
+              −{latestRedemption.cost} pts · {latestRedemption.redeemedAt.slice(0, 10)}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-slate-500">No redemptions yet</p>
+          )}
+        </Card>
+        <Card title="Latest record">
+          <p className="text-lg font-semibold font-mono text-slate-900">
+            {loading
+              ? "…"
+              : latestEntryOverall
+                ? formatSecondsToTime(latestEntryOverall.timeSeconds)
+                : "—"}
+          </p>
+          {latestEntryOverall ? (
+            <p className="mt-1 text-xs text-slate-500">{latestEntryOverall.date}</p>
+          ) : (
+            <p className="mt-1 text-xs text-slate-500">No entries yet</p>
+          )}
         </Card>
       </div>
 

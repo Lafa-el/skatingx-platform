@@ -1,5 +1,7 @@
 import {
+  collection,
   doc,
+  type CollectionReference,
   type DocumentReference,
   type Firestore,
 } from "firebase/firestore";
@@ -39,4 +41,64 @@ export function trainingStateRef(
   athleteId: string,
 ): DocumentReference {
   return docFromPath(db, paths.trainingState(userId, athleteId));
+}
+
+export function taskHistoryRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+  dateId: string,
+): DocumentReference {
+  return docFromPath(db, paths.taskHistory(userId, athleteId, dateId));
+}
+
+export function trainingRecordRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+  distanceId: string,
+): DocumentReference {
+  return docFromPath(db, paths.trainingRecord(userId, athleteId, distanceId));
+}
+
+export function trainingRecordsCollectionRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+): CollectionReference {
+  const segments = pathToSegments(
+    paths.trainingRecordsCollection(userId, athleteId),
+  );
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
+export function trainingRewardsCatalogRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+): DocumentReference {
+  return docFromPath(db, paths.trainingRewardsCatalog(userId, athleteId));
+}
+
+export function trainingRedemptionRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+  redemptionId: string,
+): DocumentReference {
+  return docFromPath(
+    db,
+    paths.trainingRedemption(userId, athleteId, redemptionId),
+  );
+}
+
+export function trainingRedemptionsCollectionRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+): CollectionReference {
+  const segments = pathToSegments(
+    paths.trainingRedemptionsCollection(userId, athleteId),
+  );
+  return collection(db, ...(segments as [string, ...string[]]));
 }

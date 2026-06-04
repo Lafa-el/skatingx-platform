@@ -1,7 +1,36 @@
-/** Pure domain helpers (legacy extractions land here in later phases). */
-
-export function formatPlaceholderTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
+export { compareDateStrings, previousDateString, todayDateString } from "./dates";
+export { calculateStreakDays } from "./streak";
+export {
+  allTasksCompleted,
+  applyTaskToggle,
+  createTaskId,
+  normalizeTask,
+  normalizeTrainingState,
+  type TaskToggleResult,
+} from "./tasks";
+export {
+  formatRedemptionStatus,
+  getActiveRewards,
+  localizeRewardDescription,
+  localizeRewardName,
+  sortRedemptionsNewest,
+} from "./rewards";
+export {
+  buildAcademyImportCandidate,
+  buildTaskFromAcademyCandidate,
+  filterNewAcademyCandidates,
+  hasAcademyItemImportedToday,
+  matchRoutineTaskLabel,
+  type AcademyImportCandidate,
+} from "./academy";
+export {
+  createTimeEntryId,
+  formatSecondsToTime,
+  getBestTime,
+  getLatestTime,
+  normalizeDistanceId,
+  normalizeDistanceRecordsDocument,
+  normalizeTimeEntry,
+  parseTimeToSeconds,
+  sortRecordsByDate,
+} from "./records";

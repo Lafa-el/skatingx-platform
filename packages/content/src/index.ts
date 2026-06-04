@@ -1,8 +1,25 @@
-/** Versioned content bundles (academy, plans, i18n) — populated during migration. */
+export const CONTENT_VERSION = "1.0.0-academy" as const;
 
-export const CONTENT_VERSION = "0.0.0-skeleton" as const;
+export {
+  ACADEMY_CONTENT_VERSION,
+  ACADEMY_STAGES,
+  findAcademyItem,
+  flattenStageItems,
+  getAcademyStage,
+  getAcademyStages,
+  getWeekdayRoutineItems,
+  localizeAcademyItem,
+  localizeStageLabel,
+} from "./academy";
 
-export const placeholderContent = {
-  contentVersion: CONTENT_VERSION,
-  message: "Content package ready for academy, plans, and i18n assets.",
-} as const;
+export type {
+  AcademyDayPlan,
+  AcademyItem,
+  AcademyItemCategory,
+  AcademyLanguage,
+  AcademyModule,
+  AcademyRoutineItem,
+  AcademyStage,
+  WeekdayKey,
+  WeeklyRoutine,
+} from "./academy-types";

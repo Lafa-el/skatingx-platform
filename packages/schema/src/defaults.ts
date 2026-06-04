@@ -30,6 +30,8 @@ export function createDefaultUserSettings(): Omit<
     activeAthleteId: DEFAULT_ATHLETE_ID,
     language: "zh",
     theme: "system",
+    isPro: false,
+    parentPinEnabled: false,
   };
 }
 
@@ -56,10 +58,15 @@ export function createDefaultGamification(): Omit<
   };
 }
 
+export const DEFAULT_POINTS_PER_TASK = 20;
+export const DEFAULT_DAILY_BONUS_POINTS = 50;
+
 export function createDefaultTrainingState(): Omit<TrainingState, "updatedAt"> {
   return {
     todayTasks: [],
     weeklyTemplate: { ...EMPTY_WEEKLY_TEMPLATE },
     lastLoginDate: todayDateString(),
+    pointsPerTask: DEFAULT_POINTS_PER_TASK,
+    dailyBonusPoints: DEFAULT_DAILY_BONUS_POINTS,
   };
 }

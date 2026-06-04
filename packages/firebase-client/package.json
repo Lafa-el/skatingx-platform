@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@skatingx/schema": "*",
+    "@skatingx/skating-domain": "*",
     "firebase": "^11.6.1"
   }
 }

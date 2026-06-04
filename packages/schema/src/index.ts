@@ -28,12 +28,40 @@ export type {
 export type {
   Race,
   Reward,
+  TaskHistoryDay,
   TrainingRecord,
   TrainingState,
   TrainingTask,
+  TrainingTaskSource,
   WeeklyTemplate,
   WeeklyTemplateByDay,
 } from "./training";
+
+export type {
+  DefaultDistanceDefinition,
+  DistanceRecordsDocument,
+  TimeEntry,
+  TimeEntrySource,
+} from "./records";
+
+export { DEFAULT_TRAINING_DISTANCES } from "./records";
+
+export type {
+  RedemptionStatus,
+  RewardItem,
+  RewardRedemption,
+  RewardsCatalogDocument,
+} from "./rewards";
+
+export {
+  createDefaultRewardsCatalog,
+  DEFAULT_REWARD_ITEMS,
+} from "./defaults-rewards";
+
+export {
+  DEFAULT_DAILY_BONUS_POINTS,
+  DEFAULT_POINTS_PER_TASK,
+} from "./defaults";
 
 export {
   createDefaultAthleteProfile,

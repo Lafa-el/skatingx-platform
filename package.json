@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "npm run dev -w @skatingx/web",
     "build": "npm run build -w @skatingx/web",
-    "typecheck": "npm run typecheck -w @skatingx/schema && npm run typecheck -w @skatingx/firebase-client && npm run typecheck -w @skatingx/web"
+    "typecheck": "npm run typecheck -w @skatingx/schema && npm run typecheck -w @skatingx/skating-domain && npm run typecheck -w @skatingx/firebase-client && npm run typecheck -w @skatingx/web"
   },
   "engines": {
     "node": ">=20"

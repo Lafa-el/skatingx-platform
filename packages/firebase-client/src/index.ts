@@ -10,8 +10,45 @@ export {
   athleteGamificationRef,
   athleteProfileRef,
   settingsRef,
+  taskHistoryRef,
+  trainingRecordRef,
+  trainingRecordsCollectionRef,
+  trainingRedemptionRef,
+  trainingRedemptionsCollectionRef,
+  trainingRewardsCatalogRef,
   trainingStateRef,
 } from "./firestore/refs";
+export { updateUserSettings } from "./firestore/settings";
+export {
+  ensureDefaultRewardsCatalog,
+  normalizeRewardsCatalog,
+  redeemReward,
+  type RedeemRewardResult,
+  type RewardsActorContext,
+} from "./firestore/training-rewards";
+export {
+  addTimeEntry,
+  deleteTimeEntry,
+  ensureDefaultDistanceRecords,
+  readDistanceRecordsDocument,
+  updateTimeEntry,
+  type RecordsActorContext,
+} from "./firestore/training-records";
+export {
+  addTrainingTask,
+  deleteTrainingTask,
+  importAcademyTasks,
+  normalizeTrainingState,
+  runDayRolloverIfNeeded,
+  toggleTrainingTask,
+  type AcademyImportResult,
+  type TrainingActorContext,
+} from "./firestore/training-tasks";
+export {
+  sanitizeForFirestore,
+  serializeTimeEntry,
+  serializeTrainingTask,
+} from "./firestore/sanitize";
 export { subscribeToDocument } from "./firestore/subscribe";
 export {
   getAuthErrorMessage,

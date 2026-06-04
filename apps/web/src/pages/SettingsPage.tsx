@@ -1,7 +1,9 @@
+import { getFirestoreDb, updateUserSettings } from "@skatingx/firebase-client";
 import { Button, Card } from "@skatingx/ui";
 import { FormEvent, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useUserSettings } from "@/app/providers/FirestoreProvider";
 
 function AuthField({
   id,
@@ -51,7 +53,10 @@ export function SettingsPage() {
   const [bindPassword, setBindPassword] = useState("");
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
+  const { data: settings, loading: settingsLoading } = useUserSettings();
   const [formBusy, setFormBusy] = useState(false);
+  const [proBusy, setProBusy] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
 
   async function handleBindSubmit(event: FormEvent) {
     event.preventDefault();
@@ -108,6 +113,27 @@ export function SettingsPage() {
         : "Registered User";
 
   const emailDisplay = user?.email ?? "—";
+  const isPro = Boolean(settings?.isPro);
+
+  async function handleProToggle() {
+    if (!uid) return;
+    const db = getFirestoreDb();
+    if (!db) return;
+    setProBusy(true);
+    setSettingsMessage(null);
+    try {
+      await updateUserSettings(db, uid, { isPro: !isPro });
+      setSettingsMessage(
+        !isPro ? "PRO enabled (development flag)." : "PRO disabled.",
+      );
+    } catch (error) {
+      setSettingsMessage(
+        error instanceof Error ? error.message : "Failed to update PRO status.",
+      );
+    } finally {
+      setProBusy(false);
+    }
+  }
 
   return (
     <section className="max-w-lg">
@@ -117,7 +143,52 @@ export function SettingsPage() {
         later phase.
       </p>
 
-      <Card title="Current user" className="mt-6">
+      <Card title="PRO membership" className="mt-6">
+        <p className="text-sm text-slate-600">
+          Payment (Stripe / WeChat) is not implemented. PRO is a manual boolean
+          flag for development and future feature gating.
+        </p>
+        <dl className="mt-3 grid gap-2 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-slate-500">Status</dt>
+            <dd className="font-medium text-slate-900">
+              {settingsLoading ? "…" : isPro ? "PRO active" : "Free"}
+            </dd>
+          </div>
+        </dl>
+        <Button
+          type="button"
+          className="mt-3"
+          variant="ghost"
+          disabled={proBusy || settingsLoading || !uid}
+          onClick={() => void handleProToggle()}
+        >
+          {proBusy
+            ? "Saving…"
+            : isPro
+              ? "Disable PRO (dev)"
+              : "Enable PRO (dev)"}
+        </Button>
+      </Card>
+
+      <Card title="Parent settings" className="mt-4">
+        <p className="text-sm text-slate-600">
+          Parent PIN lock is not implemented in M6. PINs are not stored in
+          plaintext. When PIN security ships, only a hash will be saved on{" "}
+          <code className="text-xs">settings/main</code>.
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          parentPinEnabled: {settings?.parentPinEnabled ? "true" : "false"}
+        </p>
+      </Card>
+
+      {settingsMessage ? (
+        <p className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+          {settingsMessage}
+        </p>
+      ) : null}
+
+      <Card title="Current user" className="mt-4">
         <dl className="grid gap-2 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Status</dt>
