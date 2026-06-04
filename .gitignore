@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+
+.env
+.env.local
+.env.production
+
+.vercel
+
+.firebase
+
+coverage
+
+.DS_Store
+
+.vscode/settings.json
