@@ -8,8 +8,8 @@ import {
   useAthleteProfile,
   useGamification,
   useTrainingState,
-  useUserSettings,
 } from "@/app/providers/FirestoreProvider";
+import { useIsPro } from "@/hooks/useIsPro";
 import { useRewardsShop } from "@/hooks/useRewardsShop";
 import { useTrainingRecords } from "@/hooks/useTrainingRecords";
 
@@ -55,7 +55,7 @@ export function DashboardPage() {
     getBestForDistance,
     latestEntryOverall,
   } = useTrainingRecords();
-  const { data: settings, loading: settingsLoading } = useUserSettings();
+  const { isPro, loading: proLoading } = useIsPro();
   const {
     latestRedemption,
     loading: shopLoading,
@@ -67,7 +67,7 @@ export function DashboardPage() {
     gamificationLoading ||
     trainingLoading ||
     recordsLoading ||
-    settingsLoading ||
+    proLoading ||
     shopLoading;
   const error =
     profileError ??
@@ -86,7 +86,6 @@ export function DashboardPage() {
   const streakDays = gamification?.streakDays ?? 0;
   const pb500 = getBestForDistance("500m");
   const pbFastestLap = getBestForDistance("fastest_lap");
-  const isPro = Boolean(settings?.isPro);
 
   return (
     <section>
@@ -148,9 +147,9 @@ export function DashboardPage() {
             <p className="mt-1 text-xs text-slate-500">{pbFastestLap.date}</p>
           ) : null}
         </Card>
-        <Card title="PRO">
+        <Card title="Plan">
           <p className="text-lg font-semibold text-slate-900">
-            {loading ? "…" : isPro ? "Active" : "Free"}
+            {loading ? "…" : isPro ? "PRO active" : "Free plan"}
           </p>
         </Card>
         <Card title="Latest redemption">

@@ -35,7 +35,6 @@ export type FirestoreHookState<T> = {
 type FirestoreContextValue = {
   ready: boolean;
   bootstrapError: string | null;
-  persistenceNote: string | null;
   settings: FirestoreHookState<UserSettings>;
   profile: FirestoreHookState<AthleteProfile>;
   gamification: FirestoreHookState<Gamification>;
@@ -55,7 +54,6 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
   const { uid, loading: authLoading, firebaseReady } = useAuth();
   const [ready, setReady] = useState(false);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
-  const [persistenceNote, setPersistenceNote] = useState<string | null>(null);
   const [settings, setSettings] =
     useState<FirestoreHookState<UserSettings>>(initialSlice);
   const [profile, setProfile] =
@@ -107,10 +105,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
       setGamification({ data: null, loading: true, error: null });
       setTrainingState({ data: null, loading: true, error: null });
 
-      const persistence = await initFirestorePersistence(db);
-      if (!cancelled && !persistence.enabled) {
-        setPersistenceNote(persistence.reason);
-      }
+      await initFirestorePersistence(db);
 
       try {
         await bootstrapUserDocuments(db, uid);
@@ -182,7 +177,6 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
     (): FirestoreContextValue => ({
       ready,
       bootstrapError,
-      persistenceNote,
       settings,
       profile,
       gamification,
@@ -192,7 +186,6 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
     [
       ready,
       bootstrapError,
-      persistenceNote,
       settings,
       profile,
       gamification,
@@ -248,11 +241,29 @@ export function useActiveAthlete(): {
   };
 }
 
+function firstListenerError(
+  ctx: FirestoreContextValue,
+): string | null {
+  return (
+    ctx.settings.error ??
+    ctx.profile.error ??
+    ctx.gamification.error ??
+    ctx.trainingState.error ??
+    null
+  );
+}
+
 export function useFirestoreStatus(): {
   ready: boolean;
   bootstrapError: string | null;
-  persistenceNote: string | null;
+  connectivityError: string | null;
 } {
-  const { ready, bootstrapError, persistenceNote } = useFirestoreContext();
-  return { ready, bootstrapError, persistenceNote };
+  const ctx = useFirestoreContext();
+  const connectivityError =
+    ctx.bootstrapError ?? (ctx.ready ? firstListenerError(ctx) : null);
+  return {
+    ready: ctx.ready,
+    bootstrapError: ctx.bootstrapError,
+    connectivityError,
+  };
 }

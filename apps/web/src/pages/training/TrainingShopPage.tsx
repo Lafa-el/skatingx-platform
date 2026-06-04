@@ -9,22 +9,16 @@ import {
 import { Button, Card } from "@skatingx/ui";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
-import {
-  useGamification,
-} from "@/app/providers/FirestoreProvider";
+import { ProLockedCard, ProPlanBanner } from "@/components/ProPlanBanner";
+import { useGamification } from "@/app/providers/FirestoreProvider";
+import { useIsPro } from "@/hooks/useIsPro";
 import { useRewardActions } from "@/hooks/useRewardActions";
 import { useRewardsShop } from "@/hooks/useRewardsShop";
 
 export function TrainingShopPage() {
+  const { isPro, language } = useIsPro();
   const { data: gamification, loading: pointsLoading } = useGamification();
-  const {
-    catalog,
-    redemptions,
-    loading,
-    error,
-    isPro,
-    language,
-  } = useRewardsShop();
+  const { catalog, redemptions, loading, error } = useRewardsShop();
   const {
     redeem,
     busy,
@@ -61,11 +55,12 @@ export function TrainingShopPage() {
       </h1>
       <p className="mt-1 text-slate-600">
         {isEn
-          ? "Spend Blaze points on rewards. Redemptions are saved to your history."
-          : "使用冰焰积分兑换奖励，兑换记录会保存在历史中。"}
+          ? "Catalog rewards are always available. Custom rewards require PRO."
+          : "目录奖励始终可兑换。自定义奖励需要 PRO。"}
       </p>
 
       <FirestoreStatusBanner className="mt-4" />
+      <ProPlanBanner isPro={isPro} isEn={isEn} className="mt-4" />
 
       {error ? (
         <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
@@ -94,7 +89,7 @@ export function TrainingShopPage() {
       </Card>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-900">
-        {isEn ? "Rewards" : "可兑换奖励"}
+        {isEn ? "Catalog rewards" : "目录奖励"}
       </h2>
 
       {loading ? (
@@ -150,24 +145,30 @@ export function TrainingShopPage() {
         </div>
       )}
 
-      <Card
-        title={isEn ? "Custom rewards (PRO)" : "自定义奖励（PRO）"}
-        className="mt-6"
-      >
-        {isPro ? (
-          <p className="text-sm text-slate-600">
+      <h2 className="mt-8 text-lg font-semibold text-slate-900">
+        {isEn ? "Custom rewards" : "自定义奖励"}
+        <span className="ml-2 text-xs font-normal text-slate-500">PRO</span>
+      </h2>
+
+      {isPro ? (
+        <Card title={isEn ? "PRO — custom rewards" : "PRO — 自定义奖励"} className="mt-3">
+          <p className="text-sm font-semibold text-emerald-800">
+            {isEn ? "PRO active" : "PRO 已开启"}
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
             {isEn
               ? "Custom reward management is a placeholder in M6. Full add/edit UI ships with payment and parent tools later."
               : "自定义奖励管理为 M6 占位功能，完整增删改将在支付与家长功能上线后提供。"}
           </p>
-        ) : (
-          <p className="text-sm text-slate-600">
-            {isEn
-              ? "Unlock PRO to manage custom rewards for your athlete. Payment integration is not implemented yet — use Settings to toggle PRO for development."
-              : "升级 PRO 后可管理自定义奖励。支付尚未接入 — 开发阶段可在设置中手动开启 PRO。"}
-          </p>
-        )}
-      </Card>
+        </Card>
+      ) : (
+        <ProLockedCard
+          isEn={isEn}
+          messageEn="Unlock PRO to create and manage custom rewards for your athlete."
+          messageZh="开启 PRO 后可创建并管理运动员专属自定义奖励。"
+          className="mt-3"
+        />
+      )}
 
       <h2 className="mt-8 text-lg font-semibold text-slate-900">
         {isEn ? "Redemption history" : "兑换记录"}

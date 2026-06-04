@@ -113,7 +113,7 @@ export function SettingsPage() {
         : "Registered User";
 
   const emailDisplay = user?.email ?? "—";
-  const isPro = Boolean(settings?.isPro);
+  const isPro = settings?.isPro === true;
 
   async function handleProToggle() {
     if (!uid) return;
@@ -144,15 +144,18 @@ export function SettingsPage() {
       </p>
 
       <Card title="PRO membership" className="mt-6">
-        <p className="text-sm text-slate-600">
-          Payment (Stripe / WeChat) is not implemented. PRO is a manual boolean
-          flag for development and future feature gating.
+        <p className="text-sm font-medium text-amber-800">
+          Development only. Payment is not implemented.
+        </p>
+        <p className="mt-2 text-sm text-slate-600">
+          Toggle PRO below to test gated Academy and Shop UI. This does not
+          charge real money or verify subscription status.
         </p>
         <dl className="mt-3 grid gap-2 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Status</dt>
             <dd className="font-medium text-slate-900">
-              {settingsLoading ? "…" : isPro ? "PRO active" : "Free"}
+              {settingsLoading ? "…" : isPro ? "PRO active" : "Free plan"}
             </dd>
           </div>
         </dl>

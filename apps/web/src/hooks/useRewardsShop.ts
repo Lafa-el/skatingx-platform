@@ -110,13 +110,14 @@ export function useRewardsShop() {
     )[0];
   }, [redemptions]);
 
+  const language = (settings?.language === "en" ? "en" : "zh") as Language;
+
   return {
     catalog,
     redemptions,
     latestRedemption,
     loading,
     error,
-    isPro: Boolean(settings?.isPro),
-    language: (settings?.language === "en" ? "en" : "zh") as Language,
+    language,
   };
 }

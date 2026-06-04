@@ -11,8 +11,10 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
+import { ProLockedCard, ProPlanBanner } from "@/components/ProPlanBanner";
 import { useAcademyImport } from "@/hooks/useAcademyImport";
-import { useTrainingState, useUserSettings } from "@/app/providers/FirestoreProvider";
+import { useIsPro } from "@/hooks/useIsPro";
+import { useTrainingState } from "@/app/providers/FirestoreProvider";
 
 const WEEKDAYS: { key: WeekdayKey; labelZh: string; labelEn: string }[] = [
   { key: "monday", labelZh: "周一", labelEn: "Mon" },
@@ -26,10 +28,13 @@ const WEEKDAYS: { key: WeekdayKey; labelZh: string; labelEn: string }[] = [
 
 const stages = getAcademyStages();
 
+const ROUTINE_LOCK_EN =
+  "PRO required for advanced routine import and AI-powered training plans.";
+const ROUTINE_LOCK_ZH = "高阶计划导入与 AI 训练计划需要 PRO。";
+
 export function TrainingAcademyPage() {
-  const { data: settings } = useUserSettings();
+  const { isPro, language } = useIsPro();
   const { data: rawState, loading: tasksLoading } = useTrainingState();
-  const isPro = Boolean(settings?.isPro);
   const {
     importItem,
     importDayPlan,
@@ -39,7 +44,6 @@ export function TrainingAcademyPage() {
     lastResult,
     clearActionError,
     clearLastResult,
-    language,
   } = useAcademyImport();
 
   const [stageId, setStageId] = useState(stages[0]?.id ?? "age4_6");
@@ -63,6 +67,9 @@ export function TrainingAcademyPage() {
   }
 
   async function handleImportDayPlan(planId: string) {
+    if (!isPro) {
+      return;
+    }
     if (!stage) {
       return;
     }
@@ -72,6 +79,9 @@ export function TrainingAcademyPage() {
   }
 
   async function handleImportWeekday() {
+    if (!isPro) {
+      return;
+    }
     if (!stage) {
       return;
     }
@@ -93,11 +103,12 @@ export function TrainingAcademyPage() {
       <h1 className="text-2xl font-bold text-slate-900">BLAZE SKATE Academy</h1>
       <p className="mt-1 text-slate-600">
         {isEn
-          ? "Professional dryland training — import items into today’s task list."
-          : "全周期速滑专业陆地训练 — 将训练项导入今日任务。"}
+          ? "Professional dryland training — browse free; import single drills anytime."
+          : "全周期速滑专业陆地训练 — 免费浏览；单项可随时导入今日任务。"}
       </p>
 
       <FirestoreStatusBanner className="mt-4" />
+      <ProPlanBanner isPro={isPro} isEn={isEn} className="mt-4" />
 
       {actionError ? (
         <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
@@ -248,96 +259,112 @@ export function TrainingAcademyPage() {
       <div className="mt-8 border-t border-dashed border-slate-200 pt-6">
         <h2 className="text-lg font-semibold text-slate-900">
           {isEn ? stage.weeklyRoutine.titleEn : stage.weeklyRoutine.titleZh}
+          <span className="ml-2 text-xs font-normal text-slate-500">
+            {isEn ? "(PRO)" : "（PRO）"}
+          </span>
         </h2>
         <p className="mt-1 text-sm text-slate-600">
           {isEn
-            ? "Reference weekly plans — import one day at a time into today’s tasks."
-            : "参考周计划 — 按天导入到今日任务（不会一次性导入整周）。"}
+            ? "Reference weekly plans — browse anytime; bulk import requires PRO."
+            : "参考周计划 — 可随时浏览；批量导入需要 PRO。"}
         </p>
 
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <label className="text-sm">
-            <span className="font-medium text-slate-700">
-              {isEn ? "Import weekday routine" : "导入指定星期"}
-            </span>
-            <select
-              value={routineWeekday}
-              onChange={(e) => setRoutineWeekday(e.target.value as WeekdayKey)}
-              className="mt-1 block rounded-lg border border-slate-300 px-3 py-2"
-            >
-              {WEEKDAYS.map((d) => (
-                <option key={d.key} value={d.key}>
-                  {isEn ? d.labelEn : d.labelZh}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Button
-            type="button"
-            disabled={busy}
-            onClick={() => void handleImportWeekday()}
-          >
-            {busy
-              ? isEn
-                ? "Importing…"
-                : "导入中…"
-              : isEn
-                ? "Import day"
-                : "导入该日"}
-          </Button>
-        </div>
+        {!isPro ? (
+          <ProLockedCard
+            isEn={isEn}
+            messageEn={ROUTINE_LOCK_EN}
+            messageZh={ROUTINE_LOCK_ZH}
+            className="mt-4"
+          />
+        ) : null}
 
-        <div className="mt-4 space-y-3">
-          {stage.weeklyRoutine.dayPlans.map((plan) => (
-            <Card key={plan.id} title={`${isEn ? plan.dayLabelEn : plan.dayLabelZh} · ${isEn ? plan.titleEn : plan.titleZh}`}>
-              <p className="text-xs text-slate-500">
-                {isEn ? plan.durationEn : plan.durationZh}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {plan.taskLabels.map((label) => (
-                  <span
-                    key={label}
-                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-600"
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
-              <Button
-                type="button"
-                className="mt-3 w-full sm:w-auto"
-                disabled={busy}
-                onClick={() => void handleImportDayPlan(plan.id)}
+        <div className={!isPro ? "mt-4 pointer-events-none opacity-50" : "mt-4"}>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-sm">
+              <span className="font-medium text-slate-700">
+                {isEn ? "Import weekday routine" : "导入指定星期"}
+              </span>
+              <select
+                value={routineWeekday}
+                disabled={!isPro}
+                onChange={(e) => setRoutineWeekday(e.target.value as WeekdayKey)}
+                className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-100"
               >
-                {busy
-                  ? isEn
-                    ? "Importing…"
-                    : "导入中…"
-                  : isEn
-                    ? "Import this plan to today"
-                    : "导入本日到今日任务"}
-              </Button>
-            </Card>
-          ))}
+                {WEEKDAYS.map((d) => (
+                  <option key={d.key} value={d.key}>
+                    {isEn ? d.labelEn : d.labelZh}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button
+              type="button"
+              disabled={busy || !isPro}
+              onClick={() => void handleImportWeekday()}
+            >
+              {busy
+                ? isEn
+                  ? "Importing…"
+                  : "导入中…"
+                : isEn
+                  ? "Import day"
+                  : "导入该日"}
+            </Button>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {stage.weeklyRoutine.dayPlans.map((plan) => (
+              <Card
+                key={plan.id}
+                title={`${isEn ? plan.dayLabelEn : plan.dayLabelZh} · ${isEn ? plan.titleEn : plan.titleZh}`}
+              >
+                <p className="text-xs text-slate-500">
+                  {isEn ? plan.durationEn : plan.durationZh}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {plan.taskLabels.map((label) => (
+                    <span
+                      key={label}
+                      className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-600"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  className="mt-3 w-full sm:w-auto"
+                  disabled={busy || !isPro}
+                  onClick={() => void handleImportDayPlan(plan.id)}
+                >
+                  {busy
+                    ? isEn
+                      ? "Importing…"
+                      : "导入中…"
+                    : isEn
+                      ? "Import this plan to today"
+                      : "导入本日到今日任务"}
+                </Button>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
 
-      <Card title={isEn ? "PRO features (coming later)" : "PRO 功能（即将推出）"} className="mt-8">
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
-          <li>{isEn ? "Advanced routines & custom plans" : "高阶训练计划与自定义方案"}</li>
-          <li>{isEn ? "AI Coach integration" : "AI 教练联动"}</li>
-          <li>{isEn ? "Custom reward management" : "自定义奖励管理"}</li>
-        </ul>
-        <p className="mt-3 text-xs text-slate-500">
-          {isPro
-            ? isEn
-              ? "PRO flag is on (dev). Academy import remains available in M6."
-              : "PRO 已开启（开发）。M6 学院导入功能仍可使用。"
-            : isEn
-              ? "Enable PRO in Settings for development testing. Payment not integrated."
-              : "可在设置中开启 PRO 进行开发测试，支付尚未接入。"}
-        </p>
-      </Card>
+      {isPro ? (
+        <Card title={isEn ? "PRO features" : "PRO 功能"} className="mt-8">
+          <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
+            <li>{isEn ? "Advanced routine import (enabled)" : "高阶计划导入（已开启）"}</li>
+            <li>{isEn ? "Custom training plans (coming)" : "自定义训练方案（即将推出）"}</li>
+            <li>{isEn ? "AI Coach integration (coming)" : "AI 教练联动（即将推出）"}</li>
+          </ul>
+          <p className="mt-3 text-xs text-slate-500">
+            {isEn
+              ? "Payment is not integrated; PRO is a development toggle in Settings."
+              : "支付尚未接入；PRO 为设置中的开发开关。"}
+          </p>
+        </Card>
+      ) : null}
     </section>
   );
 }

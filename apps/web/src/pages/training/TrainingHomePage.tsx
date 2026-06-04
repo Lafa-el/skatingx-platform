@@ -11,7 +11,7 @@ import {
   useTrainingState,
   useUserSettings,
 } from "@/app/providers/FirestoreProvider";
-import { useRewardsShop } from "@/hooks/useRewardsShop";
+import { useIsPro } from "@/hooks/useIsPro";
 import { useTrainingRecords } from "@/hooks/useTrainingRecords";
 
 export function TrainingHomePage() {
@@ -25,11 +25,10 @@ export function TrainingHomePage() {
     totalEntryCount,
     getBestForDistance,
   } = useTrainingRecords();
-  const { loading: shopLoading } = useRewardsShop();
+  const { isPro, loading: proLoading } = useIsPro();
 
   const loading =
-    profileLoading || gamificationLoading || stateLoading || recordsLoading || shopLoading;
-  const isPro = Boolean(settings?.isPro);
+    profileLoading || gamificationLoading || stateLoading || recordsLoading || proLoading;
   const recordsErr = recordsError;
   const state = rawState ? normalizeTrainingState(rawState) : null;
   const tasks = state?.todayTasks ?? [];
@@ -104,13 +103,15 @@ export function TrainingHomePage() {
           {loading ? "…" : `${gamification?.points ?? 0} points`}
         </p>
         <p className="mt-1 text-sm text-slate-600">
-          {isPro
-            ? language === "en"
-              ? "PRO active · custom rewards placeholder"
-              : "PRO 已开启 · 自定义奖励为占位"
-            : language === "en"
-              ? "Redeem points for treats and perks"
-              : "用积分兑换奖励"}
+          {loading
+            ? "…"
+            : isPro
+              ? language === "en"
+                ? "PRO active · catalog + custom rewards (placeholder)"
+                : "PRO 已开启 · 目录奖励 + 自定义奖励（占位）"
+              : language === "en"
+                ? "Free plan · catalog rewards only"
+                : "免费版 · 仅目录奖励"}
         </p>
         <Link
           to="/training/shop"

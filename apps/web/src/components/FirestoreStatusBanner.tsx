@@ -7,20 +7,9 @@ type FirestoreStatusBannerProps = {
 export function FirestoreStatusBanner({
   className = "",
 }: FirestoreStatusBannerProps) {
-  const { ready, bootstrapError, persistenceNote } = useFirestoreStatus();
+  const { ready, connectivityError } = useFirestoreStatus();
 
-  if (bootstrapError) {
-    return (
-      <p
-        className={`rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 ${className}`.trim()}
-        role="alert"
-      >
-        Firestore: {bootstrapError}
-      </p>
-    );
-  }
-
-  if (!ready) {
+  if (!ready && !connectivityError) {
     return (
       <p
         className={`text-sm text-slate-500 ${className}`.trim()}
@@ -31,10 +20,13 @@ export function FirestoreStatusBanner({
     );
   }
 
-  if (persistenceNote) {
+  if (connectivityError) {
     return (
-      <p className={`text-xs text-slate-400 ${className}`.trim()}>
-        Offline cache: {persistenceNote}
+      <p
+        className={`rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 ${className}`.trim()}
+        role="alert"
+      >
+        Unable to connect to Firestore: {connectivityError}
       </p>
     );
   }

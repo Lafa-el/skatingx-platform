@@ -18,10 +18,11 @@ M6 adds a **reward catalog**, **point redemptions** (Firestore transaction), **r
 | `/training/shop` UI | Done |
 | Redemption transaction | Done |
 | PRO manual flag + Settings toggle | Done |
+| PRO UI gating (Academy / Shop / Dashboard) | Done |
 | Custom rewards CRUD | Placeholder only (Option A) |
 | Stripe / WeChat / PIN hash | Not implemented |
 
-**Build:** `npm run build` — **PASS**
+**Build:** `npm run build` — **PASS** (after PRO gating wiring)
 
 ---
 
@@ -57,13 +58,16 @@ M6 adds a **reward catalog**, **point redemptions** (Firestore transaction), **r
 
 | File | Change |
 |------|--------|
-| `hooks/useRewardsShop.ts` | Catalog + redemptions listeners |
+| `hooks/useIsPro.ts` | Live `settings/main.isPro` + language for gated pages |
+| `hooks/useRewardsShop.ts` | Catalog + redemptions listeners (no PRO logic) |
 | `hooks/useRewardActions.ts` | Redeem action |
-| `pages/training/TrainingShopPage.tsx` | Full shop UI |
-| `pages/SettingsPage.tsx` | PRO toggle, parent PIN note |
-| `pages/training/TrainingAcademyPage.tsx` | PRO coming-soon section |
-| `pages/DashboardPage.tsx` | Points, latest redemption, PRO |
-| `pages/training/TrainingHomePage.tsx` | Shop card |
+| `hooks/useAcademyImport.ts` | Throws if advanced import without PRO |
+| `components/ProPlanBanner.tsx` | `ProPlanBanner`, `ProLockedCard` |
+| `pages/training/TrainingShopPage.tsx` | Catalog redeem + PRO custom section |
+| `pages/SettingsPage.tsx` | PRO dev toggle, payment disclaimer |
+| `pages/training/TrainingAcademyPage.tsx` | Browse + single import free; bulk import gated |
+| `pages/DashboardPage.tsx` | Plan card: Free plan / PRO active |
+| `pages/training/TrainingHomePage.tsx` | Shop card reflects plan |
 
 ---
 
@@ -138,19 +142,52 @@ Each `RewardItem` includes `nameZh`, `nameEn`, optional descriptions, `icon`, `c
 
 ---
 
-## 5. PRO flag implementation
+## 5. PRO flag and UI gating
 
-| Location | Field | M6 behavior |
-|----------|-------|-------------|
-| `settings/main` | `isPro` | Default `false` on bootstrap; manual toggle on Settings page |
+### Source of truth
+
+| Location | Field | Behavior |
+|----------|-------|----------|
+| `settings/main` | `isPro` | Default `false` on bootstrap; **strict** check: only `isPro === true` counts as PRO |
 | `settings/main` | `parentPinEnabled` | Default `false`; displayed read-only |
 | `settings/main` | `parentPinHash` | Schema only — **never written** in M6 |
 
-**Settings UI:** Enable / Disable PRO (dev) via `updateUserSettings`. Copy explains no Stripe/WeChat.
+**Hook:** `useIsPro()` subscribes to `useUserSettings()` (Firestore `onSnapshot` on `settings/main`). Academy, Shop, Dashboard, and Training home react without page reload when the Settings toggle changes.
 
-**Academy:** All import features remain **unblocked** in M6. Bottom card lists future PRO features.
+**Settings UI:** Enable / Disable PRO (dev) via `updateUserSettings`. Copy: *"Development only. Payment is not implemented."*
 
-**Shop:** PRO shows custom-rewards **placeholder**; non-PRO shows locked message (no hard block on default catalog redeem).
+### What `isPro` controls today
+
+| Area | Free (`isPro === false`) | PRO (`isPro === true`) |
+|------|--------------------------|-------------------------|
+| **Daily tasks** (`/training/tasks`) | Full access | Unchanged |
+| **Records** (`/training/records`) | Full access | Unchanged |
+| **Academy browse** | Stages, modules, weekly routine **visible** | Same |
+| **Academy — single item import** | Enabled (per drill in expanded module) | Enabled |
+| **Academy — weekday / day-plan import** | UI disabled + `ProLockedCard`; `useAcademyImport` throws if invoked | Import weekday + import day plan enabled |
+| **Academy — PRO card** | Hidden | Shows “PRO features” list (advanced import on; AI/custom plans listed as coming) |
+| **Shop — catalog redeem** | Enabled | Enabled |
+| **Shop — custom rewards** | `ProLockedCard` | Placeholder management card (“PRO active”) |
+| **Shop / Academy banners** | `ProPlanBanner`: Free plan | `ProPlanBanner`: PRO active |
+| **Dashboard Plan card** | “Free plan” | “PRO active” |
+| **Training home Shop card** | “Free plan · catalog rewards only” | “PRO active · catalog + custom rewards (placeholder)” |
+
+### What remains placeholder (not gated off — not built)
+
+| Feature | M6 status |
+|---------|-----------|
+| Custom rewards CRUD | Copy-only placeholder when PRO; no Firestore writes |
+| AI-powered training plans | Listed on Academy PRO card only |
+| Custom training plans | Listed on Academy PRO card only |
+| Payment / Stripe / WeChat | Not implemented |
+| Parent PIN lock on shop/settings | Not implemented |
+| Server-side PRO enforcement | Client dev flag only; redeem transaction does not check `isPro` |
+| Redemption approve / status workflow | Always `pending` |
+
+### Shared components
+
+- **`ProPlanBanner`** — top-of-page plan status on Shop (and reusable elsewhere).
+- **`ProLockedCard`** — amber lock card with link to Settings; used for Academy routine lock and Shop custom rewards.
 
 ---
 
@@ -174,28 +211,51 @@ Each `RewardItem` includes `nameZh`, `nameEn`, optional descriptions, `icon`, `c
 - [ ] New user bootstrap creates `training/main/rewards/catalog` with 5 items
 - [ ] `/training/shop` lists rewards sorted by cost
 
-### Redeem
+### Redeem (not PRO-gated)
 
 - [ ] With enough points → redeem → points decrease, history entry appears
 - [ ] Insufficient points → button disabled / error on forced path
 - [ ] Confirm dialog before redeem
 - [ ] `gamification/main.points` never below 0
+- [ ] With PRO **off**, catalog redeem still works
 
 ### History
 
 - [ ] Redemption list shows name, date, cost, status badge
 - [ ] Empty state when no redemptions
 
-### PRO / Settings
+### Settings PRO toggle
 
-- [ ] Settings → Enable PRO (dev) → Dashboard PRO card shows Active
-- [ ] Shop custom rewards section shows placeholder when PRO on
-- [ ] Academy still allows import when PRO off
+- [ ] Settings shows: “Development only. Payment is not implemented.”
+- [ ] Toggle **Enable PRO (dev)** → status line shows “PRO active”
+- [ ] Toggle **Disable PRO (dev)** → status line shows “Free plan”
+- [ ] No page reload required for other tabs (live snapshot)
 
-### Dashboard / training home
+### PRO gating — Dashboard & training home
 
-- [ ] Dashboard: points, latest redemption, PRO status
-- [ ] `/training`: shop card with points + link
+- [ ] Dashboard **Plan** card: “Free plan” when PRO off, “PRO active” when on
+- [ ] `/training` Shop card copy matches plan (free vs PRO)
+
+### PRO gating — Shop
+
+- [ ] PRO off: `ProPlanBanner` shows Free plan; catalog section redeemable
+- [ ] PRO off: Custom rewards shows locked `ProLockedCard`
+- [ ] PRO on: `ProPlanBanner` shows PRO active; custom rewards placeholder card
+- [ ] Toggle PRO on Settings while Shop is open → banner and custom section update
+
+### PRO gating — Academy
+
+- [ ] PRO off: browse stages/modules; **single** “Add to today” on a drill still works
+- [ ] PRO off: weekly routine section shows locked card with message: *PRO required for advanced routine import and AI-powered training plans*
+- [ ] PRO off: weekday select + Import day / Import plan buttons disabled (greyed)
+- [ ] PRO on: weekday + day-plan import enabled; bottom **PRO features** card visible
+- [ ] PRO on: advanced import succeeds; PRO off: forced import path shows error from hook
+
+### Not blocked (regression)
+
+- [ ] `/training/tasks` — complete tasks with PRO off
+- [ ] `/training/records` — add/view records with PRO off
+- [ ] Academy module expand/collapse with PRO off
 
 ---
 
@@ -209,7 +269,8 @@ Each `RewardItem` includes `nameZh`, `nameEn`, optional descriptions, `icon`, `c
 | Catalog edits | No UI to edit catalog; bootstrap-only seed |
 | `isPro` security | Any client can flip flag via Settings (dev) |
 | Parent PIN | Documented only; no lock on shop/settings |
-| PRO shop lock on redeem | Legacy locked redeem for non-PRO not replicated — catalog open to all |
+| PRO shop lock on redeem | Catalog intentionally open to all; only custom rewards section is PRO-gated |
+| PRO server enforcement | `redeemReward` does not read `isPro`; gating is UI + academy import hook only |
 | Multiple rapid redeems | Serialized via gamification doc transaction |
 
 ---

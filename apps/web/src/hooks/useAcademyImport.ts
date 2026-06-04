@@ -65,7 +65,14 @@ export function useAcademyImport() {
   );
 
   const importWeekdayRoutine = useCallback(
-    async (stage: AcademyStage, weekday: WeekdayKey) => {
+    async (stage: AcademyStage, weekday: WeekdayKey, requirePro = true) => {
+      if (requirePro && settings?.isPro !== true) {
+        throw new Error(
+          language === "en"
+            ? "PRO is required for advanced routine import."
+            : "高阶计划导入需要 PRO。",
+        );
+      }
       const routineItems = getWeekdayRoutineItems(stage, weekday);
       const candidates: AcademyImportCandidate[] = [];
 
@@ -88,11 +95,18 @@ export function useAcademyImport() {
 
       return runImport(candidates);
     },
-    [language, runImport],
+    [language, runImport, settings?.isPro],
   );
 
   const importDayPlan = useCallback(
-    async (stage: AcademyStage, dayPlanId: string) => {
+    async (stage: AcademyStage, dayPlanId: string, requirePro = true) => {
+      if (requirePro && settings?.isPro !== true) {
+        throw new Error(
+          language === "en"
+            ? "PRO is required for advanced routine import."
+            : "高阶计划导入需要 PRO。",
+        );
+      }
       const plan = stage.weeklyRoutine.dayPlans.find((p) => p.id === dayPlanId);
       if (!plan) {
         throw new Error("Day plan not found.");
@@ -116,7 +130,7 @@ export function useAcademyImport() {
       }
       return runImport(candidates);
     },
-    [language, runImport],
+    [language, runImport, settings?.isPro],
   );
 
   return {

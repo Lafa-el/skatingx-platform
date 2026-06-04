@@ -299,7 +299,7 @@ Rollover does not rewrite missing fields; optional one-time migration not includ
 | Points rules UI | Not editable on settings (defaults in doc) |
 | Streak vs `completedDays` | Streak derived on write; manual console edits to `completedDays` need retoggle to refresh streak |
 | Legacy migration | No import from `blaze-skate-training` profile blob |
-| Offline persistence | M2 behavior; multi-tab may skip IndexedDB cache |
+| Offline persistence | M2 behavior; multi-tab skip is console-only (no UI banner) |
 
 ---
 

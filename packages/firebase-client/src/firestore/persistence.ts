@@ -5,19 +5,28 @@ let persistenceEnabled = false;
 
 export type PersistenceInitResult =
   | { enabled: true }
-  | { enabled: false; reason: string };
+  | { enabled: false };
+
+const PERSISTENCE_LOG_PREFIX = "[skatingx/firestore]";
+
+function logPersistenceSkipped(message: string, level: "info" | "warn" = "info") {
+  if (level === "warn") {
+    console.warn(`${PERSISTENCE_LOG_PREFIX} ${message}`);
+  } else {
+    console.info(`${PERSISTENCE_LOG_PREFIX} ${message}`);
+  }
+}
 
 /**
  * Enable offline cache once per app load. Safe to call multiple times.
  * Skips when another tab holds the persistence lock (failed-precondition).
+ * Skips are logged to the console only — not surfaced in UI.
  */
 export async function initFirestorePersistence(
   db: Firestore,
 ): Promise<PersistenceInitResult> {
   if (persistenceAttempted) {
-    return persistenceEnabled
-      ? { enabled: true }
-      : { enabled: false, reason: "Persistence already skipped this session." };
+    return persistenceEnabled ? { enabled: true } : { enabled: false };
   }
   persistenceAttempted = true;
 
@@ -35,23 +44,23 @@ export async function initFirestorePersistence(
         : "unknown";
 
     if (code === "failed-precondition") {
-      return {
-        enabled: false,
-        reason:
-          "IndexedDB persistence unavailable: Firestore is open in another tab.",
-      };
+      logPersistenceSkipped(
+        "Offline cache skipped: Firestore persistence is active in another tab. This tab continues online.",
+      );
+      return { enabled: false };
     }
     if (code === "unimplemented") {
-      return {
-        enabled: false,
-        reason: "IndexedDB persistence is not supported in this browser.",
-      };
+      logPersistenceSkipped(
+        "Offline cache skipped: IndexedDB persistence is not supported in this browser.",
+      );
+      return { enabled: false };
     }
 
-    return {
-      enabled: false,
-      reason: `Persistence failed: ${code}`,
-    };
+    logPersistenceSkipped(
+      `Offline cache skipped: persistence failed (${code}).`,
+      "warn",
+    );
+    return { enabled: false };
   }
 }
 

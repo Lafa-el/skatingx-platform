@@ -129,7 +129,7 @@ Implemented in `apps/web/src/app/providers/FirestoreProvider.tsx`, re-exported f
 | `useTrainingState()` | `{ data, loading, error }` for `TrainingState` |
 | `useActiveAthlete()` | `{ athleteId, profile, loading, error }` — `athleteId` from settings |
 
-Also: `useFirestoreStatus()` — bootstrap ready, errors, persistence note.
+Also: `useFirestoreStatus()` — bootstrap ready, `connectivityError` (bootstrap or listener failures only).
 
 **Provider stack:**
 
@@ -181,7 +181,7 @@ Rules file not added in M2 — deploy separately (see M0 audit gaps).
 ### Dashboard (`/dashboard`)
 
 - Stat cards: athlete name, points, streak days, today’s task count
-- `FirestoreStatusBanner` — loading / bootstrap error / persistence note
+- `FirestoreStatusBanner` — loading / connectivity error (no persistence dev notes)
 - Per-slice error banner
 
 ### Athlete (`/athlete`)
@@ -204,12 +204,13 @@ Rules file not added in M2 — deploy separately (see M0 audit gaps).
 | Outcome | Behavior |
 |---------|----------|
 | Success | Offline read cache enabled |
-| `failed-precondition` | Another tab has persistence — app continues online |
-| `unimplemented` | Browser unsupported — continues without cache |
+| `failed-precondition` | Another tab has persistence — app continues online; **console.info only** |
+| `unimplemented` | Browser unsupported — continues without cache; **console.info only** |
+| Other errors | Logged with **console.warn**; app continues without cache |
 
-A non-blocking note may appear under loading banner when persistence is skipped.
+Persistence skips are **not** shown in `FirestoreStatusBanner`. Users only see banners for real connectivity problems (bootstrap failure or Firestore listener errors via `connectivityError`).
 
-**Why safe:** Does not alter auth flow; failures are caught and surfaced as `persistenceNote` only.
+**Why safe:** Does not alter auth flow; persistence failures never block reads/writes in the active tab.
 
 ---
 
@@ -269,7 +270,9 @@ A non-blocking note may appear under loading banner when persistence is skipped.
 
 ### Persistence (optional)
 
-- [ ] Open app in two tabs → may see persistence note; app still works
+- [ ] Open app in two tabs → no UI banner; console shows `[skatingx/firestore] Offline cache skipped…`; app still works
+- [ ] Single tab → offline cache enabled (no banner)
+- [ ] Break Firestore rules or network → red connectivity banner on Dashboard/Training pages
 
 ---
 
