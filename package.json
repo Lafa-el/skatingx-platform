@@ -1,0 +1,17 @@
+{
+  "name": "skatingx-platform",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @skatingx/web",
+    "build": "npm run build -w @skatingx/web",
+    "typecheck": "npm run typecheck -w @skatingx/schema && npm run typecheck -w @skatingx/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
