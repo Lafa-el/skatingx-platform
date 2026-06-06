@@ -62,3 +62,5 @@ npm run build
 - Legacy Training and Analysis apps are **not** migrated yet
 
 See `docs/SKATINGX_ARCHITECTURE_BLUEPRINT.md` for the target architecture.
+
+Migration Test
