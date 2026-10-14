@@ -44,6 +44,21 @@ export {
   type RaceSummaryItem,
 } from "./race-day";
 export {
+  createIdSuffix,
+  createRaceDayEntityId,
+  isRealDateString,
+  prepareRaceEventInput,
+  prepareRaceInput,
+  prepareRosterEntryInput,
+  RACE_DAY_LIMITS,
+  type PreparedInput,
+  type RaceDayInputError,
+  type RaceDayInputErrorCode,
+  type RaceEventInput,
+  type RaceInput,
+  type RosterEntryInput,
+} from "./race-day-input";
+export {
   createTimeEntryId,
   formatSecondsToTime,
   getBestTime,
