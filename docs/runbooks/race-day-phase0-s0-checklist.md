@@ -90,6 +90,40 @@ What was missing at that time: **the full verbatim rules text** and the answers 
 
 Consequence worth recording: because the existing owner rule already matches everything under `users/{userId}`, race-day documents are already owner-only today. The race-day rules to be added are therefore **narrowing and validation** rules (field types, enum values, size limits), not new access. Because Firestore ORs matching `allow` rules, a stricter `raceDay` rule has no effect while the broad owner rule still allows the write. Making the validation real means restructuring the broad rule so it no longer covers `raceDay/**`, which changes existing rules. That is exactly why the verbatim text and a baseline commit are required first, and why the change needs its own review and the Rules history rollback path.
 
+### G1 result: race-day rules (2026-10-14)
+
+Status: **rules approved by the owner and committed; NOT yet published to Firebase.** Publishing is the owner's manual step.
+
+Commits on `feat/race-day-phase0`, in order:
+
+1. `chore(rules)`: baseline `firestore.rules`, byte-identical to the text the owner pasted from the console.
+2. `test(rules)`: access-control characterization tests (29), which pass on the baseline.
+3. `feat(rules)` `45fc484`: race-day rules (separate commit, as ADR-001 D8 requires).
+4. `test(rules)` `a8e7838`: raceDay validation and access tests.
+
+What changed versus the baseline: the single `users/{userId}/{document=**}` owner rule is split into the user document itself plus `/{collection}/{path=**}` with `collection != 'raceDay'`, and `raceDay/**` gets owner-only plus field validation. Reason: matching `allow` rules are ORed, so the broad rule would otherwise bypass all validation.
+
+Evidence:
+
+| Rules | Result |
+|---|---|
+| Baseline | 130 tests: 75 fail, 55 pass (the failures are the validation tests, which proves the bypass) |
+| Race-day rules | 130 of 130 pass (`npm run test:rules`, local and CI) |
+| Open rules (mutation check) | 19 access tests fail |
+
+Known limitations (accepted by the owner): element formats inside `dates` and `rosterIds` are not checked by the rules; there is no `exists()` check on `raceId` / `rosterId` references. Both are handled in the domain and repository layers.
+
+Owner steps to publish (nothing publishes automatically; CI and Vercel do not deploy rules):
+
+1. Merge or check out the commit and open `firestore.rules`.
+2. Firebase Console, project `skatingx-platform`, Firestore Database, Rules tab. Copy the current text somewhere first (it equals the baseline commit). Note the current "Rules history" entry.
+3. Paste the new `firestore.rules`, publish.
+4. Check after publishing: sign in as Lindsay on the staging URL, existing data (settings, athlete, analysis) still loads and saves. Race-day writes only work once the S2 code ships.
+
+Rollback: Rules tab, Rules history, restore the previous version (the baseline). Or `git revert 45fc484` and republish. Risk if the rules are wrong: existing non-raceDay access is covered by 29 characterization tests that pass on both versions, so the risk is limited to `raceDay` writes being rejected.
+
+Not yet answered: C1 (time the baseline was published). Not blocking.
+
 ## D. Auth and Lindsay account upgrade (OWNER)
 
 Why: the app signs in anonymously on first load. An anonymous account lives only in that browser profile's storage. Clearing site data, using a different browser or phone, or iOS private mode loses access, and with it Lindsay's data and any race-day data. Linking email and password keeps the **same UID** (Firebase `linkWithCredential`), so existing data stays attached.
@@ -296,4 +330,4 @@ Closed 2026-10-14: verbatim rules text and baseline commit (G1), API key check (
 
 D4 closed 2026-10-14 (owner-reported): second-device sign-in and password-reset email both OK.
 
-Still open: proposed race-day rules approval, production-dependency vulnerability PR, SPA rewrite.
+Still open: owner publishes the approved rules in the console (section G1 result), production-dependency vulnerability PR, SPA rewrite.
