@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 is pinned on purpose: some dev tooling (superstatic via firebase-tools)
+      # declares support for Node 20/22/24 only.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test -- --run
+      - run: npm run build
+
+      # `test:rules` and `test:migration` are added to this workflow with the first
+      # Firestore Rules PR: that needs firestore.rules in the repo (ADR-001 D8) and
+      # a JDK 21+ step (firebase-tools 15 requires Java 21).
