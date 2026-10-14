@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Proposed. Waiting for owner approval. Nothing is installed.** |
+| Status | **Approved by owner 2026-10-14: option A (`happy-dom`), no `jest-dom`. Packages installed (section 9).** |
 | Date | 2026-10-14 |
 | Branch | `feat/race-day-s2` |
 | Why | AGENTS.md requires component tests and form requirements (label, keyboard, error text, loading state). Vitest currently runs in the `node` environment, so no React component can be rendered. |
@@ -84,8 +84,29 @@ Then, as separate steps: `npm ci` from a clean checkout to prove determinism; `n
 
 ## 8. Decisions (owner)
 
-- [ ] Choose: **A** `happy-dom` (proposed), **B** `jsdom` with `engines.node` raised, or **C** no component-test dependencies
-- [ ] If A or B: approve the exact versions in section 2 (or section 3 for B)
-- [ ] Approve rejecting `@testing-library/jest-dom`
+- [x] Chosen: **A** `happy-dom`
+- [x] Approved: the exact versions in section 2
+- [x] Approved: rejecting `@testing-library/jest-dom`
 
-Installation record and `npm audit` result: to be added after approval and install.
+---
+
+## 9. Installation record (2026-10-14)
+
+Command: the one in section 6, run at the repo root. Result:
+
+- `package.json`: 4 new `devDependencies` (caret ranges; the lockfile fixes exact versions: `happy-dom 21.0.1`, `@testing-library/react 16.3.3`, `@testing-library/dom 10.4.2`, `@testing-library/user-event 14.6.8`).
+- `package-lock.json`: **18 packages added, 0 removed, 0 changed.** No existing package was upgraded. The 14 added transitive packages are `@babel/runtime`, `@types/aria-query`, `@types/whatwg-mimetype`, `@types/ws`, `aria-query`, `buffer-image-size`, `dequal`, `dom-accessibility-api`, `entities`, `lz-string`, `pretty-format` (with its `ansi-styles`), `react-is`, `whatwg-mimetype`.
+- Wiring check (throwaway test, not committed): under `// @vitest-environment happy-dom`, a React 19 form rendered, was found by label, took typing and Enter, and showed an error alert. Total 96 of 96 passed (94 existing plus 2 throwaway). A deliberately wrong assertion made it fail, so the test can detect failure. The existing 94 tests stayed in the `node` environment.
+
+Gates after install:
+
+| Gate | Result |
+|---|---|
+| `npm run lint` | pass |
+| `npm run typecheck` | pass |
+| `npm run test -- --run` | 94 of 94 |
+| `npm run test:rules` | 130 of 130 |
+| `npm run build` | pass; main bundle `index-D2OGzoNk.js` 917.85 kB (gzip 244.26 kB), **identical to before the install** |
+| `npm audit` | 25 total (7 moderate, 17 high, 1 critical), **identical to before the install**: the 4 new packages add no vulnerabilities |
+
+The 25 are the pre-existing ones from ADR-002 (production and dev tooling). Fixing them is a separate PR.
