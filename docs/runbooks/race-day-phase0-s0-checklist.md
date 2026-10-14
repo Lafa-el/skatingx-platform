@@ -119,7 +119,7 @@ Why: the app signs in anonymously on first load. An anonymous account lives only
 
 The UI has **no password-reset flow**. If the password is lost, recovery is manual: Firebase Console, Authentication, Users, row menu, "Reset password" (sends a reset email). Check that the console account can do this, and note who has console access.
 
-- [ ] Reset-password email confirmed deliverable to the chosen address
+- [x] Reset-password email confirmed deliverable to the chosen address (owner reported 2026-10-14: received; the address is the owner's Gmail account, not stored in the repo)
 - [ ] Person with console access identified: ________________
 
 ### D4. Result record (fill in)
@@ -128,10 +128,11 @@ The UI has **no password-reset flow**. If the password is lost, recovery is manu
 |---|---|
 | UID before (first 8 chars) | `baWEw6SZ` (owner supplied the UID in chat 2026-10-14; only the first 8 characters are stored in the repo) |
 | UID after (first 8 chars) | `baWEw6SZ` (owner reported before and after are identical; the owner supplied one UID, so this is not an independent reading of the console) |
-| Anonymous after | |
-| Second-device sign-in OK | |
-| Date | |
-| Done by | |
+| Anonymous after | Not reported separately. Owner reported the account was upgraded with `linkWithCredential` and signs in with email and password. |
+| Second-device sign-in OK | Yes (owner-reported): signed in with the upgrade email and password in the browser of a different phone; Lindsay's data present; UID identical. |
+| Password-reset email | Yes (owner-reported): received after using "Reset password" in Authentication, Users. |
+| Date | 2026-10-14 |
+| Done by | Owner (results reported in chat; not independently verified by the agent) |
 
 Target date: complete by **2026-10-16**. Hard deadline **2026-10-20**. After that there is no time to recover if something goes wrong.
 
@@ -293,4 +294,6 @@ Verified by the agent:
 
 Closed 2026-10-14: verbatim rules text and baseline commit (G1), API key check (unrestricted), ADR-001 and ADR-002 sign-off by owner.
 
-Still open: D4 second-device sign-in and password-reset results (owner has not reported them yet), proposed race-day rules approval, production-dependency vulnerability PR, SPA rewrite.
+D4 closed 2026-10-14 (owner-reported): second-device sign-in and password-reset email both OK.
+
+Still open: proposed race-day rules approval, production-dependency vulnerability PR, SPA rewrite.
