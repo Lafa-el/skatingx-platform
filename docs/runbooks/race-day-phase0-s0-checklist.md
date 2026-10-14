@@ -92,7 +92,7 @@ Consequence worth recording: because the existing owner rule already matches eve
 
 ### G1 result: race-day rules (2026-10-14)
 
-Status: **rules approved by the owner and committed; NOT yet published to Firebase.** Publishing is the owner's manual step.
+Status: **rules approved by the owner, committed, and PUBLISHED by the owner in the Firebase console (owner-reported 2026-10-14).** After publishing, the owner signed in as Lindsay on the staging URL and confirmed existing data (settings, athlete, analysis) still reads and writes normally. Not independently verified by the agent; the Rules history entry for the baseline is the rollback path.
 
 Commits on `feat/race-day-phase0`, in order:
 
@@ -330,4 +330,6 @@ Closed 2026-10-14: verbatim rules text and baseline commit (G1), API key check (
 
 D4 closed 2026-10-14 (owner-reported): second-device sign-in and password-reset email both OK.
 
-Still open: owner publishes the approved rules in the console (section G1 result), production-dependency vulnerability PR, SPA rewrite.
+Closed 2026-10-14: race-day rules published and checked by the owner; SPA rewrite merged (PR #2); `/assets/` exclusion in PR #3.
+
+Still open: production-dependency vulnerability PR.
