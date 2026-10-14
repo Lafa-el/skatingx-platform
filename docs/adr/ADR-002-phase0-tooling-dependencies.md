@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Approved by owner 2026-10-14. npm packages installed (section 9). JDK 21 not yet installed (section 2).** |
+| Status | **Approved and signed off by owner 2026-10-14 (the owner is the reviewer of record). npm packages installed (section 9). JDK 21 installed by the owner (Temurin 21.0.12.1, section 2).** |
 | Date | 2026-10-14 |
 | Branch | `feat/race-day-phase0` |
 | Why | AGENTS.md CI gates require `lint`, `test -- --run`, and (for Firebase) `test:rules`. None of these scripts or tools exist today. |
@@ -56,7 +56,7 @@ The official docs page lags the CLI. **The version we pin (15.33.0) is the autho
 - Command: `brew install --cask temurin@21`
 - Result: **failed**. The cask runs a `.pkg` installer through `sudo`, which needs an interactive admin password; the agent session has no terminal. Homebrew cleaned up; nothing was left installed. No other change was made to the machine.
 - Platform note: this Mac reports `x86_64` (Intel / Tier 3 for Homebrew). Casks still install; bottles for formulae may be built from source.
-- Status: **JDK still not installed.** See the runbook, section E, for the options and who runs what.
+- Status at the time: JDK not installed. **Update 2026-10-14: the owner installed it himself; `java -version` reports Temurin 21.0.12.1** (owner-reported; emulator tests ran against it locally and in CI with `actions/setup-java` Temurin 21).
 
 ## 3. Alternatives for `firebase-tools`
 

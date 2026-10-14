@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Accepted by owner (2026-10-14); pending reviewer sign-off** |
+| Status | **Accepted and signed off by owner (2026-10-14, stated in chat; the owner is the reviewer of record)** |
 | Date | 2026-10-14 |
 | Branch | `feat/race-day-phase0` |
 | Deadline | Runnable by 2026-10-22; field test at Buffalo Championships 2026-10-24/25 |

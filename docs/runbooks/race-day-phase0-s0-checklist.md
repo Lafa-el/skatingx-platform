@@ -126,8 +126,8 @@ The UI has **no password-reset flow**. If the password is lost, recovery is manu
 
 | Item | Value |
 |---|---|
-| UID before (first 8 chars) | |
-| UID after (first 8 chars) | |
+| UID before (first 8 chars) | Not recorded. Owner reported 2026-10-14 that the UID is identical before and after the link. |
+| UID after (first 8 chars) | Not recorded (same as above) |
 | Anonymous after | |
 | Second-device sign-in OK | |
 | Date | |
@@ -196,7 +196,7 @@ Still not present in the repo: `vercel.json`.
 - [ ] Add an SPA fallback rewrite (all paths to `/index.html`). **Confirmed needed:** on 2026-10-14, `GET /training/tasks` and `GET /race-day` on the live site returned 404 (only `/` returned 200). Reloading a deep link would white-screen on the phone at the venue. This is a file change in a later slice and must land before the field test.
 - [ ] Set `VITE_FEATURE_RACE_DAY` in Vercel (client config, not a secret) when the module ships.
 - [x] Owner reported `skatingx-platform-web.vercel.app` added to Firebase Auth authorized domains. Note: for anonymous and email/password sign-in, authorized domains are, to the best of our knowledge, not enforced (they matter for popup/redirect and email-link flows). Not tested. Per-deployment preview URLs (`*-lafa-el-s-projects.vercel.app`) are not authorized and cannot be (no wildcards), so test on the fixed staging URL.
-- [ ] Check the Web API key in Google Cloud Console for HTTP referrer restrictions. If it is restricted, the staging URL must be on the allow-list, or sign-in and Firestore calls fail from that origin.
+- [x] Web API key check: owner reported 2026-10-14 that "Application restrictions" is **None (unrestricted)**. So the staging URL is not blocked by a referrer allow-list. Follow-up, not for before the field test: add an HTTP referrer restriction (staging URL, the Firebase auth domain, localhost for dev) after the field test, since changing it close to the event risks breaking sign-in. A Firebase web key is not a secret, but restricting it is good practice.
 - [ ] Note the label mismatch: the Vercel project only has "Production" deployments, while ADR-001 D2 treats the Firebase project as staging. Accepted for Phase 0; recorded as a known issue.
 - [ ] Bind the release to a Git commit and keep the build record (AGENTS.md)
 
@@ -291,4 +291,6 @@ Verified by the agent:
 - Note: the git remote URL uses lowercase `lafa-el`; GitHub reports the repo moved to `Lafa-el`. It is a case difference only and works, but the URL can be updated.
 - Note: GitHub warns that `actions/checkout@v4` and `actions/setup-node@v4` target Node 20 and are forced onto Node 24. Works now; plan a version bump as a separate chore.
 
-Still open: full rules text (G1), D4 table and second-device sign-in, API key referrer check, ADR sign-off, production-dependency vulnerability PR, SPA rewrite.
+Closed 2026-10-14: verbatim rules text and baseline commit (G1), API key check (unrestricted), ADR-001 and ADR-002 sign-off by owner.
+
+Still open: D4 second-device sign-in and password-reset results (owner has not reported them yet), proposed race-day rules approval, production-dependency vulnerability PR, SPA rewrite.
