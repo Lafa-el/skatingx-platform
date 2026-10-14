@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Pinned: `ubuntu-latest` migrates to Ubuntu 26 on 2026-10-19, mid-sprint. Move on purpose, not by surprise.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
