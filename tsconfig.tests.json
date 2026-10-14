@@ -1,0 +1,19 @@
+{
+  "$comment": "Type-checks tests/ (Security Rules and repository integration tests). These files sit outside every package tsconfig, so without this they were never type-checked in CI.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@skatingx/schema": ["packages/schema/src/index.ts"],
+      "@skatingx/skating-domain": ["packages/skating-domain/src/index.ts"],
+      "@skatingx/firebase-client": ["packages/firebase-client/src/index.ts"]
+    }
+  },
+  "include": ["tests/**/*.ts"]
+}
