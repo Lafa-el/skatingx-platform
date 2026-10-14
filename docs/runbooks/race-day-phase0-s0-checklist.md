@@ -29,7 +29,9 @@ Build output baseline, to compare in every later PR (AGENTS.md: PRs report build
 
 Vite warns the chunk exceeds 500 kB. That is pre-existing. The race-day module must be lazy, so this number must not grow in the main chunk.
 
-At baseline the scripts `lint`, `test` and `test:rules` did not exist, so they could not run. They were added later the same day (section E). After the toolchain was added, the production bundle was byte-identical: the JS file keeps the same content hash (`index-ay8ctDTo.js`), so there was no build-output change. Lint covers 86 files with 0 errors, and a deliberately bad snippet confirmed the rules fire (`any`, conditional hooks, unused variable, empty catch).
+At baseline the scripts `lint`, `test` and `test:rules` did not exist, so they could not run. They were added later the same day (section E). After the toolchain was added, the production bundle was byte-identical when built with the same environment: the JS file keeps the same content hash (`index-ay8ctDTo.js`), so there was no build-output change.
+
+**Build size depends on the environment.** Vite inlines the `VITE_FIREBASE_*` values into the bundle. A build without `apps/web/.env.local` (as in a clean checkout or CI) produces `index-DZ2jXrUu.js`, 916.86 kB (244.02 kB gzip). With the env file it is `index-ay8ctDTo.js`, 917.22 kB (244.14 kB gzip). I confirmed this by rebuilding the same clean clone with and without the file. Compare PR build sizes only against a build made with the same environment. The no-env figures are the CI baseline. Lint covers 86 files with 0 errors, and a deliberately bad snippet confirmed the rules fire (`any`, conditional hooks, unused variable, empty catch).
 
 Not enabled yet: the React Compiler-based rules in `eslint-plugin-react-hooks` 7 (for example `set-state-in-effect`). They are likely to flag existing code. Plan: enable them for `apps/web/src/modules/race-day/**` only, once that module exists, so legacy code is not rewritten in a tooling change.
 
@@ -137,7 +139,7 @@ Target date: complete by **2026-10-16**. Hard deadline **2026-10-20**. After tha
 - [x] `test:rules` fails with "BLOCKED" until `firestore.rules` exists (gate G1). It never passes with open rules.
 - [x] Tests exist and are green: 32 characterization tests for `parseTimeToSeconds`, `formatSecondsToTime`, `getBestTime`, `getLatestTime`, `sortRecordsByDate`, `normalizeDistanceId`. A mutation check (deliberately broken source) failed 4 tests, then the source was restored with no diff.
 - [x] Gates re-run in the working tree: `lint`, `typecheck`, `test -- --run`, `build` pass; `test:migration` is N/A; `test:rules` BLOCKED (expected)
-- [ ] `npm ci` verified on a clean checkout (recorded in section I below)
+- [x] `npm ci` verified on a clean checkout (section I)
 
 ### E1. JDK 21 for the Firestore emulator — **not installed yet**
 
@@ -205,3 +207,45 @@ Offline is mitigated operationally (ADR-001 D7). There is no Service Worker.
 4. If connectivity drops, keep entering results. They queue and sync on reconnect.
 5. After each entry, confirm it shows as pending. Mark it verified only after checking the official result.
 6. If the tab is lost while offline, do not clear site data. Restore connectivity and reload.
+
+## I. Clean-checkout verification (2026-10-14)
+
+Fresh `git clone` of branch `feat/race-day-phase0` at commit `ebf8b9d` into a temporary directory, no `node_modules`, no `.env.local`, Node v26.0.0 (CI will use Node 22).
+
+| Step | Result |
+|---|---|
+| `npm ci` | exit 0, 906 packages added, 25 audit findings (same split as ADR-002 section 9) |
+| Lockfile drift after `npm ci` | none (`git status` clean) |
+| `npm run lint` | pass |
+| `npm run typecheck` | pass |
+| `npm run test -- --run` | pass, 32 of 32 tests |
+| `npm run build` | pass, `index-DZ2jXrUu.js` 916.86 kB (244.02 kB gzip), CSS 20.19 kB (4.82 kB gzip) |
+| `npm run build` with `apps/web/.env.local` added | `index-ay8ctDTo.js` 917.22 kB, identical to the baseline in section A |
+| `npm run test:migration` | N/A by design |
+| `npm run test:rules` | BLOCKED by design until `firestore.rules` exists (gate G1) |
+
+Limits of this verification:
+
+- Run on Node 26, not the pinned Node 22. `superstatic@10.0.0` warns about Node 26. Re-run on Node 22 when CI first executes (the workflow exists but has never run).
+- `.github/workflows/ci.yml` has not been executed. It has not been pushed and was not linted by a CI system.
+- Emulator-based checks have not run (no JDK, section E1).
+
+## J. S0 status at the end of this session
+
+Done:
+
+- [x] Branch `feat/race-day-phase0`
+- [x] Baseline typecheck and build
+- [x] ADR-001, ADR-002, this runbook (committed `a4c13a1`)
+- [x] Toolchain, scripts, configs, tests (committed `ebf8b9d`, no feature code)
+- [x] Clean-checkout verification (section I)
+- [x] JDK required version verified from official docs and package source (JDK 21+)
+
+Open, in order of what blocks what:
+
+1. **JDK 21 install** (section E1): blocks `test:rules` verification.
+2. **Gate G1, console rules** (section C), owner: blocks writing any `firestore.rules`.
+3. **Lindsay account upgrade** (section D), owner: target 2026-10-16, hard deadline 2026-10-20.
+4. **Auth console checks and Vercel domain** (sections D1 and F), owner.
+5. Reviewer sign-off on ADR-001 and ADR-002.
+6. Separate PR for the 8 pre-existing production dependency vulnerabilities (ADR-002 section 9).
