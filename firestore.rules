@@ -1,0 +1,184 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /artifacts/skatingx-production/users/{userId} {
+
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // --- unchanged behavior --------------------------------------------------------
+      // The user document itself, as before (rules_version 2: `**` matches zero segments).
+      allow read, write: if isOwner();
+
+      // Every collection EXCEPT raceDay: same owner-only access as the previous
+      // `{document=**}` rule. raceDay is excluded here because Firestore ORs matching
+      // `allow` rules, so a broad rule would make any raceDay validation ineffective.
+      match /{collection}/{path=**} {
+        allow read, write: if isOwner() && collection != 'raceDay';
+      }
+
+      // --- raceDay: owner-only AND validated (ADR-001 D6, D8) -------------------------
+      // Unknown subcollections under raceDay match nothing and are denied.
+
+      function validId(id) {
+        return id.size() <= 64 && id.matches('^[a-z0-9]+(-[a-z0-9]+)*$');
+      }
+
+      // Pending data can never carry a verification time, verified data must (ADR-001 D5).
+      function validProvenance(d) {
+        return d.verification in ['pending', 'verified']
+          && d.source == 'manual'
+          && d.sourceNote is string && d.sourceNote.size() <= 500
+          && (d.verification == 'pending'
+                ? d.verifiedAt == null
+                : d.verifiedAt is timestamp);
+      }
+
+      function validAudit(d) {
+        return d.schemaVersion == 1
+          && d.createdAt is timestamp
+          && d.updatedAt is timestamp;
+      }
+
+      function createdAtUnchanged() {
+        return request.resource.data.createdAt == resource.data.createdAt;
+      }
+
+      function exactKeys(d, keys) {
+        return d.keys().hasOnly(keys) && d.keys().hasAll(keys);
+      }
+
+      function validEvent(id, d) {
+        return exactKeys(d, ['eventId', 'name', 'dates', 'timeZone', 'venue',
+                             'verification', 'source', 'sourceNote', 'verifiedAt',
+                             'schemaVersion', 'createdAt', 'updatedAt'])
+          && validProvenance(d) && validAudit(d)
+          && validId(id) && d.eventId == id
+          && d.name is string && d.name.size() >= 1 && d.name.size() <= 120
+          && d.dates is list && d.dates.size() >= 1 && d.dates.size() <= 10
+          && (d.timeZone == null || (d.timeZone is string && d.timeZone.size() <= 64))
+          && (d.venue == null || (d.venue is string && d.venue.size() <= 200));
+      }
+
+      function validRosterEntry(id, d) {
+        return exactKeys(d, ['rosterId', 'displayName', 'bib', 'division', 'isSelf',
+                             'isFollowed', 'athleteRefId',
+                             'verification', 'source', 'sourceNote', 'verifiedAt',
+                             'schemaVersion', 'createdAt', 'updatedAt'])
+          && validProvenance(d) && validAudit(d)
+          && validId(id) && d.rosterId == id
+          && d.displayName is string && d.displayName.size() >= 1 && d.displayName.size() <= 120
+          && d.bib is string && d.bib.size() >= 1 && d.bib.size() <= 16
+          && d.division is string && d.division.size() >= 1 && d.division.size() <= 80
+          && d.isSelf is bool && d.isFollowed is bool
+          && (d.athleteRefId == null || (d.athleteRefId is string && d.athleteRefId.size() <= 64));
+      }
+
+      function validRace(id, d) {
+        return exactKeys(d, ['raceId', 'distanceId', 'label', 'sortOrder', 'day', 'round',
+                             'heat', 'scheduledAt', 'rosterIds',
+                             'verification', 'source', 'sourceNote', 'verifiedAt',
+                             'schemaVersion', 'createdAt', 'updatedAt'])
+          && validProvenance(d) && validAudit(d)
+          && validId(id) && d.raceId == id
+          && d.distanceId is string && d.distanceId.size() >= 1 && d.distanceId.size() <= 32
+          && d.label is string && d.label.size() >= 1 && d.label.size() <= 80
+          && d.sortOrder is int && d.sortOrder >= 0 && d.sortOrder <= 999
+          && (d.day == null || (d.day is string && d.day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+          && (d.round == null || (d.round is string && d.round.size() <= 40))
+          && (d.heat == null || (d.heat is string && d.heat.size() <= 40))
+          && (d.scheduledAt == null || d.scheduledAt is timestamp)
+          && d.rosterIds is list && d.rosterIds.size() <= 50;
+      }
+
+      // Mirrors validateRaceResultInput in packages/skating-domain: a finished race needs
+      // a time; DNS/DNF/DQ carry no time, no place and cannot be marked as advanced.
+      function validResult(id, d) {
+        return exactKeys(d, ['resultId', 'raceId', 'rosterId', 'status', 'timeSeconds',
+                             'place', 'advanced',
+                             'verification', 'source', 'sourceNote', 'verifiedAt',
+                             'schemaVersion', 'createdAt', 'updatedAt'])
+          && validProvenance(d) && validAudit(d)
+          && d.raceId is string && validId(d.raceId)
+          && d.rosterId is string && validId(d.rosterId)
+          && d.resultId == id && id == d.raceId + '_' + d.rosterId
+          && d.status in ['finished', 'DNS', 'DNF', 'DQ']
+          && (d.place == null || (d.place is int && d.place >= 1))
+          && (d.advanced == null || d.advanced is bool)
+          && (d.status == 'finished'
+                ? (d.timeSeconds is number && d.timeSeconds > 0 && d.timeSeconds <= 1800)
+                : (d.timeSeconds == null && d.place == null && d.advanced != true));
+      }
+
+      // Video METADATA only (ADR-001 D4): fixed keys, no file or media fields can be stored.
+      function validVideo(id, d) {
+        return exactKeys(d, ['videoId', 'raceId', 'rosterId', 'label', 'externalUrl',
+                             'storedWhere', 'note',
+                             'schemaVersion', 'createdAt', 'updatedAt'])
+          && validAudit(d)
+          && validId(id) && d.videoId == id
+          && d.raceId is string && validId(d.raceId)
+          && d.rosterId is string && validId(d.rosterId)
+          && d.label is string && d.label.size() >= 1 && d.label.size() <= 120
+          && (d.externalUrl == null
+                || (d.externalUrl is string && d.externalUrl.size() <= 2048
+                    && d.externalUrl.matches('^https?://.+')))
+          && (d.storedWhere == null || (d.storedWhere is string && d.storedWhere.size() <= 200))
+          && (d.note == null || (d.note is string && d.note.size() <= 1000));
+      }
+
+      function validSummary(d) {
+        return exactKeys(d, ['summaryVersion', 'generatedAt', 'coachNote',
+                             'schemaVersion', 'createdAt', 'updatedAt'])
+          && validAudit(d)
+          && d.summaryVersion is string && d.summaryVersion.size() <= 40
+          && (d.generatedAt == null || d.generatedAt is timestamp)
+          && (d.coachNote == null || (d.coachNote is string && d.coachNote.size() <= 2000));
+      }
+
+      match /raceDay/{eventId} {
+        allow read, delete: if isOwner();
+        allow create: if isOwner() && validEvent(eventId, request.resource.data);
+        allow update: if isOwner() && validEvent(eventId, request.resource.data)
+                      && createdAtUnchanged();
+
+        match /roster/{rosterId} {
+          allow read, delete: if isOwner();
+          allow create: if isOwner() && validRosterEntry(rosterId, request.resource.data);
+          allow update: if isOwner() && validRosterEntry(rosterId, request.resource.data)
+                        && createdAtUnchanged();
+        }
+
+        match /races/{raceId} {
+          allow read, delete: if isOwner();
+          allow create: if isOwner() && validRace(raceId, request.resource.data);
+          allow update: if isOwner() && validRace(raceId, request.resource.data)
+                        && createdAtUnchanged();
+        }
+
+        match /results/{resultId} {
+          allow read, delete: if isOwner();
+          allow create: if isOwner() && validResult(resultId, request.resource.data);
+          allow update: if isOwner() && validResult(resultId, request.resource.data)
+                        && createdAtUnchanged();
+        }
+
+        match /videos/{videoId} {
+          allow read, delete: if isOwner();
+          allow create: if isOwner() && validVideo(videoId, request.resource.data);
+          allow update: if isOwner() && validVideo(videoId, request.resource.data)
+                        && createdAtUnchanged();
+        }
+
+        match /summaries/{summaryId} {
+          allow read, delete: if isOwner() && summaryId == 'main';
+          allow create: if isOwner() && summaryId == 'main' && validSummary(request.resource.data);
+          allow update: if isOwner() && summaryId == 'main' && validSummary(request.resource.data)
+                        && createdAtUnchanged();
+        }
+      }
+    }
+  }
+}

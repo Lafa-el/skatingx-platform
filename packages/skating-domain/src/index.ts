@@ -24,6 +24,26 @@ export {
   type AcademyImportCandidate,
 } from "./academy";
 export {
+  buildRaceSummary,
+  countByVerification,
+  createPendingProvenance,
+  createRaceResultId,
+  groupRaceEntriesByDay,
+  isConfirmed,
+  isValidRaceDayId,
+  markPending,
+  markVerified,
+  RACE_SUMMARY_VERSION,
+  sortRaceEntries,
+  validateRaceResultInput,
+  type RaceDayGroup,
+  type RaceResultErrorCode,
+  type RaceResultInput,
+  type RaceSummary,
+  type RaceSummaryInput,
+  type RaceSummaryItem,
+} from "./race-day";
+export {
   createTimeEntryId,
   formatSecondsToTime,
   getBestTime,

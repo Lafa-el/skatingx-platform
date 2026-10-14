@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    # Pinned: `ubuntu-latest` migrates to Ubuntu 26 on 2026-10-19, mid-sprint. Move on purpose, not by surprise.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 is pinned on purpose: some dev tooling (superstatic via firebase-tools)
+      # declares support for Node 20/22/24 only.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test -- --run
+      - run: npm run build
+
+      # Firestore Rules tests run in the emulator. firebase-tools 15 requires Java 21+
+      # (verified in its source, see ADR-002 section 2).
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm run test:rules
+
+      # Explicit "not applicable" until a migration script exists; fails if one appears.
+      - run: npm run test:migration
