@@ -1,0 +1,11 @@
+---
+description: SkatingX project-wide engineering standard
+alwaysApply: true
+---
+
+Read and follow the repository-root AGENTS.md before planning or editing.
+For auth, Firestore schema, Security Rules, migration scripts, or privacy boundaries:
+1. inspect the relevant ADR and runbook;
+2. list risks and rollback before changing code;
+3. run all required validation before declaring completion.
+Do not modify legacy Blaze Skate repositories unless the active task explicitly authorizes it.
