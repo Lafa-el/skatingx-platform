@@ -126,8 +126,8 @@ The UI has **no password-reset flow**. If the password is lost, recovery is manu
 
 | Item | Value |
 |---|---|
-| UID before (first 8 chars) | Not recorded. Owner reported 2026-10-14 that the UID is identical before and after the link. |
-| UID after (first 8 chars) | Not recorded (same as above) |
+| UID before (first 8 chars) | `baWEw6SZ` (owner supplied the UID in chat 2026-10-14; only the first 8 characters are stored in the repo) |
+| UID after (first 8 chars) | `baWEw6SZ` (owner reported before and after are identical; the owner supplied one UID, so this is not an independent reading of the console) |
 | Anonymous after | |
 | Second-device sign-in OK | |
 | Date | |
