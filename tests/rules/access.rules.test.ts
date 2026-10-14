@@ -64,6 +64,27 @@ describe.each(EXISTING_PATHS)("existing path %s", (suffix) => {
   });
 });
 
+// In rules_version 2, `{document=**}` also matches zero segments, so the baseline lets the
+// owner touch the user document itself. Pinned so a rewrite cannot drop it silently.
+describe("the user document itself", () => {
+  const path = `${USERS}/alice`;
+
+  it("lets the owner read and write", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    await assertSucceeds(setDoc(doc(db, path), { n: 1 }));
+    await assertSucceeds(getDoc(doc(db, path)));
+  });
+
+  it("denies another user and unauthenticated access", async () => {
+    await assertFails(
+      setDoc(doc(env.authenticatedContext("bob").firestore(), path), { n: 1 }),
+    );
+    await assertFails(
+      getDoc(doc(env.unauthenticatedContext().firestore(), path)),
+    );
+  });
+});
+
 describe("paths outside the owner's subtree", () => {
   it.each([
     ["another app id", "artifacts/other-app/users/alice/settings/main"],
