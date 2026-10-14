@@ -40,6 +40,30 @@ export const paths = {
     `${prefix(userId)}/athletes/${athleteId}/analysis/sessions/${sessionId}/summary`,
   planningCompletedTask: (userId: string, athleteId: string, taskId: string) =>
     `${prefix(userId)}/athletes/${athleteId}/planning/completedTasks/${taskId}`,
+
+  // Race Day Companion (ADR-001 D6). Account-scoped, not athlete-scoped: the roster
+  // holds followed athletes as well as the user's own.
+  raceDayEvent: (userId: string, eventId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}`,
+  raceDayEventsCollection: (userId: string) => `${prefix(userId)}/raceDay`,
+  raceDayRoster: (userId: string, eventId: string, rosterId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}/roster/${rosterId}`,
+  raceDayRosterCollection: (userId: string, eventId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}/roster`,
+  raceDayRace: (userId: string, eventId: string, raceId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}/races/${raceId}`,
+  raceDayRacesCollection: (userId: string, eventId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}/races`,
+  raceDayResult: (userId: string, eventId: string, resultId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}/results/${resultId}`,
+  raceDayResultsCollection: (userId: string, eventId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}/results`,
+  raceDayVideo: (userId: string, eventId: string, videoId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}/videos/${videoId}`,
+  raceDayVideosCollection: (userId: string, eventId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}/videos`,
+  raceDaySummary: (userId: string, eventId: string) =>
+    `${prefix(userId)}/raceDay/${eventId}/summaries/main`,
 } as const;
 
 /** Split a path string into Firestore `doc()` segments. */

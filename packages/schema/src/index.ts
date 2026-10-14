@@ -72,4 +72,20 @@ export {
   todayDateString,
 } from "./defaults";
 
+export type {
+  RaceDayAudit,
+  RaceDayDataSource,
+  RaceDayProvenance,
+  RaceDayVerification,
+  RaceEntry,
+  RaceEvent,
+  RaceResult,
+  RaceResultStatus,
+  RaceRosterEntry,
+  RaceSummaryDoc,
+  RaceVideoRef,
+} from "./race-day";
+
+export { RACE_DAY_SCHEMA_VERSION } from "./race-day";
+
 export { pathToSegments, paths } from "./paths";
