@@ -28,6 +28,13 @@ jobs:
       - run: npm run test -- --run
       - run: npm run build
 
-      # `test:rules` and `test:migration` are added to this workflow with the first
-      # Firestore Rules PR: that needs firestore.rules in the repo (ADR-001 D8) and
-      # a JDK 21+ step (firebase-tools 15 requires Java 21).
+      # Firestore Rules tests run in the emulator. firebase-tools 15 requires Java 21+
+      # (verified in its source, see ADR-002 section 2).
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm run test:rules
+
+      # Explicit "not applicable" until a migration script exists; fails if one appears.
+      - run: npm run test:migration
