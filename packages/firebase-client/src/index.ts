@@ -9,6 +9,12 @@ export {
 export {
   athleteGamificationRef,
   athleteProfileRef,
+  raceDayEventRef,
+  raceDayEventsCollectionRef,
+  raceDayRaceRef,
+  raceDayRacesCollectionRef,
+  raceDayRosterCollectionRef,
+  raceDayRosterRef,
   settingsRef,
   taskHistoryRef,
   trainingRecordRef,
@@ -18,6 +24,28 @@ export {
   trainingRewardsCatalogRef,
   trainingStateRef,
 } from "./firestore/refs";
+export {
+  createRace,
+  createRaceEvent,
+  createRosterEntry,
+  deleteRace,
+  deleteRaceEvent,
+  deleteRosterEntry,
+  RaceDayValidationError,
+  setRaceEventVerified,
+  setRaceVerified,
+  setRosterEntryVerified,
+  subscribeToRaceEvents,
+  subscribeToRaces,
+  subscribeToRoster,
+  updateRace,
+  updateRaceEvent,
+  updateRosterEntry,
+  type InvalidRaceDayDocument,
+  type RaceDayContext,
+  type RaceDayList,
+  type RaceDayListError,
+} from "./firestore/race-day";
 export { updateUserSettings } from "./firestore/settings";
 export {
   ensureDefaultRewardsCatalog,
