@@ -63,11 +63,11 @@ Steps:
 | # | Question | Answer |
 |---|---|---|
 | C1 | Last published date/time | |
-| C2 | Is it a "test mode" rule (for example `allow read, write: if request.time < timestamp.date(...)`)? If yes, what is the expiry date? Has it expired? | |
-| C3 | Is any `match /{document=**}` rule present, and what does it allow? | |
-| C4 | Is there a rule for `/artifacts/skatingx-production/users/{userId}/{document=**}` with `request.auth.uid == userId`? | |
-| C5 | Firestore location/region (Firestore Database page, "Location") | |
-| C6 | Are any other documents outside `artifacts/skatingx-production/` present at the root? Name only. | |
+| C2 | Is it a "test mode" rule (for example `allow read, write: if request.time < timestamp.date(...)`)? If yes, what is the expiry date? Has it expired? | No. Verbatim text received 2026-10-14: no time-based condition. |
+| C3 | Is any `match /{document=**}` rule present, and what does it allow? | No root wildcard. The only `match` is `artifacts/skatingx-production/users/{userId}/{document=**}`. |
+| C4 | Is there a rule for `/artifacts/skatingx-production/users/{userId}/{document=**}` with `request.auth.uid == userId`? | Yes, `allow read, write: if request.auth != null && request.auth.uid == userId;`. Committed verbatim as `firestore.rules`. |
+| C5 | Firestore location/region (Firestore Database page, "Location") | `nam5` (US multi-region), database `(default)`, Standard edition, Firestore native mode. Scheduled backup: disabled. Real-time updates: enabled. Source: owner console screenshot 2026-10-14. Location cannot be changed later. |
+| C6 | Are any other documents outside `artifacts/skatingx-production/` present at the root? Name only. | None. The only root collection is `artifacts`. `artifacts/skatingx-production` is shown in italics, so it is a path-only (non-existent) document that holds the `users` collection. Source: owner console screenshot 2026-10-14. |
 
 Interpretation, which I will apply once you answer:
 
@@ -84,7 +84,9 @@ Rollback for any later rules change: console Rules history (restore previous ver
 - It is **not** test mode (no expiry rule, not open to everyone).
 - The owner rule's scope covers `raceDay/...` (that is, it matches everything under the user's path).
 
-What is still missing: **the full verbatim rules text** and the answers to C1 (publish time), C5 (Firestore region) and C6 (other root documents). Only a summary reached the agent, and the baseline `firestore.rules` must be committed verbatim, so it cannot be reconstructed from a description. **No rules file has been written.** Until the text arrives, rules work stays blocked; all S1 work that does not need it continues.
+Update 2026-10-14: the verbatim text was received and committed as the baseline, and C2-C6 are answered in the table above. Only C1 (publish time) is still open; it is not blocking. The paragraph below is the earlier PARTIAL status, kept for the record.
+
+What was missing at that time: **the full verbatim rules text** and the answers to C1 (publish time), C5 (Firestore region) and C6 (other root documents). Only a summary reached the agent, and the baseline `firestore.rules` must be committed verbatim, so it cannot be reconstructed from a description. **No rules file has been written.** Until the text arrives, rules work stays blocked; all S1 work that does not need it continues.
 
 Consequence worth recording: because the existing owner rule already matches everything under `users/{userId}`, race-day documents are already owner-only today. The race-day rules to be added are therefore **narrowing and validation** rules (field types, enum values, size limits), not new access. Because Firestore ORs matching `allow` rules, a stricter `raceDay` rule has no effect while the broad owner rule still allows the write. Making the validation real means restructuring the broad rule so it no longer covers `raceDay/**`, which changes existing rules. That is exactly why the verbatim text and a baseline commit are required first, and why the change needs its own review and the Rules history rollback path.
 
