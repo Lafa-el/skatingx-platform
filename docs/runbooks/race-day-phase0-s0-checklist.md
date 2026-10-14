@@ -78,7 +78,15 @@ Interpretation, which I will apply once you answer:
 
 Rollback for any later rules change: console Rules history (restore previous version), or `git revert` plus redeploy.
 
-**G1 status: [ ] open**
+**G1 status: PARTIAL (2026-10-14).** The owner reported, in chat, a summary of the published rules:
+
+- Access is owner-only (`request.auth.uid == userId`).
+- It is **not** test mode (no expiry rule, not open to everyone).
+- The owner rule's scope covers `raceDay/...` (that is, it matches everything under the user's path).
+
+What is still missing: **the full verbatim rules text** and the answers to C1 (publish time), C5 (Firestore region) and C6 (other root documents). Only a summary reached the agent, and the baseline `firestore.rules` must be committed verbatim, so it cannot be reconstructed from a description. **No rules file has been written.** Until the text arrives, rules work stays blocked; all S1 work that does not need it continues.
+
+Consequence worth recording: because the existing owner rule already matches everything under `users/{userId}`, race-day documents are already owner-only today. The race-day rules to be added are therefore **narrowing and validation** rules (field types, enum values, size limits), not new access. Because Firestore ORs matching `allow` rules, a stricter `raceDay` rule has no effect while the broad owner rule still allows the write. Making the validation real means restructuring the broad rule so it no longer covers `raceDay/**`, which changes existing rules. That is exactly why the verbatim text and a baseline commit are required first, and why the change needs its own review and the Rules history rollback path.
 
 ## D. Auth and Lindsay account upgrade (OWNER)
 
@@ -141,7 +149,13 @@ Target date: complete by **2026-10-16**. Hard deadline **2026-10-20**. After tha
 - [x] Gates re-run in the working tree: `lint`, `typecheck`, `test -- --run`, `build` pass; `test:migration` is N/A; `test:rules` BLOCKED (expected)
 - [x] `npm ci` verified on a clean checkout (section I)
 
-### E1. JDK 21 for the Firestore emulator — **not installed yet**
+### E1. JDK 21 for the Firestore emulator — **installed and harness verified (2026-10-14)**
+
+Update: the owner installed Temurin 21 (`java -version`: `openjdk version "21.0.12.1" 2026-08-18 LTS`, Temurin-21.0.12.1+1). The agent confirmed it at `/Library/Java/JavaVirtualMachines/temurin-21.jdk`. **Note:** the agent's sandbox cannot see `/Library/Java`, so emulator runs must be executed outside the sandbox. The "ways forward" below are kept as history.
+
+Harness verification (agent, same day): Firestore emulator `1.22.0` started through `firebase emulators:exec --config <temp> --only firestore --project demo-skatingx-rules`, and a throwaway test using `@firebase/rules-unit-testing@4.0.1` with `firebase@11.10.0` passed 3 of 3: owner allowed, another user denied, unauthenticated denied. The throwaway rules and test lived outside the repo or were deleted immediately; `firestore.rules` is still absent and `test:rules` still reports BLOCKED as designed.
+
+Original text from before the install:
 
 Required version, verified against the package we pin (details and sources in ADR-002 section 2):
 
@@ -165,19 +179,23 @@ Ways forward (owner picks one):
 
 Verification once installed (agent runs; results recorded here):
 
-- [ ] `java -version` reports major version 21 or higher
-- [ ] The emulator starts and a throwaway test, using a temporary rules file kept outside the repository, passes against `@firebase/rules-unit-testing@4.0.1`, which proves the harness. The real rules tests come after gate G1.
+- [x] `java -version` reports major version 21 or higher
+- [x] The emulator starts and a throwaway test, using a temporary rules file kept outside the repository, passes against `@firebase/rules-unit-testing@4.0.1`, which proves the harness. The real rules tests come after gate G1.
 
 CI note: the workflow will need a JDK 21 step (for example `actions/setup-java` with Temurin 21) when `test:rules` is added to it.
 
 ## F. Deployment preparation (S0 planning, execution in S5)
 
-Not present today: `vercel.json`, `firebase.json`, `.firebaserc`.
+Staging URL (decided 2026-10-14): `https://skatingx-platform-web.vercel.app`. Vercel project `skatingx-platform-web` (account `lafa-el-s-projects`, created 2026-06-06, Root Directory `apps/web`, Vite preset). It is connected to GitHub: opening the PR produced an automatic Vercel preview deployment. Per DR-002, the production domain `app.skatingx.com` is a separate, later concern.
 
-- [ ] Create or confirm the Vercel project. Root directory is the repo root. Build command `npm run build`. Output directory `apps/web/dist`.
-- [ ] Add an SPA fallback rewrite (all paths to `/index.html`). Without it, reloading a deep link such as `/race-day/schedule` returns 404 on Vercel. This will be a file change in a later slice.
-- [ ] Set the six `VITE_FIREBASE_*` variables in Vercel for the staging environment, plus `VITE_FEATURE_RACE_DAY`. These are client config, not secrets.
-- [ ] Add the Vercel domain to the Firebase Auth authorized domains (D1)
+Still not present in the repo: `vercel.json`.
+
+- [x] Vercel project exists. Owner reported its `VITE_FIREBASE_*` variables point to `skatingx-platform` (owner-reported; the agent cannot read Vercel env values).
+- [ ] Add an SPA fallback rewrite (all paths to `/index.html`). **Confirmed needed:** on 2026-10-14, `GET /training/tasks` and `GET /race-day` on the live site returned 404 (only `/` returned 200). Reloading a deep link would white-screen on the phone at the venue. This is a file change in a later slice and must land before the field test.
+- [ ] Set `VITE_FEATURE_RACE_DAY` in Vercel (client config, not a secret) when the module ships.
+- [x] Owner reported `skatingx-platform-web.vercel.app` added to Firebase Auth authorized domains. Note: for anonymous and email/password sign-in, authorized domains are, to the best of our knowledge, not enforced (they matter for popup/redirect and email-link flows). Not tested. Per-deployment preview URLs (`*-lafa-el-s-projects.vercel.app`) are not authorized and cannot be (no wildcards), so test on the fixed staging URL.
+- [ ] Check the Web API key in Google Cloud Console for HTTP referrer restrictions. If it is restricted, the staging URL must be on the allow-list, or sign-in and Firestore calls fail from that origin.
+- [ ] Note the label mismatch: the Vercel project only has "Production" deployments, while ADR-001 D2 treats the Firebase project as staging. Accepted for Phase 0; recorded as a known issue.
 - [ ] Bind the release to a Git commit and keep the build record (AGENTS.md)
 
 ## G. S0 exit criteria
@@ -249,3 +267,26 @@ Open, in order of what blocks what:
 4. **Auth console checks and Vercel domain** (sections D1 and F), owner.
 5. Reviewer sign-off on ADR-001 and ADR-002.
 6. Separate PR for the 8 pre-existing production dependency vulnerabilities (ADR-002 section 9).
+
+## K. Update 2026-10-14 (after section J): owner items, harness, CI
+
+Owner-reported (the agent has no console access and did not verify these independently):
+
+| Item | Reported result |
+|---|---|
+| JDK | Installed, Temurin 21.0.12.1. **Independently confirmed by the agent** (section E1) |
+| Rules (G1) | Owner-only, not test mode, scope covers `raceDay/...`. **Full text not received; partial, see section C** |
+| Lindsay account (D2) | Upgraded with "Link account"; UID before and after identical. D4 table is not filled in; the second-device sign-in and password-reset checks (D2 step 8, D3) were not reported |
+| Auth providers (D1) | Anonymous and Email/Password enabled |
+| Authorized domain | `skatingx-platform-web.vercel.app` added |
+| Vercel env | `VITE_FIREBASE_*` point to `skatingx-platform` |
+
+Verified by the agent:
+
+- [x] Emulator harness (section E1)
+- [x] Branch pushed; CI triggered via draft PR #1 (a push alone does not trigger the workflow: its triggers are `pull_request` and `push` to `main`). Two runs, both green: `npm ci`, `lint`, `typecheck`, `test -- --run` (32 of 32), `build`, on Node v22.23.3. CI build `index-DZ2jXrUu.js` is 916.86 kB, identical to the local no-env clean build.
+- [x] CI runner pinned to `ubuntu-24.04` because `ubuntu-latest` migrates to Ubuntu 26 on 2026-10-19
+- Note: the git remote URL uses lowercase `lafa-el`; GitHub reports the repo moved to `Lafa-el`. It is a case difference only and works, but the URL can be updated.
+- Note: GitHub warns that `actions/checkout@v4` and `actions/setup-node@v4` target Node 20 and are forced onto Node 24. Works now; plan a version bump as a separate chore.
+
+Still open: full rules text (G1), D4 table and second-device sign-in, API key referrer check, ADR sign-off, production-dependency vulnerability PR, SPA rewrite.
