@@ -1,6 +1,7 @@
 import {
   getFirestoreDb,
   subscribeToRaceEvents,
+  subscribeToRaceResults,
   subscribeToRaces,
   subscribeToRoster,
   type InvalidRaceDayDocument,
@@ -8,7 +9,7 @@ import {
   type RaceDayList,
   type RaceDayListError,
 } from "@skatingx/firebase-client";
-import type { RaceEntry, RaceEvent, RaceRosterEntry } from "@skatingx/schema";
+import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skatingx/schema";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -95,6 +96,20 @@ export function useRaces(ctx: RaceDayContext | null, eventId: string | null): Li
   const subscribe = useMemo<Subscribe<RaceEntry> | null>(
     () =>
       ctx && eventId ? (onData, onError) => subscribeToRaces(ctx, eventId, onData, onError) : null,
+    [ctx, eventId],
+  );
+  return useSubscribedList(subscribe);
+}
+
+export function useRaceResults(
+  ctx: RaceDayContext | null,
+  eventId: string | null,
+): ListState<RaceResult> {
+  const subscribe = useMemo<Subscribe<RaceResult> | null>(
+    () =>
+      ctx && eventId
+        ? (onData, onError) => subscribeToRaceResults(ctx, eventId, onData, onError)
+        : null,
     [ctx, eventId],
   );
   return useSubscribedList(subscribe);

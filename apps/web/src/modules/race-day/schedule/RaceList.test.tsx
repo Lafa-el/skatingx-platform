@@ -147,6 +147,15 @@ describe("RaceList", () => {
     expect(onDelete).toHaveBeenCalledExactlyOnceWith(r);
   });
 
+  it("the delete confirmation says the race's results are deleted too, and cannot be recovered", async () => {
+    const { user } = setup([race({})]);
+    expect(screen.queryByText(/所有成绩/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: /^删除/ }));
+    const warning = screen.getByRole("alert");
+    expect(warning.textContent).toContain("所有成绩");
+    expect(warning.textContent).toContain("无法恢复");
+  });
+
   it("disables actions while another write is running", () => {
     setup([race({})], { busy: true });
     const list = screen.getByRole("list");

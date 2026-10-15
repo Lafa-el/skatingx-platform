@@ -2,15 +2,19 @@ import {
   createRace,
   createRaceEvent,
   createRaceEventWithRaces,
+  createRaceResult,
   deleteRace,
   createRosterEntry,
   deleteRaceEvent,
+  deleteRaceResult,
   deleteRosterEntry,
   setRaceEventVerified,
+  setRaceResultVerified,
   setRaceVerified,
   setRosterEntryVerified,
   updateRace,
   updateRaceEvent,
+  updateRaceResult,
   updateRosterEntry,
   type RaceDayContext,
 } from "@skatingx/firebase-client";
@@ -20,6 +24,7 @@ import {
   type RaceDayTemplate,
   type RaceEventInput,
   type RaceInput,
+  type RaceResultFormInput,
   type RosterEntryInput,
 } from "@skatingx/skating-domain";
 import { useCallback, useMemo, useState } from "react";
@@ -41,12 +46,21 @@ export type RaceDayActions = {
   updateRace: (eventId: string, raceId: string, input: RaceInput) => Promise<WriteOutcome>;
   setRaceVerified: (eventId: string, raceId: string, verified: boolean) => Promise<WriteOutcome>;
   deleteRace: (eventId: string, raceId: string) => Promise<WriteOutcome>;
+  createResult: (
+    eventId: string,
+    raceId: string,
+    rosterId: string,
+    input: RaceResultFormInput,
+  ) => Promise<WriteOutcome>;
+  updateResult: (eventId: string, resultId: string, input: RaceResultFormInput) => Promise<WriteOutcome>;
+  setResultVerified: (eventId: string, resultId: string, verified: boolean) => Promise<WriteOutcome>;
+  deleteResult: (eventId: string, resultId: string) => Promise<WriteOutcome>;
   /** Event and races in one batch: all or nothing. Returns the event id to select. */
   applyTemplate: (template: RaceDayTemplate) => Promise<{ eventId: string; outcome: WriteOutcome }>;
 };
 
 /**
- * Writes for the Setup page. Every write goes through `settleWrite`, so the UI is never stuck
+ * Writes for the Race Day pages (Setup, Schedule, Results). Every write goes through `settleWrite`, so the UI is never stuck
  * waiting for a server that is out of reach. A write the server rejects after we already
  * reported it as queued sets `syncFailed`, which the page shows.
  */
@@ -98,6 +112,13 @@ export function useRaceDayActions(ctx: RaceDayContext | null): {
       setRaceVerified: (eventId, raceId, verified) =>
         run("setRaceVerified", setRaceVerified(ctx, eventId, raceId, verified)),
       deleteRace: (eventId, raceId) => run("deleteRace", deleteRace(ctx, eventId, raceId)),
+      createResult: (eventId, raceId, rosterId, input) =>
+        run("createResult", createRaceResult(ctx, eventId, raceId, rosterId, input)),
+      updateResult: (eventId, resultId, input) =>
+        run("updateResult", updateRaceResult(ctx, eventId, resultId, input)),
+      setResultVerified: (eventId, resultId, verified) =>
+        run("setResultVerified", setRaceResultVerified(ctx, eventId, resultId, verified)),
+      deleteResult: (eventId, resultId) => run("deleteResult", deleteRaceResult(ctx, eventId, resultId)),
       applyTemplate: async (template) => {
         const outcome = await run(
           "applyTemplate",

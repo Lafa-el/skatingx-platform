@@ -93,6 +93,15 @@ describe("RosterList", () => {
     expect(onDelete).toHaveBeenCalledExactlyOnceWith(e);
   });
 
+  it("the delete confirmation says the athlete's results are deleted too, and cannot be recovered", async () => {
+    const { user } = setup([entry({})]);
+    expect(screen.queryByText(/所有成绩/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: /删除 Lindsay/ }));
+    const warning = screen.getByRole("alert");
+    expect(warning.textContent).toContain("所有成绩");
+    expect(warning.textContent).toContain("无法恢复");
+  });
+
   it("disables the actions while another write is in progress", () => {
     setup([entry({})], true);
     for (const button of screen.getAllByRole("button")) {
