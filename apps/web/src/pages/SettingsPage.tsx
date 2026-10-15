@@ -4,6 +4,8 @@ import { FormEvent, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { LanguageSetting } from "@/components/LanguageSetting";
+import { useLanguageSetting } from "@/hooks/useLanguageSetting";
 
 function AuthField({
   id,
@@ -57,6 +59,7 @@ export function SettingsPage() {
   const [formBusy, setFormBusy] = useState(false);
   const [proBusy, setProBusy] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+  const languageSetting = useLanguageSetting();
 
   async function handleBindSubmit(event: FormEvent) {
     event.preventDefault();
@@ -143,7 +146,14 @@ export function SettingsPage() {
         later phase.
       </p>
 
-      <Card title="PRO membership" className="mt-6">
+      <LanguageSetting
+        language={languageSetting.language}
+        disabled={languageSetting.disabled}
+        failed={languageSetting.failed}
+        onChange={languageSetting.setLanguage}
+      />
+
+      <Card title="PRO membership" className="mt-4">
         <p className="text-sm font-medium text-amber-800">
           Development only. Payment is not implemented.
         </p>
