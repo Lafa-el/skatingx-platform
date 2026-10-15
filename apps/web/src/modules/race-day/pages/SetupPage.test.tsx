@@ -233,6 +233,8 @@ describe("SetupPage event", () => {
     const deleteButtons = screen.getAllByRole("button", { name: /^删除/ });
     await user.click(deleteButtons[0]!);
     expect(screen.getByRole("alert").textContent).toContain("名单、赛程和所有成绩");
+    expect(screen.getByRole("alert").textContent).toContain("视频记录");
+    expect(screen.getByRole("alert").textContent).toContain("视频文件本身不受影响");
     expect(screen.getByRole("alert").textContent).toContain("无法恢复");
     expect(actions().deleteEvent).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "确认删除" }));

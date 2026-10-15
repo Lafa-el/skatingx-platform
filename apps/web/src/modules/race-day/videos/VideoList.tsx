@@ -1,0 +1,131 @@
+import { useState } from "react";
+
+import { useLocale } from "@/hooks/useLocale";
+
+import { DANGER_BUTTON, FormMessage, SECONDARY_BUTTON } from "../components/fields";
+import { t } from "../i18n/messages";
+import type { VideoGroup, VideoView } from "../lib/videos";
+
+type VideoListProps = {
+  groups: readonly VideoGroup[];
+  busy: boolean;
+  onEdit: (view: VideoView) => void;
+  onDelete: (view: VideoView) => void;
+};
+
+/** Records grouped by race. Links open in a new tab, and the list shows only the host. */
+export function VideoList({ groups, busy, onEdit, onDelete }: VideoListProps) {
+  const locale = useLocale();
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-5">
+      {groups.map((group) => {
+        const raceName = group.race
+          ? `${group.raceNumber === null ? "" : `#${String(group.raceNumber)} `}${group.race.label}${group.race.day ? ` · ${group.race.day}` : ""}`
+          : t(locale, "raceDay.videos.item.unknownRace");
+        const headingId = `video-group-${group.race?.raceId ?? "unknown"}`;
+
+        return (
+          <section key={group.race?.raceId ?? "unknown"} aria-labelledby={headingId} className="space-y-2">
+            <h3 id={headingId} className="text-base font-semibold text-slate-900">
+              {raceName}
+            </h3>
+            <ul className="space-y-3">
+              {group.views.map((view) => {
+                const { video, athlete, linkHost } = view;
+                const confirming = confirmingId === video.videoId;
+                const athleteName = athlete?.displayName ?? t(locale, "raceDay.videos.item.unknownAthlete");
+                const suffix = <span className="sr-only"> {`${video.label} ${athleteName}`}</span>;
+
+                return (
+                  <li key={video.videoId} className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-base font-semibold text-slate-900">{video.label}</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {athleteName}
+                      {athlete ? ` · #${athlete.bib}` : ""}
+                    </p>
+                    {video.externalUrl !== null && linkHost !== null ? (
+                      <p className="mt-2 text-sm">
+                        <a
+                          href={video.externalUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-sky-700 underline"
+                        >
+                          {t(locale, "raceDay.videos.item.openLink", { host: linkHost })}
+                        </a>
+                      </p>
+                    ) : null}
+                    {video.storedWhere ? (
+                      <p className="mt-1 text-sm text-slate-600">
+                        {t(locale, "raceDay.videos.item.storedWhere", { where: video.storedWhere })}
+                      </p>
+                    ) : null}
+                    {video.note ? <p className="mt-1 text-sm text-slate-500">{video.note}</p> : null}
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {confirming ? (
+                        <>
+                          <div className="w-full">
+                            <FormMessage tone="error">{t(locale, "raceDay.videos.item.deleteWarning")}</FormMessage>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            className={DANGER_BUTTON}
+                            onClick={() => {
+                              setConfirmingId(null);
+                              onDelete(view);
+                            }}
+                          >
+                            {t(locale, "raceDay.common.confirmDelete")}
+                            {suffix}
+                          </button>
+                          <button
+                            type="button"
+                            className={SECONDARY_BUTTON}
+                            onClick={() => {
+                              setConfirmingId(null);
+                            }}
+                          >
+                            {t(locale, "raceDay.common.cancel")}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            className={SECONDARY_BUTTON}
+                            onClick={() => {
+                              onEdit(view);
+                            }}
+                          >
+                            {t(locale, "raceDay.common.edit")}
+                            {suffix}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            className={SECONDARY_BUTTON}
+                            onClick={() => {
+                              setConfirmingId(video.videoId);
+                            }}
+                          >
+                            {t(locale, "raceDay.common.delete")}
+                            {suffix}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}

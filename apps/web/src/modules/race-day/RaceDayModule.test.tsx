@@ -16,6 +16,9 @@ vi.mock("@/components/BottomNav", () => ({ BottomNav: () => null }));
 vi.mock("./pages/SetupPage", () => ({ SetupPage: () => <h1>设置</h1> }));
 vi.mock("./pages/SchedulePage", () => ({ SchedulePage: () => <h1>赛程</h1> }));
 vi.mock("./pages/ResultsPage", () => ({ ResultsPage: () => <h1>成绩</h1> }));
+vi.mock("./pages/VideosPage", () => ({ VideosPage: () => <h1>视频</h1> }));
+const pro = vi.hoisted(() => ({ isPro: true, loading: false, error: null as string | null }));
+vi.mock("@/hooks/useIsPro", () => ({ useIsPro: () => pro }));
 
 function renderAt(path: string) {
   render(
@@ -29,6 +32,9 @@ function renderAt(path: string) {
 
 afterEach(() => {
   locale.current = "zh";
+  pro.isPro = true;
+  pro.loading = false;
+  pro.error = null;
 });
 
 const TABS_ZH = ["今天", "赛程", "成绩", "视频", "总结", "设置"];
@@ -57,6 +63,26 @@ describe("RaceDayModule", () => {
     expect(screen.queryByText(/尚未开放/)).toBeNull();
   });
 
+  it("the videos route shows the Videos page, not the placeholder", () => {
+    renderAt("/race-day/videos");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("视频");
+    expect(screen.queryByText(/尚未开放/)).toBeNull();
+  });
+
+  it("the summary route is behind the PRO gate: a free user sees the locked card, not the placeholder", () => {
+    pro.isPro = false;
+    renderAt("/race-day/summary");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("总结");
+    expect(screen.getByText("这一页需要 PRO")).toBeTruthy();
+    expect(screen.queryByText(/尚未开放/)).toBeNull();
+  });
+
+  it("the Today route is not gated", () => {
+    pro.isPro = false;
+    renderAt("/race-day");
+    expect(screen.queryByText("这一页需要 PRO")).toBeNull();
+  });
+
   it("the setup route shows the Setup page under its own heading", () => {
     renderAt("/race-day/setup");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("设置");
@@ -66,7 +92,6 @@ describe("RaceDayModule", () => {
   it("each other sub-route shows its own heading and says the section is not available yet", () => {
     const cases: [string, string][] = [
       ["/race-day", "今天"],
-      ["/race-day/videos", "视频"],
       ["/race-day/summary", "总结"],
     ];
     for (const [path, heading] of cases) {
