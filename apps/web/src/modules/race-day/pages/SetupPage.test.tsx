@@ -232,7 +232,8 @@ describe("SetupPage event", () => {
     render(<SetupPage />);
     const deleteButtons = screen.getAllByRole("button", { name: /^删除/ });
     await user.click(deleteButtons[0]!);
-    expect(screen.getByRole("alert").textContent).toContain("名单和赛程");
+    expect(screen.getByRole("alert").textContent).toContain("名单、赛程和所有成绩");
+    expect(screen.getByRole("alert").textContent).toContain("无法恢复");
     expect(actions().deleteEvent).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "确认删除" }));
     expect(actions().deleteEvent).toHaveBeenCalledExactlyOnceWith("buffalo-abc123");

@@ -81,6 +81,9 @@ export function RaceList({ races, roster, timeZone, busy, onEdit, onSetVerified,
                   <div className="mt-3 flex flex-wrap gap-2">
                     {confirming ? (
                       <>
+                        <p role="alert" className="w-full text-sm font-medium text-red-800">
+                          {t(locale, "raceDay.schedule.deleteWarning")}
+                        </p>
                         <button
                           type="button"
                           disabled={busy}

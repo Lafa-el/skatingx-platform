@@ -55,6 +55,9 @@ export function RosterList({ entries, busy, onEdit, onSetVerified, onDelete }: R
             <div className="mt-3 flex flex-wrap gap-2">
               {confirming ? (
                 <>
+                  <p role="alert" className="w-full text-sm font-medium text-red-800">
+                    {t(locale, "raceDay.setup.roster.deleteWarning")}
+                  </p>
                   <button
                     type="button"
                     disabled={busy}

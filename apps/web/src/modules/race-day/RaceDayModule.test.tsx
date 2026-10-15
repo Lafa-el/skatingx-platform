@@ -15,6 +15,7 @@ vi.mock("@/components/BottomNav", () => ({ BottomNav: () => null }));
 // The Setup page needs Firebase-backed providers; it has its own tests.
 vi.mock("./pages/SetupPage", () => ({ SetupPage: () => <h1>设置</h1> }));
 vi.mock("./pages/SchedulePage", () => ({ SchedulePage: () => <h1>赛程</h1> }));
+vi.mock("./pages/ResultsPage", () => ({ ResultsPage: () => <h1>成绩</h1> }));
 
 function renderAt(path: string) {
   render(
@@ -50,6 +51,12 @@ describe("RaceDayModule", () => {
     expect(screen.queryByText(/尚未开放/)).toBeNull();
   });
 
+  it("the results route shows the Results page, not the placeholder", () => {
+    renderAt("/race-day/results");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("成绩");
+    expect(screen.queryByText(/尚未开放/)).toBeNull();
+  });
+
   it("the setup route shows the Setup page under its own heading", () => {
     renderAt("/race-day/setup");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("设置");
@@ -59,7 +66,6 @@ describe("RaceDayModule", () => {
   it("each other sub-route shows its own heading and says the section is not available yet", () => {
     const cases: [string, string][] = [
       ["/race-day", "今天"],
-      ["/race-day/results", "成绩"],
       ["/race-day/videos", "视频"],
       ["/race-day/summary", "总结"],
     ];

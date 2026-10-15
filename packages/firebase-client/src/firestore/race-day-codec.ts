@@ -3,12 +3,16 @@ import {
   type RaceDayVerification,
   type RaceEntry,
   type RaceEvent,
+  type RaceResult,
   type RaceRosterEntry,
 } from "@skatingx/schema";
-import type {
-  RaceEventInput,
-  RaceInput,
-  RosterEntryInput,
+import {
+  RACE_DAY_LIMITS,
+  RESULT_TIME_MAX_DECIMALS,
+  type RaceEventInput,
+  type RaceInput,
+  type RaceResultWriteInput,
+  type RosterEntryInput,
 } from "@skatingx/skating-domain";
 import {
   serverTimestamp,
@@ -227,6 +231,76 @@ export function parseRaceEntry(id: string, data: unknown): ParseResult<RaceEntry
   };
 }
 
+const RESULT_STATUSES = ["finished", "DNS", "DNF", "DQ"] as const;
+
+/** True when the value has no digit past the third decimal (tolerates float representation). */
+function hasAtMostResultDecimals(seconds: number): boolean {
+  const scale = 10 ** RESULT_TIME_MAX_DECIMALS;
+  return Math.abs(seconds * scale - Math.round(seconds * scale)) < 1e-6;
+}
+
+/**
+ * Mirrors `validResult` in firestore.rules, plus what rules cannot express (at most 3 decimals).
+ * A result that fails is hidden and counted: showing a wrong time as if it were a race result
+ * would be worse than showing nothing.
+ */
+export function parseRaceResult(id: string, data: unknown): ParseResult<RaceResult> {
+  if (!isRecord(data)) {
+    return fail("document is not an object");
+  }
+  const common = readCommon(data);
+  if (!common.ok) {
+    return common;
+  }
+  const { raceId, rosterId, status, timeSeconds, place, advanced } = data;
+  if (
+    typeof raceId !== "string" ||
+    typeof rosterId !== "string" ||
+    data.resultId !== id ||
+    id !== `${raceId}_${rosterId}`
+  ) {
+    return fail("result ids do not match the document id");
+  }
+  const knownStatus = RESULT_STATUSES.find((s) => s === status);
+  if (knownStatus === undefined) {
+    return fail("invalid status");
+  }
+  if (place !== null && !(typeof place === "number" && Number.isInteger(place) && place >= 1)) {
+    return fail("invalid place");
+  }
+  if (advanced !== null && typeof advanced !== "boolean") {
+    return fail("invalid advanced");
+  }
+  if (knownStatus === "finished") {
+    if (
+      typeof timeSeconds !== "number" ||
+      !Number.isFinite(timeSeconds) ||
+      timeSeconds <= 0 ||
+      timeSeconds > RACE_DAY_LIMITS.resultTimeMaxSeconds
+    ) {
+      return fail("finished result without a valid time");
+    }
+    if (!hasAtMostResultDecimals(timeSeconds)) {
+      return fail("time has more than three decimals");
+    }
+  } else if (timeSeconds !== null || place !== null || advanced === true) {
+    return fail("result that was not finished carries a time, place or advancement");
+  }
+  return {
+    ok: true,
+    value: {
+      ...common.value,
+      resultId: id,
+      raceId,
+      rosterId,
+      status: knownStatus,
+      timeSeconds: knownStatus === "finished" ? (timeSeconds as number) : null,
+      place,
+      advanced,
+    },
+  };
+}
+
 // --- encoders (write) -----------------------------------------------------------
 
 /**
@@ -338,4 +412,34 @@ export function encodeRaceCreate(raceId: string, input: RaceInput): DocumentData
 
 export function encodeRaceUpdate(input: RaceInput): DocumentData {
   return { ...raceFields(input), ...editedFields(input.sourceNote) };
+}
+
+function resultFields(input: RaceResultWriteInput): DocumentData {
+  return {
+    status: input.status,
+    timeSeconds: input.timeSeconds,
+    place: input.place,
+    advanced: input.advanced,
+  };
+}
+
+export function encodeRaceResultCreate(
+  resultId: string,
+  raceId: string,
+  rosterId: string,
+  input: RaceResultWriteInput,
+): DocumentData {
+  return {
+    resultId,
+    raceId,
+    rosterId,
+    ...resultFields(input),
+    ...pendingFields(input.sourceNote),
+    ...createdAndUpdated(),
+  };
+}
+
+/** `raceId` and `rosterId` are part of the id, so an update never changes them. */
+export function encodeRaceResultUpdate(input: RaceResultWriteInput): DocumentData {
+  return { ...resultFields(input), ...editedFields(input.sourceNote) };
 }

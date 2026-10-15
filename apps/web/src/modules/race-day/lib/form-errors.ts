@@ -9,6 +9,14 @@ const KEY: Record<RaceDayInputErrorCode, RaceDayMessageKey> = {
   invalidFormat: "raceDay.form.error.invalidFormat",
   outOfRange: "raceDay.form.error.outOfRange",
   duplicate: "raceDay.form.error.duplicate",
+  statusInvalid: "raceDay.results.error.statusInvalid",
+  timeRequired: "raceDay.results.error.timeRequired",
+  timeInvalid: "raceDay.results.error.timeInvalid",
+  timeDecimals: "raceDay.results.error.timeDecimals",
+  timeNotAllowed: "raceDay.results.error.timeNotAllowed",
+  placeInvalid: "raceDay.results.error.placeInvalid",
+  placeNotAllowed: "raceDay.results.error.placeNotAllowed",
+  advancedNotAllowed: "raceDay.results.error.advancedNotAllowed",
 };
 
 /** First error per field, as a message key. A field shows one problem at a time. */

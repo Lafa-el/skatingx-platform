@@ -156,3 +156,21 @@ export function raceDayRacesCollectionRef(
   const segments = pathToSegments(paths.raceDayRacesCollection(userId, eventId));
   return collection(db, ...(segments as [string, ...string[]]));
 }
+
+export function raceDayResultRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+  resultId: string,
+): DocumentReference {
+  return docFromPath(db, paths.raceDayResult(userId, eventId, resultId));
+}
+
+export function raceDayResultsCollectionRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+): CollectionReference {
+  const segments = pathToSegments(paths.raceDayResultsCollection(userId, eventId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}

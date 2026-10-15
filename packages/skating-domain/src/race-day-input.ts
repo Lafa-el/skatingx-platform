@@ -1,4 +1,4 @@
-import type { DateString } from "@skatingx/schema";
+import type { DateString, RaceResultStatus } from "@skatingx/schema";
 
 import { isValidRaceDayId } from "./race-day";
 
@@ -26,6 +26,8 @@ export const RACE_DAY_LIMITS = {
   sortOrderMax: 999,
   roundOrHeat: 40,
   rosterIdsMax: 50,
+  /** A race result time is above 0 and at most this many seconds (30 minutes). */
+  resultTimeMaxSeconds: 1800,
   sourceNote: 500,
 } as const;
 
@@ -36,7 +38,16 @@ export type RaceDayInputErrorCode =
   | "tooMany"
   | "invalidFormat"
   | "outOfRange"
-  | "duplicate";
+  | "duplicate"
+  // Race result entry (see `prepareRaceResultInput`)
+  | "statusInvalid"
+  | "timeRequired"
+  | "timeInvalid"
+  | "timeDecimals"
+  | "timeNotAllowed"
+  | "placeInvalid"
+  | "placeNotAllowed"
+  | "advancedNotAllowed";
 
 export type RaceDayInputError = { field: string; code: RaceDayInputErrorCode };
 
@@ -329,4 +340,156 @@ export function createRaceDayEntityId(label: string, suffix: string): string {
     .slice(0, MAX_SLUG_LENGTH)
     .replace(/-+$/g, "");
   return `${slug || "item"}-${suffix}`;
+}
+
+// --- race result ---------------------------------------------------------------------
+
+/**
+ * Result times are stored in seconds with at most 3 decimals (milliseconds). Security Rules only
+ * check "a number above 0 and at most 1800" because rules cannot express decimal places reliably,
+ * so this module (on write) and the codec (on read) are what keep every stored time to 3 decimals.
+ */
+export const RESULT_TIME_MAX_DECIMALS = 3;
+
+/** Sanity bound for a typed place; not a rules limit. */
+export const RACE_RESULT_PLACE_MAX = 999;
+
+const RESULT_STATUSES: readonly RaceResultStatus[] = ["finished", "DNS", "DNF", "DQ"];
+
+// "m:ss(.fff)" or plain seconds "s(.fff)". Comma decimals are rejected on purpose: they are
+// ambiguous with thousands separators in some locales, and a wrong time must not be saved quietly.
+const RESULT_TIME_PATTERN = /^(?:(\d{1,2}):(\d{1,2})|(\d{1,4}))(?:\.(\d+))?$/;
+
+export type ParsedResultTime =
+  | { ok: true; seconds: number }
+  | { ok: false; code: "timeInvalid" | "timeDecimals" };
+
+/**
+ * Strict race-time parser for results. Unlike the lenient PB parser it rejects what is almost
+ * certainly a typo: "1:75.00" (seconds must be below 60), "1:30:00", more than 3 decimals, and
+ * anything over 30 minutes. It works in integer milliseconds so "49.123" is exact, not 49.12299999.
+ */
+export function parseResultTime(input: string): ParsedResultTime {
+  const match = RESULT_TIME_PATTERN.exec((input ?? "").trim());
+  if (!match) {
+    return { ok: false, code: "timeInvalid" };
+  }
+  const [, minutesText, secondsInMinuteText, plainSecondsText, fraction = ""] = match;
+  if (fraction.length > RESULT_TIME_MAX_DECIMALS) {
+    return { ok: false, code: "timeDecimals" };
+  }
+
+  let wholeSeconds: number;
+  if (minutesText !== undefined && secondsInMinuteText !== undefined) {
+    const secondsInMinute = Number(secondsInMinuteText);
+    if (secondsInMinute >= 60) {
+      return { ok: false, code: "timeInvalid" };
+    }
+    wholeSeconds = Number(minutesText) * 60 + secondsInMinute;
+  } else {
+    wholeSeconds = Number(plainSecondsText);
+  }
+
+  const milliseconds = wholeSeconds * 1000 + Number(fraction.padEnd(RESULT_TIME_MAX_DECIMALS, "0"));
+  if (milliseconds <= 0 || milliseconds > RACE_DAY_LIMITS.resultTimeMaxSeconds * 1000) {
+    return { ok: false, code: "timeInvalid" };
+  }
+  return { ok: true, seconds: milliseconds / 1000 };
+}
+
+/**
+ * Display form that never hides what was entered: two decimals normally ("49.80"), three only
+ * when the third is not zero ("49.123"). Parsing the output gives back the same seconds.
+ */
+export function formatResultTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "--";
+  }
+  const totalMs = Math.round(seconds * 1000);
+  const minutes = Math.floor(totalMs / 60000);
+  const remainderMs = totalMs % 60000;
+  const wholeSeconds = Math.floor(remainderMs / 1000);
+  let fraction = String(remainderMs % 1000).padStart(3, "0");
+  if (fraction.endsWith("0")) {
+    fraction = fraction.slice(0, 2);
+  }
+  const secondsText = minutes > 0 ? String(wholeSeconds).padStart(2, "0") : String(wholeSeconds);
+  return `${minutes > 0 ? `${String(minutes)}:` : ""}${secondsText}.${fraction}`;
+}
+
+/** What the result form hands over: raw text for the time and place. */
+export type RaceResultFormInput = {
+  status: string;
+  time: string;
+  place: string;
+  advanced: boolean | null;
+  sourceNote: string;
+};
+
+/** What is written: parsed numbers, consistent with the status. */
+export type RaceResultWriteInput = {
+  status: RaceResultStatus;
+  timeSeconds: number | null;
+  place: number | null;
+  advanced: boolean | null;
+  sourceNote: string;
+};
+
+/**
+ * A finished race needs a time; DNS/DNF/DQ carry no time or place and cannot be "advanced".
+ * Mirrors `validResult` in firestore.rules and `validateRaceResultInput`, so a bad combination is
+ * explained in the form instead of being refused by the server.
+ */
+export function prepareRaceResultInput(input: RaceResultFormInput): PreparedInput<RaceResultWriteInput> {
+  const errors: RaceDayInputError[] = [];
+  const sourceNote = sourceNoteText(input.sourceNote, errors);
+
+  const status = RESULT_STATUSES.find((s) => s === input.status);
+  if (status === undefined) {
+    errors.push({ field: "status", code: "statusInvalid" });
+  }
+  const effectiveStatus: RaceResultStatus = status ?? "finished";
+
+  const timeText = (input.time ?? "").trim();
+  const placeText = (input.place ?? "").trim();
+  let timeSeconds: number | null = null;
+  let place: number | null = null;
+  let advanced: boolean | null = input.advanced === true ? true : input.advanced === false ? false : null;
+
+  if (effectiveStatus === "finished") {
+    if (timeText === "") {
+      errors.push({ field: "time", code: "timeRequired" });
+    } else {
+      const parsed = parseResultTime(timeText);
+      if (parsed.ok) {
+        timeSeconds = parsed.seconds;
+      } else {
+        errors.push({ field: "time", code: parsed.code });
+      }
+    }
+    if (placeText !== "") {
+      const value = /^\d{1,4}$/.test(placeText) ? Number(placeText) : NaN;
+      if (Number.isInteger(value) && value >= 1 && value <= RACE_RESULT_PLACE_MAX) {
+        place = value;
+      } else {
+        errors.push({ field: "place", code: "placeInvalid" });
+      }
+    }
+  } else {
+    if (timeText !== "") {
+      errors.push({ field: "time", code: "timeNotAllowed" });
+    }
+    if (placeText !== "") {
+      errors.push({ field: "place", code: "placeNotAllowed" });
+    }
+    if (advanced === true) {
+      errors.push({ field: "advanced", code: "advancedNotAllowed" });
+      advanced = null;
+    }
+  }
+
+  return {
+    value: { status: effectiveStatus, timeSeconds, place, advanced, sourceNote },
+    errors,
+  };
 }

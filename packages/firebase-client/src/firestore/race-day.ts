@@ -1,15 +1,18 @@
-import type { RaceEntry, RaceEvent, RaceRosterEntry } from "@skatingx/schema";
+import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skatingx/schema";
 import {
   createIdSuffix,
   createRaceDayEntityId,
+  createRaceResultId,
   isValidRaceDayId,
   prepareRaceEventInput,
   prepareRaceInput,
+  prepareRaceResultInput,
   prepareRosterEntryInput,
   type PreparedInput,
   type RaceDayInputError,
   type RaceEventInput,
   type RaceInput,
+  type RaceResultFormInput,
   type RosterEntryInput,
 } from "@skatingx/skating-domain";
 import {
@@ -29,18 +32,22 @@ import {
   type Firestore,
   type FirestoreError,
   type Unsubscribe,
+  type WriteBatch,
 } from "firebase/firestore";
 
 import {
   encodeRaceCreate,
   encodeRaceEventCreate,
   encodeRaceEventUpdate,
+  encodeRaceResultCreate,
+  encodeRaceResultUpdate,
   encodeRaceUpdate,
   encodeRosterEntryCreate,
   encodeRosterEntryUpdate,
   encodeVerification,
   parseRaceEntry,
   parseRaceEvent,
+  parseRaceResult,
   parseRosterEntry,
   type ParseResult,
 } from "./race-day-codec";
@@ -49,6 +56,8 @@ import {
   raceDayEventsCollectionRef,
   raceDayRaceRef,
   raceDayRacesCollectionRef,
+  raceDayResultRef,
+  raceDayResultsCollectionRef,
   raceDayRosterCollectionRef,
   raceDayRosterRef,
 } from "./refs";
@@ -210,11 +219,28 @@ export async function setRaceEventVerified(
   await updateDoc(raceDayEventRef(ctx.db, ctx.userId, eventId), encodeVerification(verified));
 }
 
-/** Subcollections that belong to an event. Extend when results, videos or summaries ship. */
-const EVENT_SUBCOLLECTIONS = [raceDayRosterCollectionRef, raceDayRacesCollectionRef] as const;
+/** Subcollections that belong to an event. Extend when videos or summaries ship. */
+const EVENT_SUBCOLLECTIONS = [
+  raceDayRosterCollectionRef,
+  raceDayRacesCollectionRef,
+  raceDayResultsCollectionRef,
+] as const;
 
 /** Firestore allows 500 writes per batch; stay below it. */
 const BATCH_LIMIT = 450;
+
+type BatchOperation = (batch: WriteBatch) => void;
+
+/** One batch when it fits, so the whole change is atomic; chunks otherwise, in the given order. */
+async function commitInBatches(db: Firestore, operations: readonly BatchOperation[]): Promise<void> {
+  for (let start = 0; start < operations.length; start += BATCH_LIMIT) {
+    const batch = writeBatch(db);
+    for (const operation of operations.slice(start, start + BATCH_LIMIT)) {
+      operation(batch);
+    }
+    await batch.commit();
+  }
+}
 
 /**
  * Deletes an event and everything under it. Firestore does not cascade, and orphaned roster
@@ -296,10 +322,11 @@ export async function setRosterEntryVerified(
 }
 
 /**
- * Deletes an athlete and removes them from every race that listed them, in one atomic batch,
- * so no race keeps pointing at a person who no longer exists. Removing the reference does not
- * change a race's verification: the race data itself was not edited.
- * (Results and videos that reference the athlete are handled when those slices ship.)
+ * Deletes an athlete, removes them from every race that listed them, and deletes their results.
+ * Everything goes in one atomic batch whenever it fits (it does for any realistic event), so no
+ * race or result keeps pointing at a person who no longer exists. Removing the reference does not
+ * change a race's verification: the race data itself was not edited. Videos that reference the
+ * athlete are handled when that slice ships.
  */
 export async function deleteRosterEntry(
   ctx: RaceDayContext,
@@ -315,14 +342,21 @@ export async function deleteRosterEntry(
       where("rosterIds", "array-contains", rosterId),
     ),
   );
+  const results = await getDocs(
+    query(raceDayResultsCollectionRef(ctx.db, ctx.userId, eventId), where("rosterId", "==", rosterId)),
+  );
 
-  const batch = writeBatch(ctx.db);
+  const operations: BatchOperation[] = [];
   for (const race of races.docs) {
     const patch: DocumentData = { rosterIds: arrayRemove(rosterId), updatedAt: serverTimestamp() };
-    batch.update(race.ref, patch);
+    operations.push((batch) => batch.update(race.ref, patch));
   }
-  batch.delete(raceDayRosterRef(ctx.db, ctx.userId, eventId, rosterId));
-  await batch.commit();
+  for (const result of results.docs) {
+    operations.push((batch) => batch.delete(result.ref));
+  }
+  // Last, so a partial failure leaves a visible athlete that can be deleted again.
+  operations.push((batch) => batch.delete(raceDayRosterRef(ctx.db, ctx.userId, eventId, rosterId)));
+  await commitInBatches(ctx.db, operations);
 }
 
 export function subscribeToRoster(
@@ -388,7 +422,14 @@ export async function deleteRace(
 ): Promise<void> {
   assertValidId("eventId", eventId);
   assertValidId("raceId", raceId);
-  await deleteDoc(raceDayRaceRef(ctx.db, ctx.userId, eventId, raceId));
+
+  // Results of a race that no longer exists would be orphans nobody can reach.
+  const results = await getDocs(
+    query(raceDayResultsCollectionRef(ctx.db, ctx.userId, eventId), where("raceId", "==", raceId)),
+  );
+  const operations: BatchOperation[] = results.docs.map((result) => (batch) => batch.delete(result.ref));
+  operations.push((batch) => batch.delete(raceDayRaceRef(ctx.db, ctx.userId, eventId, raceId)));
+  await commitInBatches(ctx.db, operations);
 }
 
 export function subscribeToRaces(
@@ -404,4 +445,86 @@ export function subscribeToRaces(
     onData,
     onError,
   );
+}
+
+// --- results ------------------------------------------------------------------------
+
+/**
+ * One result per race and athlete, with the deterministic id `{raceId}_{rosterId}`.
+ * `create` and `update` are separate on purpose: the rules reject a second create (it would
+ * rewrite `createdAt`), so the caller picks from the live list instead of overwriting blindly.
+ */
+export async function createRaceResult(
+  ctx: RaceDayContext,
+  eventId: string,
+  raceId: string,
+  rosterId: string,
+  input: RaceResultFormInput,
+): Promise<string> {
+  assertValidId("eventId", eventId);
+  assertValidId("raceId", raceId);
+  assertValidId("rosterId", rosterId);
+  const value = validated(prepareRaceResultInput(input));
+  const resultId = createRaceResultId(raceId, rosterId);
+  await setDoc(
+    raceDayResultRef(ctx.db, ctx.userId, eventId, resultId),
+    encodeRaceResultCreate(resultId, raceId, rosterId, value),
+  );
+  return resultId;
+}
+
+export async function updateRaceResult(
+  ctx: RaceDayContext,
+  eventId: string,
+  resultId: string,
+  input: RaceResultFormInput,
+): Promise<void> {
+  assertValidId("eventId", eventId);
+  assertResultId(resultId);
+  const value = validated(prepareRaceResultInput(input));
+  await updateDoc(raceDayResultRef(ctx.db, ctx.userId, eventId, resultId), encodeRaceResultUpdate(value));
+}
+
+export async function setRaceResultVerified(
+  ctx: RaceDayContext,
+  eventId: string,
+  resultId: string,
+  verified: boolean,
+): Promise<void> {
+  assertValidId("eventId", eventId);
+  assertResultId(resultId);
+  await updateDoc(raceDayResultRef(ctx.db, ctx.userId, eventId, resultId), encodeVerification(verified));
+}
+
+export async function deleteRaceResult(
+  ctx: RaceDayContext,
+  eventId: string,
+  resultId: string,
+): Promise<void> {
+  assertValidId("eventId", eventId);
+  assertResultId(resultId);
+  await deleteDoc(raceDayResultRef(ctx.db, ctx.userId, eventId, resultId));
+}
+
+export function subscribeToRaceResults(
+  ctx: RaceDayContext,
+  eventId: string,
+  onData: (list: RaceDayList<RaceResult>) => void,
+  onError: (error: RaceDayListError) => void,
+): Unsubscribe {
+  assertValidId("eventId", eventId);
+  return subscribeToList(
+    raceDayResultsCollectionRef(ctx.db, ctx.userId, eventId),
+    parseRaceResult,
+    onData,
+    onError,
+  );
+}
+
+/** `{raceId}_{rosterId}`: both halves are slugs, and "_" is not allowed inside a slug. */
+function assertResultId(resultId: string): void {
+  const parts = resultId.split("_");
+  if (parts.length !== 2 || !parts.every((part) => isValidRaceDayId(part))) {
+    throw new RaceDayValidationError([{ field: "resultId", code: "invalidFormat" }]);
+  }
 }
