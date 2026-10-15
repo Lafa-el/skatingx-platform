@@ -4,19 +4,21 @@ import type { NavItem } from "@/app/navigation";
 
 type SubNavProps = {
   items: NavItem[];
+  /** Accessible name of the navigation landmark. Modules pass a localized one. */
+  label?: string;
 };
 
-export function SubNav({ items }: SubNavProps) {
+export function SubNav({ items, label = "Section" }: SubNavProps) {
   return (
     <nav
       className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 py-2"
-      aria-label="Section"
+      aria-label={label}
     >
       {items.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
-          end={item.to === "/training" || item.to === "/analysis"}
+          end={item.end ?? (item.to === "/training" || item.to === "/analysis")}
           className={({ isActive }) =>
             [
               "whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",

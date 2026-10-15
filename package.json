@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "npm run dev -w @skatingx/web",
     "build": "npm run build -w @skatingx/web",
-    "typecheck": "npm run typecheck -w @skatingx/schema && npm run typecheck -w @skatingx/skating-domain && npm run typecheck -w @skatingx/firebase-client && npm run typecheck -w @skatingx/web",
+    "typecheck": "npm run typecheck -w @skatingx/schema && npm run typecheck -w @skatingx/skating-domain && npm run typecheck -w @skatingx/firebase-client && npm run typecheck -w @skatingx/web && tsc --noEmit -p apps/web/tsconfig.test.json && tsc --noEmit -p tsconfig.tests.json",
     "lint": "eslint .",
     "test": "vitest",
     "test:rules": "node scripts/test-rules.mjs",
@@ -21,10 +21,14 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@firebase/rules-unit-testing": "^4.0.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "firebase-tools": "^15.33.0",
     "globals": "^17.13.0",
+    "happy-dom": "^21.0.1",
     "typescript-eslint": "^8.71.2",
     "vitest": "^4.1.11"
   }

@@ -102,3 +102,57 @@ export function trainingRedemptionsCollectionRef(
   );
   return collection(db, ...(segments as [string, ...string[]]));
 }
+
+// --- Race Day (ADR-001 D6) ----------------------------------------------------------
+
+export function raceDayEventRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+): DocumentReference {
+  return docFromPath(db, paths.raceDayEvent(userId, eventId));
+}
+
+export function raceDayEventsCollectionRef(
+  db: Firestore,
+  userId: string,
+): CollectionReference {
+  const segments = pathToSegments(paths.raceDayEventsCollection(userId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
+export function raceDayRosterRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+  rosterId: string,
+): DocumentReference {
+  return docFromPath(db, paths.raceDayRoster(userId, eventId, rosterId));
+}
+
+export function raceDayRosterCollectionRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+): CollectionReference {
+  const segments = pathToSegments(paths.raceDayRosterCollection(userId, eventId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
+export function raceDayRaceRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+  raceId: string,
+): DocumentReference {
+  return docFromPath(db, paths.raceDayRace(userId, eventId, raceId));
+}
+
+export function raceDayRacesCollectionRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+): CollectionReference {
+  const segments = pathToSegments(paths.raceDayRacesCollection(userId, eventId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}

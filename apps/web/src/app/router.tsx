@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { RaceDayRoute } from "@/app/RaceDayRoute";
 import { AppShell } from "@/layouts/AppShell";
 import { AnalysisLayout } from "@/layouts/AnalysisLayout";
 import { TrainingLayout } from "@/layouts/TrainingLayout";
@@ -43,6 +44,8 @@ export function AppRouter() {
         <Route path="pacing" element={<AnalysisPacingPage />} />
         <Route path="equipment" element={<AnalysisEquipmentPage />} />
       </Route>
+
+      <Route path="/race-day/*" element={<RaceDayRoute />} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

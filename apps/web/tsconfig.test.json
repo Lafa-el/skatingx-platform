@@ -1,0 +1,6 @@
+{
+  "$comment": "Type-checks the web app's test files. They are excluded from tsconfig.json because `npm run build` (tsc + vite build) runs on Vercel, which does not install the root test tooling (vitest, Testing Library). Run through the root `npm run typecheck`.",
+  "extends": "./tsconfig.json",
+  "include": ["src", "vite.config.ts"],
+  "exclude": []
+}
