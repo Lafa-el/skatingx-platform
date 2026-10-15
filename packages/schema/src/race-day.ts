@@ -78,7 +78,10 @@ export interface RaceResult extends RaceDayProvenance, RaceDayAudit {
   raceId: string;
   rosterId: string;
   status: RaceResultStatus;
-  /** Seconds, same unit as `TimeEntry`. Present only when `status === "finished"`. */
+  /**
+   * Seconds, same unit as `TimeEntry`, with at most 3 decimals (milliseconds, enforced by the domain
+   * layer and the codec; rules only bound the range). Present only when `status === "finished"`.
+   */
   timeSeconds: number | null;
   place: number | null;
   advanced: boolean | null;

@@ -276,6 +276,7 @@ describe("limits stay in sync with firestore.rules", () => {
     ["roundOrHeat", `d.round.size() <= ${String(RACE_DAY_LIMITS.roundOrHeat)}`],
     ["roundOrHeat", `d.heat.size() <= ${String(RACE_DAY_LIMITS.roundOrHeat)}`],
     ["rosterIdsMax", `d.rosterIds.size() <= ${String(RACE_DAY_LIMITS.rosterIdsMax)}`],
+    ["resultTimeMaxSeconds", `d.timeSeconds <= ${String(RACE_DAY_LIMITS.resultTimeMaxSeconds)}`],
     ["sourceNote", `d.sourceNote.size() <= ${String(RACE_DAY_LIMITS.sourceNote)}`],
   ];
 
