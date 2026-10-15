@@ -1,18 +1,20 @@
 import type { RaceEvent, RaceRosterEntry } from "@skatingx/schema";
-import type { RaceEventInput, RosterEntryInput } from "@skatingx/skating-domain";
-import { useMemo, useState } from "react";
+import type { RaceDayTemplate, RaceEventInput, RosterEntryInput } from "@skatingx/skating-domain";
+import { useState } from "react";
 
 import { useActiveAthlete } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
 
+import { EventPicker } from "../components/EventPicker";
 import { VerificationBadge } from "../components/VerificationBadge";
+import { WriteNotices } from "../components/WriteNotices";
 import {
   DANGER_BUTTON,
   FormMessage,
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
 } from "../components/fields";
-import { useActiveEventId } from "../hooks/useActiveEvent";
+import { useSelectedEvent } from "../hooks/useActiveEvent";
 import { useRaceDayActions } from "../hooks/useRaceDayActions";
 import { useRaceDayContext, useRaceEvents, useRoster } from "../hooks/useRaceDayData";
 import { useSubmitState } from "../hooks/useSubmitState";
@@ -22,6 +24,7 @@ import type { WriteOutcome } from "../lib/write";
 import { EventForm } from "../setup/EventForm";
 import { RosterForm } from "../setup/RosterForm";
 import { RosterList } from "../setup/RosterList";
+import { TemplatePicker } from "../setup/TemplatePicker";
 
 function eventToInput(event: RaceEvent): RaceEventInput {
   return {
@@ -52,18 +55,9 @@ export function SetupPage() {
   const locale = useLocale();
   const ctx = useRaceDayContext();
   const events = useRaceEvents(ctx);
-  const { storedId, setStoredId } = useActiveEventId();
   const { actions, syncFailed, clearSyncFailed } = useRaceDayActions(ctx);
   const { athleteId: selfAthleteId } = useActiveAthlete();
-
-  const sortedEvents = useMemo(
-    () =>
-      [...events.items].sort(
-        (a, b) => a.name.localeCompare(b.name, locale) || a.eventId.localeCompare(b.eventId),
-      ),
-    [events.items, locale],
-  );
-  const activeEvent = sortedEvents.find((e) => e.eventId === storedId) ?? sortedEvents[0] ?? null;
+  const { sortedEvents, activeEvent, selectEvent: setStoredId } = useSelectedEvent(events.items, locale);
   const roster = useRoster(ctx, activeEvent?.eventId ?? null);
 
   const [eventPanel, setEventPanel] = useState<"closed" | "create" | "edit">("closed");
@@ -74,6 +68,7 @@ export function SetupPage() {
   const eventSubmit = useSubmitState("saveEvent");
   const rosterSubmit = useSubmitState("saveRoster");
   const rowAction = useSubmitState("rowAction");
+  const templateSubmit = useSubmitState("applyTemplate");
 
   function afterWrite(outcome: WriteOutcome | null): boolean {
     if (outcome === null) {
@@ -123,6 +118,17 @@ export function SetupPage() {
     }
   }
 
+  async function handleApplyTemplate(template: RaceDayTemplate) {
+    const result = await templateSubmit.submit(async () => {
+      const applied = await actions!.applyTemplate(template);
+      setStoredId(applied.eventId);
+      return applied.outcome;
+    });
+    if (afterWrite(result)) {
+      setEventPanel("closed");
+    }
+  }
+
   async function handleUpdateEvent(eventId: string, values: RaceEventInput) {
     const result = await eventSubmit.submit(() => actions!.updateEvent(eventId, values));
     if (afterWrite(result)) {
@@ -152,18 +158,12 @@ export function SetupPage() {
   return (
     <div className="space-y-6">
       {heading}
-      {syncFailed ? (
-        <div className="space-y-2">
-          <FormMessage tone="error">{t(locale, "raceDay.state.syncFailed")}</FormMessage>
-          <button type="button" className={SECONDARY_BUTTON} onClick={clearSyncFailed}>
-            {t(locale, "raceDay.common.dismiss")}
-          </button>
-        </div>
-      ) : null}
-      {queued ? <FormMessage tone="info">{t(locale, "raceDay.state.queued")}</FormMessage> : null}
-      {rowAction.errorKey ? (
-        <FormMessage tone="error">{t(locale, rowAction.errorKey)}</FormMessage>
-      ) : null}
+      <WriteNotices
+        syncFailed={syncFailed}
+        onDismissSyncFailed={clearSyncFailed}
+        queued={queued}
+        actionErrorKey={rowAction.errorKey}
+      />
       {invalidCount > 0 ? (
         <FormMessage tone="info">{t(locale, "raceDay.state.invalidHidden", { count: invalidCount })}</FormMessage>
       ) : null}
@@ -177,26 +177,15 @@ export function SetupPage() {
           <p className="text-sm text-slate-600">{t(locale, "raceDay.setup.event.empty")}</p>
         ) : null}
 
-        {sortedEvents.length > 1 ? (
-          <label className="block text-sm font-medium text-slate-800">
-            {t(locale, "raceDay.setup.event.current")}
-            <select
-              value={activeEvent?.eventId ?? ""}
-              onChange={(event) => {
-                setStoredId(event.target.value);
-                setRosterPanel({ kind: "closed" });
-                setConfirmDeleteEvent(false);
-              }}
-              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base"
-            >
-              {sortedEvents.map((e) => (
-                <option key={e.eventId} value={e.eventId}>
-                  {e.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
+        <EventPicker
+          events={sortedEvents}
+          activeEventId={activeEvent?.eventId ?? null}
+          onChange={(id) => {
+            setStoredId(id);
+            setRosterPanel({ kind: "closed" });
+            setConfirmDeleteEvent(false);
+          }}
+        />
 
         {activeEvent && !showEventForm ? (
           <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -323,6 +312,17 @@ export function SetupPage() {
               }
             />
           )
+        ) : null}
+
+        {showEventForm && eventPanel !== "edit" ? (
+          <TemplatePicker
+            existingEventIds={new Set(sortedEvents.map((e) => e.eventId))}
+            saving={templateSubmit.saving}
+            submitErrorKey={templateSubmit.errorKey}
+            onApply={(template) => {
+              void handleApplyTemplate(template);
+            }}
+          />
         ) : null}
       </section>
 

@@ -90,6 +90,7 @@ function makeActions() {
     updateRoster: vi.fn().mockResolvedValue(saved),
     setRosterVerified: vi.fn().mockResolvedValue(saved),
     deleteRoster: vi.fn().mockResolvedValue(saved),
+    applyTemplate: vi.fn().mockResolvedValue({ eventId: "buffalo-championships-2026", outcome: saved }),
   };
 }
 
@@ -402,5 +403,53 @@ describe("SetupPage when device storage is unavailable", () => {
     expect(select.value).toBe("other-1");
     await user.selectOptions(select, "buffalo-abc123");
     expect(select.value).toBe("buffalo-abc123");
+  });
+});
+
+describe("SetupPage template", () => {
+  it("offers the Buffalo template when there is no event yet", () => {
+    h.events = ready([]);
+    render(<SetupPage />);
+    expect(screen.getByRole("button", { name: /用模板创建赛事/ })).toBeTruthy();
+  });
+
+  it("applies the template, selects its event and closes the create panel", async () => {
+    h.events = ready([]);
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    await user.click(screen.getByRole("button", { name: /用模板创建赛事/ }));
+    await waitFor(() => {
+      expect(actions().applyTemplate).toHaveBeenCalledTimes(1);
+    });
+    expect(actions().applyTemplate.mock.calls[0]?.[0]).toMatchObject({ eventId: "buffalo-championships-2026" });
+    expect(window.localStorage.getItem("skatingx.raceDay.activeEventId")).toBe("buffalo-championships-2026");
+  });
+
+  it("shows a message and keeps the page usable when applying fails", async () => {
+    h.events = ready([]);
+    actions().applyTemplate.mockRejectedValue(Object.assign(new Error("x"), { code: "unavailable" }));
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    await user.click(screen.getByRole("button", { name: /用模板创建赛事/ }));
+    await waitFor(() => {
+      expect(screen.getByRole("alert").textContent).toContain("请检查网络");
+    });
+    expect(screen.getByRole("button", { name: /用模板创建赛事/ })).toBeTruthy();
+  });
+
+  it("does not offer the template again once its event exists", async () => {
+    h.events = ready([event({ eventId: "buffalo-championships-2026" })]);
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    await user.click(screen.getAllByRole("button", { name: "创建赛事" })[0]!);
+    expect(screen.queryByRole("button", { name: /用模板创建赛事/ })).toBeNull();
+    expect(screen.getByText("已经使用过这个模板。")).toBeTruthy();
+  });
+
+  it("is hidden while editing an event", async () => {
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    await user.click(screen.getAllByRole("button", { name: /^编辑/ })[0]!);
+    expect(screen.queryByText("使用模板")).toBeNull();
   });
 });

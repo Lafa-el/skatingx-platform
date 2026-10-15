@@ -1,10 +1,15 @@
 import {
+  createRace,
   createRaceEvent,
+  createRaceEventWithRaces,
+  deleteRace,
   createRosterEntry,
   deleteRaceEvent,
   deleteRosterEntry,
   setRaceEventVerified,
+  setRaceVerified,
   setRosterEntryVerified,
+  updateRace,
   updateRaceEvent,
   updateRosterEntry,
   type RaceDayContext,
@@ -12,7 +17,9 @@ import {
 import {
   createIdSuffix,
   createRaceDayEntityId,
+  type RaceDayTemplate,
   type RaceEventInput,
+  type RaceInput,
   type RosterEntryInput,
 } from "@skatingx/skating-domain";
 import { useCallback, useMemo, useState } from "react";
@@ -30,6 +37,12 @@ export type RaceDayActions = {
   updateRoster: (eventId: string, rosterId: string, input: RosterEntryInput) => Promise<WriteOutcome>;
   setRosterVerified: (eventId: string, rosterId: string, verified: boolean) => Promise<WriteOutcome>;
   deleteRoster: (eventId: string, rosterId: string) => Promise<WriteOutcome>;
+  createRace: (eventId: string, input: RaceInput) => Promise<WriteOutcome>;
+  updateRace: (eventId: string, raceId: string, input: RaceInput) => Promise<WriteOutcome>;
+  setRaceVerified: (eventId: string, raceId: string, verified: boolean) => Promise<WriteOutcome>;
+  deleteRace: (eventId: string, raceId: string) => Promise<WriteOutcome>;
+  /** Event and races in one batch: all or nothing. Returns the event id to select. */
+  applyTemplate: (template: RaceDayTemplate) => Promise<{ eventId: string; outcome: WriteOutcome }>;
 };
 
 /**
@@ -79,6 +92,19 @@ export function useRaceDayActions(ctx: RaceDayContext | null): {
         run("setRosterVerified", setRosterEntryVerified(ctx, eventId, rosterId, verified)),
       deleteRoster: (eventId, rosterId) =>
         run("deleteRoster", deleteRosterEntry(ctx, eventId, rosterId)),
+      createRace: (eventId, input) => run("createRace", createRace(ctx, eventId, input)),
+      updateRace: (eventId, raceId, input) =>
+        run("updateRace", updateRace(ctx, eventId, raceId, input)),
+      setRaceVerified: (eventId, raceId, verified) =>
+        run("setRaceVerified", setRaceVerified(ctx, eventId, raceId, verified)),
+      deleteRace: (eventId, raceId) => run("deleteRace", deleteRace(ctx, eventId, raceId)),
+      applyTemplate: async (template) => {
+        const outcome = await run(
+          "applyTemplate",
+          createRaceEventWithRaces(ctx, template.eventId, template.event, template.races),
+        );
+        return { eventId: template.eventId, outcome };
+      },
     };
   }, [ctx, run]);
 

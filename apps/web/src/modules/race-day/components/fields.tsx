@@ -3,6 +3,49 @@ import { useId, type ReactNode } from "react";
 const INPUT_CLASS =
   "mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 aria-[invalid=true]:border-red-500";
 
+type SelectFieldProps = {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  error?: string | null;
+};
+
+export function SelectField({ label, value, options, onChange, disabled = false, error = null }: SelectFieldProps) {
+  const id = useId();
+  const errorId = `${id}-error`;
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        disabled={disabled}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        className={INPUT_CLASS}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {error ? (
+        <p id={errorId} className="mt-1 text-sm font-medium text-red-700">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 type TextFieldProps = {
   label: string;
   value: string;
@@ -11,7 +54,7 @@ type TextFieldProps = {
   /** Marks the input invalid when the message is shown elsewhere (e.g. one error for a group). */
   invalid?: boolean;
   hint?: string;
-  type?: "text" | "date";
+  type?: "text" | "date" | "time";
   required?: boolean;
   disabled?: boolean;
   list?: string;

@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import type { RaceEvent } from "@skatingx/schema";
+import { useCallback, useMemo, useState } from "react";
 
 const STORAGE_KEY = "skatingx.raceDay.activeEventId";
 
@@ -28,4 +29,24 @@ export function useActiveEventId(): { storedId: string | null; setStoredId: (id:
     setStored(id);
   }, []);
   return { storedId, setStoredId };
+}
+
+/**
+ * The event the user is working on: their remembered choice if it still exists, otherwise the
+ * first event by name. Shared by the Setup and Schedule pages so both always agree.
+ */
+export function useSelectedEvent(
+  events: readonly RaceEvent[],
+  locale: string,
+): { sortedEvents: RaceEvent[]; activeEvent: RaceEvent | null; selectEvent: (id: string) => void } {
+  const { storedId, setStoredId } = useActiveEventId();
+  const sortedEvents = useMemo(
+    () =>
+      [...events].sort(
+        (a, b) => a.name.localeCompare(b.name, locale) || a.eventId.localeCompare(b.eventId),
+      ),
+    [events, locale],
+  );
+  const activeEvent = sortedEvents.find((e) => e.eventId === storedId) ?? sortedEvents[0] ?? null;
+  return { sortedEvents, activeEvent, selectEvent: setStoredId };
 }

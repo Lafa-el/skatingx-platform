@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { RaceDayLayout } from "./RaceDayLayout";
 import { SectionPlaceholderPage } from "./pages/SectionPlaceholderPage";
+import { SchedulePage } from "./pages/SchedulePage";
 import { SetupPage } from "./pages/SetupPage";
 
 /**
@@ -14,7 +15,7 @@ export default function RaceDayModule() {
     <Routes>
       <Route element={<RaceDayLayout />}>
         <Route index element={<SectionPlaceholderPage titleKey="raceDay.tab.today" />} />
-        <Route path="schedule" element={<SectionPlaceholderPage titleKey="raceDay.tab.schedule" />} />
+        <Route path="schedule" element={<SchedulePage />} />
         <Route path="results" element={<SectionPlaceholderPage titleKey="raceDay.tab.results" />} />
         <Route path="videos" element={<SectionPlaceholderPage titleKey="raceDay.tab.videos" />} />
         <Route path="summary" element={<SectionPlaceholderPage titleKey="raceDay.tab.summary" />} />
