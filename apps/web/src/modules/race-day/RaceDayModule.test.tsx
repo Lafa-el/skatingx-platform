@@ -12,6 +12,8 @@ vi.mock("@/hooks/useLocale", () => ({ useLocale: () => locale.current }));
 // Header and BottomNav need the Firebase-backed providers; they have their own tests.
 vi.mock("@/components/Header", () => ({ Header: () => null }));
 vi.mock("@/components/BottomNav", () => ({ BottomNav: () => null }));
+// The Setup page needs Firebase-backed providers; it has its own tests.
+vi.mock("./pages/SetupPage", () => ({ SetupPage: () => <h1>设置</h1> }));
 
 function renderAt(path: string) {
   render(
@@ -41,14 +43,19 @@ describe("RaceDayModule", () => {
     expect(screen.getByText(/待确认/)).toBeTruthy();
   });
 
-  it("each sub-route shows its own heading and says the section is not available yet", () => {
+  it("the setup route shows the Setup page under its own heading", () => {
+    renderAt("/race-day/setup");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("设置");
+    expect(screen.queryByText(/尚未开放/)).toBeNull();
+  });
+
+  it("each other sub-route shows its own heading and says the section is not available yet", () => {
     const cases: [string, string][] = [
       ["/race-day", "今天"],
       ["/race-day/schedule", "赛程"],
       ["/race-day/results", "成绩"],
       ["/race-day/videos", "视频"],
       ["/race-day/summary", "总结"],
-      ["/race-day/setup", "设置"],
     ];
     for (const [path, heading] of cases) {
       renderAt(path);

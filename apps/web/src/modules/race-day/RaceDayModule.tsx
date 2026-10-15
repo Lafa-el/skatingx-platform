@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { RaceDayLayout } from "./RaceDayLayout";
 import { SectionPlaceholderPage } from "./pages/SectionPlaceholderPage";
+import { SetupPage } from "./pages/SetupPage";
 
 /**
  * Entry point of the Race Day module. It is the default export so the app can load the whole
@@ -17,7 +18,7 @@ export default function RaceDayModule() {
         <Route path="results" element={<SectionPlaceholderPage titleKey="raceDay.tab.results" />} />
         <Route path="videos" element={<SectionPlaceholderPage titleKey="raceDay.tab.videos" />} />
         <Route path="summary" element={<SectionPlaceholderPage titleKey="raceDay.tab.summary" />} />
-        <Route path="setup" element={<SectionPlaceholderPage titleKey="raceDay.tab.setup" />} />
+        <Route path="setup" element={<SetupPage />} />
         <Route path="*" element={<Navigate to="/race-day" replace />} />
       </Route>
     </Routes>
