@@ -27,6 +27,7 @@ export {
 export {
   createRace,
   createRaceEvent,
+  createRaceEventWithRaces,
   createRosterEntry,
   deleteRace,
   deleteRaceEvent,

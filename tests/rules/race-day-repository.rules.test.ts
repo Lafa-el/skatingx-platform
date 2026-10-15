@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   createRace,
   createRaceEvent,
+  createRaceEventWithRaces,
   createRosterEntry,
   deleteRace,
   deleteRaceEvent,
@@ -28,6 +29,7 @@ import {
   type RaceDayList,
   type RaceDayListError,
 } from "../../packages/firebase-client/src/firestore/race-day";
+import { BUFFALO_2026_TEMPLATE } from "../../packages/skating-domain/src/race-day-templates";
 import { createRulesEnv, USERS } from "./helpers";
 
 // These run the REAL repository code against the emulator with the REAL firestore.rules.
@@ -365,5 +367,86 @@ describe("reading is defensive", () => {
         "verifiedAt",
       ].sort(),
     );
+  });
+});
+
+describe("event + races written in one batch (templates)", () => {
+  const t = BUFFALO_2026_TEMPLATE;
+  const apply = (ctx: RaceDayContext) => createRaceEventWithRaces(ctx, t.eventId, t.event, t.races);
+
+  it("the Buffalo template is accepted by the real rules and reads back as pending, with no personal data", async () => {
+    const ctx = alice();
+    await assertSucceeds(apply(ctx));
+
+    const evList = await events(ctx, (l) => l.items.length === 1);
+    expect(evList.invalid).toEqual([]);
+    expect(evList.items[0]).toMatchObject({
+      eventId: "buffalo-championships-2026",
+      name: "Buffalo Championships",
+      dates: ["2026-10-24", "2026-10-25"],
+      timeZone: null,
+      verification: "pending",
+      verifiedAt: null,
+    });
+
+    const races = await racesOf(ctx, t.eventId);
+    expect(races.invalid).toEqual([]);
+    expect(races.items.map((r) => [r.sortOrder, r.label]).sort()).toEqual([
+      [0, "500m"],
+      [1, "500m"],
+      [2, "1000m"],
+      [3, "Super 1500m"],
+    ]);
+    for (const race of races.items) {
+      expect(race).toMatchObject({
+        verification: "pending",
+        day: null,
+        scheduledAt: null,
+        rosterIds: [],
+      });
+    }
+    expect((await rosterOf(ctx, t.eventId)).items).toEqual([]);
+  });
+
+  it("applying the template a second time is refused and keeps the user's edits", async () => {
+    const ctx = alice();
+    await apply(ctx);
+    await updateRaceEvent(ctx, t.eventId, { ...t.event, name: "My edited name", timeZone: "America/New_York" });
+    await assertFails(apply(ctx));
+    const list = await events(ctx, (l) => l.items.length === 1);
+    expect(list.items[0]).toMatchObject({ name: "My edited name", timeZone: "America/New_York" });
+  });
+
+  it("writes nothing when one race is invalid (validated before the batch)", async () => {
+    const ctx = alice();
+    const bad = [...t.races, { raceId: "bad-race", input: { ...t.races[0]!.input, label: "" } }];
+    await expect(createRaceEventWithRaces(ctx, t.eventId, t.event, bad)).rejects.toBeInstanceOf(
+      RaceDayValidationError,
+    );
+    expect((await events(ctx)).items).toEqual([]);
+  });
+
+  it("rejects duplicate race ids before writing", async () => {
+    const ctx = alice();
+    const dup = [t.races[0]!, t.races[0]!];
+    await expect(createRaceEventWithRaces(ctx, t.eventId, t.event, dup)).rejects.toBeInstanceOf(
+      RaceDayValidationError,
+    );
+    expect((await events(ctx)).items).toEqual([]);
+  });
+
+  it("is all-or-nothing on the server: a batch the rules refuse leaves nothing behind", async () => {
+    // Mallory writes into Alice's tree: the rules refuse every document, so none may exist.
+    await assertFails(apply(asUser("mallory", "alice")));
+    expect((await events(alice())).items).toEqual([]);
+    expect((await racesOf(alice(), t.eventId)).items).toEqual([]);
+  });
+
+  it("deleting the event removes the template's races too", async () => {
+    const ctx = alice();
+    await apply(ctx);
+    await assertSucceeds(deleteRaceEvent(ctx, t.eventId));
+    expect((await events(ctx)).items).toEqual([]);
+    expect((await racesOf(ctx, t.eventId)).items).toEqual([]);
   });
 });

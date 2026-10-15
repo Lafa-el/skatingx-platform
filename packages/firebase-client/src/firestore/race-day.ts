@@ -157,6 +157,40 @@ export async function createRaceEvent(
   return eventId;
 }
 
+/**
+ * Creates an event and its races in ONE batch: either everything is written or nothing is, so
+ * a template can never leave a half-built event behind. Ids are chosen by the caller (templates
+ * use fixed ids); applying the same template twice is rejected by the rules (createdAt would
+ * change), so it cannot overwrite what the user has edited since.
+ */
+export async function createRaceEventWithRaces(
+  ctx: RaceDayContext,
+  eventId: string,
+  eventInput: RaceEventInput,
+  races: readonly { raceId: string; input: RaceInput }[],
+): Promise<string> {
+  assertValidId("eventId", eventId);
+  const event = validated(prepareRaceEventInput(eventInput));
+  const prepared = races.map((race) => {
+    assertValidId("raceId", race.raceId);
+    return { raceId: race.raceId, value: validated(prepareRaceInput(race.input)) };
+  });
+  if (new Set(prepared.map((r) => r.raceId)).size !== prepared.length) {
+    throw new RaceDayValidationError([{ field: "raceId", code: "duplicate" }]);
+  }
+
+  const batch = writeBatch(ctx.db);
+  batch.set(raceDayEventRef(ctx.db, ctx.userId, eventId), encodeRaceEventCreate(eventId, event));
+  for (const race of prepared) {
+    batch.set(
+      raceDayRaceRef(ctx.db, ctx.userId, eventId, race.raceId),
+      encodeRaceCreate(race.raceId, race.value),
+    );
+  }
+  await batch.commit();
+  return eventId;
+}
+
 export async function updateRaceEvent(
   ctx: RaceDayContext,
   eventId: string,
