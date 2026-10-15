@@ -8,12 +8,15 @@ import {
   encodeRaceResultCreate,
   encodeRaceResultUpdate,
   encodeRaceUpdate,
+  encodeRaceVideoCreate,
+  encodeRaceVideoUpdate,
   encodeRosterEntryCreate,
   encodeRosterEntryUpdate,
   encodeVerification,
   parseRaceEntry,
   parseRaceEvent,
   parseRaceResult,
+  parseRaceVideo,
   parseRosterEntry,
 } from "./race-day-codec";
 
@@ -476,6 +479,136 @@ describe("race result: parse", () => {
     );
     expect(reason(parseRaceResult("race-1_sk-1", storedResult({ schemaVersion: 2 })))).toBe(
       "unsupported schemaVersion: 2",
+    );
+  });
+});
+
+// --- race videos (metadata only) --------------------------------------------------
+
+const videoInput = {
+  label: "500m final",
+  externalUrl: "https://example.com/watch?v=abc",
+  storedWhere: "Phone camera roll",
+  note: "second corner",
+};
+
+const storedVideo = (over: Record<string, unknown> = {}) => ({
+  videoId: "clip-1",
+  raceId: "race-1",
+  rosterId: "sk-1",
+  ...videoInput,
+  schemaVersion: 1,
+  createdAt: NOW,
+  updatedAt: NOW,
+  ...over,
+});
+
+describe("race video: encode", () => {
+  it("create has exactly the key set firestore.rules demands, and no provenance keys", () => {
+    const data = encodeRaceVideoCreate("clip-1", "race-1", "sk-1", videoInput);
+    expect(keys(data)).toEqual(
+      [
+        "createdAt",
+        "externalUrl",
+        "label",
+        "note",
+        "raceId",
+        "rosterId",
+        "schemaVersion",
+        "storedWhere",
+        "updatedAt",
+        "videoId",
+      ].sort(),
+    );
+    for (const key of ["verification", "source", "sourceNote", "verifiedAt"]) {
+      expect(data).not.toHaveProperty(key);
+    }
+  });
+
+  it("writes explicit null for unknown optional values, never undefined", () => {
+    const data = encodeRaceVideoCreate("clip-1", "race-1", "sk-1", {
+      label: "Clip",
+      externalUrl: null,
+      storedWhere: null,
+      note: null,
+    });
+    expect(data).toMatchObject({ externalUrl: null, storedWhere: null, note: null });
+    expect(Object.values(data)).not.toContain(undefined);
+  });
+
+  it("stamps createdAt and updatedAt with server time", () => {
+    const data = encodeRaceVideoCreate("clip-1", "race-1", "sk-1", videoInput);
+    expect(data.createdAt).not.toBeInstanceOf(Timestamp);
+    expect(data.updatedAt).not.toBeInstanceOf(Timestamp);
+  });
+
+  it("update changes only the editable fields and bumps updatedAt", () => {
+    const data = encodeRaceVideoUpdate({ ...videoInput, label: "Renamed" });
+    expect(keys(data)).toEqual(["externalUrl", "label", "note", "storedWhere", "updatedAt"]);
+    expect(data.label).toBe("Renamed");
+  });
+
+  it("round trip: parse(encode(x)) returns the input", () => {
+    const parsed = parseRaceVideo("clip-1", materialize(encodeRaceVideoCreate("clip-1", "race-1", "sk-1", videoInput)));
+    expect(parsed).toMatchObject({ ok: true, value: { videoId: "clip-1", raceId: "race-1", rosterId: "sk-1", ...videoInput } });
+  });
+});
+
+describe("race video: parse", () => {
+  it("accepts a valid record and one with every optional field null", () => {
+    expect(parseRaceVideo("clip-1", storedVideo())).toMatchObject({ ok: true });
+    expect(
+      parseRaceVideo("clip-1", storedVideo({ externalUrl: null, storedWhere: null, note: null })),
+    ).toMatchObject({ ok: true, value: { externalUrl: null, storedWhere: null, note: null } });
+  });
+
+  it("accepts values exactly at the limits", () => {
+    expect(
+      parseRaceVideo(
+        "clip-1",
+        storedVideo({ label: "l".repeat(120), storedWhere: "s".repeat(200), note: "n".repeat(1000) }),
+      ),
+    ).toMatchObject({ ok: true });
+  });
+
+  it.each([
+    ["an id that does not match the document id", { videoId: "other" }],
+    ["a non-string race id", { raceId: 5 }],
+    ["a non-string athlete id", { rosterId: null }],
+    ["an empty label", { label: "" }],
+    ["a label over the limit", { label: "l".repeat(121) }],
+    ["a missing label", { label: undefined }],
+    ["a non-string location", { storedWhere: 5 }],
+    ["a location over the limit", { storedWhere: "s".repeat(201) }],
+    ["a note over the limit", { note: "n".repeat(1001) }],
+    ["a non-string link", { externalUrl: 5 }],
+  ])("rejects %s", (_name, over) => {
+    expect(reason(parseRaceVideo("clip-1", storedVideo(over)))).toBe("video fields have the wrong shape");
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "data:text/html,x",
+    "ftp://example.com/clip",
+    "example.com/clip",
+    "https://user:pw@example.com/clip",
+    "https://example.com/a b",
+  ])("hides a record whose link is %s instead of showing something clickable", (externalUrl) => {
+    expect(reason(parseRaceVideo("clip-1", storedVideo({ externalUrl })))).toBe(
+      "externalUrl is not a plain http(s) link",
+    );
+  });
+
+  it("rejects a link over the length limit", () => {
+    const externalUrl = "https://example.com/" + "a".repeat(2048);
+    expect(reason(parseRaceVideo("clip-1", storedVideo({ externalUrl })))).toBe("video fields have the wrong shape");
+  });
+
+  it("rejects non-objects, an unsupported schemaVersion and missing timestamps", () => {
+    expect(reason(parseRaceVideo("clip-1", null))).toBe("document is not an object");
+    expect(reason(parseRaceVideo("clip-1", storedVideo({ schemaVersion: 2 })))).toBe("unsupported schemaVersion: 2");
+    expect(reason(parseRaceVideo("clip-1", storedVideo({ createdAt: "yesterday" })))).toBe(
+      "missing createdAt or updatedAt",
     );
   });
 });
