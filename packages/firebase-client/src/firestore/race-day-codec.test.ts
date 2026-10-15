@@ -5,12 +5,15 @@ import {
   encodeRaceCreate,
   encodeRaceEventCreate,
   encodeRaceEventUpdate,
+  encodeRaceResultCreate,
+  encodeRaceResultUpdate,
   encodeRaceUpdate,
   encodeRosterEntryCreate,
   encodeRosterEntryUpdate,
   encodeVerification,
   parseRaceEntry,
   parseRaceEvent,
+  parseRaceResult,
   parseRosterEntry,
 } from "./race-day-codec";
 
@@ -317,5 +320,162 @@ describe("parse: invalid documents are reported, never guessed at", () => {
     bad(parseRaceEntry("r-1", { ...storedRace(), sortOrder: 1.5 }));
     bad(parseRaceEntry("r-1", { ...storedRace(), rosterIds: "a" }));
     bad(parseRaceEntry("r-1", { ...storedRace(), scheduledAt: "2026-10-24T13:30:00Z" }));
+  });
+});
+
+// --- race results -----------------------------------------------------------------
+
+const resultInput = {
+  status: "finished" as const,
+  timeSeconds: 49.123,
+  place: 2,
+  advanced: true,
+  sourceNote: "board photo",
+};
+
+const storedResult = (over: Record<string, unknown> = {}) => ({
+  resultId: "race-1_sk-1",
+  raceId: "race-1",
+  rosterId: "sk-1",
+  status: "finished",
+  timeSeconds: 49.123,
+  place: 2,
+  advanced: true,
+  verification: "pending",
+  source: "manual",
+  sourceNote: "",
+  verifiedAt: null,
+  schemaVersion: 1,
+  createdAt: NOW,
+  updatedAt: NOW,
+  ...over,
+});
+
+const reason = (r: { ok: boolean; reason?: string }) => (r.ok ? "ok" : r.reason);
+
+describe("race result: encode", () => {
+  it("create has exactly the key set firestore.rules demands", () => {
+    expect(keys(encodeRaceResultCreate("race-1_sk-1", "race-1", "sk-1", resultInput))).toEqual(
+      [
+        "advanced",
+        "place",
+        "raceId",
+        "resultId",
+        "rosterId",
+        "status",
+        "timeSeconds",
+        ...PROVENANCE_AND_AUDIT,
+      ].sort(),
+    );
+  });
+
+  it("create starts pending, with explicit nulls for a non-finished status", () => {
+    const data = encodeRaceResultCreate("race-1_sk-1", "race-1", "sk-1", {
+      status: "DNS",
+      timeSeconds: null,
+      place: null,
+      advanced: null,
+      sourceNote: "",
+    });
+    expect(data).toMatchObject({
+      verification: "pending",
+      verifiedAt: null,
+      status: "DNS",
+      timeSeconds: null,
+      place: null,
+      advanced: null,
+    });
+    expect(Object.values(data)).not.toContain(undefined);
+  });
+
+  it("update returns to pending and never touches ids or createdAt", () => {
+    const data = encodeRaceResultUpdate(resultInput);
+    expect(data).toMatchObject({ verification: "pending", verifiedAt: null, timeSeconds: 49.123 });
+    for (const key of ["resultId", "raceId", "rosterId", "createdAt", "schemaVersion"]) {
+      expect(data).not.toHaveProperty(key);
+    }
+    expect(data).toHaveProperty("updatedAt");
+  });
+
+  it("round trip: parse(encode(x)) returns the input", () => {
+    const parsed = parseRaceResult(
+      "race-1_sk-1",
+      materialize(encodeRaceResultCreate("race-1_sk-1", "race-1", "sk-1", resultInput)),
+    );
+    expect(parsed).toMatchObject({
+      ok: true,
+      value: { resultId: "race-1_sk-1", status: "finished", timeSeconds: 49.123, place: 2, advanced: true },
+    });
+  });
+});
+
+describe("race result: parse", () => {
+  it("accepts a valid finished and a valid non-finished result", () => {
+    expect(parseRaceResult("race-1_sk-1", storedResult())).toMatchObject({ ok: true });
+    expect(
+      parseRaceResult(
+        "race-1_sk-1",
+        storedResult({ status: "DQ", timeSeconds: null, place: null, advanced: false }),
+      ),
+    ).toMatchObject({ ok: true, value: { status: "DQ", timeSeconds: null, advanced: false } });
+  });
+
+  it("accepts three decimals and the boundary times, including values like 1.005", () => {
+    for (const timeSeconds of [0.001, 1.005, 49.123, 104.231, 1800]) {
+      expect(parseRaceResult("race-1_sk-1", storedResult({ timeSeconds }))).toMatchObject({ ok: true });
+    }
+  });
+
+  it("rejects a time with more than three decimals", () => {
+    expect(reason(parseRaceResult("race-1_sk-1", storedResult({ timeSeconds: 49.1234 })))).toBe(
+      "time has more than three decimals",
+    );
+  });
+
+  it.each([0, -1, 1800.001, Number.NaN, Number.POSITIVE_INFINITY, "49.1", null])(
+    "rejects a finished result whose time is %s",
+    (timeSeconds) => {
+      expect(reason(parseRaceResult("race-1_sk-1", storedResult({ timeSeconds })))).toBe(
+        "finished result without a valid time",
+      );
+    },
+  );
+
+  it("rejects a non-finished result that carries a time, a place or advancement", () => {
+    const base = { status: "DNF", timeSeconds: null, place: null, advanced: null };
+    expect(parseRaceResult("race-1_sk-1", storedResult(base))).toMatchObject({ ok: true });
+    for (const over of [{ timeSeconds: 50 }, { place: 3 }, { advanced: true }]) {
+      expect(reason(parseRaceResult("race-1_sk-1", storedResult({ ...base, ...over })))).toBe(
+        "result that was not finished carries a time, place or advancement",
+      );
+    }
+  });
+
+  it.each([0, 1.5, "2", undefined])("rejects place %s", (place) => {
+    expect(reason(parseRaceResult("race-1_sk-1", storedResult({ place })))).toBe("invalid place");
+  });
+
+  it("rejects a non-boolean advanced and an unknown status", () => {
+    expect(reason(parseRaceResult("race-1_sk-1", storedResult({ advanced: "yes" })))).toBe("invalid advanced");
+    expect(reason(parseRaceResult("race-1_sk-1", storedResult({ status: "won" })))).toBe("invalid status");
+  });
+
+  it("rejects ids that do not match the document id or each other", () => {
+    expect(reason(parseRaceResult("race-1_sk-2", storedResult()))).toBe("result ids do not match the document id");
+    expect(reason(parseRaceResult("race-1_sk-1", storedResult({ rosterId: "sk-2" })))).toBe(
+      "result ids do not match the document id",
+    );
+    expect(reason(parseRaceResult("race-1_sk-1", storedResult({ resultId: "x" })))).toBe(
+      "result ids do not match the document id",
+    );
+  });
+
+  it("shares the provenance checks with the other documents", () => {
+    expect(reason(parseRaceResult("race-1_sk-1", storedResult({ verification: "verified" })))).toBe(
+      "verified without a valid verifiedAt",
+    );
+    expect(reason(parseRaceResult("race-1_sk-1", storedResult({ schemaVersion: 2 })))).toBe(
+      "unsupported schemaVersion: 2",
+    );
   });
 });
