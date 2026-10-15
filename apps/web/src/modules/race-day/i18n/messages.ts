@@ -62,6 +62,8 @@ const zh = {
   "raceDay.results.error.placeInvalid": "名次需要是 1 到 999 的整数",
   "raceDay.results.error.placeNotAllowed": "未完赛的状态不能填写名次",
   "raceDay.results.error.advancedNotAllowed": "未完赛的状态不能标记为晋级",
+  "raceDay.videos.error.urlInvalid": "链接需要以 http:// 或 https:// 开头,且不能含空格",
+  "raceDay.videos.error.urlHasCredentials": "链接里不能包含用户名或密码",
 
   "raceDay.setup.event.title": "赛事",
   "raceDay.setup.event.empty": "还没有赛事。先创建一场赛事,再录入运动员名单。",
@@ -216,6 +218,8 @@ const en: Record<ModuleKey, string> = {
   "raceDay.results.error.placeInvalid": "Place must be a whole number from 1 to 999",
   "raceDay.results.error.placeNotAllowed": "A race that was not finished cannot have a place",
   "raceDay.results.error.advancedNotAllowed": "A race that was not finished cannot be marked as advanced",
+  "raceDay.videos.error.urlInvalid": "The link must start with http:// or https:// and contain no spaces",
+  "raceDay.videos.error.urlHasCredentials": "The link must not contain a user name or password",
 
   "raceDay.setup.event.title": "Event",
   "raceDay.setup.event.empty": "No event yet. Create an event first, then enter the roster.",
