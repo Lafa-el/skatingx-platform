@@ -1,9 +1,17 @@
 import { NavLink, useLocation } from "react-router-dom";
 
-import { isNavActive, primaryNav } from "@/app/navigation";
+import { isRaceDayEnabled } from "@/app/features";
+import { getPrimaryNav, isNavActive } from "@/app/navigation";
+import { useLocale } from "@/hooks/useLocale";
+import { tCore } from "@/modules/race-day/i18n/core-messages";
 
 export function BottomNav() {
   const { pathname } = useLocation();
+  const locale = useLocale();
+  const primaryNav = getPrimaryNav({
+    raceDay: isRaceDayEnabled(),
+    raceDayLabel: tCore(locale, "raceDay.nav.title"),
+  });
 
   return (
     <nav

@@ -1,0 +1,93 @@
+// @vitest-environment happy-dom
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { render, screen, userEvent } from "@/test/dom";
+
+import RaceDayModule from "./RaceDayModule";
+
+const locale = vi.hoisted(() => ({ current: "zh" as "zh" | "en" }));
+vi.mock("@/hooks/useLocale", () => ({ useLocale: () => locale.current }));
+
+// Header and BottomNav need the Firebase-backed providers; they have their own tests.
+vi.mock("@/components/Header", () => ({ Header: () => null }));
+vi.mock("@/components/BottomNav", () => ({ BottomNav: () => null }));
+
+function renderAt(path: string) {
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/race-day/*" element={<RaceDayModule />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+afterEach(() => {
+  locale.current = "zh";
+});
+
+const TABS_ZH = ["今天", "赛程", "成绩", "视频", "总结", "设置"];
+
+describe("RaceDayModule", () => {
+  it("shows the section navigation with every tab, in Chinese by default", () => {
+    renderAt("/race-day");
+    const nav = screen.getByRole("navigation", { name: "比赛日分区" });
+    expect(Array.from(nav.querySelectorAll("a")).map((a) => a.textContent)).toEqual(TABS_ZH);
+  });
+
+  it("shows the field-test notice that unverified data is marked pending", () => {
+    renderAt("/race-day");
+    expect(screen.getByText(/待确认/)).toBeTruthy();
+  });
+
+  it("each sub-route shows its own heading and says the section is not available yet", () => {
+    const cases: [string, string][] = [
+      ["/race-day", "今天"],
+      ["/race-day/schedule", "赛程"],
+      ["/race-day/results", "成绩"],
+      ["/race-day/videos", "视频"],
+      ["/race-day/summary", "总结"],
+      ["/race-day/setup", "设置"],
+    ];
+    for (const [path, heading] of cases) {
+      renderAt(path);
+      expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(heading);
+      expect(screen.getByText(/尚未开放/)).toBeTruthy();
+      document.body.innerHTML = "";
+    }
+  });
+
+  it("marks only the current tab, and the Today tab is not active on sub-pages", () => {
+    renderAt("/race-day/results");
+    expect(screen.getByRole("link", { name: "成绩" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("link", { name: "今天" }).getAttribute("aria-current")).toBeNull();
+  });
+
+  it("navigates between tabs with the keyboard-reachable links", async () => {
+    const user = userEvent.setup();
+    renderAt("/race-day");
+    await user.click(screen.getByRole("link", { name: "赛程" }));
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("赛程");
+  });
+
+  it("an unknown sub-path falls back to Today instead of a blank page", () => {
+    renderAt("/race-day/does-not-exist");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("今天");
+  });
+
+  it("English locale: tabs and notice are translated", () => {
+    locale.current = "en";
+    renderAt("/race-day/schedule");
+    const nav = screen.getByRole("navigation", { name: "Race Day sections" });
+    expect(Array.from(nav.querySelectorAll("a")).map((a) => a.textContent)).toEqual([
+      "Today",
+      "Schedule",
+      "Results",
+      "Videos",
+      "Summary",
+      "Setup",
+    ]);
+    expect(screen.getByText(/marked Pending/)).toBeTruthy();
+  });
+});
