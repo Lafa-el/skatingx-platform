@@ -18,6 +18,7 @@ vi.mock("./pages/SchedulePage", () => ({ SchedulePage: () => <h1>赛程</h1> }))
 vi.mock("./pages/ResultsPage", () => ({ ResultsPage: () => <h1>成绩</h1> }));
 vi.mock("./pages/VideosPage", () => ({ VideosPage: () => <h1>视频</h1> }));
 vi.mock("./pages/SummaryPage", () => ({ SummaryPage: () => <h1>总结</h1> }));
+vi.mock("./pages/TodayPage", () => ({ TodayPage: () => <h1>今天</h1> }));
 
 function renderAt(path: string) {
   render(
@@ -77,16 +78,10 @@ describe("RaceDayModule", () => {
     expect(screen.queryByText(/尚未开放/)).toBeNull();
   });
 
-  it("the Today route still says the section is not available yet", () => {
-    const cases: [string, string][] = [
-      ["/race-day", "今天"],
-    ];
-    for (const [path, heading] of cases) {
-      renderAt(path);
-      expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(heading);
-      expect(screen.getByText(/尚未开放/)).toBeTruthy();
-      document.body.innerHTML = "";
-    }
+  it("the Today route shows the Today page, not the placeholder", () => {
+    renderAt("/race-day");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("今天");
+    expect(screen.queryByText(/尚未开放/)).toBeNull();
   });
 
   it("marks only the current tab, and the Today tab is not active on sub-pages", () => {
