@@ -1,4 +1,4 @@
-import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skatingx/schema";
+import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry, RaceVideoRef } from "@skatingx/schema";
 import {
   createIdSuffix,
   createRaceDayEntityId,
@@ -7,12 +7,14 @@ import {
   prepareRaceEventInput,
   prepareRaceInput,
   prepareRaceResultInput,
+  prepareRaceVideoInput,
   prepareRosterEntryInput,
   type PreparedInput,
   type RaceDayInputError,
   type RaceEventInput,
   type RaceInput,
   type RaceResultFormInput,
+  type RaceVideoInput,
   type RosterEntryInput,
 } from "@skatingx/skating-domain";
 import {
@@ -41,6 +43,8 @@ import {
   encodeRaceEventUpdate,
   encodeRaceResultCreate,
   encodeRaceResultUpdate,
+  encodeRaceVideoCreate,
+  encodeRaceVideoUpdate,
   encodeRaceUpdate,
   encodeRosterEntryCreate,
   encodeRosterEntryUpdate,
@@ -48,6 +52,7 @@ import {
   parseRaceEntry,
   parseRaceEvent,
   parseRaceResult,
+  parseRaceVideo,
   parseRosterEntry,
   type ParseResult,
 } from "./race-day-codec";
@@ -60,6 +65,8 @@ import {
   raceDayResultsCollectionRef,
   raceDayRosterCollectionRef,
   raceDayRosterRef,
+  raceDayVideoRef,
+  raceDayVideosCollectionRef,
 } from "./refs";
 
 /**
@@ -219,11 +226,12 @@ export async function setRaceEventVerified(
   await updateDoc(raceDayEventRef(ctx.db, ctx.userId, eventId), encodeVerification(verified));
 }
 
-/** Subcollections that belong to an event. Extend when videos or summaries ship. */
+/** Subcollections that belong to an event. Extend when summaries ship (they need a direct ref). */
 const EVENT_SUBCOLLECTIONS = [
   raceDayRosterCollectionRef,
   raceDayRacesCollectionRef,
   raceDayResultsCollectionRef,
+  raceDayVideosCollectionRef,
 ] as const;
 
 /** Firestore allows 500 writes per batch; stay below it. */
@@ -322,7 +330,8 @@ export async function setRosterEntryVerified(
 }
 
 /**
- * Deletes an athlete, removes them from every race that listed them, and deletes their results.
+ * Deletes an athlete, removes them from every race that listed them, and deletes their results
+ * and video records.
  * Everything goes in one atomic batch whenever it fits (it does for any realistic event), so no
  * race or result keeps pointing at a person who no longer exists. Removing the reference does not
  * change a race's verification: the race data itself was not edited. Videos that reference the
@@ -345,6 +354,9 @@ export async function deleteRosterEntry(
   const results = await getDocs(
     query(raceDayResultsCollectionRef(ctx.db, ctx.userId, eventId), where("rosterId", "==", rosterId)),
   );
+  const videos = await getDocs(
+    query(raceDayVideosCollectionRef(ctx.db, ctx.userId, eventId), where("rosterId", "==", rosterId)),
+  );
 
   const operations: BatchOperation[] = [];
   for (const race of races.docs) {
@@ -353,6 +365,10 @@ export async function deleteRosterEntry(
   }
   for (const result of results.docs) {
     operations.push((batch) => batch.delete(result.ref));
+  }
+  // Only the records: the video files themselves are never in this app.
+  for (const video of videos.docs) {
+    operations.push((batch) => batch.delete(video.ref));
   }
   // Last, so a partial failure leaves a visible athlete that can be deleted again.
   operations.push((batch) => batch.delete(raceDayRosterRef(ctx.db, ctx.userId, eventId, rosterId)));
@@ -423,11 +439,16 @@ export async function deleteRace(
   assertValidId("eventId", eventId);
   assertValidId("raceId", raceId);
 
-  // Results of a race that no longer exists would be orphans nobody can reach.
+  // Results and video records of a race that no longer exists would be orphans nobody can reach.
   const results = await getDocs(
     query(raceDayResultsCollectionRef(ctx.db, ctx.userId, eventId), where("raceId", "==", raceId)),
   );
-  const operations: BatchOperation[] = results.docs.map((result) => (batch) => batch.delete(result.ref));
+  const videos = await getDocs(
+    query(raceDayVideosCollectionRef(ctx.db, ctx.userId, eventId), where("raceId", "==", raceId)),
+  );
+  const operations: BatchOperation[] = [...results.docs, ...videos.docs].map(
+    (child) => (batch) => batch.delete(child.ref),
+  );
   operations.push((batch) => batch.delete(raceDayRaceRef(ctx.db, ctx.userId, eventId, raceId)));
   await commitInBatches(ctx.db, operations);
 }
@@ -527,4 +548,64 @@ function assertResultId(resultId: string): void {
   if (parts.length !== 2 || !parts.every((part) => isValidRaceDayId(part))) {
     throw new RaceDayValidationError([{ field: "resultId", code: "invalidFormat" }]);
   }
+}
+
+// --- videos (metadata only) ---------------------------------------------------------
+
+/**
+ * A video record says which race and athlete a clip belongs to and where it is kept. It never
+ * holds the video (ADR-001 D4). Several records per race and athlete are allowed, so the id is
+ * generated, unlike results.
+ */
+export async function createRaceVideo(
+  ctx: RaceDayContext,
+  eventId: string,
+  raceId: string,
+  rosterId: string,
+  input: RaceVideoInput,
+  options: { videoId?: string } = {},
+): Promise<string> {
+  assertValidId("eventId", eventId);
+  assertValidId("raceId", raceId);
+  assertValidId("rosterId", rosterId);
+  const value = validated(prepareRaceVideoInput(input));
+  const videoId = resolveId(options.videoId, value.label);
+  await setDoc(
+    raceDayVideoRef(ctx.db, ctx.userId, eventId, videoId),
+    encodeRaceVideoCreate(videoId, raceId, rosterId, value),
+  );
+  return videoId;
+}
+
+export async function updateRaceVideo(
+  ctx: RaceDayContext,
+  eventId: string,
+  videoId: string,
+  input: RaceVideoInput,
+): Promise<void> {
+  assertValidId("eventId", eventId);
+  assertValidId("videoId", videoId);
+  const value = validated(prepareRaceVideoInput(input));
+  await updateDoc(raceDayVideoRef(ctx.db, ctx.userId, eventId, videoId), encodeRaceVideoUpdate(value));
+}
+
+export async function deleteRaceVideo(ctx: RaceDayContext, eventId: string, videoId: string): Promise<void> {
+  assertValidId("eventId", eventId);
+  assertValidId("videoId", videoId);
+  await deleteDoc(raceDayVideoRef(ctx.db, ctx.userId, eventId, videoId));
+}
+
+export function subscribeToRaceVideos(
+  ctx: RaceDayContext,
+  eventId: string,
+  onData: (list: RaceDayList<RaceVideoRef>) => void,
+  onError: (error: RaceDayListError) => void,
+): Unsubscribe {
+  assertValidId("eventId", eventId);
+  return subscribeToList(
+    raceDayVideosCollectionRef(ctx.db, ctx.userId, eventId),
+    parseRaceVideo,
+    onData,
+    onError,
+  );
 }

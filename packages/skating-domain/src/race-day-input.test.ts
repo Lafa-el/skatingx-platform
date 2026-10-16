@@ -277,6 +277,10 @@ describe("limits stay in sync with firestore.rules", () => {
     ["roundOrHeat", `d.heat.size() <= ${String(RACE_DAY_LIMITS.roundOrHeat)}`],
     ["rosterIdsMax", `d.rosterIds.size() <= ${String(RACE_DAY_LIMITS.rosterIdsMax)}`],
     ["resultTimeMaxSeconds", `d.timeSeconds <= ${String(RACE_DAY_LIMITS.resultTimeMaxSeconds)}`],
+    ["videoLabel", `d.label.size() >= 1 && d.label.size() <= ${String(RACE_DAY_LIMITS.videoLabel)}`],
+    ["videoExternalUrl", `d.externalUrl.size() <= ${String(RACE_DAY_LIMITS.videoExternalUrl)}`],
+    ["videoStoredWhere", `d.storedWhere.size() <= ${String(RACE_DAY_LIMITS.videoStoredWhere)}`],
+    ["videoNote", `d.note.size() <= ${String(RACE_DAY_LIMITS.videoNote)}`],
     ["sourceNote", `d.sourceNote.size() <= ${String(RACE_DAY_LIMITS.sourceNote)}`],
   ];
 

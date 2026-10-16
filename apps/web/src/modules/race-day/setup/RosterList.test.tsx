@@ -100,6 +100,8 @@ describe("RosterList", () => {
     const warning = screen.getByRole("alert");
     expect(warning.textContent).toContain("所有成绩");
     expect(warning.textContent).toContain("无法恢复");
+    expect(warning.textContent).toContain("视频记录");
+    expect(warning.textContent).toContain("视频文件本身不受影响");
   });
 
   it("disables the actions while another write is in progress", () => {

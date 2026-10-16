@@ -17,6 +17,8 @@ const KEY: Record<RaceDayInputErrorCode, RaceDayMessageKey> = {
   placeInvalid: "raceDay.results.error.placeInvalid",
   placeNotAllowed: "raceDay.results.error.placeNotAllowed",
   advancedNotAllowed: "raceDay.results.error.advancedNotAllowed",
+  urlInvalid: "raceDay.videos.error.urlInvalid",
+  urlHasCredentials: "raceDay.videos.error.urlHasCredentials",
 };
 
 /** First error per field, as a message key. A field shows one problem at a time. */

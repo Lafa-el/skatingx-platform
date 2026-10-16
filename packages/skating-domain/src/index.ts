@@ -51,13 +51,16 @@ export {
 export { instantToZonedDateTime, zonedDateTimeToInstant } from "./race-day-time";
 export {
   createIdSuffix,
+  checkExternalUrl,
   createRaceDayEntityId,
+  externalUrlHost,
   formatResultTime,
   isRealDateString,
   parseResultTime,
   prepareRaceEventInput,
   prepareRaceInput,
   prepareRaceResultInput,
+  prepareRaceVideoInput,
   prepareRosterEntryInput,
   RACE_DAY_LIMITS,
   RACE_RESULT_PLACE_MAX,
@@ -66,10 +69,12 @@ export {
   type RaceDayInputError,
   type RaceDayInputErrorCode,
   type RaceEventInput,
+  type ExternalUrlCheck,
   type ParsedResultTime,
   type RaceInput,
   type RaceResultFormInput,
   type RaceResultWriteInput,
+  type RaceVideoInput,
   type RosterEntryInput,
 } from "./race-day-input";
 export {

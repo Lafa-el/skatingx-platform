@@ -5,13 +5,16 @@ import {
   type RaceEvent,
   type RaceResult,
   type RaceRosterEntry,
+  type RaceVideoRef,
 } from "@skatingx/schema";
 import {
+  checkExternalUrl,
   RACE_DAY_LIMITS,
   RESULT_TIME_MAX_DECIMALS,
   type RaceEventInput,
   type RaceInput,
   type RaceResultWriteInput,
+  type RaceVideoInput,
   type RosterEntryInput,
 } from "@skatingx/skating-domain";
 import {
@@ -301,6 +304,63 @@ export function parseRaceResult(id: string, data: unknown): ParseResult<RaceResu
   };
 }
 
+/**
+ * Video metadata carries audit fields but no provenance: `validVideo` in firestore.rules has no
+ * `verification` key, because a video record is the user's own pointer, not an event fact.
+ */
+function readAudit(raw: Raw): ParseResult<Pick<RaceVideoRef, "schemaVersion" | "createdAt" | "updatedAt">> {
+  if (raw.schemaVersion !== RACE_DAY_SCHEMA_VERSION) {
+    return fail(`unsupported schemaVersion: ${String(raw.schemaVersion)}`);
+  }
+  const createdAt = readInstant(raw.createdAt);
+  const updatedAt = readInstant(raw.updatedAt);
+  if (createdAt === null || updatedAt === null) {
+    return fail("missing createdAt or updatedAt");
+  }
+  return { ok: true, value: { schemaVersion: RACE_DAY_SCHEMA_VERSION, createdAt, updatedAt } };
+}
+
+function boundedNullableString(value: unknown, max: number): string | null | undefined {
+  const text = nullableString(value);
+  return text !== undefined && text !== null && text.length > max ? undefined : text;
+}
+
+export function parseRaceVideo(id: string, data: unknown): ParseResult<RaceVideoRef> {
+  if (!isRecord(data)) {
+    return fail("document is not an object");
+  }
+  const audit = readAudit(data);
+  if (!audit.ok) {
+    return audit;
+  }
+  const { raceId, rosterId, label } = data;
+  const externalUrl = boundedNullableString(data.externalUrl, RACE_DAY_LIMITS.videoExternalUrl);
+  const storedWhere = boundedNullableString(data.storedWhere, RACE_DAY_LIMITS.videoStoredWhere);
+  const note = boundedNullableString(data.note, RACE_DAY_LIMITS.videoNote);
+  if (
+    data.videoId !== id ||
+    typeof raceId !== "string" ||
+    typeof rosterId !== "string" ||
+    typeof label !== "string" ||
+    label.length < 1 ||
+    label.length > RACE_DAY_LIMITS.videoLabel ||
+    externalUrl === undefined ||
+    storedWhere === undefined ||
+    note === undefined
+  ) {
+    return fail("video fields have the wrong shape");
+  }
+  // A link is only ever followed by the user; one that is not a plain http(s) link is hidden
+  // rather than rendered as something clickable.
+  if (externalUrl !== null && checkExternalUrl(externalUrl) !== "ok") {
+    return fail("externalUrl is not a plain http(s) link");
+  }
+  return {
+    ok: true,
+    value: { ...audit.value, videoId: id, raceId, rosterId, label, externalUrl, storedWhere, note },
+  };
+}
+
 // --- encoders (write) -----------------------------------------------------------
 
 /**
@@ -442,4 +502,27 @@ export function encodeRaceResultCreate(
 /** `raceId` and `rosterId` are part of the id, so an update never changes them. */
 export function encodeRaceResultUpdate(input: RaceResultWriteInput): DocumentData {
   return { ...resultFields(input), ...editedFields(input.sourceNote) };
+}
+
+function videoFields(input: RaceVideoInput): DocumentData {
+  return {
+    label: input.label,
+    externalUrl: input.externalUrl,
+    storedWhere: input.storedWhere,
+    note: input.note,
+  };
+}
+
+export function encodeRaceVideoCreate(
+  videoId: string,
+  raceId: string,
+  rosterId: string,
+  input: RaceVideoInput,
+): DocumentData {
+  return { videoId, raceId, rosterId, ...videoFields(input), ...createdAndUpdated() };
+}
+
+/** No provenance to reset: a video record has none. Race and athlete are not changed by an edit. */
+export function encodeRaceVideoUpdate(input: RaceVideoInput): DocumentData {
+  return { ...videoFields(input), updatedAt: serverTimestamp() };
 }

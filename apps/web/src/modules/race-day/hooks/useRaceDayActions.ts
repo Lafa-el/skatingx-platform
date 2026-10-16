@@ -3,10 +3,12 @@ import {
   createRaceEvent,
   createRaceEventWithRaces,
   createRaceResult,
+  createRaceVideo,
   deleteRace,
   createRosterEntry,
   deleteRaceEvent,
   deleteRaceResult,
+  deleteRaceVideo,
   deleteRosterEntry,
   setRaceEventVerified,
   setRaceResultVerified,
@@ -15,6 +17,7 @@ import {
   updateRace,
   updateRaceEvent,
   updateRaceResult,
+  updateRaceVideo,
   updateRosterEntry,
   type RaceDayContext,
 } from "@skatingx/firebase-client";
@@ -25,6 +28,7 @@ import {
   type RaceEventInput,
   type RaceInput,
   type RaceResultFormInput,
+  type RaceVideoInput,
   type RosterEntryInput,
 } from "@skatingx/skating-domain";
 import { useCallback, useMemo, useState } from "react";
@@ -55,12 +59,15 @@ export type RaceDayActions = {
   updateResult: (eventId: string, resultId: string, input: RaceResultFormInput) => Promise<WriteOutcome>;
   setResultVerified: (eventId: string, resultId: string, verified: boolean) => Promise<WriteOutcome>;
   deleteResult: (eventId: string, resultId: string) => Promise<WriteOutcome>;
+  createVideo: (eventId: string, raceId: string, rosterId: string, input: RaceVideoInput) => Promise<WriteOutcome>;
+  updateVideo: (eventId: string, videoId: string, input: RaceVideoInput) => Promise<WriteOutcome>;
+  deleteVideo: (eventId: string, videoId: string) => Promise<WriteOutcome>;
   /** Event and races in one batch: all or nothing. Returns the event id to select. */
   applyTemplate: (template: RaceDayTemplate) => Promise<{ eventId: string; outcome: WriteOutcome }>;
 };
 
 /**
- * Writes for the Race Day pages (Setup, Schedule, Results). Every write goes through `settleWrite`, so the UI is never stuck
+ * Writes for the Race Day pages (Setup, Schedule, Results, Videos). Every write goes through `settleWrite`, so the UI is never stuck
  * waiting for a server that is out of reach. A write the server rejects after we already
  * reported it as queued sets `syncFailed`, which the page shows.
  */
@@ -119,6 +126,11 @@ export function useRaceDayActions(ctx: RaceDayContext | null): {
       setResultVerified: (eventId, resultId, verified) =>
         run("setResultVerified", setRaceResultVerified(ctx, eventId, resultId, verified)),
       deleteResult: (eventId, resultId) => run("deleteResult", deleteRaceResult(ctx, eventId, resultId)),
+      createVideo: (eventId, raceId, rosterId, input) =>
+        run("createVideo", createRaceVideo(ctx, eventId, raceId, rosterId, input)),
+      updateVideo: (eventId, videoId, input) =>
+        run("updateVideo", updateRaceVideo(ctx, eventId, videoId, input)),
+      deleteVideo: (eventId, videoId) => run("deleteVideo", deleteRaceVideo(ctx, eventId, videoId)),
       applyTemplate: async (template) => {
         const outcome = await run(
           "applyTemplate",

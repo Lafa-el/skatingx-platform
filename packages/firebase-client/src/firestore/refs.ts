@@ -174,3 +174,21 @@ export function raceDayResultsCollectionRef(
   const segments = pathToSegments(paths.raceDayResultsCollection(userId, eventId));
   return collection(db, ...(segments as [string, ...string[]]));
 }
+
+export function raceDayVideoRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+  videoId: string,
+): DocumentReference {
+  return docFromPath(db, paths.raceDayVideo(userId, eventId, videoId));
+}
+
+export function raceDayVideosCollectionRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+): CollectionReference {
+  const segments = pathToSegments(paths.raceDayVideosCollection(userId, eventId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}

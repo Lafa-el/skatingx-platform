@@ -28,6 +28,10 @@ export const RACE_DAY_LIMITS = {
   rosterIdsMax: 50,
   /** A race result time is above 0 and at most this many seconds (30 minutes). */
   resultTimeMaxSeconds: 1800,
+  videoLabel: 120,
+  videoExternalUrl: 2048,
+  videoStoredWhere: 200,
+  videoNote: 1000,
   sourceNote: 500,
 } as const;
 
@@ -47,7 +51,10 @@ export type RaceDayInputErrorCode =
   | "timeNotAllowed"
   | "placeInvalid"
   | "placeNotAllowed"
-  | "advancedNotAllowed";
+  | "advancedNotAllowed"
+  // Video metadata (see `prepareRaceVideoInput`)
+  | "urlInvalid"
+  | "urlHasCredentials";
 
 export type RaceDayInputError = { field: string; code: RaceDayInputErrorCode };
 
@@ -492,4 +499,70 @@ export function prepareRaceResultInput(input: RaceResultFormInput): PreparedInpu
     value: { status: effectiveStatus, timeSeconds, place, advanced, sourceNote },
     errors,
   };
+}
+
+// --- video metadata ------------------------------------------------------------------
+
+/**
+ * Same prefix test as `validVideo` in firestore.rules (case-sensitive), so a link this module
+ * accepts is never refused by the rules for its scheme.
+ */
+const HTTP_URL_PREFIX = /^https?:\/\/.+/;
+
+export type ExternalUrlCheck = "ok" | "urlInvalid" | "urlHasCredentials";
+
+/**
+ * A video link is only ever a pointer the user follows. It must be a plain http(s) link with
+ * no whitespace and no embedded `user:password@`: credentials in a link would be stored in
+ * clear text next to the athlete's data.
+ */
+export function checkExternalUrl(value: string): ExternalUrlCheck {
+  if (!HTTP_URL_PREFIX.test(value) || /\s/.test(value)) {
+    return "urlInvalid";
+  }
+  // The prefix test above already limits the scheme to http(s).
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    // `new URL` throwing is the signal "not a URL"; the caller turns it into a field error.
+    return "urlInvalid";
+  }
+  if (parsed.username !== "" || parsed.password !== "") {
+    return "urlHasCredentials";
+  }
+  return "ok";
+}
+
+/** Host name to show instead of the whole link (which may carry long query strings). */
+export function externalUrlHost(value: string): string | null {
+  if (checkExternalUrl(value) !== "ok") {
+    return null;
+  }
+  return new URL(value).hostname;
+}
+
+/** Metadata only (ADR-001 D4): where a race video is kept, never the video itself. */
+export type RaceVideoInput = {
+  label: string;
+  externalUrl: string | null;
+  storedWhere: string | null;
+  note: string | null;
+};
+
+export function prepareRaceVideoInput(input: RaceVideoInput): PreparedInput<RaceVideoInput> {
+  const errors: RaceDayInputError[] = [];
+  const label = requiredText(input.label, "label", RACE_DAY_LIMITS.videoLabel, errors);
+  const storedWhere = optionalText(input.storedWhere, "storedWhere", RACE_DAY_LIMITS.videoStoredWhere, errors);
+  const note = optionalText(input.note, "note", RACE_DAY_LIMITS.videoNote, errors);
+
+  const externalUrl = optionalText(input.externalUrl, "externalUrl", RACE_DAY_LIMITS.videoExternalUrl, errors);
+  if (externalUrl !== null && externalUrl.length <= RACE_DAY_LIMITS.videoExternalUrl) {
+    const check = checkExternalUrl(externalUrl);
+    if (check !== "ok") {
+      errors.push({ field: "externalUrl", code: check });
+    }
+  }
+
+  return { value: { label, externalUrl, storedWhere, note }, errors };
 }

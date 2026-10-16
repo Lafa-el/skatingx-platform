@@ -2,6 +2,7 @@ import {
   getFirestoreDb,
   subscribeToRaceEvents,
   subscribeToRaceResults,
+  subscribeToRaceVideos,
   subscribeToRaces,
   subscribeToRoster,
   type InvalidRaceDayDocument,
@@ -9,7 +10,7 @@ import {
   type RaceDayList,
   type RaceDayListError,
 } from "@skatingx/firebase-client";
-import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skatingx/schema";
+import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry, RaceVideoRef } from "@skatingx/schema";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -109,6 +110,24 @@ export function useRaceResults(
     () =>
       ctx && eventId
         ? (onData, onError) => subscribeToRaceResults(ctx, eventId, onData, onError)
+        : null,
+    [ctx, eventId],
+  );
+  return useSubscribedList(subscribe);
+}
+
+/**
+ * Video records. Only call this from a component that is mounted behind the PRO gate: it
+ * subscribes as soon as it has an event, and nothing else in the app reads videos.
+ */
+export function useRaceVideos(
+  ctx: RaceDayContext | null,
+  eventId: string | null,
+): ListState<RaceVideoRef> {
+  const subscribe = useMemo<Subscribe<RaceVideoRef> | null>(
+    () =>
+      ctx && eventId
+        ? (onData, onError) => subscribeToRaceVideos(ctx, eventId, onData, onError)
         : null,
     [ctx, eventId],
   );
