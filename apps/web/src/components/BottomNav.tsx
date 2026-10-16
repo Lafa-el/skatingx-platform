@@ -4,6 +4,7 @@ import { isRaceDayEnabled } from "@/app/features";
 import { getPrimaryNav, isNavActive } from "@/app/navigation";
 import { useLocale } from "@/hooks/useLocale";
 import { tCore } from "@/modules/race-day/i18n/core-messages";
+import { tNav } from "@/shared/i18n/nav-messages";
 
 export function BottomNav() {
   const { pathname } = useLocation();
@@ -11,13 +12,14 @@ export function BottomNav() {
   const primaryNav = getPrimaryNav({
     raceDay: isRaceDayEnabled(),
     raceDayLabel: tCore(locale, "raceDay.nav.title"),
+    locale,
   });
 
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white"
       style={{ height: "var(--sx-nav-height)" }}
-      aria-label="Main"
+      aria-label={tNav(locale, "nav.primary.label")}
     >
       <ul className="mx-auto flex h-full max-w-5xl items-stretch justify-around">
         {primaryNav.map((item) => (

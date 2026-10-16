@@ -2,8 +2,11 @@ import { useId, useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import { useActiveAthlete, useAthleteProfile } from "@/hooks/firestore";
+import { useLocale } from "@/hooks/useLocale";
+import { tShell } from "@/shared/i18n/shell-messages";
 
 export function AthleteSelector() {
+  const locale = useLocale();
   const { athleteId, loading } = useActiveAthlete();
   const { data: profile } = useAthleteProfile();
   const [open, setOpen] = useState(false);
@@ -70,7 +73,7 @@ export function AthleteSelector() {
         <div
           id={listboxId}
           role="listbox"
-          aria-label="Select athlete"
+          aria-label={tShell(locale, "shell.athlete.listLabel")}
           className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
         >
           <div
@@ -90,13 +93,15 @@ export function AthleteSelector() {
                 {athleteId}
               </span>
             </span>
-            <span className="text-xs font-medium text-sky-700">Active</span>
+            <span className="text-xs font-medium text-sky-700">
+              {tShell(locale, "shell.athlete.active")}
+            </span>
           </div>
 
           <div className="my-1 border-t border-slate-100" />
 
           <p className="px-3 py-2 text-xs text-slate-500">
-            Multi-athlete switching — coming in a later phase.
+            {tShell(locale, "shell.athlete.switchingLater")}
           </p>
 
           <Link
@@ -104,7 +109,7 @@ export function AthleteSelector() {
             onClick={() => setOpen(false)}
             className="block px-3 py-2 text-sm font-medium text-sky-700 hover:bg-slate-50"
           >
-            Athlete profile →
+            {tShell(locale, "shell.athlete.profileLink")}
           </Link>
         </div>
       ) : null}

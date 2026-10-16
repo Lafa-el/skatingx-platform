@@ -1,10 +1,16 @@
 import { Card } from "@skatingx/ui";
 import { useId } from "react";
 
-import { tSettings } from "@/shared/i18n/settings-messages";
+import { tSettings, type SettingsMessageKey } from "@/shared/i18n/settings-messages";
 import type { Locale } from "@/shared/i18n/translator";
 
 const OPTIONS: Locale[] = ["zh", "en"];
+
+/** Each option names its own language, so the label is looked up by option, never chosen by a comparison. */
+const OPTION_LABEL: Record<Locale, SettingsMessageKey> = {
+  zh: "settings.language.option.zh",
+  en: "settings.language.option.en",
+};
 
 type LanguageSettingProps = {
   language: Locale;
@@ -42,7 +48,7 @@ export function LanguageSetting({ language, disabled, failed, onChange }: Langua
                   className="h-5 w-5 border-slate-300 text-sky-700 focus:ring-sky-300"
                 />
                 <label htmlFor={id} className="text-sm font-medium text-slate-900">
-                  {tSettings(language, option === "zh" ? "settings.language.option.zh" : "settings.language.option.en")}
+                  {tSettings(language, OPTION_LABEL[option])}
                 </label>
               </div>
             );

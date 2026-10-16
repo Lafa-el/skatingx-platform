@@ -7,7 +7,7 @@ import { createTranslator, type Resources } from "./translator";
  */
 const zh = {
   "settings.language.title": "语言 / Language",
-  "settings.language.description": "选择界面语言。部分页面(例如设置页和底部导航)暂时仍是英文。",
+  "settings.language.description": "选择界面语言。部分页面(例如设置页)暂时仍是英文。",
   "settings.language.option.zh": "中文",
   "settings.language.option.en": "English",
   "settings.language.error": "语言没有保存成功。请检查网络后再试。",
@@ -18,7 +18,7 @@ type SettingsKey = keyof typeof zh;
 const en: Record<SettingsKey, string> = {
   "settings.language.title": "Language / 语言",
   "settings.language.description":
-    "Choose the interface language. Some screens (for example this page and the bottom navigation) are still English only.",
+    "Choose the interface language. Some screens (for example this page) are still English only.",
   // Each language is named in its own language, so it is recognizable whichever one is active.
   "settings.language.option.zh": "中文",
   "settings.language.option.en": "English",

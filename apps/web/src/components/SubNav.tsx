@@ -4,11 +4,11 @@ import type { NavItem } from "@/app/navigation";
 
 type SubNavProps = {
   items: NavItem[];
-  /** Accessible name of the navigation landmark. Modules pass a localized one. */
-  label?: string;
+  /** Accessible name of the navigation landmark. The caller passes a localized one. */
+  label: string;
 };
 
-export function SubNav({ items, label = "Section" }: SubNavProps) {
+export function SubNav({ items, label }: SubNavProps) {
   return (
     <nav
       className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 py-2"
