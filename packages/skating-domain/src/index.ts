@@ -48,6 +48,16 @@ export {
   RACE_DAY_TEMPLATES,
   type RaceDayTemplate,
 } from "./race-day-templates";
+export {
+  buildTodayView,
+  eventPhase,
+  RACE_DAY_TODAY_VERSION,
+  type EventPhase,
+  type NextRace,
+  type TodayInput,
+  type TodayRace,
+  type TodayView,
+} from "./race-day-today";
 export { instantToZonedDateTime, zonedDateTimeToInstant } from "./race-day-time";
 export {
   createIdSuffix,
