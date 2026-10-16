@@ -96,6 +96,29 @@ describe("prepareRaceVideoInput", () => {
     expect(codes(prepareRaceVideoInput(video({ label: "   " })))).toEqual(["label:required"]);
   });
 
+  // Found on staging: a name made only of invisible characters looked empty but was saved,
+  // because `trim()` does not remove zero-width characters.
+  it.each([
+    ["zero-width space", "\u200b"],
+    ["zero-width joiner and non-joiner", "\u200c\u200d"],
+    ["word joiner", "\u2060"],
+    ["soft hyphen", "\u00ad"],
+    ["Hangul filler", "\u3164"],
+    ["invisible characters around spaces", " \u200b \u3000 "],
+  ])("treats a label of only %s as empty", (_name, label) => {
+    expect(codes(prepareRaceVideoInput(video({ label })))).toEqual(["label:required"]);
+  });
+
+  it("keeps a label that has a visible character next to invisible ones", () => {
+    expect(codes(prepareRaceVideoInput(video({ label: "\u200bFinal" })))).toEqual([]);
+  });
+
+  it.each(["\u200b", " \u200b "])("stores an optional field of only invisible characters as null", (blank) => {
+    const r = prepareRaceVideoInput(video({ storedWhere: blank, note: blank, externalUrl: blank }));
+    expect(r.errors).toEqual([]);
+    expect(r.value).toMatchObject({ storedWhere: null, note: null, externalUrl: null });
+  });
+
   it.each([
     ["label", "videoLabel", (n: number) => video({ label: "l".repeat(n) })],
     ["storedWhere", "videoStoredWhere", (n: number) => video({ storedWhere: "s".repeat(n) })],

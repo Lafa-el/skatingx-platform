@@ -78,6 +78,30 @@ describe("VideoForm", () => {
     });
   });
 
+  it("only a link typed: the empty name is the first problem, shown under the name box and focused", async () => {
+    const { user, onSubmit } = setup();
+    await user.type(screen.getByLabelText("链接(可选)"), "https://example.com/v");
+    await user.click(screen.getByRole("button", { name: "保存视频记录" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    const name = screen.getByLabelText(/视频名称/);
+    expect(name.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByText("必填")).toBeTruthy();
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(name);
+    });
+  });
+
+  it("a name made only of invisible characters is treated as empty", async () => {
+    const { user, onSubmit } = setup({ initial: { ...EMPTY_VIDEO_FORM, label: "\u200b" } });
+    await user.type(screen.getByLabelText("链接(可选)"), "https://example.com/v");
+    await user.click(screen.getByRole("button", { name: "保存视频记录" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("必填")).toBeTruthy();
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByLabelText(/视频名称/));
+    });
+  });
+
   it.each([
     ["not a link", "example.com/video"],
     ["javascript link", "javascript:alert(1)"],

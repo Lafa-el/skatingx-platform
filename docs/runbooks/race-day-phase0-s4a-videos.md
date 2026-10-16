@@ -41,7 +41,7 @@ Use made-up names, links and locations only. Do this in Chinese and in English (
 5. **Empty states.** No event: points to Setup. Event but no races: points to Schedule. Races but no records: "还没有视频记录…".
 6. **Add a record.** Choose a race, then an athlete, type a name, a link such as `https://example.com/clip/1`, a location and a note, save. The record appears under that race at once, and the list shows `example.com` as the link text. The athlete select is cleared and the race stays chosen.
 7. **Link behavior.** Click the link: it opens in a new tab. In the browser tools the anchor has `rel="noopener noreferrer"`.
-8. **Bad input.** Try an empty name, `example.com/v` (no scheme), `ftp://example.com/x`, `javascript:alert(1)`, `https://a:b@example.com/` and a name of 121 characters. Each shows a message under the field, focus moves to the first problem, and nothing is saved.
+8. **Bad input.** Try an empty name, `example.com/v` (no scheme), `ftp://example.com/x`, `javascript:alert(1)`, `https://a:b@example.com/` a name of 121 characters, and a name that looks empty but holds an invisible character (for example paste a zero-width space `​`, or type only spaces). An empty name with a valid link typed must show "必填" under the name box and move focus to it. Each shows a message under the field, focus moves to the first problem, and nothing is saved.
 9. **Several records.** Add a second record for the same race and athlete: two rows, no overwrite.
 10. **Edit.** Press Edit: the form opens with the stored values, focus is in it, and race and athlete are shown but cannot be changed. Save: one row, new values.
 11. **Delete.** Delete asks for a second confirmation saying only the record is deleted; Cancel deletes nothing.
