@@ -109,6 +109,12 @@ function normalizeInstant(value: string): string | null {
   return Number.isNaN(ms) ? null : new Date(ms).toISOString();
 }
 
+/**
+ * True when nothing visible is left. `trim()` alone is not enough: it keeps zero-width
+ * characters, so a name made of them looks empty on screen yet would pass as filled in.
+ */
+const NOTHING_VISIBLE = /^[\p{White_Space}\p{Default_Ignorable_Code_Point}]*$/u;
+
 function requiredText(
   raw: string,
   field: string,
@@ -116,7 +122,7 @@ function requiredText(
   errors: RaceDayInputError[],
 ): string {
   const value = (raw ?? "").trim();
-  if (value.length === 0) {
+  if (NOTHING_VISIBLE.test(value)) {
     errors.push({ field, code: "required" });
   } else if (value.length > max) {
     errors.push({ field, code: "tooLong" });
@@ -132,7 +138,7 @@ function optionalText(
   errors: RaceDayInputError[],
 ): string | null {
   const value = (raw ?? "").trim();
-  if (value.length === 0) {
+  if (NOTHING_VISIBLE.test(value)) {
     return null;
   }
   if (value.length > max) {
