@@ -7,8 +7,9 @@ import { createTranslator, type Resources } from "./translator";
 const zh = {
   "shell.status.loading": "正在加载你的数据…",
   // `{detail}` is the technical reason from the data service, shown as it arrives so a problem can
-  // be reported. "Firestore" is a product name and is not translated.
-  "shell.status.connectError": "无法连接到 Firestore:{detail}",
+  // be reported. Chinese says 数据服务 for parents and athletes; English keeps the product name
+  // Firestore (owner decision 2026-10-16).
+  "shell.status.connectError": "无法连接到数据服务:{detail}",
 
   "shell.athlete.listLabel": "选择运动员",
   "shell.athlete.active": "当前",

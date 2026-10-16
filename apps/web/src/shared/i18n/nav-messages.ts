@@ -25,7 +25,7 @@ const zh = {
 
   "nav.analysis.section": "分析分区",
   "nav.analysis.hub": "首页",
-  "nav.analysis.biomechanics": "生物力学",
+  "nav.analysis.biomechanics": "动作分析",
   "nav.analysis.pacing": "配速",
   "nav.analysis.equipment": "装备",
 } as const;

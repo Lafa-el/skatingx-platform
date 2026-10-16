@@ -86,7 +86,7 @@ describe("AnalysisLayout", () => {
     const nav = screen.getByRole("navigation", { name: "分析分区" });
     expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual([
       "首页",
-      "生物力学",
+      "动作分析",
       "配速",
       "装备",
     ]);

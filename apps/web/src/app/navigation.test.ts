@@ -84,7 +84,7 @@ describe("sub navigation", () => {
 
   it("Chinese labels", () => {
     expect(getTrainingSubNav("zh").map((item) => item.label)).toEqual(["首页", "任务", "学院", "纪录", "商店"]);
-    expect(getAnalysisSubNav("zh").map((item) => item.label)).toEqual(["首页", "生物力学", "配速", "装备"]);
+    expect(getAnalysisSubNav("zh").map((item) => item.label)).toEqual(["首页", "动作分析", "配速", "装备"]);
   });
 });
 

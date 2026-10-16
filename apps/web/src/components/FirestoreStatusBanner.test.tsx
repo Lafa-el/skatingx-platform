@@ -33,11 +33,22 @@ describe("FirestoreStatusBanner", () => {
   it("connection error: an alert in the active language that still carries the technical reason", () => {
     state.status = { ready: false, connectivityError: "unavailable" };
     render(<FirestoreStatusBanner />);
-    expect(screen.getByRole("alert").textContent).toBe("无法连接到 Firestore:unavailable");
+    expect(screen.getByRole("alert").textContent).toBe("无法连接到数据服务:unavailable");
 
     state.locale = "en";
     const { container } = render(<FirestoreStatusBanner />);
     expect(container.textContent).toBe("Unable to connect to Firestore: unavailable");
+  });
+
+  it("the Chinese text says 数据服务, the English text keeps the product name Firestore (owner decision)", () => {
+    state.status = { ready: false, connectivityError: "unavailable" };
+    const zh = render(<FirestoreStatusBanner />);
+    expect(zh.container.textContent).not.toContain("Firestore");
+    zh.unmount();
+
+    state.locale = "en";
+    const en = render(<FirestoreStatusBanner />);
+    expect(en.container.textContent).toContain("Firestore");
   });
 
   it("an error wins over the loading state", () => {
