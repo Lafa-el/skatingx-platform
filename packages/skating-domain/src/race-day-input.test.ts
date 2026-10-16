@@ -281,6 +281,8 @@ describe("limits stay in sync with firestore.rules", () => {
     ["videoExternalUrl", `d.externalUrl.size() <= ${String(RACE_DAY_LIMITS.videoExternalUrl)}`],
     ["videoStoredWhere", `d.storedWhere.size() <= ${String(RACE_DAY_LIMITS.videoStoredWhere)}`],
     ["videoNote", `d.note.size() <= ${String(RACE_DAY_LIMITS.videoNote)}`],
+    ["summaryVersion", `d.summaryVersion.size() <= ${String(RACE_DAY_LIMITS.summaryVersion)}`],
+    ["summaryCoachNote", `d.coachNote.size() <= ${String(RACE_DAY_LIMITS.summaryCoachNote)}`],
     ["sourceNote", `d.sourceNote.size() <= ${String(RACE_DAY_LIMITS.sourceNote)}`],
   ];
 

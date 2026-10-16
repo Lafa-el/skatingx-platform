@@ -7,6 +7,8 @@ import {
   encodeRaceEventUpdate,
   encodeRaceResultCreate,
   encodeRaceResultUpdate,
+  encodeRaceSummaryCreate,
+  encodeRaceSummaryUpdate,
   encodeRaceUpdate,
   encodeRaceVideoCreate,
   encodeRaceVideoUpdate,
@@ -16,6 +18,7 @@ import {
   parseRaceEntry,
   parseRaceEvent,
   parseRaceResult,
+  parseRaceSummary,
   parseRaceVideo,
   parseRosterEntry,
 } from "./race-day-codec";
@@ -610,5 +613,82 @@ describe("race video: parse", () => {
     expect(reason(parseRaceVideo("clip-1", storedVideo({ createdAt: "yesterday" })))).toBe(
       "missing createdAt or updatedAt",
     );
+  });
+});
+
+describe("race summary note: encode", () => {
+  const note = { coachNote: "Tired in the last lap" };
+
+  it("create writes exactly the keys the rules demand", () => {
+    const data = encodeRaceSummaryCreate(note);
+    expect(keys(data)).toEqual(
+      ["coachNote", "createdAt", "generatedAt", "schemaVersion", "summaryVersion", "updatedAt"].sort(),
+    );
+    expect(data).toMatchObject({ summaryVersion: "race-summary/1", schemaVersion: 1, coachNote: note.coachNote });
+    expect(Object.values(data)).not.toContain(undefined);
+  });
+
+  it("stamps createdAt, updatedAt and generatedAt with server time, not the device clock", () => {
+    const data = encodeRaceSummaryCreate(note);
+    for (const key of ["createdAt", "updatedAt", "generatedAt"]) {
+      expect(data[key], key).not.toBeInstanceOf(Timestamp);
+      expect(typeof data[key]).toBe("object");
+    }
+  });
+
+  it("writes an absent note as an explicit null", () => {
+    expect(encodeRaceSummaryCreate({ coachNote: null }).coachNote).toBeNull();
+  });
+
+  it("update never touches createdAt and bumps updatedAt and generatedAt", () => {
+    const data = encodeRaceSummaryUpdate(note);
+    expect(keys(data)).toEqual(["coachNote", "generatedAt", "summaryVersion", "updatedAt"]);
+  });
+});
+
+describe("race summary note: parse", () => {
+  const stored = (over: Record<string, unknown> = {}) => ({
+    summaryVersion: "race-summary/1",
+    generatedAt: NOW,
+    coachNote: "note",
+    schemaVersion: 1,
+    createdAt: NOW,
+    updatedAt: NOW,
+    ...over,
+  });
+
+  it("round trip: parse(encode(x)) returns the note", () => {
+    const parsed = parseRaceSummary(materialize(encodeRaceSummaryCreate({ coachNote: "hello" })));
+    expect(parsed).toMatchObject({
+      ok: true,
+      value: { summaryVersion: "race-summary/1", coachNote: "hello", generatedAt: NOW_ISO },
+    });
+  });
+
+  it("accepts a null note and a null generatedAt", () => {
+    expect(parseRaceSummary(stored({ coachNote: null, generatedAt: null }))).toMatchObject({
+      ok: true,
+      value: { coachNote: null, generatedAt: null },
+    });
+  });
+
+  it("accepts a note exactly at the limit", () => {
+    expect(parseRaceSummary(stored({ coachNote: "n".repeat(2000) }))).toMatchObject({ ok: true });
+  });
+
+  it.each([
+    ["a note over the limit", { coachNote: "n".repeat(2001) }],
+    ["a non-string note", { coachNote: 5 }],
+    ["a missing version", { summaryVersion: undefined }],
+    ["a version over the limit", { summaryVersion: "v".repeat(41) }],
+    ["a generatedAt that is not a time", { generatedAt: "yesterday" }],
+  ])("rejects %s", (_name, over) => {
+    expect(reason(parseRaceSummary(stored(over)))).toBe("summary fields have the wrong shape");
+  });
+
+  it("rejects non-objects, an unsupported schemaVersion and missing timestamps", () => {
+    expect(reason(parseRaceSummary(null))).toBe("document is not an object");
+    expect(reason(parseRaceSummary(stored({ schemaVersion: 2 })))).toBe("unsupported schemaVersion: 2");
+    expect(reason(parseRaceSummary(stored({ updatedAt: "x" })))).toBe("missing createdAt or updatedAt");
   });
 });

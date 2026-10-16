@@ -175,6 +175,14 @@ export function raceDayResultsCollectionRef(
   return collection(db, ...(segments as [string, ...string[]]));
 }
 
+export function raceDaySummaryRef(
+  db: Firestore,
+  userId: string,
+  eventId: string,
+): DocumentReference {
+  return docFromPath(db, paths.raceDaySummary(userId, eventId));
+}
+
 export function raceDayVideoRef(
   db: Firestore,
   userId: string,

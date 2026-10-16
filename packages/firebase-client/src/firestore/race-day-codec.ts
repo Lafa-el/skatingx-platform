@@ -5,15 +5,18 @@ import {
   type RaceEvent,
   type RaceResult,
   type RaceRosterEntry,
+  type RaceSummaryDoc,
   type RaceVideoRef,
 } from "@skatingx/schema";
 import {
   checkExternalUrl,
   RACE_DAY_LIMITS,
+  RACE_SUMMARY_VERSION,
   RESULT_TIME_MAX_DECIMALS,
   type RaceEventInput,
   type RaceInput,
   type RaceResultWriteInput,
+  type RaceSummaryNoteInput,
   type RaceVideoInput,
   type RosterEntryInput,
 } from "@skatingx/skating-domain";
@@ -361,6 +364,32 @@ export function parseRaceVideo(id: string, data: unknown): ParseResult<RaceVideo
   };
 }
 
+/**
+ * `summaries/main`: the user-written part of the summary card. The numbers on the card are
+ * never stored; they are computed from the current races and results every time.
+ */
+export function parseRaceSummary(data: unknown): ParseResult<RaceSummaryDoc> {
+  if (!isRecord(data)) {
+    return fail("document is not an object");
+  }
+  const audit = readAudit(data);
+  if (!audit.ok) {
+    return audit;
+  }
+  const { summaryVersion } = data;
+  const coachNote = boundedNullableString(data.coachNote, RACE_DAY_LIMITS.summaryCoachNote);
+  const generatedAt = data.generatedAt === null ? null : readInstant(data.generatedAt);
+  if (
+    typeof summaryVersion !== "string" ||
+    summaryVersion.length > RACE_DAY_LIMITS.summaryVersion ||
+    coachNote === undefined ||
+    (data.generatedAt !== null && generatedAt === null)
+  ) {
+    return fail("summary fields have the wrong shape");
+  }
+  return { ok: true, value: { ...audit.value, summaryVersion, generatedAt, coachNote } };
+}
+
 // --- encoders (write) -----------------------------------------------------------
 
 /**
@@ -525,4 +554,24 @@ export function encodeRaceVideoCreate(
 /** No provenance to reset: a video record has none. Race and athlete are not changed by an edit. */
 export function encodeRaceVideoUpdate(input: RaceVideoInput): DocumentData {
   return { ...videoFields(input), updatedAt: serverTimestamp() };
+}
+
+/**
+ * `generatedAt` is the time the note was saved (server time). `summaryVersion` records which
+ * version of the summary rules the card was showing, so an old note stays explainable.
+ */
+function summaryFields(input: RaceSummaryNoteInput): DocumentData {
+  return {
+    summaryVersion: RACE_SUMMARY_VERSION,
+    generatedAt: serverTimestamp(),
+    coachNote: input.coachNote,
+  };
+}
+
+export function encodeRaceSummaryCreate(input: RaceSummaryNoteInput): DocumentData {
+  return { ...summaryFields(input), ...createdAndUpdated() };
+}
+
+export function encodeRaceSummaryUpdate(input: RaceSummaryNoteInput): DocumentData {
+  return { ...summaryFields(input), updatedAt: serverTimestamp() };
 }
