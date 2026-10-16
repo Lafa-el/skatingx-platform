@@ -21,6 +21,7 @@ import {
 import { useSubmitState } from "../hooks/useSubmitState";
 import { t } from "../i18n/messages";
 import { loadErrorMessageKey } from "../lib/errors";
+import { raceOptionLabel } from "../lib/schedule";
 import { buildVideoGroups, videoToFormValues, type VideoView } from "../lib/videos";
 import type { WriteOutcome } from "../lib/write";
 import { VideoForm } from "../videos/VideoForm";
@@ -112,7 +113,7 @@ function VideosContent() {
         {heading}
         {notices}
         <p className="text-sm text-slate-600">{t(locale, "raceDay.videos.noEvent")}</p>
-        <Link to="/race-day/setup" className={PRIMARY_BUTTON + " inline-block"}>
+        <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
           {t(locale, "raceDay.schedule.goSetup")}
         </Link>
       </div>
@@ -181,7 +182,7 @@ function VideosContent() {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-base font-semibold text-slate-900">{activeEvent.name}</span>
+        <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{activeEvent.name}</span>
         <VerificationBadge verification={activeEvent.verification} />
       </div>
 
@@ -196,7 +197,7 @@ function VideosContent() {
           {races.items.length === 0 ? (
             <div className="space-y-3">
               <p className="text-sm text-slate-600">{t(locale, "raceDay.videos.needRaces")}</p>
-              <Link to="/race-day/schedule" className={PRIMARY_BUTTON + " inline-block"}>
+              <Link to="/race-day/schedule" className={PRIMARY_BUTTON}>
                 {t(locale, "raceDay.tab.schedule")}
               </Link>
             </div>
@@ -235,7 +236,7 @@ function VideosContent() {
                       { value: "", label: t(locale, "raceDay.videos.form.raceChoose") },
                       ...sortedRaces.map((race, index) => ({
                         value: race.raceId,
-                        label: `#${String(index + 1)} ${race.label}${race.day ? ` · ${race.day}` : ""}`,
+                        label: raceOptionLabel(race, index + 1, locale),
                       })),
                     ]}
                     onChange={(raceId) => {

@@ -97,7 +97,7 @@ export function SchedulePage() {
         {heading}
         {notices}
         <p className="text-sm text-slate-600">{t(locale, "raceDay.schedule.noEvent")}</p>
-        <Link to="/race-day/setup" className={PRIMARY_BUTTON + " inline-block"}>
+        <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
           {t(locale, "raceDay.schedule.goSetup")}
         </Link>
       </div>
@@ -135,7 +135,7 @@ export function SchedulePage() {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-base font-semibold text-slate-900">{activeEvent.name}</span>
+        <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{activeEvent.name}</span>
         <VerificationBadge verification={activeEvent.verification} />
       </div>
 

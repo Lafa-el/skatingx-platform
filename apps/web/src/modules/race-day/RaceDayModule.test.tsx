@@ -43,6 +43,11 @@ describe("RaceDayModule", () => {
     expect(Array.from(nav.querySelectorAll("a")).map((a) => a.textContent)).toEqual(TABS_ZH);
   });
 
+  it("the page body breaks long unbroken text instead of scrolling sideways on a phone", () => {
+    renderAt("/race-day");
+    expect(document.querySelector("main")?.className).toContain("break-words");
+  });
+
   it("shows the field-test notice that unverified data is marked pending", () => {
     renderAt("/race-day");
     expect(screen.getByText(/待确认/)).toBeTruthy();

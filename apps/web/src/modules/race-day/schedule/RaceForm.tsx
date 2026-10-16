@@ -22,6 +22,7 @@ import {
 import { t, type RaceDayMessageKey } from "../i18n/messages";
 import { fieldErrorKeys } from "../lib/form-errors";
 import { sortRosterEntries } from "../lib/roster";
+import { formatRaceDay } from "../lib/schedule";
 
 type RaceFormProps = {
   mode: "create" | "edit";
@@ -76,7 +77,7 @@ export function RaceForm({
     { value: "", label: t(locale, "raceDay.form.race.dayUnknown") },
     ...[...new Set([...event.dates, ...(initial?.day ? [initial.day] : [])])].map((d) => ({
       value: d,
-      label: d,
+      label: formatRaceDay(d, locale),
     })),
   ];
 
@@ -208,7 +209,7 @@ export function RaceForm({
         disabled={saving}
       />
 
-      <fieldset className="space-y-2">
+      <fieldset className="min-w-0 space-y-2">
         <legend className="text-sm font-medium text-slate-800">
           {t(locale, "raceDay.form.race.athletes")}
         </legend>

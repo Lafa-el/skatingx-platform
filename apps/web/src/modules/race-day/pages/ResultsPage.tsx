@@ -21,6 +21,7 @@ import { useSubmitState } from "../hooks/useSubmitState";
 import { t } from "../i18n/messages";
 import { loadErrorMessageKey } from "../lib/errors";
 import { buildResultViews, resultIdFor, resultToFormValues, type ResultView } from "../lib/results";
+import { raceOptionLabel } from "../lib/schedule";
 import type { WriteOutcome } from "../lib/write";
 import { ResultForm } from "../results/ResultForm";
 import { ResultList } from "../results/ResultList";
@@ -100,7 +101,7 @@ export function ResultsPage() {
         {heading}
         {notices}
         <p className="text-sm text-slate-600">{t(locale, "raceDay.results.noEvent")}</p>
-        <Link to="/race-day/setup" className={PRIMARY_BUTTON + " inline-block"}>
+        <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
           {t(locale, "raceDay.schedule.goSetup")}
         </Link>
       </div>
@@ -162,7 +163,7 @@ export function ResultsPage() {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-base font-semibold text-slate-900">{activeEvent.name}</span>
+        <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{activeEvent.name}</span>
         <VerificationBadge verification={activeEvent.verification} />
       </div>
 
@@ -177,7 +178,7 @@ export function ResultsPage() {
           {races.items.length === 0 ? (
             <div className="space-y-3">
               <p className="text-sm text-slate-600">{t(locale, "raceDay.results.needRaces")}</p>
-              <Link to="/race-day/schedule" className={PRIMARY_BUTTON + " inline-block"}>
+              <Link to="/race-day/schedule" className={PRIMARY_BUTTON}>
                 {t(locale, "raceDay.tab.schedule")}
               </Link>
             </div>
@@ -193,7 +194,7 @@ export function ResultsPage() {
                   { value: "", label: t(locale, "raceDay.results.form.raceChoose") },
                   ...sortedRaces.map((race, index) => ({
                     value: race.raceId,
-                    label: `#${String(index + 1)} ${race.label}${race.day ? ` · ${race.day}` : ""}`,
+                    label: raceOptionLabel(race, index + 1, locale),
                   })),
                 ]}
                 onChange={(raceId) => {

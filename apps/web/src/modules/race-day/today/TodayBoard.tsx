@@ -7,7 +7,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { FormMessage, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../components/fields";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { t, type RaceDayMessageKey } from "../i18n/messages";
-import { formatRaceDay, formatRaceTime } from "../lib/schedule";
+import { formatRaceDay, formatRaceDays, formatRaceTime } from "../lib/schedule";
 
 const UNDETERMINED_KEY = {
   noTimeZone: "raceDay.today.undetermined.noTimeZone",
@@ -56,7 +56,7 @@ export function TodayBoard({ event, view, roster, multipleSelfName }: TodayBoard
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-slate-500">#{item.number}</span>
-          <span className="text-base font-semibold text-slate-900">{race.label}</span>
+          <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{race.label}</span>
           {race.round ? (
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
               {t(locale, "raceDay.schedule.round", { round: race.round })}
@@ -97,16 +97,13 @@ export function TodayBoard({ event, view, roster, multipleSelfName }: TodayBoard
     <div className="space-y-6">
       <div className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-base font-semibold text-slate-900">{event.name}</span>
+          <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{event.name}</span>
           <VerificationBadge verification={event.verification} />
         </div>
         {event.dates.length > 0 ? (
           <p className="text-sm text-slate-600">
             {t(locale, "raceDay.today.dates", {
-              dates: [...event.dates]
-                .sort()
-                .map((day) => formatRaceDay(day, locale))
-                .join(" / "),
+              dates: formatRaceDays(event.dates, locale),
             })}
           </p>
         ) : null}
@@ -130,7 +127,7 @@ export function TodayBoard({ event, view, roster, multipleSelfName }: TodayBoard
             {t(locale, "raceDay.today.pending", { count: view.pendingResultCount })}
           </p>
           <p className="mt-1 text-sm text-amber-900">{t(locale, "raceDay.today.pendingHelp")}</p>
-          <Link to="/race-day/results" className={SECONDARY_BUTTON + " mt-3 inline-block"}>
+          <Link to="/race-day/results" className={SECONDARY_BUTTON + " mt-3"}>
             {t(locale, "raceDay.tab.results")}
           </Link>
         </div>

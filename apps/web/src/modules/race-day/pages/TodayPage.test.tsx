@@ -195,6 +195,7 @@ describe("TodayPage on a race day", () => {
     renderPage();
     expect(screen.getByText("Buffalo Championships")).toBeTruthy();
     expect(screen.getByText(/时区:America\/New_York/)).toBeTruthy();
+    expect(screen.getByText("比赛日:10月24日周六、10月25日周日")).toBeTruthy();
     expect(screen.getByText("今天是比赛日。")).toBeTruthy();
     // The event and the races carry the pending marker, not a confirmed tone.
     expect(document.querySelectorAll("[data-verification=pending]").length).toBeGreaterThanOrEqual(3);

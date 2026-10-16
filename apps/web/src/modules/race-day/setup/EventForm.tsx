@@ -96,7 +96,7 @@ export function EventForm({ mode, initial, saving, submitErrorKey, onSubmit, onC
         disabled={saving}
       />
 
-      <fieldset className="space-y-2" disabled={saving}>
+      <fieldset className="min-w-0 space-y-2" disabled={saving}>
         <legend className="text-sm font-medium text-slate-800">
           {t(locale, "raceDay.form.event.dates")}
           <span aria-hidden="true"> *</span>

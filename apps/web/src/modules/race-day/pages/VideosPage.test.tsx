@@ -268,6 +268,13 @@ describe("VideosPage states", () => {
 });
 
 describe("VideosPage entry", () => {
+  it("names the races by schedule number and day in the reader's language, not as an ISO date", () => {
+    renderPage();
+    const options = Array.from((screen.getByLabelText("比赛") as HTMLSelectElement).options).map((o) => o.text);
+    expect(options[0]).toBe("选择比赛");
+    expect(options.slice(1).every((text) => /^#\d+ .+ · 10月24日周六$/.test(text))).toBe(true);
+  });
+
   it("offers only the athletes on the chosen race and no form before both are chosen", async () => {
     h.races = ready([race({ rosterIds: ["bob"] })]);
     const user = renderPage();
@@ -384,8 +391,8 @@ describe("VideosPage list, edit and delete", () => {
     h.videos = ready([video(), video({ videoId: "v2", raceId: "race-2", label: "Final" })]);
     renderPage();
     const list = screen.getByRole("heading", { name: "视频记录" }).closest("section") as HTMLElement;
-    expect(within(list).getByRole("heading", { name: "#1 500m · 2026-10-24" })).toBeTruthy();
-    expect(within(list).getByRole("heading", { name: "#2 1000m · 2026-10-24" })).toBeTruthy();
+    expect(within(list).getByRole("heading", { name: "#1 500m · 10月24日周六" })).toBeTruthy();
+    expect(within(list).getByRole("heading", { name: "#2 1000m · 10月24日周六" })).toBeTruthy();
     expect(within(list).getByText("Final")).toBeTruthy();
   });
 

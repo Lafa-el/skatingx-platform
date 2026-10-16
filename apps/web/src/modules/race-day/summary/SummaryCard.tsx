@@ -72,7 +72,7 @@ export function SummaryCard({ summary, raceNumbers }: SummaryCardProps) {
             return (
               <li key={item.raceId} className="rounded-lg border border-slate-200 px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-900">
+                  <span className="text-sm font-semibold text-slate-900 min-w-0 break-words">
                     {number === undefined ? "" : `#${String(number)} `}
                     {item.label}
                   </span>

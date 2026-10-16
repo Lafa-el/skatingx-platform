@@ -18,7 +18,7 @@ No ADR was needed: S5a changes no schema, no Security Rules and no index. `fires
 | Undated races | Races with no day are not placed on any day; a notice gives their number and points to Schedule. |
 | Unreadable data | Counted in "有 N 条数据无法读取,已隐藏". |
 | Read-only | No form field and no button on the page; only links and the event choice when there are several events. |
-| Offline | Reads from the local cache like the other tabs; nothing is written. |
+| Offline | Reads from the local cache like the other tabs; nothing is written. This only holds for a page that is **already open**: the app has no Service Worker (ADR-001 D7), so a reload with no network fails. See `race-day-phase0-offline-rehearsal.md`. |
 | Not in this slice | Any write, countdown to a race start, notifications, sharing, PB comparison. |
 
 ## Manual acceptance (staging, `https://skatingx-platform-web.vercel.app`)
@@ -37,7 +37,7 @@ Use made-up names only. Do this in Chinese and in English, on a phone-width wind
 10. **Undated race.** Add a race with no day: the notice appears and the race is not in the list.
 11. **Pending marker.** The event and every race show "待确认" until marked confirmed; nothing is shown in a confirmed tone before that.
 12. **Read-only.** There is no field or button anywhere on the page.
-13. **Offline.** Network off, reload: the page still shows the cached data.
+13. **Offline.** With the page already open, turn the network off and switch between tabs: the data already loaded is still shown. (Do not reload while offline: that fails by design, ADR-001 D7.)
 14. **Other tabs.** Schedule, Results, Videos, Summary and Setup behave as before.
 
 Record the result of each step (pass / fail / note) in the PR before asking for review.

@@ -65,7 +65,7 @@ export function TodayPage() {
       <div className="space-y-4">
         {heading}
         <p className="text-sm text-slate-600">{t(locale, "raceDay.today.noEvent")}</p>
-        <Link to="/race-day/setup" className={PRIMARY_BUTTON + " inline-block"}>
+        <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
           {t(locale, "raceDay.schedule.goSetup")}
         </Link>
       </div>
