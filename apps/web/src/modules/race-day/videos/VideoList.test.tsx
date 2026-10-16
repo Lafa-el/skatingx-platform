@@ -61,7 +61,7 @@ function setup(videos: RaceVideoRef[], busy = false) {
 describe("VideoList", () => {
   it("groups records under their race and shows label, athlete, location and note", () => {
     setup([video({ storedWhere: "手机相册", note: "第三圈" })]);
-    expect(screen.getByRole("heading", { name: "#1 500m · 2026-10-24" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "#1 500m · 10月24日周六" })).toBeTruthy();
     expect(screen.getByText("Start")).toBeTruthy();
     expect(screen.getByText("Ann · #7")).toBeTruthy();
     expect(screen.getByText("存放位置:手机相册")).toBeTruthy();

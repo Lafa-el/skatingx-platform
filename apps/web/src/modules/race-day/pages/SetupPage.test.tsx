@@ -209,7 +209,7 @@ describe("SetupPage event", () => {
   it("shows the event with its pending marker and dates", () => {
     render(<SetupPage />);
     expect(screen.getByText("Buffalo Championships")).toBeTruthy();
-    expect(screen.getByText("比赛日期:2026-10-24, 2026-10-25")).toBeTruthy();
+    expect(screen.getByText("比赛日期:10月24日周六、10月25日周日")).toBeTruthy();
     expect(screen.getAllByText("待确认").length).toBeGreaterThan(0);
   });
 

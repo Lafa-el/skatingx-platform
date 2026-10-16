@@ -250,7 +250,7 @@ describe("ResultsPage entry", () => {
     h.races = ready([race({ raceId: "race-2", label: "1000m", sortOrder: 2, rosterIds: ["bob"] }), race()]);
     const user = renderPage();
     const raceOptions = Array.from((screen.getByLabelText("比赛") as HTMLSelectElement).options).map((o) => o.text);
-    expect(raceOptions).toEqual(["选择比赛", "#1 500m · 2026-10-24", "#2 1000m · 2026-10-24"]);
+    expect(raceOptions).toEqual(["选择比赛", "#1 500m · 10月24日周六", "#2 1000m · 10月24日周六"]);
 
     await user.selectOptions(screen.getByLabelText("比赛"), "race-2");
     const athletes = Array.from((screen.getByLabelText("运动员") as HTMLSelectElement).options).map((o) => o.text);

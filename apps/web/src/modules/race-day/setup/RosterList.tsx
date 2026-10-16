@@ -36,7 +36,7 @@ export function RosterList({ entries, busy, onEdit, onSetVerified, onDelete }: R
             className="rounded-xl border border-slate-200 bg-white p-4"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold text-slate-900">{entry.displayName}</span>
+              <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{entry.displayName}</span>
               {entry.isSelf ? (
                 <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-900">
                   {t(locale, "raceDay.setup.roster.self")}

@@ -4,6 +4,7 @@ import { useLocale } from "@/hooks/useLocale";
 
 import { DANGER_BUTTON, FormMessage, SECONDARY_BUTTON } from "../components/fields";
 import { t } from "../i18n/messages";
+import { raceOptionLabel } from "../lib/schedule";
 import type { VideoGroup, VideoView } from "../lib/videos";
 
 type VideoListProps = {
@@ -22,7 +23,7 @@ export function VideoList({ groups, busy, onEdit, onDelete }: VideoListProps) {
     <div className="space-y-5">
       {groups.map((group) => {
         const raceName = group.race
-          ? `${group.raceNumber === null ? "" : `#${String(group.raceNumber)} `}${group.race.label}${group.race.day ? ` · ${group.race.day}` : ""}`
+          ? raceOptionLabel(group.race, group.raceNumber, locale)
           : t(locale, "raceDay.videos.item.unknownRace");
         const headingId = `video-group-${group.race?.raceId ?? "unknown"}`;
 
@@ -40,18 +41,18 @@ export function VideoList({ groups, busy, onEdit, onDelete }: VideoListProps) {
 
                 return (
                   <li key={video.videoId} className="rounded-xl border border-slate-200 bg-white p-4">
-                    <p className="text-base font-semibold text-slate-900">{video.label}</p>
+                    <p className="text-base font-semibold text-slate-900 min-w-0 break-words">{video.label}</p>
                     <p className="mt-1 text-sm text-slate-600">
                       {athleteName}
                       {athlete ? ` · #${athlete.bib}` : ""}
                     </p>
                     {video.externalUrl !== null && linkHost !== null ? (
-                      <p className="mt-2 text-sm">
+                      <p className="text-sm">
                         <a
                           href={video.externalUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-medium text-sky-700 underline"
+                          className="inline-flex min-h-11 items-center font-medium text-sky-700 underline"
                         >
                           {t(locale, "raceDay.videos.item.openLink", { host: linkHost })}
                         </a>

@@ -41,7 +41,7 @@ export function ProGate({ titleKey, children }: ProGateProps) {
             <p className="text-sm text-slate-700">{t(locale, "raceDay.pro.body")}</p>
           )}
           <p className="text-sm text-slate-500">{t(locale, "raceDay.pro.provisional")}</p>
-          <Link to="/settings" className={PRIMARY_BUTTON + " inline-block"}>
+          <Link to="/settings" className={PRIMARY_BUTTON}>
             {t(locale, "raceDay.pro.settingsLink")}
           </Link>
         </div>

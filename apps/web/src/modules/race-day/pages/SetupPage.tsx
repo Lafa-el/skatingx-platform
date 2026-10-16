@@ -20,6 +20,7 @@ import { useRaceDayContext, useRaceEvents, useRoster } from "../hooks/useRaceDay
 import { useSubmitState } from "../hooks/useSubmitState";
 import { t } from "../i18n/messages";
 import { loadErrorMessageKey } from "../lib/errors";
+import { formatRaceDays } from "../lib/schedule";
 import type { WriteOutcome } from "../lib/write";
 import { EventForm } from "../setup/EventForm";
 import { RosterForm } from "../setup/RosterForm";
@@ -190,11 +191,11 @@ export function SetupPage() {
         {activeEvent && !showEventForm ? (
           <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold text-slate-900">{activeEvent.name}</span>
+              <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{activeEvent.name}</span>
               <VerificationBadge verification={activeEvent.verification} />
             </div>
             <p className="text-sm text-slate-600">
-              {t(locale, "raceDay.setup.event.dates", { dates: activeEvent.dates.join(", ") })}
+              {t(locale, "raceDay.setup.event.dates", { dates: formatRaceDays(activeEvent.dates, locale) })}
             </p>
             {confirmDeleteEvent ? (
               <div className="space-y-2">

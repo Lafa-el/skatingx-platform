@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from "react";
 
 const INPUT_CLASS =
-  "mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 aria-[invalid=true]:border-red-500";
+  "mt-1 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 aria-[invalid=true]:border-red-500";
 
 type SelectFieldProps = {
   label: string;
@@ -182,7 +182,7 @@ type CheckboxFieldProps = {
 export function CheckboxField({ label, checked, onChange, disabled = false }: CheckboxFieldProps) {
   const id = useId();
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-h-11 items-center gap-3">
       <input
         id={id}
         type="checkbox"
@@ -191,9 +191,9 @@ export function CheckboxField({ label, checked, onChange, disabled = false }: Ch
         onChange={(event) => {
           onChange(event.target.checked);
         }}
-        className="h-5 w-5 rounded border-slate-300 text-sky-700 focus:ring-sky-300"
+        className="h-6 w-6 rounded border-slate-300 text-sky-700 focus:ring-sky-300"
       />
-      <label htmlFor={id} className="text-sm text-slate-800">
+      <label htmlFor={id} className="min-w-0 break-words text-sm text-slate-800">
         {label}
       </label>
     </div>
@@ -213,8 +213,8 @@ export function FormMessage({ children, tone }: { children: ReactNode; tone: "er
 }
 
 export const PRIMARY_BUTTON =
-  "rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-11 items-center justify-center rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60";
 export const SECONDARY_BUTTON =
-  "rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60";
 export const DANGER_BUTTON =
-  "rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-11 items-center justify-center rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60";

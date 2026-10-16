@@ -42,6 +42,27 @@ export function formatRaceDay(day: string, locale: Locale): string {
   }).format(Date.UTC(year, month - 1, date));
 }
 
+const DAY_SEPARATOR: Record<Locale, string> = { zh: "、", en: " / " };
+
+/** Event days for display: sorted, each in the reader's language (never a raw ISO date). */
+export function formatRaceDays(days: readonly string[], locale: Locale): string {
+  return [...days]
+    .sort()
+    .map((day) => formatRaceDay(day, locale))
+    .join(DAY_SEPARATOR[locale]);
+}
+
+/** "#2 500m · Sat, Oct 24": how a race is named in pickers and headings. */
+export function raceOptionLabel(
+  race: Pick<RaceEntry, "label" | "day">,
+  number: number | null,
+  locale: Locale,
+): string {
+  const prefix = number === null ? "" : `#${String(number)} `;
+  const day = race.day ? ` · ${formatRaceDay(race.day, locale)}` : "";
+  return `${prefix}${race.label}${day}`;
+}
+
 /** The sort order a newly added race gets: after every existing one. */
 export function nextSortOrder(races: readonly RaceEntry[]): number {
   return races.reduce((max, race) => Math.max(max, race.sortOrder + 1), 0);

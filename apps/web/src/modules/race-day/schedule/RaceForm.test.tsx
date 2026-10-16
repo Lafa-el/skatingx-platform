@@ -154,6 +154,16 @@ describe("RaceForm", () => {
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ scheduledAt: "2026-10-24T13:30:00.000Z" });
   });
 
+  it("the day picker names days in the reader's language, with the ISO date still the value", () => {
+    setup();
+    const options = Array.from((screen.getByLabelText("比赛日") as HTMLSelectElement).options).map((o) => [o.value, o.text]);
+    expect(options).toEqual([
+      ["", "待定"],
+      ["2026-10-24", "10月24日周六"],
+      ["2026-10-25", "10月25日周日"],
+    ]);
+  });
+
   it("edit mode is prefilled, including the wall time in the event zone and chosen athletes", () => {
     setup({
       mode: "edit",

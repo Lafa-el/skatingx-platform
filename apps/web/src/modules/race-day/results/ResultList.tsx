@@ -37,7 +37,7 @@ export function ResultList({ views, busy, onEdit, onSetVerified, onDelete }: Res
         return (
           <li key={result.resultId} className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold text-slate-900">{athleteName}</span>
+              <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{athleteName}</span>
               {athlete ? <span className="text-sm text-slate-500">#{athlete.bib}</span> : null}
               <VerificationBadge verification={result.verification} />
             </div>
