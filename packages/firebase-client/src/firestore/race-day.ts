@@ -1,4 +1,11 @@
-import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry, RaceVideoRef } from "@skatingx/schema";
+import type {
+  RaceEntry,
+  RaceEvent,
+  RaceResult,
+  RaceRosterEntry,
+  RaceSummaryDoc,
+  RaceVideoRef,
+} from "@skatingx/schema";
 import {
   createIdSuffix,
   createRaceDayEntityId,
@@ -7,6 +14,7 @@ import {
   prepareRaceEventInput,
   prepareRaceInput,
   prepareRaceResultInput,
+  prepareRaceSummaryNoteInput,
   prepareRaceVideoInput,
   prepareRosterEntryInput,
   type PreparedInput,
@@ -43,6 +51,8 @@ import {
   encodeRaceEventUpdate,
   encodeRaceResultCreate,
   encodeRaceResultUpdate,
+  encodeRaceSummaryCreate,
+  encodeRaceSummaryUpdate,
   encodeRaceVideoCreate,
   encodeRaceVideoUpdate,
   encodeRaceUpdate,
@@ -52,6 +62,7 @@ import {
   parseRaceEntry,
   parseRaceEvent,
   parseRaceResult,
+  parseRaceSummary,
   parseRaceVideo,
   parseRosterEntry,
   type ParseResult,
@@ -65,6 +76,7 @@ import {
   raceDayResultsCollectionRef,
   raceDayRosterCollectionRef,
   raceDayRosterRef,
+  raceDaySummaryRef,
   raceDayVideoRef,
   raceDayVideosCollectionRef,
 } from "./refs";
@@ -226,7 +238,10 @@ export async function setRaceEventVerified(
   await updateDoc(raceDayEventRef(ctx.db, ctx.userId, eventId), encodeVerification(verified));
 }
 
-/** Subcollections that belong to an event. Extend when summaries ship (they need a direct ref). */
+/**
+ * Subcollections that belong to an event. The summary is not here: its rules allow only the
+ * document `summaries/main`, so a collection query on it is denied and it is deleted by ref.
+ */
 const EVENT_SUBCOLLECTIONS = [
   raceDayRosterCollectionRef,
   raceDayRacesCollectionRef,
@@ -263,6 +278,8 @@ export async function deleteRaceEvent(ctx: RaceDayContext, eventId: string): Pro
     const snapshot = await getDocs(collectionRef(ctx.db, ctx.userId, eventId));
     refs.push(...snapshot.docs.map((d) => d.ref));
   }
+  // Deleting a document that does not exist is allowed and does nothing, so no read is needed.
+  refs.push(raceDaySummaryRef(ctx.db, ctx.userId, eventId));
 
   for (let start = 0; start < refs.length; start += BATCH_LIMIT) {
     const batch = writeBatch(ctx.db);
@@ -607,5 +624,64 @@ export function subscribeToRaceVideos(
     parseRaceVideo,
     onData,
     onError,
+  );
+}
+
+// --- summary note ---------------------------------------------------------------------
+
+/** Create and update are separate: the caller knows from the live document which one applies. */
+export async function createRaceSummary(
+  ctx: RaceDayContext,
+  eventId: string,
+  input: { coachNote: string },
+): Promise<void> {
+  assertValidId("eventId", eventId);
+  const value = validated(prepareRaceSummaryNoteInput(input.coachNote));
+  await setDoc(raceDaySummaryRef(ctx.db, ctx.userId, eventId), encodeRaceSummaryCreate(value));
+}
+
+export async function updateRaceSummary(
+  ctx: RaceDayContext,
+  eventId: string,
+  input: { coachNote: string },
+): Promise<void> {
+  assertValidId("eventId", eventId);
+  const value = validated(prepareRaceSummaryNoteInput(input.coachNote));
+  await updateDoc(raceDaySummaryRef(ctx.db, ctx.userId, eventId), encodeRaceSummaryUpdate(value));
+}
+
+export async function deleteRaceSummary(ctx: RaceDayContext, eventId: string): Promise<void> {
+  assertValidId("eventId", eventId);
+  await deleteDoc(raceDaySummaryRef(ctx.db, ctx.userId, eventId));
+}
+
+/** What the summary document holds right now. */
+export type RaceSummaryState =
+  | { kind: "none" }
+  | { kind: "ready"; summary: RaceSummaryDoc }
+  /** The document exists but does not validate: hidden, never guessed at. */
+  | { kind: "invalid"; reason: string };
+
+/** Reads the single document by reference: the rules do not allow a collection query. */
+export function subscribeToRaceSummary(
+  ctx: RaceDayContext,
+  eventId: string,
+  onData: (state: RaceSummaryState) => void,
+  onError: (error: RaceDayListError) => void,
+): Unsubscribe {
+  assertValidId("eventId", eventId);
+  return onSnapshot(
+    raceDaySummaryRef(ctx.db, ctx.userId, eventId),
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onData({ kind: "none" });
+        return;
+      }
+      const parsed = parseRaceSummary(snapshot.data({ serverTimestamps: "estimate" }));
+      onData(parsed.ok ? { kind: "ready", summary: parsed.value } : { kind: "invalid", reason: parsed.reason });
+    },
+    (error: FirestoreError) => {
+      onError({ code: error.code, message: error.message });
+    },
   );
 }

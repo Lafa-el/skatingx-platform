@@ -60,6 +60,7 @@ export {
   prepareRaceEventInput,
   prepareRaceInput,
   prepareRaceResultInput,
+  prepareRaceSummaryNoteInput,
   prepareRaceVideoInput,
   prepareRosterEntryInput,
   RACE_DAY_LIMITS,
@@ -74,6 +75,7 @@ export {
   type RaceInput,
   type RaceResultFormInput,
   type RaceResultWriteInput,
+  type RaceSummaryNoteInput,
   type RaceVideoInput,
   type RosterEntryInput,
 } from "./race-day-input";

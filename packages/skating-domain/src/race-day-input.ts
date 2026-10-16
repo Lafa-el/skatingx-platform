@@ -32,6 +32,9 @@ export const RACE_DAY_LIMITS = {
   videoExternalUrl: 2048,
   videoStoredWhere: 200,
   videoNote: 1000,
+  /** Version string stored with a summary document (`race-summary/1`). */
+  summaryVersion: 40,
+  summaryCoachNote: 2000,
   sourceNote: 500,
 } as const;
 
@@ -571,4 +574,15 @@ export function prepareRaceVideoInput(input: RaceVideoInput): PreparedInput<Race
   }
 
   return { value: { label, externalUrl, storedWhere, note }, errors };
+}
+
+// --- summary note ---------------------------------------------------------------
+
+export type RaceSummaryNoteInput = { coachNote: string | null };
+
+/** The one user-written part of the summary card. Empty means no note (`null`), never "". */
+export function prepareRaceSummaryNoteInput(raw: string): PreparedInput<RaceSummaryNoteInput> {
+  const errors: RaceDayInputError[] = [];
+  const coachNote = optionalText(raw, "coachNote", RACE_DAY_LIMITS.summaryCoachNote, errors);
+  return { value: { coachNote }, errors };
 }

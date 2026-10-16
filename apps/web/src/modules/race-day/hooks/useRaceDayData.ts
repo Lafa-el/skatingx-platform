@@ -2,6 +2,7 @@ import {
   getFirestoreDb,
   subscribeToRaceEvents,
   subscribeToRaceResults,
+  subscribeToRaceSummary,
   subscribeToRaceVideos,
   subscribeToRaces,
   subscribeToRoster,
@@ -9,6 +10,7 @@ import {
   type RaceDayContext,
   type RaceDayList,
   type RaceDayListError,
+  type RaceSummaryState,
 } from "@skatingx/firebase-client";
 import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry, RaceVideoRef } from "@skatingx/schema";
 import { useEffect, useMemo, useState } from "react";
@@ -132,4 +134,41 @@ export function useRaceVideos(
     [ctx, eventId],
   );
   return useSubscribedList(subscribe);
+}
+
+export type SummaryDocState = {
+  status: "loading" | "ready" | "error";
+  /** Null until the first snapshot arrives. */
+  state: RaceSummaryState | null;
+  error: RaceDayListError | null;
+};
+
+const SUMMARY_LOADING: SummaryDocState = { status: "loading", state: null, error: null };
+
+/**
+ * The saved note (`summaries/main`), read as one document by reference because the rules refuse
+ * a collection query on it. Only call this from a component mounted behind the PRO gate.
+ */
+export function useRaceSummary(ctx: RaceDayContext | null, eventId: string | null): SummaryDocState {
+  const [value, setValue] = useState<SummaryDocState>(SUMMARY_LOADING);
+
+  useEffect(() => {
+    setValue(SUMMARY_LOADING);
+    if (!ctx || !eventId) {
+      return undefined;
+    }
+    return subscribeToRaceSummary(
+      ctx,
+      eventId,
+      (state) => {
+        setValue({ status: "ready", state, error: null });
+      },
+      (error) => {
+        logRaceDayError("subscribeSummary", error);
+        setValue({ status: "error", state: null, error });
+      },
+    );
+  }, [ctx, eventId]);
+
+  return value;
 }
