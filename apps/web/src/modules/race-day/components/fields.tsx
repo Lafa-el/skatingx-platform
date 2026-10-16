@@ -116,6 +116,62 @@ export function TextField({
   );
 }
 
+type TextAreaFieldProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string | null;
+  hint?: string;
+  disabled?: boolean;
+  rows?: number;
+};
+
+/** Same wiring as `TextField` for text that runs over several lines. */
+export function TextAreaField({
+  label,
+  value,
+  onChange,
+  error = null,
+  hint,
+  disabled = false,
+  rows = 5,
+}: TextAreaFieldProps) {
+  const id = useId();
+  const hintId = `${id}-hint`;
+  const errorId = `${id}-error`;
+  const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ");
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        value={value}
+        rows={rows}
+        disabled={disabled}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy || undefined}
+        onChange={(event) => {
+          onChange(event.target.value);
+        }}
+        className={INPUT_CLASS}
+      />
+      {hint ? (
+        <p id={hintId} className="mt-1 text-sm text-slate-500">
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p id={errorId} className="mt-1 text-sm font-medium text-red-700">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 type CheckboxFieldProps = {
   label: string;
   checked: boolean;

@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import { ProGate } from "./components/ProGate";
 import { RaceDayLayout } from "./RaceDayLayout";
 import { SectionPlaceholderPage } from "./pages/SectionPlaceholderPage";
 import { ResultsPage } from "./pages/ResultsPage";
 import { SchedulePage } from "./pages/SchedulePage";
 import { SetupPage } from "./pages/SetupPage";
+import { SummaryPage } from "./pages/SummaryPage";
 import { VideosPage } from "./pages/VideosPage";
 
 /**
@@ -21,11 +21,7 @@ export default function RaceDayModule() {
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="results" element={<ResultsPage />} />
         <Route path="videos" element={<VideosPage />} />
-        <Route path="summary" element={
-            <ProGate titleKey="raceDay.tab.summary">
-              <SectionPlaceholderPage titleKey="raceDay.tab.summary" />
-            </ProGate>
-          } />
+        <Route path="summary" element={<SummaryPage />} />
         <Route path="setup" element={<SetupPage />} />
         <Route path="*" element={<Navigate to="/race-day" replace />} />
       </Route>
