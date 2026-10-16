@@ -63,6 +63,9 @@ The legacy training app is English only, so there is no earlier Chinese wording 
 | Analysis | 分析 | proposed |
 | Athlete | 运动员 | proposed |
 | Pro | Pro (kept in Latin) | proposed |
+| AI Coach | AI 教练 | owner decision 2026-10-16: translate the existing name; the feature is only a placeholder |
+| Biomechanics | 动作分析 | owner decision 2026-10-16: "生物力学" would claim more than the placeholder page does (D9) |
+| Firestore (shown to users) | 数据服务 in Chinese; English keeps "Firestore" | owner decision 2026-10-16: parents and athletes should not see a product name they do not know |
 
 Each slice's PR lists the Chinese text for that slice in a table so the owner can review it without reading code.
 

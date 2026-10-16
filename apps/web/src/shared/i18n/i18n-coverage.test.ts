@@ -16,15 +16,7 @@ import { findHardcodedText } from "@/test/hardcoded-text";
  *
  * When the last slice is done this list is empty and the test becomes the plain rule.
  */
-const NOT_MIGRATED: Record<string, "S6b" | "S6c" | "S6d" | "S6e"> = {
-  // S6b: shell and navigation
-  "app/navigation.ts": "S6b",
-  "components/AthleteSelector.tsx": "S6b",
-  "components/BottomNav.tsx": "S6b",
-  "components/FirestoreStatusBanner.tsx": "S6b",
-  "components/LanguageSetting.tsx": "S6b",
-  "components/PagePlaceholder.tsx": "S6b",
-  "hooks/useIsPro.ts": "S6b",
+const NOT_MIGRATED: Record<string, "S6c" | "S6d" | "S6e"> = {
   // S6c: dashboard, athlete, AI coach, settings
   "pages/AiCoachPage.tsx": "S6c",
   "pages/AthletePage.tsx": "S6c",

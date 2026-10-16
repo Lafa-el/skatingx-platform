@@ -12,6 +12,14 @@ describe("settings messages", () => {
     }
   });
 
+  it("no longer says the navigation is English only (S6b), but still warns about unfinished pages", () => {
+    for (const lang of ["zh", "en"] as const) {
+      const note = tSettings(lang, "settings.language.description");
+      expect(note).not.toMatch(/底部导航|bottom navigation/i);
+      expect(note).toMatch(/暂时仍是英文|still English only/);
+    }
+  });
+
   it("names both languages in the title, in either language", () => {
     for (const lang of ["zh", "en"] as const) {
       const title = tSettings(lang, "settings.language.title");
