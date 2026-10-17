@@ -26,6 +26,15 @@ type LegacyStage = {
 
 const CJK = /[\u3400-\u9fff\uff00-\uffef]/;
 
+/** Spaces dropped and full-width marks written half-width: what must stay the same (see below). */
+const squash = (text: string) =>
+  text
+    .replace(/\s+/g, "")
+    .replace(/（/g, "(")
+    .replace(/）/g, ")")
+    .replace(/，/g, ",")
+    .replace(/：/g, ":");
+
 describe("academy content: both languages are complete", () => {
   it("has the three stages the legacy app has", () => {
     expect(ACADEMY_STAGES.map((s) => s.id)).toEqual(legacy.zh.map((s) => s.id));
@@ -46,7 +55,8 @@ describe("academy content: both languages are complete", () => {
     ACADEMY_STAGES.forEach((stage, si) => {
       stage.weeklyRoutine.dayPlans.forEach((plan, pi) => {
         expect(plan.taskLabelsEn, plan.id).toHaveLength(plan.taskLabelsZh.length);
-        expect(plan.taskLabelsZh, plan.id).toEqual(legacy.zh[si]!.weeklyPlan[pi]!.tasks);
+        // The legacy Chinese is kept except for its punctuation (see the punctuation tests below).
+        expect(plan.taskLabelsZh.map(squash), plan.id).toEqual(legacy.zh[si]!.weeklyPlan[pi]!.tasks.map(squash));
         expect(plan.taskLabelsEn, plan.id).toEqual(legacy.en[si]!.weeklyPlan[pi]!.tasks);
         for (const label of plan.taskLabelsEn) {
           seen += 1;
@@ -105,5 +115,64 @@ describe("academy content: the generated file is what the generator produces", (
     });
     const committed = fs.readFileSync(path.join(here, "academy-stages.generated.ts"), "utf8");
     expect(fs.readFileSync(out, "utf8") === committed).toBe(true);
+  });
+});
+
+describe("academy content: Chinese punctuation (ADR-004 A5)", () => {
+  /** Every Chinese string of the content, with where it is, so a failure says which one. */
+  function chineseStrings(value: unknown, path = "stages"): { path: string; text: string }[] {
+    if (typeof value === "string") {
+      return CJK.test(value) ? [{ path, text: value }] : [];
+    }
+    if (Array.isArray(value)) {
+      return value.flatMap((v, i) => chineseStrings(v, `${path}[${i}]`));
+    }
+    if (value && typeof value === "object") {
+      return Object.entries(value).flatMap(([k, v]) => chineseStrings(v, `${path}.${k}`));
+    }
+    return [];
+  }
+  const all = chineseStrings(ACADEMY_STAGES);
+
+  it("has the Chinese strings to check, so an empty list cannot pass by accident", () => {
+    expect(all.length).toBeGreaterThan(500);
+  });
+
+  it("no half-width mark touches a Chinese character", () => {
+    const wrong = all
+      .filter(({ text }) => /[\u3400-\u9fff\uff00-\uffef]\s?[,;:?!()]|[,;:?!()]\s?[\u3400-\u9fff\uff00-\uffef]/.test(text))
+      .map(({ path, text }) => `${path}: ${text}`);
+    expect(wrong).toEqual([]);
+  });
+
+  it("drill titles, with the space before the bracket gone", () => {
+    const titles = ACADEMY_STAGES.flatMap((s) => s.modules.flatMap((m) => m.items.map((i) => i.titleZh)));
+    expect(titles).toContain("俯卧撑位平板支撑（改良版）");
+    expect(titles).toContain("死虫式（Dead Bug）");
+    expect(titles).toContain("滑行板（Slide Board）训练");
+    expect(titles).toContain("深跳（Drop Jump） + 连续跳");
+  });
+
+  it("a plan label keeps the space before its amount, which is how the app splits name from target", () => {
+    const labels = ACADEMY_STAGES.flatMap((s) => s.weeklyRoutine.dayPlans.flatMap((p) => p.taskLabelsZh));
+    expect(labels).toContain("梯格游戏（速度梯）");
+    expect(labels).toContain("负重深蹲（杠铃/哑铃） 5组x6次");
+    expect(labels).toContain("髋部屈肌深层拉伸（Couch Stretch） 每侧60秒");
+  });
+
+  it("nothing but the punctuation changed in any title, label, description or target", () => {
+    let seen = 0;
+    ACADEMY_STAGES.forEach((stage, si) => {
+      stage.modules.forEach((module, mi) => {
+        module.items.forEach((item, ii) => {
+          const old = legacy.zh[si]!.modules[mi]!.items[ii]! as unknown as Record<string, string>;
+          seen += 1;
+          expect(squash(item.titleZh), item.id).toBe(squash(old.name!));
+          expect(squash(item.descriptionZh), item.id).toBe(squash(old.desc!));
+          expect(squash(item.targetZh), item.id).toBe(squash(old.target!));
+        });
+      });
+    });
+    expect(seen).toBe(66);
   });
 });

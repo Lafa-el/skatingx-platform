@@ -10,7 +10,7 @@ import { ACADEMY_STAGES } from "./academy-stages.generated";
 export * from "./academy-types";
 export { ACADEMY_STAGES };
 
-export const ACADEMY_CONTENT_VERSION = "1.0.0-blaze-extract" as const;
+export const ACADEMY_CONTENT_VERSION = "1.0.1-blaze-extract" as const;
 
 export function getAcademyStages(): AcademyStage[] {
   return ACADEMY_STAGES;

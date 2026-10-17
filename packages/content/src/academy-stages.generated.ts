@@ -1,4 +1,4 @@
-/** Auto-generated from blaze-skate-training BLAZE_ACADEMY */
+/** Auto-generated from blaze-skate-training BLAZE_ACADEMY. Chinese brackets are full-width (ADR-004 A5). */
 import type { AcademyStage } from "./academy-types";
 
 export const ACADEMY_STAGES: AcademyStage[] = [
@@ -83,7 +83,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age4_6-m0-i3",
-            "titleZh": "俯卧撑位平板支撑 (改良版)",
+            "titleZh": "俯卧撑位平板支撑（改良版）",
             "titleEn": "Modified Plank (Kneeling)",
             "descriptionZh": "以膝盖着地的改良平板支撑为主，保持头-脊-臀成一直线，维持10-15秒。目的在于激活核心肌群意识，而非追求时长。",
             "descriptionEn": "Knees on the floor. Keep head, back, and hips aligned. Focus on core muscle activation, not holding time.",
@@ -168,7 +168,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age4_6-m1-i3",
-            "titleZh": "侧滑步基础 (横向移动)",
+            "titleZh": "侧滑步基础（横向移动）",
             "titleEn": "Lateral Push (Moving)",
             "descriptionZh": "双脚与肩同宽，低姿（膝屈约60°），以侧向蹬地步伐横向移动，模拟速滑弯道内侧蹬冰动作。每次5-8步换方向。强调蹬腿方向（侧向而后方）和重心转移。",
             "descriptionEn": "Shoulder-width, low posture (60° knee bend), move laterally to mimic corner pushes. Focus on push direction and weight shift.",
@@ -187,7 +187,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age4_6-m1-i4",
-            "titleZh": "蹲位保持 (静态速滑位)",
+            "titleZh": "蹲位保持（静态速滑位）",
             "titleEn": "Squat Hold (Static Skating)",
             "descriptionZh": "贴墙静蹲，大腿平行地面，膝盖不超过脚尖，躯干前倾。初始目标10-20秒，逐渐增加到30秒。配合教练口令，帮助儿童建立速滑低姿位的肌肉记忆。",
             "descriptionEn": "Wall-sit, thigh parallel, knees behind toes, trunk forward. Start 10-20s, up to 30s. Build muscle memory for low posture.",
@@ -215,7 +215,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "items": [
           {
             "id": "age4_6-m2-i0",
-            "titleZh": "梯格游戏 (速度梯)",
+            "titleZh": "梯格游戏（速度梯）",
             "titleEn": "Agility Ladder Drills",
             "descriptionZh": "使用敏捷梯，进行双脚跳入跳出、单脚交替、侧向进出等基础步伐练习。强调脚步轻盈不拖拉，节奏感是核心。从慢到快，不计时间求动作干净。",
             "descriptionEn": "In-and-out jumps, single-leg hops. Emphasize light feet, rhythm is core. Slow to fast, clean form over speed.",
@@ -253,7 +253,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age4_6-m2-i2",
-            "titleZh": "跳房子 (多样化版)",
+            "titleZh": "跳房子（多样化版）",
             "titleEn": "Hopscotch (Variations)",
             "descriptionZh": "传统跳房子游戏变体：加入单脚跳接、双脚并跳、转身跳等元素。发展下肢爆发力基础、落地缓冲意识和空间感知能力。",
             "descriptionEn": "Add one-leg landings, double jumps, turn jumps. Develop leg explosive base, landing absorption, and spatial awareness.",
@@ -338,7 +338,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age4_6-m3-i2",
-            "titleZh": "儿童瑜伽体式 (游戏化)",
+            "titleZh": "儿童瑜伽体式（游戏化）",
             "titleEn": "Kids Yoga (Gamified)",
             "descriptionZh": "以“猫牛式”（脊柱灵活）、“下犬式”（后链拉伸）、“勇士一式”（髋屈肌拉伸）等为主。配合动物名称讲解，提高参与兴趣。每个体式维持10-15秒。",
             "descriptionEn": "Cat-Cow (spine), Downward Dog (posterior), Warrior I (hip flexors). Use animal names to engage. Hold 10-15s each.",
@@ -379,7 +379,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "routineItemId": "age4_6-w0-t2",
-            "taskLabelZh": "梯格游戏 (速度梯)",
+            "taskLabelZh": "梯格游戏（速度梯）",
             "taskLabelEn": "Agility Ladder Drills"
           },
           {
@@ -420,7 +420,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "routineItemId": "age4_6-w2-t1",
-            "taskLabelZh": "蹲位保持 (静态速滑)",
+            "taskLabelZh": "蹲位保持（静态速滑）",
             "taskLabelEn": "Squat Hold (Static)"
           },
           {
@@ -449,7 +449,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "taskLabelsZh": [
             "单脚站立游戏 3组",
             "“鸭子步”低姿走 3趟",
-            "梯格游戏 (速度梯)",
+            "梯格游戏（速度梯）",
             "髋关节环绕与蝴蝶展翅"
           ],
           "taskLabelsEn": [
@@ -492,7 +492,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "weekday": "saturday",
           "taskLabelsZh": [
             "走胶带线/平衡木",
-            "蹲位保持 (静态速滑)",
+            "蹲位保持（静态速滑）",
             "动物爬行模仿",
             "俯卧撑位平板支撑"
           ],
@@ -566,7 +566,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m0-i2",
-            "titleZh": "陆地侧推步 (连贯技术)",
+            "titleZh": "陆地侧推步（连贯技术）",
             "titleEn": "Dryland Lateral Pushes",
             "descriptionZh": "重心从支撑腿完全平移至另一侧，推冰腿必须完全伸展并在空中停留1秒，收腿要迅速。要求动作连贯，不拖泥带水。",
             "descriptionEn": "Full weight transfer. Push leg fully extended, 1s pause in air, quick recovery.",
@@ -639,7 +639,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m0-i6",
-            "titleZh": "滑行板 (Slide Board) 训练",
+            "titleZh": "滑行板（Slide Board）训练",
             "titleEn": "Slide Board Training",
             "descriptionZh": "穿鞋套在滑行板上进行连贯的滑行模拟。头与躯干保持稳定不随腿晃动，从每次滑行（约40次）开始，逐渐增加到1分钟或更多。",
             "descriptionEn": "Continuous slide mimicking. Keep head/trunk stable, increase duration gradually.",
@@ -666,7 +666,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "items": [
           {
             "id": "age7_10-m1-i0",
-            "titleZh": "徒手深蹲 (体能基础)",
+            "titleZh": "徒手深蹲（体能基础）",
             "titleEn": "Bodyweight Squats",
             "descriptionZh": "双脚与肩同宽，臀部向后坐，膝盖不超过脚尖。下蹲时吸气，起立时呼气，保持躯干挺直，重心放在脚后跟。",
             "descriptionEn": "Feet shoulder-width apart, sit back, keep weight on heels, straight back.",
@@ -684,7 +684,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m1-i1",
-            "titleZh": "单腿深蹲 (重组推刃力量)",
+            "titleZh": "单腿深蹲（重组推刃力量）",
             "titleEn": "Assisted Pistol Squats",
             "descriptionZh": "单腿站立，另一条腿前伸，缓慢下蹲。初学者可手扶固定物辅助，下蹲至大腿平行于地面。",
             "descriptionEn": "Hold onto a stable object, lower until thigh is parallel to ground.",
@@ -703,7 +703,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m1-i2",
-            "titleZh": "侧向跨跳 (行进间)",
+            "titleZh": "侧向跨跳（行进间）",
             "titleEn": "Lateral Bounds (Moving)",
             "descriptionZh": "单腿发力侧向跃起，对侧单腿稳定支撑，停顿1-2秒后再次起跳。模拟推刃与缓冲，距离从0.5米逐渐增至1.5米。",
             "descriptionEn": "Leap side-to-side, land on single leg and pause 1-2s. Distance 0.5m to 1.5m.",
@@ -721,7 +721,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m1-i3",
-            "titleZh": "臀桥 (后侧链激活)",
+            "titleZh": "臀桥（后侧链激活）",
             "titleEn": "Glute Bridges",
             "descriptionZh": "仰卧屈膝，脚跟踩地，臀部发力将髋部顶起至大腿与躯干呈一直线。顶峰收缩1秒。",
             "descriptionEn": "Squeeze glutes at the top to train hip extension power.",
@@ -739,7 +739,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m1-i4",
-            "titleZh": "蛙跳 (爆发力基础)",
+            "titleZh": "蛙跳（爆发力基础）",
             "titleEn": "Frog Jumps",
             "descriptionZh": "深蹲姿势起跳，双手向前摆动带动身体，落地时注意缓冲，连续跳跃。",
             "descriptionEn": "Deep squat start, use arm swing for momentum, absorb impact on landing.",
@@ -757,7 +757,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m1-i5",
-            "titleZh": "臀肌激活 (弹力带侧走)",
+            "titleZh": "臀肌激活（弹力带侧走）",
             "titleEn": "Glute Activation (Banded Walk)",
             "descriptionZh": "弹力带套于膝盖上方，低姿侧向行走。感受臀中肌发力，这是滑冰推刃力量的极大来源。",
             "descriptionEn": "Band above knees, low posture lateral walk. Feel the glute medius, crucial for push-off power.",
@@ -776,7 +776,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m1-i6",
-            "titleZh": "俯卧撑 (静/动态核心)",
+            "titleZh": "俯卧撑（静/动态核心）",
             "titleEn": "Push-ups",
             "descriptionZh": "双手撑地与肩同宽，身体呈一直线，屈肘下放至胸部贴近地面，然后推起。",
             "descriptionEn": "Keep body straight, lower chest to the ground.",
@@ -822,7 +822,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m2-i1",
-            "titleZh": "死虫式 (Dead Bug)",
+            "titleZh": "死虫式（Dead Bug）",
             "titleEn": "Dead Bug",
             "descriptionZh": "仰卧，双臂伸直，双腿屈膝90度。对侧手臂和腿同时下放至贴近地面，腰部始终贴地。",
             "descriptionEn": "Lower opposite arm and leg simultaneously while keeping lower back glued to the floor.",
@@ -858,7 +858,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m2-i3",
-            "titleZh": "登山跑 (Mountain Climber)",
+            "titleZh": "登山跑（Mountain Climber）",
             "titleEn": "Mountain Climbers",
             "descriptionZh": "俯卧撑姿势，双腿交替提膝向胸部靠拢，保持高步频，核心收紧。",
             "descriptionEn": "High knee drive in push-up position, maintain high cadence.",
@@ -885,7 +885,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "items": [
           {
             "id": "age7_10-m3-i0",
-            "titleZh": "侧向滑步跳 (Skater Jumps)",
+            "titleZh": "侧向滑步跳（Skater Jumps）",
             "titleEn": "Skater Jumps",
             "descriptionZh": "单腿向侧面大幅度跳跃，另一条腿在身后交叉落地。落地时保持平衡。",
             "descriptionEn": "Wide lateral leaps, land on single leg with stability.",
@@ -923,7 +923,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m3-i2",
-            "titleZh": "折返跑 (T字测验/变向跑)",
+            "titleZh": "折返跑（T字测验/变向跑）",
             "titleEn": "T-Drill / Shuttle Runs",
             "descriptionZh": "短距离内的全力冲刺与急停变向，模拟赛道突发情况。",
             "descriptionEn": "Max sprint and sudden stops to simulate race-day scenarios.",
@@ -968,7 +968,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m4-i1",
-            "titleZh": "间歇冲刺 (20米 x 6-8次)",
+            "titleZh": "间歇冲刺（20米 x 6-8次）",
             "titleEn": "Interval Sprints (20m)",
             "descriptionZh": "低姿位起跑，全力冲刺20米，走回原点作为间歇。强调起跑时的蹬地爆发力和前几步的低姿加速。",
             "descriptionEn": "Low start, max sprint 20m, walk back to rest. Emphasize explosive first steps.",
@@ -986,7 +986,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age7_10-m4-i2",
-            "titleZh": "变速跑 (节奏感知训练)",
+            "titleZh": "变速跑（节奏感知训练）",
             "titleEn": "Fartlek (Pace Perception)",
             "descriptionZh": "田径场直道加速（约80%强度），弯道减速维持低姿位侧滑。训练在不同速度下维持技术动作的能力。",
             "descriptionEn": "Accelerate on straights (80%), slow down and hold low posture on corners.",
@@ -1019,7 +1019,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "routineItemId": "age7_10-w0-t1",
-            "taskLabelZh": "陆地侧推步 (连贯技术)",
+            "taskLabelZh": "陆地侧推步（连贯技术）",
             "taskLabelEn": "Dryland Lateral Pushes"
           },
           {
@@ -1041,17 +1041,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "tuesday": [
           {
             "routineItemId": "age7_10-w1-t0",
-            "taskLabelZh": "臀肌激活 (弹力带侧走)",
+            "taskLabelZh": "臀肌激活（弹力带侧走）",
             "taskLabelEn": "Glute Activation (Banded Walk)"
           },
           {
             "routineItemId": "age7_10-w1-t1",
-            "taskLabelZh": "徒手深蹲 (体能基础)",
+            "taskLabelZh": "徒手深蹲（体能基础）",
             "taskLabelEn": "Bodyweight Squats"
           },
           {
             "routineItemId": "age7_10-w1-t2",
-            "taskLabelZh": "单腿深蹲 (重组推刃力量)",
+            "taskLabelZh": "单腿深蹲（重组推刃力量）",
             "taskLabelEn": "Assisted Pistol Squats"
           },
           {
@@ -1069,12 +1069,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "thursday": [
           {
             "routineItemId": "age7_10-w2-t0",
-            "taskLabelZh": "侧向跨跳 (行进间)",
+            "taskLabelZh": "侧向跨跳（行进间）",
             "taskLabelEn": "Lateral Bounds (Moving)"
           },
           {
             "routineItemId": "age7_10-w2-t1",
-            "taskLabelZh": "蛙跳 (爆发力基础)",
+            "taskLabelZh": "蛙跳（爆发力基础）",
             "taskLabelEn": "Frog Jumps"
           },
           {
@@ -1106,7 +1106,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "routineItemId": "age7_10-w3-t2",
-            "taskLabelZh": "死虫式 (Dead Bug)",
+            "taskLabelZh": "死虫式（Dead Bug）",
             "taskLabelEn": "Dead Bug"
           },
           {
@@ -1118,12 +1118,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "saturday": [
           {
             "routineItemId": "age7_10-w4-t0",
-            "taskLabelZh": "间歇冲刺 (20米 x 6-8次)",
+            "taskLabelZh": "间歇冲刺（20米 x 6-8次）",
             "taskLabelEn": "Interval Sprints (20m)"
           },
           {
             "routineItemId": "age7_10-w4-t1",
-            "taskLabelZh": "变速跑 (节奏感知训练)",
+            "taskLabelZh": "变速跑（节奏感知训练）",
             "taskLabelEn": "Fartlek (Pace Perception)"
           },
           {
@@ -1151,7 +1151,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "weekday": "monday",
           "taskLabelsZh": [
             "速滑基本站位与重心控制",
-            "陆地侧推步 (连贯技术)",
+            "陆地侧推步（连贯技术）",
             "摆臂技术专项训练",
             "滑行板训练",
             "平板支撑变式"
@@ -1174,9 +1174,9 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "60 mins",
           "weekday": "tuesday",
           "taskLabelsZh": [
-            "臀肌激活 (弹力带侧走)",
-            "徒手深蹲 (体能基础)",
-            "单腿深蹲 (重组推刃力量)",
+            "臀肌激活（弹力带侧走）",
+            "徒手深蹲（体能基础）",
+            "单腿深蹲（重组推刃力量）",
             "臀桥",
             "俯卧撑"
           ],
@@ -1198,8 +1198,8 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "60 mins",
           "weekday": "thursday",
           "taskLabelsZh": [
-            "侧向跨跳 (行进间)",
-            "蛙跳 (爆发力基础)",
+            "侧向跨跳（行进间）",
+            "蛙跳（爆发力基础）",
             "侧向滑步跳",
             "敏捷梯进阶",
             "折返跑"
@@ -1224,7 +1224,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "taskLabelsZh": [
             "持续低姿态陆地连滑步",
             "速滑位等长收缩 + 上肢稳定",
-            "死虫式 (Dead Bug)",
+            "死虫式（Dead Bug）",
             "靠墙单腿姿势控制"
           ],
           "taskLabelsEn": [
@@ -1244,8 +1244,8 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "75 mins",
           "weekday": "saturday",
           "taskLabelsZh": [
-            "间歇冲刺 (20米 x 6-8次)",
-            "变速跑 (节奏感知训练)",
+            "间歇冲刺（20米 x 6-8次）",
+            "变速跑（节奏感知训练）",
             "弯道交叉步模仿",
             "侧蹬抗阻模仿"
           ],
@@ -1283,7 +1283,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "items": [
           {
             "id": "age11_16-m0-i0",
-            "titleZh": "负重深蹲 (杠铃/哑铃)",
+            "titleZh": "负重深蹲（杠铃/哑铃）",
             "titleEn": "Barbell Back Squats",
             "descriptionZh": "使用杠铃进行最大力量储备，注意下蹲深度和核心始终收紧，避免骨盆翻转。",
             "descriptionEn": "Heavy load max strength reserve, deep squat, tight core. Avoid pelvic tilt.",
@@ -1318,7 +1318,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m0-i2",
-            "titleZh": "罗马尼亚硬拉 (RDL)",
+            "titleZh": "罗马尼亚硬拉（RDL）",
             "titleEn": "Romanian Deadlift (RDL)",
             "descriptionZh": "强化腘绳肌和臀大肌，提升伸髋爆发力。",
             "descriptionEn": "Hamstrings and glutes focus for hip extension.",
@@ -1335,7 +1335,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m0-i3",
-            "titleZh": "北欧腘绳肌 (Nordic Curl)",
+            "titleZh": "北欧腘绳肌（Nordic Curl）",
             "titleEn": "Nordic Hamstring Curls",
             "descriptionZh": "双人搭档配合，极度控制身体前倾下放，刺激腘绳肌离心力量。这是预防大腿后侧拉伤的最高效动作之一。",
             "descriptionEn": "Partner-assisted eccentric hamstring control. One of the most effective exercises for preventing hamstring strains.",
@@ -1353,7 +1353,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m0-i4",
-            "titleZh": "臀推 (杠铃/弹力带)",
+            "titleZh": "臀推（杠铃/弹力带）",
             "titleEn": "Barbell Hip Thrusts",
             "descriptionZh": "冰上推进力的核心来源，强调顶峰收缩1-2秒。",
             "descriptionEn": "The source of on-ice propulsion. 1-2s pause at the top.",
@@ -1371,7 +1371,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m0-i5",
-            "titleZh": "上肢拉力训练 (引体向上/划船)",
+            "titleZh": "上肢拉力训练（引体向上/划船）",
             "titleEn": "Pull-ups / Rows",
             "descriptionZh": "速滑起跑和冲刺阶段需要强有力的上肢摆臂协同。",
             "descriptionEn": "Upper body synergy required for starts and sprints.",
@@ -1391,14 +1391,14 @@ export const ACADEMY_STAGES: AcademyStage[] = [
       },
       {
         "id": "age11_16-mod-1",
-        "titleZh": "二、 爆发力与增强式训练 (Plyometrics)",
+        "titleZh": "二、 爆发力与增强式训练（Plyometrics）",
         "titleEn": "2. Explosive & Plyometrics",
         "descriptionZh": "",
         "descriptionEn": "",
         "items": [
           {
             "id": "age11_16-m1-i0",
-            "titleZh": "连续跳箱训练 (Box Jumps)",
+            "titleZh": "连续跳箱训练（Box Jumps）",
             "titleEn": "Box Jumps",
             "descriptionZh": "追求极致的起跳速度和高度，落地要求轻盈缓冲。",
             "descriptionEn": "Max height and fast takeoff. Soft landing.",
@@ -1415,7 +1415,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m1-i1",
-            "titleZh": "深跳 (Drop Jump) + 连续跳",
+            "titleZh": "深跳（Drop Jump） + 连续跳",
             "titleEn": "Drop Jump to Bound",
             "descriptionZh": "从箱上落下，触地瞬间迅速起跳，训练离心到向心的转化速度。",
             "descriptionEn": "Drop from box, immediate takeoff. Trains eccentric-concentric transition.",
@@ -1432,7 +1432,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m1-i2",
-            "titleZh": "壶铃摇摆 (Kettlebell Swing)",
+            "titleZh": "壶铃摇摆（Kettlebell Swing）",
             "titleEn": "Kettlebell Swings",
             "descriptionZh": "利用伸髋爆发力将壶铃荡起，非手臂发力。",
             "descriptionEn": "Power comes from hips, not arms.",
@@ -1450,7 +1450,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m1-i3",
-            "titleZh": "侧向跳跃 (连贯性单腿)",
+            "titleZh": "侧向跳跃（连贯性单腿）",
             "titleEn": "Continuous Lateral Bounds",
             "descriptionZh": "连续的侧向推蹬跳跃，完美模拟冰上连续加速。",
             "descriptionEn": "Mimics continuous on-ice lateral pushes.",
@@ -1485,7 +1485,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m1-i5",
-            "titleZh": "敏捷梯/锥桶组合变向 (In-Out-Cut)",
+            "titleZh": "敏捷梯/锥桶组合变向（In-Out-Cut）",
             "titleEn": "Agility Cuts (In-Out-Cut)",
             "descriptionZh": "结合冰上起跑步法，进行快速的切入与折返跑，强调重心转换、步频和双脚协同。",
             "descriptionEn": "Combined with start footwork. Rapid cuts emphasizing weight shift, cadence, and bilateral coordination.",
@@ -1512,7 +1512,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "items": [
           {
             "id": "age11_16-m2-i0",
-            "titleZh": "滑行板高强度间歇 (HIIT)",
+            "titleZh": "滑行板高强度间歇（HIIT）",
             "titleEn": "Slide Board HIIT",
             "descriptionZh": "全力滑行45秒，休息30秒。极大挑战肌肉抗乳酸能力。",
             "descriptionEn": "45s all-out, 30s rest. Lactic threshold challenge.",
@@ -1529,7 +1529,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m2-i1",
-            "titleZh": "动感单车冲刺 (Sprint Intervals)",
+            "titleZh": "动感单车冲刺（Sprint Intervals）",
             "titleEn": "Spin Bike Sprints",
             "descriptionZh": "20秒最大功率极速冲刺，40秒极慢骑恢复。刺激磷酸原系统。",
             "descriptionEn": "20s max power sprint, 40s slow recovery. Targets phosphagen system.",
@@ -1547,7 +1547,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m2-i2",
-            "titleZh": "阻力冲刺 (雪橇拖拽/降落伞)",
+            "titleZh": "阻力冲刺（雪橇拖拽/降落伞）",
             "titleEn": "Sled Pushes / Parachute Sprints",
             "descriptionZh": "强迫下肢在疲劳和高阻力状态下维持爆发力和高步频。",
             "descriptionEn": "Maintain high cadence under heavy fatigue and resistance.",
@@ -1608,7 +1608,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m3-i1",
-            "titleZh": "抗旋转核心训练 (Pallof Press)",
+            "titleZh": "抗旋转核心训练（Pallof Press）",
             "titleEn": "Pallof Press (Anti-Rotation)",
             "descriptionZh": "使用弹力带或龙门架，侧向站立抗拒侧向拉力，保持躯干稳定不扭转。极大地提升弯道抗离心力能力。",
             "descriptionEn": "Resist lateral pull to keep the torso stable. Greatly enhances anti-centrifugal force capability in corners.",
@@ -1644,7 +1644,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m3-i3",
-            "titleZh": "靠墙静蹲 (负重/单腿/TRX)",
+            "titleZh": "靠墙静蹲（负重/单腿/TRX）",
             "titleEn": "Wall-sit (Weighted/Single-leg/TRX)",
             "descriptionZh": "提升速滑低姿态下的肌肉静力耐力和抗乳酸能力。",
             "descriptionEn": "Isometric endurance for low skating posture.",
@@ -1671,7 +1671,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "items": [
           {
             "id": "age11_16-m4-i0",
-            "titleZh": "筋膜枪与泡沫轴 (深层组织松解)",
+            "titleZh": "筋膜枪与泡沫轴（深层组织松解）",
             "titleEn": "Massage Gun & Foam Rolling",
             "descriptionZh": "针对股四头肌、腘绳肌、臀大肌进行深层放松。",
             "descriptionEn": "Deep tissue release for quads, hamstrings, and glutes.",
@@ -1688,7 +1688,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m4-i1",
-            "titleZh": "静态拉伸 (全面柔韧性)",
+            "titleZh": "静态拉伸（全面柔韧性）",
             "titleEn": "Static Stretching",
             "descriptionZh": "保持肌肉弹性，预防关节活动度受限导致的拉伤。",
             "descriptionEn": "Maintain muscle elasticity and joint ROM.",
@@ -1705,7 +1705,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m4-i2",
-            "titleZh": "髋部屈肌深层拉伸 (Couch Stretch)",
+            "titleZh": "髋部屈肌深层拉伸（Couch Stretch）",
             "titleEn": "Couch Stretch (Deep Hip Flexors)",
             "descriptionZh": "针对长期处于低姿态导致的髋部屈肌紧张，进行深度沙发拉伸，极大地缓解下背部压力。",
             "descriptionEn": "Target tight hip flexors caused by prolonged low posture. Deep stretch to relieve lower back pressure.",
@@ -1724,7 +1724,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "id": "age11_16-m4-i3",
-            "titleZh": "核心-骨盆控制与激活 (Bird-Dog)",
+            "titleZh": "核心-骨盆控制与激活（Bird-Dog）",
             "titleEn": "Core-Pelvic Activation (Bird-Dog)",
             "descriptionZh": "鸟狗式伸展，专注于保持骨盆的中立位和核心深层肌群的激活，防止滑行中塌腰代偿。",
             "descriptionEn": "Maintain neutral pelvis and activate deep core to prevent lumbar compensation during skating.",
@@ -1788,22 +1788,22 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "monday": [
           {
             "routineItemId": "age11_16-w0-t0",
-            "taskLabelZh": "负重深蹲 (杠铃/哑铃) 5组x6次",
+            "taskLabelZh": "负重深蹲（杠铃/哑铃） 5组x6次",
             "taskLabelEn": "Barbell Back Squats 5x6"
           },
           {
             "routineItemId": "age11_16-w0-t1",
-            "taskLabelZh": "北欧腘绳肌 (Nordic Curl) 4组",
+            "taskLabelZh": "北欧腘绳肌（Nordic Curl） 4组",
             "taskLabelEn": "Nordic Hamstring Curls 4 sets"
           },
           {
             "routineItemId": "age11_16-w0-t2",
-            "taskLabelZh": "罗马尼亚硬拉 (RDL) 4组",
+            "taskLabelZh": "罗马尼亚硬拉（RDL） 4组",
             "taskLabelEn": "Romanian Deadlift (RDL) 4x8"
           },
           {
             "routineItemId": "age11_16-w0-t3",
-            "taskLabelZh": "上肢拉力训练 (引体向上/划船) 3组",
+            "taskLabelZh": "上肢拉力训练（引体向上/划船） 3组",
             "taskLabelEn": "Pull-ups / Rows 3 sets"
           },
           {
@@ -1815,22 +1815,22 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "tuesday": [
           {
             "routineItemId": "age11_16-w1-t0",
-            "taskLabelZh": "连续跳箱训练 (Box Jumps) 4组x6次",
+            "taskLabelZh": "连续跳箱训练（Box Jumps） 4组x6次",
             "taskLabelEn": "Box Jumps 4x6"
           },
           {
             "routineItemId": "age11_16-w1-t1",
-            "taskLabelZh": "敏捷梯/锥桶组合变向 (In-Out-Cut) 5趟",
+            "taskLabelZh": "敏捷梯/锥桶组合变向（In-Out-Cut） 5趟",
             "taskLabelEn": "Agility Cuts (In-Out-Cut) 5 laps"
           },
           {
             "routineItemId": "age11_16-w1-t2",
-            "taskLabelZh": "侧向跳跃 (连贯性单腿) 4组",
+            "taskLabelZh": "侧向跳跃（连贯性单腿） 4组",
             "taskLabelEn": "Continuous Lateral Bounds 4 sets"
           },
           {
             "routineItemId": "age11_16-w1-t3",
-            "taskLabelZh": "壶铃摇摆 (Kettlebell Swing) 4组",
+            "taskLabelZh": "壶铃摇摆（Kettlebell Swing） 4组",
             "taskLabelEn": "Kettlebell Swings 4 sets"
           },
           {
@@ -1842,7 +1842,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "wednesday": [
           {
             "routineItemId": "age11_16-w2-t0",
-            "taskLabelZh": "核心-骨盆控制与激活 (Bird-Dog) 3组",
+            "taskLabelZh": "核心-骨盆控制与激活（Bird-Dog） 3组",
             "taskLabelEn": "Core-Pelvic Activation (Bird-Dog) 3 sets"
           },
           {
@@ -1852,41 +1852,41 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "routineItemId": "age11_16-w2-t2",
-            "taskLabelZh": "髋部屈肌深层拉伸 (Couch Stretch) 每侧60秒",
+            "taskLabelZh": "髋部屈肌深层拉伸（Couch Stretch） 每侧60秒",
             "taskLabelEn": "Couch Stretch (Deep Hip Flexors) 60s/side"
           },
           {
             "routineItemId": "age11_16-w2-t3",
-            "taskLabelZh": "筋膜枪与泡沫轴 (深层组织松解) 20分",
+            "taskLabelZh": "筋膜枪与泡沫轴（深层组织松解） 20分",
             "taskLabelEn": "Massage Gun & Foam Rolling 20 mins"
           }
         ],
         "thursday": [
           {
             "routineItemId": "age11_16-w3-t0",
-            "taskLabelZh": "滑行板高强度间歇 (HIIT) 10组",
+            "taskLabelZh": "滑行板高强度间歇（HIIT） 10组",
             "taskLabelEn": "Slide Board HIIT 10 sets"
           },
           {
             "routineItemId": "age11_16-w3-t1",
-            "taskLabelZh": "动感单车冲刺 (Sprint Intervals) 10组",
+            "taskLabelZh": "动感单车冲刺（Sprint Intervals） 10组",
             "taskLabelEn": "Spin Bike Sprints 10 sets"
           },
           {
             "routineItemId": "age11_16-w3-t2",
-            "taskLabelZh": "靠墙静蹲 (负重/单腿/TRX) 3组",
+            "taskLabelZh": "靠墙静蹲（负重/单腿/TRX） 3组",
             "taskLabelEn": "Wall-sit (Weighted/Single-leg/TRX) 3 sets"
           },
           {
             "routineItemId": "age11_16-w3-t3",
-            "taskLabelZh": "抗旋转核心训练 (Pallof Press) 4组",
+            "taskLabelZh": "抗旋转核心训练（Pallof Press） 4组",
             "taskLabelEn": "Pallof Press (Anti-Rotation) 4 sets"
           }
         ],
         "friday": [
           {
             "routineItemId": "age11_16-w4-t0",
-            "taskLabelZh": "阻力冲刺 (雪橇拖拽/降落伞) 8趟",
+            "taskLabelZh": "阻力冲刺（雪橇拖拽/降落伞） 8趟",
             "taskLabelEn": "Sled Pushes / Parachute Sprints 8 laps"
           },
           {
@@ -1896,7 +1896,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "routineItemId": "age11_16-w4-t2",
-            "taskLabelZh": "深跳 (Drop Jump) + 连续跳 4组",
+            "taskLabelZh": "深跳（Drop Jump） + 连续跳 4组",
             "taskLabelEn": "Drop Jump to Bound 4 sets"
           },
           {
@@ -1913,24 +1913,24 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           },
           {
             "routineItemId": "age11_16-w5-t1",
-            "taskLabelZh": "臀推 (杠铃/弹力带) 4组x10次",
+            "taskLabelZh": "臀推（杠铃/弹力带） 4组x10次",
             "taskLabelEn": "Barbell Hip Thrusts 4x10"
           },
           {
             "routineItemId": "age11_16-w5-t2",
-            "taskLabelZh": "敏捷梯/锥桶组合变向 (In-Out-Cut) 6趟",
+            "taskLabelZh": "敏捷梯/锥桶组合变向（In-Out-Cut） 6趟",
             "taskLabelEn": "Agility Cuts (In-Out-Cut) 6 laps"
           }
         ],
         "sunday": [
           {
             "routineItemId": "age11_16-w6-t0",
-            "taskLabelZh": "静态拉伸 (全面柔韧性) 15分",
+            "taskLabelZh": "静态拉伸（全面柔韧性） 15分",
             "taskLabelEn": "Static Stretching 15 mins"
           },
           {
             "routineItemId": "age11_16-w6-t1",
-            "taskLabelZh": "髋部屈肌深层拉伸 (Couch Stretch) 2组",
+            "taskLabelZh": "髋部屈肌深层拉伸（Couch Stretch） 2组",
             "taskLabelEn": "Couch Stretch (Deep Hip Flexors) 2 sets"
           },
           {
@@ -1951,10 +1951,10 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "90 mins",
           "weekday": "monday",
           "taskLabelsZh": [
-            "负重深蹲 (杠铃/哑铃) 5组x6次",
-            "北欧腘绳肌 (Nordic Curl) 4组",
-            "罗马尼亚硬拉 (RDL) 4组",
-            "上肢拉力训练 (引体向上/划船) 3组",
+            "负重深蹲（杠铃/哑铃） 5组x6次",
+            "北欧腘绳肌（Nordic Curl） 4组",
+            "罗马尼亚硬拉（RDL） 4组",
+            "上肢拉力训练（引体向上/划船） 3组",
             "负重平板支撑 / 健腹轮抗伸展 1分钟"
           ],
           "taskLabelsEn": [
@@ -1975,10 +1975,10 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "80 mins",
           "weekday": "tuesday",
           "taskLabelsZh": [
-            "连续跳箱训练 (Box Jumps) 4组x6次",
-            "敏捷梯/锥桶组合变向 (In-Out-Cut) 5趟",
-            "侧向跳跃 (连贯性单腿) 4组",
-            "壶铃摇摆 (Kettlebell Swing) 4组",
+            "连续跳箱训练（Box Jumps） 4组x6次",
+            "敏捷梯/锥桶组合变向（In-Out-Cut） 5趟",
+            "侧向跳跃（连贯性单腿） 4组",
+            "壶铃摇摆（Kettlebell Swing） 4组",
             "医药球侧向抛掷 4组"
           ],
           "taskLabelsEn": [
@@ -1999,10 +1999,10 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "45 mins",
           "weekday": "wednesday",
           "taskLabelsZh": [
-            "核心-骨盆控制与激活 (Bird-Dog) 3组",
+            "核心-骨盆控制与激活（Bird-Dog） 3组",
             "踝关节强化与本体感觉进阶 3组",
-            "髋部屈肌深层拉伸 (Couch Stretch) 每侧60秒",
-            "筋膜枪与泡沫轴 (深层组织松解) 20分"
+            "髋部屈肌深层拉伸（Couch Stretch） 每侧60秒",
+            "筋膜枪与泡沫轴（深层组织松解） 20分"
           ],
           "taskLabelsEn": [
             "Core-Pelvic Activation (Bird-Dog) 3 sets",
@@ -2021,10 +2021,10 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "100 mins",
           "weekday": "thursday",
           "taskLabelsZh": [
-            "滑行板高强度间歇 (HIIT) 10组",
-            "动感单车冲刺 (Sprint Intervals) 10组",
-            "靠墙静蹲 (负重/单腿/TRX) 3组",
-            "抗旋转核心训练 (Pallof Press) 4组"
+            "滑行板高强度间歇（HIIT） 10组",
+            "动感单车冲刺（Sprint Intervals） 10组",
+            "靠墙静蹲（负重/单腿/TRX） 3组",
+            "抗旋转核心训练（Pallof Press） 4组"
           ],
           "taskLabelsEn": [
             "Slide Board HIIT 10 sets",
@@ -2043,9 +2043,9 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "90 mins",
           "weekday": "friday",
           "taskLabelsZh": [
-            "阻力冲刺 (雪橇拖拽/降落伞) 8趟",
+            "阻力冲刺（雪橇拖拽/降落伞） 8趟",
             "保加利亚分腿蹲 4组",
-            "深跳 (Drop Jump) + 连续跳 4组",
+            "深跳（Drop Jump） + 连续跳 4组",
             "悬垂举腿 / 俄罗斯转体 4组"
           ],
           "taskLabelsEn": [
@@ -2066,8 +2066,8 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "weekday": "saturday",
           "taskLabelsZh": [
             "400米/800米田径场冲刺 4组",
-            "臀推 (杠铃/弹力带) 4组x10次",
-            "敏捷梯/锥桶组合变向 (In-Out-Cut) 6趟"
+            "臀推（杠铃/弹力带） 4组x10次",
+            "敏捷梯/锥桶组合变向（In-Out-Cut） 6趟"
           ],
           "taskLabelsEn": [
             "400m/800m Track Sprints 4 sets",
@@ -2085,8 +2085,8 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "60 mins",
           "weekday": "sunday",
           "taskLabelsZh": [
-            "静态拉伸 (全面柔韧性) 15分",
-            "髋部屈肌深层拉伸 (Couch Stretch) 2组",
+            "静态拉伸（全面柔韧性） 15分",
+            "髋部屈肌深层拉伸（Couch Stretch） 2组",
             "冰浴与冷热交替浴 10分"
           ],
           "taskLabelsEn": [
