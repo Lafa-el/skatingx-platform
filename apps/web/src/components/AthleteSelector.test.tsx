@@ -34,7 +34,7 @@ describe("AthleteSelector", () => {
     await openMenu();
     expect(screen.getByRole("listbox", { name: "选择运动员" })).toBeTruthy();
     expect(screen.getByText("当前")).toBeTruthy();
-    expect(screen.getByText("多运动员切换:后续阶段提供。")).toBeTruthy();
+    expect(screen.getByText("多运动员切换：后续阶段提供。")).toBeTruthy();
     const link = screen.getByRole("link", { name: "运动员档案 →" });
     expect(link.getAttribute("href")).toBe("/athlete");
   });

@@ -31,9 +31,9 @@ describe("VideoForm", () => {
   it("has labelled fields and no file input", () => {
     setup();
     expect(screen.getByLabelText(/视频名称/)).toBeTruthy();
-    expect(screen.getByLabelText("链接(可选)")).toBeTruthy();
-    expect(screen.getByLabelText("存放位置(可选)")).toBeTruthy();
-    expect(screen.getByLabelText("备注(可选)")).toBeTruthy();
+    expect(screen.getByLabelText("链接（可选）")).toBeTruthy();
+    expect(screen.getByLabelText("存放位置（可选）")).toBeTruthy();
+    expect(screen.getByLabelText("备注（可选）")).toBeTruthy();
     expect(document.querySelector('input[type="file"]')).toBeNull();
     expect(document.querySelector("video")).toBeNull();
   });
@@ -54,9 +54,9 @@ describe("VideoForm", () => {
   it("submits the link, location and note when filled", async () => {
     const { user, onSubmit } = setup();
     await user.type(screen.getByLabelText(/视频名称/), "Final");
-    await user.type(screen.getByLabelText("链接(可选)"), "https://example.com/v/1");
-    await user.type(screen.getByLabelText("存放位置(可选)"), "手机相册");
-    await user.type(screen.getByLabelText("备注(可选)"), "第三圈");
+    await user.type(screen.getByLabelText("链接（可选）"), "https://example.com/v/1");
+    await user.type(screen.getByLabelText("存放位置（可选）"), "手机相册");
+    await user.type(screen.getByLabelText("备注（可选）"), "第三圈");
     await user.click(screen.getByRole("button", { name: "保存视频记录" }));
     expect(onSubmit.mock.calls[0]?.[0]).toEqual({
       label: "Final",
@@ -80,7 +80,7 @@ describe("VideoForm", () => {
 
   it("only a link typed: the empty name is the first problem, shown under the name box and focused", async () => {
     const { user, onSubmit } = setup();
-    await user.type(screen.getByLabelText("链接(可选)"), "https://example.com/v");
+    await user.type(screen.getByLabelText("链接（可选）"), "https://example.com/v");
     await user.click(screen.getByRole("button", { name: "保存视频记录" }));
     expect(onSubmit).not.toHaveBeenCalled();
     const name = screen.getByLabelText(/视频名称/);
@@ -93,7 +93,7 @@ describe("VideoForm", () => {
 
   it("a name made only of invisible characters is treated as empty", async () => {
     const { user, onSubmit } = setup({ initial: { ...EMPTY_VIDEO_FORM, label: "\u200b" } });
-    await user.type(screen.getByLabelText("链接(可选)"), "https://example.com/v");
+    await user.type(screen.getByLabelText("链接（可选）"), "https://example.com/v");
     await user.click(screen.getByRole("button", { name: "保存视频记录" }));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText("必填")).toBeTruthy();
@@ -110,16 +110,16 @@ describe("VideoForm", () => {
   ])("rejects %s with the link message", async (_name, value) => {
     const { user, onSubmit } = setup();
     await user.type(screen.getByLabelText(/视频名称/), "x");
-    await user.type(screen.getByLabelText("链接(可选)"), value);
+    await user.type(screen.getByLabelText("链接（可选）"), value);
     await user.click(screen.getByRole("button", { name: "保存视频记录" }));
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByText("链接需要以 http:// 或 https:// 开头,且不能含空格")).toBeTruthy();
+    expect(screen.getByText("链接需要以 http:// 或 https:// 开头，且不能含空格")).toBeTruthy();
   });
 
   it("rejects a link that carries a user name or password", async () => {
     const { user, onSubmit } = setup();
     await user.type(screen.getByLabelText(/视频名称/), "x");
-    await user.type(screen.getByLabelText("链接(可选)"), "https://coach:secret@example.com/v");
+    await user.type(screen.getByLabelText("链接（可选）"), "https://coach:secret@example.com/v");
     await user.click(screen.getByRole("button", { name: "保存视频记录" }));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText("链接里不能包含用户名或密码")).toBeTruthy();
@@ -129,7 +129,7 @@ describe("VideoForm", () => {
     const { user, onSubmit } = setup({ initial: { ...EMPTY_VIDEO_FORM, label: "x".repeat(121) } });
     await user.click(screen.getByRole("button", { name: "保存视频记录" }));
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByText("内容太长,请缩短")).toBeTruthy();
+    expect(screen.getByText("内容太长，请缩短")).toBeTruthy();
   });
 
   it("while saving disables the fields and buttons and does not submit again", async () => {

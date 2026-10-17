@@ -64,13 +64,13 @@ describe("VideoList", () => {
     expect(screen.getByRole("heading", { name: "#1 500m · 10月24日周六" })).toBeTruthy();
     expect(screen.getByText("Start")).toBeTruthy();
     expect(screen.getByText("Ann · #7")).toBeTruthy();
-    expect(screen.getByText("存放位置:手机相册")).toBeTruthy();
+    expect(screen.getByText("存放位置：手机相册")).toBeTruthy();
     expect(screen.getByText("第三圈")).toBeTruthy();
   });
 
   it("opens a link in a new tab with noopener noreferrer, and shows only the host", () => {
     setup([video({ externalUrl: "https://videos.example.com/watch/abc?token=zzz" })]);
-    const link = screen.getByRole("link", { name: "打开链接(videos.example.com)" });
+    const link = screen.getByRole("link", { name: "打开链接（videos.example.com）" });
     expect(link.getAttribute("href")).toBe("https://videos.example.com/watch/abc?token=zzz");
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");

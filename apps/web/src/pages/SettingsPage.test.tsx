@@ -91,7 +91,7 @@ describe("SettingsPage language", () => {
   it("leaves the PRO toggle working on its own (it saves isPro, not language)", async () => {
     const user = userEvent.setup();
     render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO(开发用)" }));
+    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
     expect(h.update).toHaveBeenCalledExactlyOnceWith(expect.anything(), "u1234567890", { isPro: true });
   });
 });
@@ -128,7 +128,7 @@ describe("SettingsPage text", () => {
     render(<SettingsPage />);
     expect(screen.getByText("仅供开发使用。尚未接入支付。")).toBeTruthy();
     expect(
-      screen.getByText("可在下方切换 PRO,用来测试学院和商店的付费限制界面。不会扣费,也不会验证订阅状态。"),
+      screen.getByText("可在下方切换 PRO，用来测试学院和商店的付费限制界面。不会扣费，也不会验证订阅状态。"),
     ).toBeTruthy();
     expect(screen.getByText("免费版")).toBeTruthy();
   });
@@ -146,7 +146,7 @@ describe("SettingsPage text", () => {
     const { container } = render(<SettingsPage />);
     const note = container.querySelector("code")?.parentElement;
     expect(note?.textContent).toBe(
-      "家长 PIN 锁在 M6 中尚未实现。PIN 不会以明文保存。PIN 安全功能上线后,只会把哈希值保存在 settings/main 中。",
+      "家长 PIN 锁在 M6 中尚未实现。PIN 不会以明文保存。PIN 安全功能上线后，只会把哈希值保存在 settings/main 中。",
     );
     expect(container.querySelector("code")?.textContent).toBe("settings/main");
   });
@@ -164,13 +164,13 @@ describe("SettingsPage details", () => {
   it("the note under the PRO card follows the language if it changes afterwards", async () => {
     const user = userEvent.setup();
     const view = render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO(开发用)" }));
-    expect(await screen.findByText("PRO 已开启(开发标记)。")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
+    expect(await screen.findByText("PRO 已开启（开发标记）。")).toBeTruthy();
 
     setEnglish();
     view.rerender(<SettingsPage />);
     expect(screen.getByText("PRO enabled (development flag).")).toBeTruthy();
-    expect(screen.queryByText("PRO 已开启(开发标记)。")).toBeNull();
+    expect(screen.queryByText("PRO 已开启（开发标记）。")).toBeNull();
   });
 
   // The raw field was a debug line that parents and athletes could see in Production.
@@ -193,13 +193,13 @@ describe("SettingsPage PRO toggle messages", () => {
   it("Chinese: confirmation after turning PRO on, and off", async () => {
     const user = userEvent.setup();
     const first = render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO(开发用)" }));
-    expect(await screen.findByText("PRO 已开启(开发标记)。")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
+    expect(await screen.findByText("PRO 已开启（开发标记）。")).toBeTruthy();
     first.unmount();
 
     h.settings = { ...h.settings, isPro: true };
     render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "关闭 PRO(开发用)" }));
+    await user.click(screen.getByRole("button", { name: "关闭 PRO（开发用）" }));
     expect(await screen.findByText("PRO 已关闭。")).toBeTruthy();
   });
 
@@ -215,7 +215,7 @@ describe("SettingsPage PRO toggle messages", () => {
     h.update = vi.fn().mockRejectedValue(new Error("Missing or insufficient permissions."));
     const user = userEvent.setup();
     render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO(开发用)" }));
+    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
     expect(await screen.findByText("Missing or insufficient permissions.")).toBeTruthy();
   });
 
@@ -223,7 +223,7 @@ describe("SettingsPage PRO toggle messages", () => {
     h.update = vi.fn().mockRejectedValue("nope");
     const user = userEvent.setup();
     const first = render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO(开发用)" }));
+    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
     expect(await screen.findByText("PRO 状态更新失败。")).toBeTruthy();
     first.unmount();
 
@@ -236,20 +236,20 @@ describe("SettingsPage PRO toggle messages", () => {
   it("a confirmation follows the language if it is changed afterwards", async () => {
     const user = userEvent.setup();
     const view = render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO(开发用)" }));
-    expect(await screen.findByText("PRO 已开启(开发标记)。")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
+    expect(await screen.findByText("PRO 已开启（开发标记）。")).toBeTruthy();
 
     setEnglish();
     view.rerender(<SettingsPage />);
     expect(screen.getByText("PRO enabled (development flag).")).toBeTruthy();
-    expect(screen.queryByText("PRO 已开启(开发标记)。")).toBeNull();
+    expect(screen.queryByText("PRO 已开启（开发标记）。")).toBeNull();
   });
 
   it("while saving the button says so", async () => {
     h.update = vi.fn().mockReturnValue(new Promise(() => undefined));
     const user = userEvent.setup();
     render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO(开发用)" }));
+    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
     expect(await screen.findByRole("button", { name: "保存中…" })).toBeTruthy();
   });
 });
@@ -257,7 +257,7 @@ describe("SettingsPage PRO toggle messages", () => {
 describe("SettingsPage account", () => {
   it("Chinese: account status in each state", () => {
     const states: Array<[() => void, string]> = [
-      [() => undefined, "访客(匿名)"],
+      [() => undefined, "访客（匿名）"],
       [registered, "已注册用户"],
       [() => (h.auth.loading = true), "加载中…"],
       [() => (h.auth.firebaseReady = false), "服务未配置"],
@@ -342,7 +342,7 @@ describe("SettingsPage account", () => {
   it("a guest sees the first eight characters of the guest id", () => {
     h.auth.user = { email: null };
     render(<SettingsPage />);
-    expect(screen.getByText("访客 UID(前 8 位):u1234567")).toBeTruthy();
+    expect(screen.getByText("访客 UID（前 8 位）：u1234567")).toBeTruthy();
   });
 
   it("guest id line in English", () => {
@@ -394,7 +394,7 @@ describe("SettingsPage forms", () => {
     const user = userEvent.setup();
     render(<SettingsPage />);
     expect(
-      screen.getByText("使用已注册的邮箱和密码登录。登录会替换当前会话(访客数据不会自动合并)。"),
+      screen.getByText("使用已注册的邮箱和密码登录。登录会替换当前会话（访客数据不会自动合并）。"),
     ).toBeTruthy();
     const submit = screen.getByRole("button", { name: "登录" });
     const form = submit.closest("form") as HTMLElement;
@@ -425,7 +425,7 @@ describe("SettingsPage forms", () => {
 
 describe("SettingsPage sign out", () => {
   const ZH_CONFIRM =
-    "要退出登录吗?你会回到一个新的访客会话。除非你之前已经绑定账户,否则这台设备上未保存的访客数据不会转移到已注册账户。";
+    "要退出登录吗？你会回到一个新的访客会话。除非你之前已经绑定账户，否则这台设备上未保存的访客数据不会转移到已注册账户。";
   const EN_CONFIRM =
     "Sign out? You will return to a new guest session. Unsaved guest data on this device will not carry over to a registered account unless you linked first.";
 

@@ -45,16 +45,16 @@ describe("ResultForm", () => {
     expect(timeBox().getAttribute("aria-required")).toBe("true");
     expect(screen.getByText(/最多三位小数/)).toBeTruthy();
     expect(timeBox().getAttribute("aria-describedby")).toBeTruthy();
-    expect(screen.getByLabelText("名次(可选)")).toBeTruthy();
-    expect(screen.getByLabelText("晋级(可选)")).toBeTruthy();
+    expect(screen.getByLabelText("名次（可选）")).toBeTruthy();
+    expect(screen.getByLabelText("晋级（可选）")).toBeTruthy();
   });
 
   it("submits a valid finished result exactly as typed, including a third decimal", async () => {
     const { onSubmit, user } = setup();
     await user.type(timeBox(), "0:49.123");
-    await user.type(screen.getByLabelText("名次(可选)"), "2");
-    await user.selectOptions(screen.getByLabelText("晋级(可选)"), "yes");
-    await user.type(screen.getByLabelText("来源说明(可选)"), "board");
+    await user.type(screen.getByLabelText("名次（可选）"), "2");
+    await user.selectOptions(screen.getByLabelText("晋级（可选）"), "yes");
+    await user.type(screen.getByLabelText("来源说明（可选）"), "board");
     await user.click(screen.getByRole("button", { name: "保存成绩" }));
     expect(onSubmit).toHaveBeenCalledWith({
       status: "finished",
@@ -99,7 +99,7 @@ describe("ResultForm", () => {
   it("rejects a bad place", async () => {
     const { onSubmit, user } = setup();
     await user.type(timeBox(), "49.8");
-    await user.type(screen.getByLabelText("名次(可选)"), "0");
+    await user.type(screen.getByLabelText("名次（可选）"), "0");
     await user.click(screen.getByRole("button", { name: "保存成绩" }));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText(/名次需要是 1 到 999/)).toBeTruthy();
@@ -108,13 +108,13 @@ describe("ResultForm", () => {
   it("hides time, place and advancement for DNS/DNF/DQ and never sends what was typed before", async () => {
     const { onSubmit, user } = setup();
     await user.type(timeBox(), "49.8");
-    await user.type(screen.getByLabelText("名次(可选)"), "3");
-    await user.selectOptions(screen.getByLabelText("晋级(可选)"), "yes");
+    await user.type(screen.getByLabelText("名次（可选）"), "3");
+    await user.selectOptions(screen.getByLabelText("晋级（可选）"), "yes");
 
     await user.selectOptions(screen.getByLabelText("状态"), "DNF");
     expect(screen.queryByLabelText(/^成绩/)).toBeNull();
-    expect(screen.queryByLabelText("名次(可选)")).toBeNull();
-    expect(screen.queryByLabelText("晋级(可选)")).toBeNull();
+    expect(screen.queryByLabelText("名次（可选）")).toBeNull();
+    expect(screen.queryByLabelText("晋级（可选）")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "保存成绩" }));
     expect(onSubmit).toHaveBeenCalledWith({
@@ -129,7 +129,7 @@ describe("ResultForm", () => {
   it("offers all four statuses with their DNS/DNF/DQ names", () => {
     setup();
     const options = Array.from((screen.getByLabelText("状态") as HTMLSelectElement).options).map((o) => o.text);
-    expect(options).toEqual(["已完赛", "未出发(DNS)", "未完赛(DNF)", "取消资格(DQ)"]);
+    expect(options).toEqual(["已完赛", "未出发（DNS）", "未完赛（DNF）", "取消资格（DQ）"]);
   });
 
   it("shows stored values when editing, and says that saving returns the result to pending", () => {
@@ -139,7 +139,7 @@ describe("ResultForm", () => {
     });
     expect(screen.getByRole("form", { name: "编辑成绩" })).toBeTruthy();
     expect((timeBox() as HTMLInputElement).value).toBe("1:44.231");
-    expect((screen.getByLabelText("晋级(可选)") as HTMLSelectElement).value).toBe("no");
+    expect((screen.getByLabelText("晋级（可选）") as HTMLSelectElement).value).toBe("no");
     expect(screen.getByText(/已有成绩.*待确认/)).toBeTruthy();
   });
 

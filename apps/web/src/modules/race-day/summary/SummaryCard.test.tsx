@@ -62,7 +62,7 @@ describe("SummaryCard", () => {
     setup([race("r1", 1, "500m")], []);
     expect(screen.getByRole("heading", { name: "Test Skater 的比赛总结" })).toBeTruthy();
     expect(screen.getByText("号码 000 · Test Division")).toBeTruthy();
-    expect(screen.getByText("汇总规则版本:race-summary/1")).toBeTruthy();
+    expect(screen.getByText("汇总规则版本：race-summary/1")).toBeTruthy();
   });
 
   it("with no results says so, and shows no pending banner and no confirmed claim", () => {
@@ -93,7 +93,7 @@ describe("SummaryCard", () => {
         result("r2", { timeSeconds: 50.5, verification: "verified", verifiedAt: "2026-10-24T12:00:00.000Z" }),
       ],
     );
-    const fastest = screen.getByText("最快完赛时间(仅统计已确认成绩)").closest("div") as HTMLElement;
+    const fastest = screen.getByText("最快完赛时间（仅统计已确认成绩）").closest("div") as HTMLElement;
     expect(within(fastest).getByText("50.50")).toBeTruthy();
     expect(within(fastest).queryByText("40.00")).toBeNull();
     expect(screen.getByTestId("pending-banner").textContent).toContain("1 项成绩仍待确认");
@@ -101,7 +101,7 @@ describe("SummaryCard", () => {
 
   it("with only unconfirmed finishes shows that there is no confirmed finish, not the fastest pending time", () => {
     setup([race("r1", 1, "500m")], [result("r1", { timeSeconds: 40.0 })]);
-    const fastest = screen.getByText("最快完赛时间(仅统计已确认成绩)").closest("div") as HTMLElement;
+    const fastest = screen.getByText("最快完赛时间（仅统计已确认成绩）").closest("div") as HTMLElement;
     expect(within(fastest).getByText("暂无已确认的完赛成绩")).toBeTruthy();
     expect(within(fastest).queryByText("40.00")).toBeNull();
   });
@@ -139,7 +139,7 @@ describe("SummaryCard", () => {
     expect(within(items[0] as HTMLElement).getByText("49.123")).toBeTruthy();
     expect(within(items[0] as HTMLElement).getByText("第 2 名")).toBeTruthy();
     expect(within(items[0] as HTMLElement).getByText("晋级")).toBeTruthy();
-    expect(within(items[1] as HTMLElement).getByText("未完赛(DNF)")).toBeTruthy();
+    expect(within(items[1] as HTMLElement).getByText("未完赛（DNF）")).toBeTruthy();
   });
 
   it("numbers races as on the Schedule tab, including races the athlete is not in", () => {

@@ -228,7 +228,7 @@ describe("ResultsPage states", () => {
     h.roster = ready([ann], [{ id: "c", reason: "x" }]);
     h.results = ready([], [{ id: "d", reason: "x" }]);
     renderPage();
-    expect(screen.getByText("有 4 条数据无法读取,已隐藏。")).toBeTruthy();
+    expect(screen.getByText("有 4 条数据无法读取，已隐藏。")).toBeTruthy();
   });
 
   it("shows the sync-failed alert and dismisses it", async () => {
@@ -280,7 +280,7 @@ describe("ResultsPage entry", () => {
     const user = renderPage();
     await choose(user, "race-1", "ann");
     await user.type(timeBox(), "0:49.123");
-    await user.type(screen.getByLabelText("名次(可选)"), "2");
+    await user.type(screen.getByLabelText("名次（可选）"), "2");
     await user.click(screen.getByRole("button", { name: "保存成绩" }));
 
     await waitFor(() => {
@@ -359,12 +359,12 @@ describe("ResultsPage entry", () => {
     const user = renderPage();
     await choose(user, "race-1", "ann");
     expect((timeBox() as HTMLInputElement).value).toBe("49.80");
-    await user.type(screen.getByLabelText("来源说明(可选)"), "typed for Ann");
+    await user.type(screen.getByLabelText("来源说明（可选）"), "typed for Ann");
 
     await user.selectOptions(screen.getByLabelText("运动员"), "bob");
     expect(screen.getByRole("form", { name: "录入成绩" })).toBeTruthy();
     expect((timeBox() as HTMLInputElement).value).toBe("");
-    expect((screen.getByLabelText("来源说明(可选)") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("来源说明（可选）") as HTMLInputElement).value).toBe("");
   });
 
   it("changing the race clears the athlete, because the athlete belongs to the race", async () => {

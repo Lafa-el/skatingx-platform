@@ -71,7 +71,7 @@ describe("DashboardPage: headings", () => {
   it("Chinese: title, welcome line and every card title", () => {
     renderPage();
     expect(screen.getByRole("heading", { level: 1, name: "总览" })).toBeTruthy();
-    expect(screen.getByText("欢迎回来,Sample Skater")).toBeTruthy();
+    expect(screen.getByText("欢迎回来，Sample Skater")).toBeTruthy();
     for (const title of [
       "运动员",
       "积分",

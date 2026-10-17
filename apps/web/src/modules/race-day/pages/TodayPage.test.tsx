@@ -179,7 +179,7 @@ describe("TodayPage states", () => {
     h.races = ready([race("r1")], [{ id: "b", reason: "x" }]);
     h.results = ready([], [{ id: "d", reason: "x" }]);
     renderPage();
-    expect(screen.getByText("有 2 条数据无法读取,已隐藏。")).toBeTruthy();
+    expect(screen.getByText("有 2 条数据无法读取，已隐藏。")).toBeTruthy();
   });
 
   it("is read-only: no field, no button, only links and the event choice", () => {
@@ -194,8 +194,8 @@ describe("TodayPage on a race day", () => {
   it("shows the event, its days and zone, and marks everything unconfirmed as pending", () => {
     renderPage();
     expect(screen.getByText("Buffalo Championships")).toBeTruthy();
-    expect(screen.getByText(/时区:America\/New_York/)).toBeTruthy();
-    expect(screen.getByText("比赛日:10月24日周六、10月25日周日")).toBeTruthy();
+    expect(screen.getByText(/时区：America\/New_York/)).toBeTruthy();
+    expect(screen.getByText("比赛日：10月24日周六、10月25日周日")).toBeTruthy();
     expect(screen.getByText("今天是比赛日。")).toBeTruthy();
     // The event and the races carry the pending marker, not a confirmed tone.
     expect(document.querySelectorAll("[data-verification=pending]").length).toBeGreaterThanOrEqual(3);
@@ -266,7 +266,7 @@ describe("TodayPage on a race day", () => {
   it("an event without days still shows, with no days line and an explanation", () => {
     h.events = ready([{ ...buffalo, dates: [] }]);
     renderPage();
-    expect(screen.queryByText(/比赛日:/)).toBeNull();
+    expect(screen.queryByText(/比赛日：/)).toBeNull();
     expect(screen.getByText(/还没有设置比赛日期/)).toBeTruthy();
   });
 
@@ -279,14 +279,14 @@ describe("TodayPage on a race day", () => {
   it("with no own athlete, shows everyone and says so", () => {
     h.roster = ready([other]);
     renderPage();
-    expect(screen.getByText("还没有标记本人运动员,这里按所有运动员显示。")).toBeTruthy();
+    expect(screen.getByText("还没有标记本人运动员，这里按所有运动员显示。")).toBeTruthy();
     expect(screen.queryByText("我的比赛")).toBeNull();
   });
 
   it("with several own athletes, names the one shown", () => {
     h.roster = ready([me, athlete("zed", "Zed Skater", true)]);
     renderPage();
-    expect(screen.getByText("有多位运动员被标记为本人,这里按 Me Skater 显示。")).toBeTruthy();
+    expect(screen.getByText("有多位运动员被标记为本人，这里按 Me Skater 显示。")).toBeTruthy();
   });
 
   it("mentions races that have no day, without placing them on a day", () => {
@@ -337,7 +337,7 @@ describe("TodayPage around the event", () => {
   it("with no time zone it does not guess a day and says so", () => {
     h.events = ready([{ ...buffalo, timeZone: null }]);
     renderPage();
-    expect(screen.getByText(/还没有设置时区,无法判断哪一天是今天/)).toBeTruthy();
+    expect(screen.getByText(/还没有设置时区，无法判断哪一天是今天/)).toBeTruthy();
     expect(screen.getByText("时区待确认")).toBeTruthy();
     expect(screen.queryByTestId("next-race")).toBeNull();
   });

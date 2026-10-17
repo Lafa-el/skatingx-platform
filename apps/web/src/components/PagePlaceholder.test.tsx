@@ -16,7 +16,7 @@ describe("PagePlaceholder", () => {
   it("shows the title it is given and the default note in Chinese", () => {
     render(<PagePlaceholder title="某页面" />);
     expect(screen.getByRole("heading", { name: "某页面" })).toBeTruthy();
-    expect(screen.getByText("占位页面:原有功能将在后续阶段迁移。")).toBeTruthy();
+    expect(screen.getByText("占位页面：原有功能将在后续阶段迁移。")).toBeTruthy();
   });
 
   it("default note in English is the previous wording", () => {
@@ -27,12 +27,12 @@ describe("PagePlaceholder", () => {
 
   it("an empty description counts as none, as it did before the text moved into the resources", () => {
     render(<PagePlaceholder title="T" description="" />);
-    expect(screen.getByText("占位页面:原有功能将在后续阶段迁移。")).toBeTruthy();
+    expect(screen.getByText("占位页面：原有功能将在后续阶段迁移。")).toBeTruthy();
   });
 
   it("a description passed by the page replaces the default note", () => {
     render(<PagePlaceholder title="T" description="自定义说明" />);
     expect(screen.getByText("自定义说明")).toBeTruthy();
-    expect(screen.queryByText("占位页面:原有功能将在后续阶段迁移。")).toBeNull();
+    expect(screen.queryByText("占位页面：原有功能将在后续阶段迁移。")).toBeNull();
   });
 });

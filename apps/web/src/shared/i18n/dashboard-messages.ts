@@ -4,7 +4,7 @@ import { createTranslator, type Resources } from "./translator";
 const zh = {
   "dashboard.title": "总览",
   "dashboard.loading": "正在加载总览…",
-  "dashboard.welcome": "欢迎回来,{name}",
+  "dashboard.welcome": "欢迎回来，{name}",
 
   "dashboard.card.athlete": "运动员",
   "dashboard.card.points": "积分",

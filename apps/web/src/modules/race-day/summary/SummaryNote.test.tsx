@@ -89,7 +89,7 @@ describe("SummaryNote", () => {
   it("shows the saved note and when it was saved, in the event's time zone", () => {
     setup({ saved: doc("Hello") });
     expect(box().value).toBe("Hello");
-    expect(screen.getByText(/上次保存:.*GMT-4.*12:30/)).toBeTruthy();
+    expect(screen.getByText(/上次保存：.*GMT-4.*12:30/)).toBeTruthy();
   });
 
   it("save stays disabled while the text equals what is saved, even with surrounding spaces", async () => {
@@ -120,7 +120,7 @@ describe("SummaryNote", () => {
     await user.paste("n".repeat(2001));
     await user.click(saveButton());
     expect(onSave).not.toHaveBeenCalled();
-    expect(screen.getByText("内容太长,请缩短")).toBeTruthy();
+    expect(screen.getByText("内容太长，请缩短")).toBeTruthy();
     expect(box().getAttribute("aria-invalid")).toBe("true");
   });
 
@@ -130,7 +130,7 @@ describe("SummaryNote", () => {
     await user.paste("n".repeat(2001));
     await user.click(saveButton());
     await user.type(box(), "x");
-    expect(screen.queryByText("内容太长,请缩短")).toBeNull();
+    expect(screen.queryByText("内容太长，请缩短")).toBeNull();
     expect(box().value).toHaveLength(2002);
   });
 

@@ -21,7 +21,7 @@ afterEach(() => {
 // placeholder does. English is the wording the pages had before they were translated, except the hub note, which no
 // longer says "Biomechanics lab" (a placeholder has no lab; owner approved 2026-10-17).
 const PLACEHOLDER = {
-  zh: "占位页面:原有功能将在后续阶段迁移。",
+  zh: "占位页面：原有功能将在后续阶段迁移。",
   en: "Placeholder page — legacy logic will be migrated in a later phase.",
 };
 

@@ -80,13 +80,13 @@ describe("TrainingTasksPage: Chinese", () => {
     const rules = card("积分规则");
     expect(rules.getByText("每完成一项任务 +20 积分")).toBeTruthy();
     expect(rules.getByText("全部完成后额外 +50 积分")).toBeTruthy();
-    expect(rules.getByText("当前余额:120 积分")).toBeTruthy();
+    expect(rules.getByText("当前余额：120 积分")).toBeTruthy();
   });
 
   it("the add-task form: labels, placeholders and the button", () => {
     render(<TrainingTasksPage />);
-    expect(screen.getByLabelText("任务").getAttribute("placeholder")).toBe("例如:500m 间歇跑");
-    expect(screen.getByLabelText("目标(选填)").getAttribute("placeholder")).toBe("例如:3 组");
+    expect(screen.getByLabelText("任务").getAttribute("placeholder")).toBe("例如：500m 间歇跑");
+    expect(screen.getByLabelText("目标（选填）").getAttribute("placeholder")).toBe("例如：3 组");
     expect(screen.getByRole("button", { name: "添加任务" })).toBeTruthy();
     expect(screen.getByRole("heading", { level: 3, name: "添加任务" })).toBeTruthy();
     expect(screen.getByRole("heading", { level: 3, name: "任务清单" })).toBeTruthy();
@@ -106,8 +106,8 @@ describe("TrainingTasksPage: Chinese", () => {
     const row = (task: string) => screen.getByText(task).closest("li") as HTMLElement;
     expect(within(row("Lunges")).getByText("学院")).toBeTruthy();
     expect(within(row("My own 400m task")).queryByText("学院")).toBeNull();
-    expect(screen.getByRole("checkbox", { name: "完成:My own 400m task" })).toBeTruthy();
-    expect(screen.getByRole("checkbox", { name: "完成:Lunges" })).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "完成：My own 400m task" })).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "完成：Lunges" })).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "删除" }).length).toBe(2);
   });
 
@@ -132,7 +132,7 @@ describe("TrainingTasksPage: Chinese", () => {
     render(<TrainingTasksPage />);
     expect(screen.getByText("正在加载任务…")).toBeTruthy();
     expect(screen.getByText("加载中…")).toBeTruthy();
-    expect(screen.getByText("当前余额:… 积分")).toBeTruthy();
+    expect(screen.getByText("当前余额：… 积分")).toBeTruthy();
   });
 
   it("the button says it is saving while busy", () => {
@@ -184,7 +184,7 @@ describe("TrainingTasksPage: actions", () => {
     const user = userEvent.setup();
     render(<TrainingTasksPage />);
     await user.type(screen.getByLabelText("任务"), "新任务 A");
-    await user.type(screen.getByLabelText("目标(选填)"), "5 组");
+    await user.type(screen.getByLabelText("目标（选填）"), "5 组");
     await user.click(screen.getByRole("button", { name: "添加任务" }));
     expect(h.state.actions.addTask).toHaveBeenCalledExactlyOnceWith("新任务 A", "5 组");
     expect((screen.getByLabelText("任务") as HTMLInputElement).value).toBe("");
@@ -200,7 +200,7 @@ describe("TrainingTasksPage: actions", () => {
     const confirm = stubConfirm(true);
     render(<TrainingTasksPage />);
     await user.click(screen.getAllByRole("button", { name: "删除" })[0]!);
-    expect(confirm).toHaveBeenCalledExactlyOnceWith("删除任务「My own 400m task」?");
+    expect(confirm).toHaveBeenCalledExactlyOnceWith("删除任务「My own 400m task」？");
     expect(h.state.actions.removeTask).toHaveBeenCalledExactlyOnceWith("t1");
   });
 
@@ -225,27 +225,27 @@ describe("TrainingTasksPage: actions", () => {
     h.state.actions.toggleTask = vi.fn(async () => ({ bonusApplied: true, bonusRemoved: false }));
     const user = userEvent.setup();
     const view = render(<TrainingTasksPage />);
-    await user.click(screen.getByRole("checkbox", { name: "完成:My own 400m task" }));
-    expect(await screen.findByText("每日奖励 +50 积分!")).toBeTruthy();
+    await user.click(screen.getByRole("checkbox", { name: "完成：My own 400m task" }));
+    expect(await screen.findByText("每日奖励 +50 积分！")).toBeTruthy();
 
     setEnglish();
     view.rerender(<TrainingTasksPage />);
     expect(screen.getByText("Daily bonus +50 points!")).toBeTruthy();
-    expect(screen.queryByText("每日奖励 +50 积分!")).toBeNull();
+    expect(screen.queryByText("每日奖励 +50 积分！")).toBeNull();
   });
 
   it("un-completing shows that the bonus was removed", async () => {
     h.state.actions.toggleTask = vi.fn(async () => ({ bonusApplied: false, bonusRemoved: true }));
     const user = userEvent.setup();
     render(<TrainingTasksPage />);
-    await user.click(screen.getByRole("checkbox", { name: "完成:Lunges" }));
+    await user.click(screen.getByRole("checkbox", { name: "完成：Lunges" }));
     expect(await screen.findByText("每日奖励已撤销。")).toBeTruthy();
   });
 
   it("no bonus note when nothing changed", async () => {
     const user = userEvent.setup();
     render(<TrainingTasksPage />);
-    await user.click(screen.getByRole("checkbox", { name: "完成:Lunges" }));
+    await user.click(screen.getByRole("checkbox", { name: "完成：Lunges" }));
     expect(screen.queryByText(/每日奖励/)).toBeNull();
   });
 });
