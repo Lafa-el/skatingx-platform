@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
+import { controlsBelowTapTarget } from "@/test/tapTarget";
 
 import { TrainingAcademyPage } from "./TrainingAcademyPage";
 
@@ -414,5 +415,13 @@ describe("TrainingAcademyPage (other)", () => {
     await user.click(screen.getAllByRole("button", { name: "导入本日到今日任务" })[0]!);
     expect(h.state.academy.importDayPlan).not.toHaveBeenCalled();
     expect(h.state.academy.importWeekdayRoutine).not.toHaveBeenCalled();
+  });
+});
+
+describe("TrainingAcademyPage: tap targets (44px)", () => {
+  it("stage buttons, module headers, add buttons and the form ask for 44px", () => {
+    const { container } = renderPage();
+    expect(container.querySelectorAll("button").length).toBeGreaterThan(5);
+    expect(controlsBelowTapTarget(container)).toEqual([]);
   });
 });

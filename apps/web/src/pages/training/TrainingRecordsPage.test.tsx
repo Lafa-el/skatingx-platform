@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
+import { controlsBelowTapTarget } from "@/test/tapTarget";
 
 import { TrainingRecordsPage } from "./TrainingRecordsPage";
 
@@ -375,5 +376,26 @@ describe("TrainingRecordsPage: a message shown stays right when the language cha
     setLanguage("en");
     view.rerender(<TrainingRecordsPage />);
     expect(screen.getByRole("alert").textContent).toBe(TEXT.en.errTime);
+  });
+});
+
+describe("TrainingRecordsPage: tap targets (44px)", () => {
+  it("every button, input and select asks for 44px, and Edit / Delete also for the width", () => {
+    setLanguage("zh");
+    h.state.records.byDistance["500m"] = [entry("e1", "2026-09-01", 51.2), entry("e2", "2026-10-12", 49.8)];
+    const { container } = renderPage();
+    expect(container.querySelectorAll("button").length).toBeGreaterThan(8);
+    const entryButton = (el: Element) => el.closest("li") !== null;
+    expect(controlsBelowTapTarget(container, { wide: entryButton })).toEqual([]);
+  });
+
+  it("the Cancel button of the edit form is one too", async () => {
+    setLanguage("zh");
+    h.state.records.byDistance["500m"] = [entry("e1", "2026-09-01", 51.2)];
+    const user = userEvent.setup();
+    const { container } = renderPage();
+    await user.click(screen.getByRole("button", { name: TEXT.zh.edit }));
+    expect(screen.getByRole("button", { name: TEXT.zh.cancel })).toBeTruthy();
+    expect(controlsBelowTapTarget(container)).toEqual([]);
   });
 });

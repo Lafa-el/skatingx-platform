@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent } from "@/test/dom";
+import { controlsBelowTapTarget } from "@/test/tapTarget";
 
 import { AthleteSelector } from "./AthleteSelector";
 
@@ -66,5 +67,12 @@ describe("AthleteSelector", () => {
     expect(screen.getByRole("listbox")).toBeTruthy();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("listbox")).toBeNull();
+  });
+});
+
+describe("AthleteSelector: tap targets (44px)", () => {
+  it("the button and the profile link in the menu ask for 44px", async () => {
+    await openMenu();
+    expect(controlsBelowTapTarget(document.body)).toEqual([]);
   });
 });

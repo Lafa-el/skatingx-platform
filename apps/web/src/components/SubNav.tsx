@@ -11,7 +11,7 @@ type SubNavProps = {
 export function SubNav({ items, label }: SubNavProps) {
   return (
     <nav
-      className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 py-2"
+      className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 py-1"
       aria-label={label}
     >
       {items.map((item) => (
@@ -21,7 +21,7 @@ export function SubNav({ items, label }: SubNavProps) {
           end={item.end ?? (item.to === "/training" || item.to === "/analysis")}
           className={({ isActive }) =>
             [
-              "whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              "inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors",
               isActive
                 ? "bg-sky-100 text-sky-800"
                 : "text-slate-600 hover:bg-slate-100",

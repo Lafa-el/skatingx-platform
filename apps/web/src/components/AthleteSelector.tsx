@@ -50,7 +50,7 @@ export function AthleteSelector() {
         aria-controls={listboxId}
         onClick={() => setOpen((prev) => !prev)}
         disabled={loading}
-        className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-60"
+        className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-60"
       >
         <span
           className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-xs font-semibold text-sky-800"
@@ -107,7 +107,7 @@ export function AthleteSelector() {
           <Link
             to="/athlete"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2 text-sm font-medium text-sky-700 hover:bg-slate-50"
+            className="flex min-h-11 items-center px-3 text-sm font-medium text-sky-700 hover:bg-slate-50"
           >
             {tShell(locale, "shell.athlete.profileLink")}
           </Link>

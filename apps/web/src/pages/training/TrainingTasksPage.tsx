@@ -84,13 +84,13 @@ export function TrainingTasksPage() {
       <FirestoreStatusBanner className="mt-4" />
 
       {error ? (
-        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+        <p className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
           {error}
         </p>
       ) : null}
 
       {actionError ? (
-        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+        <p className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
           {actionError}
         </p>
       ) : null}
@@ -118,7 +118,7 @@ export function TrainingTasksPage() {
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
               placeholder={t("trainingTasks.add.taskPlaceholder")}
               required
             />
@@ -128,7 +128,7 @@ export function TrainingTasksPage() {
             <input
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
               placeholder={t("trainingTasks.add.targetPlaceholder")}
             />
           </label>
@@ -147,14 +147,18 @@ export function TrainingTasksPage() {
           <ul className="divide-y divide-slate-100">
             {tasks.map((task) => (
               <li key={task.id} className="flex items-start gap-3 py-3">
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  disabled={busy}
-                  onChange={() => void handleToggle(task.id)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300"
-                  aria-label={t("trainingTasks.list.complete", { task: task.text })}
-                />
+                {/* The box stays small to look at; its label is the 44px the finger hits. The negative
+                    margins let it use the row's padding so the box lines up with the first line. */}
+                <label className="-mx-3 -my-3 flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    disabled={busy}
+                    onChange={() => void handleToggle(task.id)}
+                    className="h-4 w-4 rounded border-slate-300"
+                    aria-label={t("trainingTasks.list.complete", { task: task.text })}
+                  />
+                </label>
                 <div className="min-w-0 flex-1">
                   <p
                     className={
@@ -184,7 +188,7 @@ export function TrainingTasksPage() {
                   type="button"
                   disabled={busy}
                   onClick={() => void handleDelete(task.id, task.text)}
-                  className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                  className="-my-3 -mr-2 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center px-2 text-xs text-red-600 hover:underline disabled:opacity-50"
                 >
                   {t("trainingTasks.list.delete")}
                 </button>
