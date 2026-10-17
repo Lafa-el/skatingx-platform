@@ -31,7 +31,7 @@ export function buildAcademyImportCandidate(
     text: localized.title,
     target: localized.target || undefined,
     description: localized.description || undefined,
-    tags: item.tags,
+    tags: localized.tags,
   };
 }
 

@@ -199,6 +199,17 @@ describe.each(["zh", "en"] as const)("TrainingAcademyPage (%s)", (locale) => {
     expect(within(screen.getByText(pick(item0.titleZh, item0.titleEn)).closest("div.rounded-lg") as HTMLElement).getByRole("button", { name: "…" })).toBeTruthy();
   });
 
+  it("a drill shows its tags in the language, and not the other language's", () => {
+    setLocale();
+    renderPage();
+    const box = itemBox(pick(item0.titleZh, item0.titleEn));
+    const own = pick(item0.tagsZh, item0.tagsEn).join(" · ");
+    const other = pick(item0.tagsEn, item0.tagsZh).join(" · ");
+    expect(own).not.toBe(other);
+    expect(box.getByText(own)).toBeTruthy();
+    expect(box.queryByText(other)).toBeNull();
+  });
+
   it("adding a drill imports exactly that drill", async () => {
     setLocale();
     const user = userEvent.setup();

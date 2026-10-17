@@ -33,9 +33,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "左右脚各10秒",
             "targetEn": "10s each leg",
-            "tags": [
+            "tagsZh": [
               "平衡",
               "协调"
+            ],
+            "tagsEn": [
+              "Balance",
+              "Coord"
             ],
             "difficultyLevel": 3
           },
@@ -48,9 +52,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "mobility",
             "targetZh": "3组 x 15秒",
             "targetEn": "3 sets x 15s",
-            "tags": [
+            "tagsZh": [
               "本体感觉",
               "踝关节"
+            ],
+            "tagsEn": [
+              "Proprioception",
+              "Ankle"
             ],
             "difficultyLevel": 3
           },
@@ -63,9 +71,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "2-3趟",
             "targetEn": "2-3 laps",
-            "tags": [
+            "tagsZh": [
               "平衡",
               "姿态控制"
+            ],
+            "tagsEn": [
+              "Balance",
+              "Posture"
             ],
             "difficultyLevel": 3
           },
@@ -78,8 +90,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "2-3组 x 10-15秒",
             "targetEn": "2-3 sets x 10-15s",
-            "tags": [
+            "tagsZh": [
               "核心"
+            ],
+            "tagsEn": [
+              "Core"
             ],
             "difficultyLevel": 3
           }
@@ -101,9 +116,14 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "10-15米 x 3趟",
             "targetEn": "10-15m x 3 laps",
-            "tags": [
+            "tagsZh": [
               "技术模仿",
               "体位感知"
+            ],
+            "tagsEn": [
+              "Tech",
+              "Mimic",
+              "Posture"
             ],
             "difficultyLevel": 3
           },
@@ -116,9 +136,14 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "3组 x 10次",
             "targetEn": "3 sets x 10 reps",
-            "tags": [
+            "tagsZh": [
               "摆臂",
               "协调"
+            ],
+            "tagsEn": [
+              "Arm",
+              "Swing",
+              "Coord"
             ],
             "difficultyLevel": 3
           },
@@ -131,9 +156,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "3组 x 10次",
             "targetEn": "3 sets x 10 reps",
-            "tags": [
+            "tagsZh": [
               "冰感",
               "协调"
+            ],
+            "tagsEn": [
+              "Ice",
+              "Feel"
             ],
             "difficultyLevel": 3
           },
@@ -146,9 +175,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "每侧5-8步",
             "targetEn": "5-8 reps/side",
-            "tags": [
+            "tagsZh": [
               "蹬地方向",
               "技术模仿"
+            ],
+            "tagsEn": [
+              "Push",
+              "Direction"
             ],
             "difficultyLevel": 3
           },
@@ -161,9 +194,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "2-3组 x 20-30秒",
             "targetEn": "2-3 sets x 20-30s",
-            "tags": [
+            "tagsZh": [
               "静态力量",
               "速滑体位"
+            ],
+            "tagsEn": [
+              "Static",
+              "Power"
             ],
             "difficultyLevel": 3
           }
@@ -185,9 +222,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "3-4趟",
             "targetEn": "3-4 laps",
-            "tags": [
+            "tagsZh": [
               "敏捷",
               "步频"
+            ],
+            "tagsEn": [
+              "Agility",
+              "Cadence"
             ],
             "difficultyLevel": 3
           },
@@ -200,9 +241,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "5-8次",
             "targetEn": "5-8 reps",
-            "tags": [
+            "tagsZh": [
               "反应",
               "变向"
+            ],
+            "tagsEn": [
+              "Reaction",
+              "Agility"
             ],
             "difficultyLevel": 3
           },
@@ -215,9 +260,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "3-5分钟",
             "targetEn": "3-5 mins",
-            "tags": [
+            "tagsZh": [
               "跳跃",
               "协调"
+            ],
+            "tagsEn": [
+              "Jumping",
+              "Coord"
             ],
             "difficultyLevel": 3
           },
@@ -230,9 +279,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "3-5趟",
             "targetEn": "3-5 laps",
-            "tags": [
+            "tagsZh": [
               "核心稳定",
               "全身协调"
+            ],
+            "tagsEn": [
+              "Core",
+              "Stability"
             ],
             "difficultyLevel": 3
           }
@@ -254,9 +307,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "mobility",
             "targetZh": "20-30秒",
             "targetEn": "20-30s",
-            "tags": [
+            "tagsZh": [
               "髋部",
               "柔韧"
+            ],
+            "tagsEn": [
+              "Hips",
+              "Flex"
             ],
             "difficultyLevel": 3
           },
@@ -269,9 +326,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "mobility",
             "targetZh": "2-3组",
             "targetEn": "2-3 sets",
-            "tags": [
+            "tagsZh": [
               "踝关节",
               "灵活性"
+            ],
+            "tagsEn": [
+              "Ankle",
+              "Mobility"
             ],
             "difficultyLevel": 3
           },
@@ -284,9 +345,14 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "recovery",
             "targetZh": "每个10-15秒",
             "targetEn": "10-15s / pose",
-            "tags": [
+            "tagsZh": [
               "全身拉伸",
               "脊柱"
+            ],
+            "tagsEn": [
+              "Full",
+              "Stretch",
+              "Spine"
             ],
             "difficultyLevel": 3
           }
@@ -471,8 +537,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "5分钟",
             "targetEn": "5 mins",
-            "tags": [
+            "tagsZh": [
               "基本站位"
+            ],
+            "tagsEn": [
+              "Stance"
             ],
             "difficultyLevel": 6
           },
@@ -485,9 +554,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "3组 x 每侧30秒",
             "targetEn": "3 sets x 30s/leg",
-            "tags": [
+            "tagsZh": [
               "专项耐力",
               "核心"
+            ],
+            "tagsEn": [
+              "Core",
+              "Control"
             ],
             "difficultyLevel": 6
           },
@@ -500,9 +573,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "4组 x 每侧15次",
             "targetEn": "4 sets x 15 reps/leg",
-            "tags": [
+            "tagsZh": [
               "蹬冰技术",
               "单腿平衡"
+            ],
+            "tagsEn": [
+              "Push",
+              "Tech"
             ],
             "difficultyLevel": 6
           },
@@ -515,9 +592,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "3组 x 10次",
             "targetEn": "3 sets x 10 reps",
-            "tags": [
+            "tagsZh": [
               "弯道技术",
               "重心转移"
+            ],
+            "tagsEn": [
+              "Cornering"
             ],
             "difficultyLevel": 6
           },
@@ -530,8 +610,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "3组 x 10次",
             "targetEn": "3 sets x 10 reps",
-            "tags": [
+            "tagsZh": [
               "摆臂节奏"
+            ],
+            "tagsEn": [
+              "Arm",
+              "Rhythm"
             ],
             "difficultyLevel": 6
           },
@@ -544,9 +628,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "3组 x 10次",
             "targetEn": "3 sets x 10 reps",
-            "tags": [
+            "tagsZh": [
               "爆发力",
               "力量"
+            ],
+            "tagsEn": [
+              "Power"
             ],
             "difficultyLevel": 6
           },
@@ -559,9 +646,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "technique",
             "targetZh": "4组 x 1分钟",
             "targetEn": "4 sets x 1 min",
-            "tags": [
+            "tagsZh": [
               "核心力量",
               "专项耐力"
+            ],
+            "tagsEn": [
+              "Endurance"
             ],
             "difficultyLevel": 6
           }
@@ -583,9 +673,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "4组 x 12次",
             "targetEn": "4 sets x 12 reps",
-            "tags": [
+            "tagsZh": [
               "腿部力量",
               "发力"
+            ],
+            "tagsEn": [
+              "Legs"
             ],
             "difficultyLevel": 6
           },
@@ -598,9 +691,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "3组 x 每侧8次",
             "targetEn": "3 sets x 8 reps/leg",
-            "tags": [
+            "tagsZh": [
               "单侧力量",
               "平衡"
+            ],
+            "tagsEn": [
+              "Single",
+              "Leg"
             ],
             "difficultyLevel": 6
           },
@@ -613,8 +710,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "3组 x 每侧8次",
             "targetEn": "3 sets x 8 reps/side",
-            "tags": [
+            "tagsZh": [
               "侧向爆发"
+            ],
+            "tagsEn": [
+              "Lateral",
+              "Power"
             ],
             "difficultyLevel": 6
           },
@@ -627,9 +728,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "mobility",
             "targetZh": "3组 x 15次",
             "targetEn": "3 sets x 15 reps",
-            "tags": [
+            "tagsZh": [
               "伸髋发力",
               "臀大肌"
+            ],
+            "tagsEn": [
+              "Hips"
             ],
             "difficultyLevel": 6
           },
@@ -642,9 +746,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "4组 x 10次",
             "targetEn": "4 sets x 10 reps",
-            "tags": [
+            "tagsZh": [
               "下肢爆发力",
               "跳跃"
+            ],
+            "tagsEn": [
+              "Explosive"
             ],
             "difficultyLevel": 6
           },
@@ -657,9 +764,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "3组 x 每侧15步",
             "targetEn": "3 sets x 15 steps",
-            "tags": [
+            "tagsZh": [
               "臀中肌",
               "激活"
+            ],
+            "tagsEn": [
+              "Glute",
+              "Medius"
             ],
             "difficultyLevel": 6
           },
@@ -672,9 +783,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "3组 x 10次",
             "targetEn": "3 sets x 10 reps",
-            "tags": [
+            "tagsZh": [
               "上肢力量",
               "核心稳定"
+            ],
+            "tagsEn": [
+              "Upper",
+              "Body"
             ],
             "difficultyLevel": 6
           }
@@ -696,9 +811,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "3组 x 1分钟",
             "targetEn": "3 sets x 1 min",
-            "tags": [
+            "tagsZh": [
               "核心稳定",
               "抗旋转"
+            ],
+            "tagsEn": [
+              "Core"
             ],
             "difficultyLevel": 6
           },
@@ -711,9 +829,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "3组 x 15次",
             "targetEn": "3 sets x 15 reps",
-            "tags": [
+            "tagsZh": [
               "核心控制",
               "协调"
+            ],
+            "tagsEn": [
+              "Coordination"
             ],
             "difficultyLevel": 6
           },
@@ -726,8 +847,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "3组 x 20次摆臂",
             "targetEn": "3 sets x 20 swings",
-            "tags": [
+            "tagsZh": [
               "专项核心"
+            ],
+            "tagsEn": [
+              "Specific",
+              "Core"
             ],
             "difficultyLevel": 6
           },
@@ -740,9 +865,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 30秒",
             "targetEn": "4 sets x 30s",
-            "tags": [
+            "tagsZh": [
               "心肺耐力",
               "核心"
+            ],
+            "tagsEn": [
+              "Cardio"
             ],
             "difficultyLevel": 6
           }
@@ -764,9 +892,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 16次",
             "targetEn": "4 sets x 16 reps",
-            "tags": [
+            "tagsZh": [
               "侧向爆发",
               "敏捷"
+            ],
+            "tagsEn": [
+              "Lateral",
+              "Plyo"
             ],
             "difficultyLevel": 6
           },
@@ -779,9 +911,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4-6趟",
             "targetEn": "4-6 laps",
-            "tags": [
+            "tagsZh": [
               "步频",
               "协调"
+            ],
+            "tagsEn": [
+              "Quick",
+              "Feet"
             ],
             "difficultyLevel": 6
           },
@@ -794,9 +930,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4-6趟",
             "targetEn": "4-6 laps",
-            "tags": [
+            "tagsZh": [
               "敏捷变向",
               "加速"
+            ],
+            "tagsEn": [
+              "Agility"
             ],
             "difficultyLevel": 6
           }
@@ -818,9 +957,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "1-2组 x 5-8分钟",
             "targetEn": "1-2 sets x 5-8 mins",
-            "tags": [
+            "tagsZh": [
               "有氧",
               "冰感耐力"
+            ],
+            "tagsEn": [
+              "Aerobic"
             ],
             "difficultyLevel": 6
           },
@@ -833,9 +975,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "2组",
             "targetEn": "2 sets x 6-8 reps",
-            "tags": [
+            "tagsZh": [
               "加速",
               "爆发力"
+            ],
+            "tagsEn": [
+              "Acceleration"
             ],
             "difficultyLevel": 6
           },
@@ -848,9 +993,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4-6圈",
             "targetEn": "4-6 laps",
-            "tags": [
+            "tagsZh": [
               "变速",
               "有氧耐力"
+            ],
+            "tagsEn": [
+              "Fartlek"
             ],
             "difficultyLevel": 6
           }
@@ -1142,8 +1290,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "4-5组 x 6-8次",
             "targetEn": "4-5 sets x 6-8 reps",
-            "tags": [
+            "tagsZh": [
               "最大力量"
+            ],
+            "tagsEn": [
+              "Absolute"
             ],
             "difficultyLevel": 8
           },
@@ -1156,8 +1307,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "4组 x 每侧8次",
             "targetEn": "4 sets x 8 reps/leg",
-            "tags": [
+            "tagsZh": [
               "单腿力量"
+            ],
+            "tagsEn": [
+              "Single",
+              "Max"
             ],
             "difficultyLevel": 8
           },
@@ -1170,8 +1325,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "4组 x 8-10次",
             "targetEn": "4 sets x 8-10 reps",
-            "tags": [
+            "tagsZh": [
               "后侧链"
+            ],
+            "tagsEn": [
+              "Posterior"
             ],
             "difficultyLevel": 8
           },
@@ -1184,9 +1342,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "3-4组 x 5-8次",
             "targetEn": "3-4 sets x 5-8 reps",
-            "tags": [
+            "tagsZh": [
               "腘绳肌",
               "离心控制"
+            ],
+            "tagsEn": [
+              "Eccentric"
             ],
             "difficultyLevel": 8
           },
@@ -1199,8 +1360,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "mobility",
             "targetZh": "4组 x 10次",
             "targetEn": "4 sets x 10 reps",
-            "tags": [
+            "tagsZh": [
               "伸髋爆发"
+            ],
+            "tagsEn": [
+              "Hip",
+              "Power"
             ],
             "difficultyLevel": 8
           },
@@ -1213,8 +1378,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "strength",
             "targetZh": "3组 x 8-10次",
             "targetEn": "3 sets x 8-10 reps",
-            "tags": [
+            "tagsZh": [
               "上肢力量"
+            ],
+            "tagsEn": [
+              "Upper",
+              "Body"
             ],
             "difficultyLevel": 8
           }
@@ -1236,8 +1405,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 6次",
             "targetEn": "4 sets x 6 reps",
-            "tags": [
+            "tagsZh": [
               "增强式"
+            ],
+            "tagsEn": [
+              "Explosive"
             ],
             "difficultyLevel": 8
           },
@@ -1250,8 +1422,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 6次",
             "targetEn": "4 sets x 6 reps",
-            "tags": [
+            "tagsZh": [
               "反应时间"
+            ],
+            "tagsEn": [
+              "Reaction"
             ],
             "difficultyLevel": 8
           },
@@ -1264,8 +1439,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 15次",
             "targetEn": "4 sets x 15 reps",
-            "tags": [
+            "tagsZh": [
               "核心连贯"
+            ],
+            "tagsEn": [
+              "Hip",
+              "Snap"
             ],
             "difficultyLevel": 8
           },
@@ -1278,8 +1457,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 每侧10次",
             "targetEn": "4 sets x 10 reps/side",
-            "tags": [
+            "tagsZh": [
               "侧向爆发"
+            ],
+            "tagsEn": [
+              "Specific"
             ],
             "difficultyLevel": 8
           },
@@ -1292,8 +1474,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 每侧10次",
             "targetEn": "4 sets x 10 reps/side",
-            "tags": [
+            "tagsZh": [
               "核心爆发"
+            ],
+            "tagsEn": [
+              "Core",
+              "Power"
             ],
             "difficultyLevel": 8
           },
@@ -1306,9 +1492,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4-6组",
             "targetEn": "4-6 sets",
-            "tags": [
+            "tagsZh": [
               "变向",
               "敏捷"
+            ],
+            "tagsEn": [
+              "Agility"
             ],
             "difficultyLevel": 8
           }
@@ -1330,8 +1519,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "8-10组 x 45秒",
             "targetEn": "8-10 sets x 45s",
-            "tags": [
+            "tagsZh": [
               "无氧耐力"
+            ],
+            "tagsEn": [
+              "Anaerobic"
             ],
             "difficultyLevel": 8
           },
@@ -1344,8 +1536,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "10组 x 20秒",
             "targetEn": "10 sets x 20s",
-            "tags": [
+            "tagsZh": [
               "绝对速度"
+            ],
+            "tagsEn": [
+              "Speed",
+              "Endure"
             ],
             "difficultyLevel": 8
           },
@@ -1358,8 +1554,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "6-8趟 x 20米",
             "targetEn": "6-8 laps x 20m",
-            "tags": [
+            "tagsZh": [
               "抗阻爆发"
+            ],
+            "tagsEn": [
+              "Resistance"
             ],
             "difficultyLevel": 8
           },
@@ -1372,8 +1571,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4-6组",
             "targetEn": "4-6 sets",
-            "tags": [
+            "tagsZh": [
               "心肺极限"
+            ],
+            "tagsEn": [
+              "Cardio",
+              "Max"
             ],
             "difficultyLevel": 8
           }
@@ -1395,8 +1598,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 1分钟/10次",
             "targetEn": "4 sets x 1 min / 10 reps",
-            "tags": [
+            "tagsZh": [
               "抗伸展"
+            ],
+            "tagsEn": [
+              "Anti-extension"
             ],
             "difficultyLevel": 8
           },
@@ -1409,9 +1615,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 12次/侧",
             "targetEn": "4 sets x 12 reps/side",
-            "tags": [
+            "tagsZh": [
               "抗旋转",
               "核心"
+            ],
+            "tagsEn": [
+              "Anti-Rotation"
             ],
             "difficultyLevel": 8
           },
@@ -1424,8 +1633,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "4组 x 15次",
             "targetEn": "4 sets x 15 reps",
-            "tags": [
+            "tagsZh": [
               "核心控制"
+            ],
+            "tagsEn": [
+              "Core",
+              "Control"
             ],
             "difficultyLevel": 8
           },
@@ -1438,8 +1651,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "dryland",
             "targetZh": "3组 x 1.5-2分钟",
             "targetEn": "3 sets x 1.5-2 mins",
-            "tags": [
+            "tagsZh": [
               "专项耐力"
+            ],
+            "tagsEn": [
+              "Static",
+              "Endure"
             ],
             "difficultyLevel": 8
           }
@@ -1461,8 +1678,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "recovery",
             "targetZh": "15-20分钟",
             "targetEn": "15-20 mins",
-            "tags": [
+            "tagsZh": [
               "促进循环"
+            ],
+            "tagsEn": [
+              "Circulation"
             ],
             "difficultyLevel": 8
           },
@@ -1475,8 +1695,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "recovery",
             "targetZh": "10-15分钟",
             "targetEn": "10-15 mins",
-            "tags": [
+            "tagsZh": [
               "肌肉延展"
+            ],
+            "tagsEn": [
+              "Flexibility"
             ],
             "difficultyLevel": 8
           },
@@ -1489,9 +1712,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "recovery",
             "targetZh": "每侧 45-60秒",
             "targetEn": "45-60s / side",
-            "tags": [
+            "tagsZh": [
               "髋关节",
               "柔韧"
+            ],
+            "tagsEn": [
+              "Hip",
+              "Mobility"
             ],
             "difficultyLevel": 8
           },
@@ -1504,9 +1731,12 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "recovery",
             "targetZh": "3组 x 每侧10次",
             "targetEn": "3 sets x 10 reps/side",
-            "tags": [
+            "tagsZh": [
               "骨盆中立",
               "稳定"
+            ],
+            "tagsEn": [
+              "Stability"
             ],
             "difficultyLevel": 8
           },
@@ -1519,9 +1749,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "recovery",
             "targetZh": "3组 x 15次",
             "targetEn": "3 sets x 15 reps",
-            "tags": [
+            "tagsZh": [
               "踝关节",
               "预防崴脚"
+            ],
+            "tagsEn": [
+              "Ankle",
+              "Prev"
             ],
             "difficultyLevel": 8
           },
@@ -1534,8 +1768,11 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "category": "recovery",
             "targetZh": "10分钟",
             "targetEn": "10 mins",
-            "tags": [
+            "tagsZh": [
               "消除炎症"
+            ],
+            "tagsEn": [
+              "Recovery"
             ],
             "difficultyLevel": 8
           }

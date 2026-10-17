@@ -59,7 +59,8 @@ function buildStages() {
           category: inferCategory(zi.tag, zm.name),
           targetZh: zi.target,
           targetEn: ei.target,
-          tags: parseTags(zi.tag),
+          tagsZh: parseTags(zi.tag),
+          tagsEn: parseTags(ei.tag),
           difficultyLevel: z.id === "age4_6" ? 3 : z.id === "age7_10" ? 6 : 8,
         };
       });

@@ -40,12 +40,13 @@ export function findAcademyItem(
 export function localizeAcademyItem(
   item: AcademyItem,
   language: AcademyLanguage,
-): { title: string; description: string; target: string } {
+): { title: string; description: string; target: string; tags: string[] } {
   const isEn = language === "en";
   return {
     title: isEn ? item.titleEn : item.titleZh,
     description: isEn ? item.descriptionEn : item.descriptionZh,
     target: isEn ? item.targetEn : item.targetZh,
+    tags: isEn ? item.tagsEn : item.tagsZh,
   };
 }
 

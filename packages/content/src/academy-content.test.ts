@@ -21,6 +21,7 @@ type LegacyStage = {
   id: string;
   age: string;
   weeklyPlan: { day: string; tasks: string[] }[];
+  modules: { items: { tag: string }[] }[];
 };
 
 const CJK = /[\u3400-\u9fff\uff00-\uffef]/;
@@ -69,6 +70,29 @@ describe("academy content: both languages are complete", () => {
       }
     }
     expect(seen).toBe(63);
+  });
+});
+
+describe("academy content: drill tags in both languages", () => {
+  // The legacy tags are space-separated keywords, so that is also how both languages are split.
+  const words = (tag: string) => tag.split(/\s+/).filter(Boolean);
+
+  it("every drill has tags in both languages, taken from the legacy source, and none in the wrong one", () => {
+    let seen = 0;
+    ACADEMY_STAGES.forEach((stage, si) => {
+      stage.modules.forEach((module, mi) => {
+        module.items.forEach((item, ii) => {
+          seen += 1;
+          expect(item.tagsZh, item.id).toEqual(words(legacy.zh[si]!.modules[mi]!.items[ii]!.tag));
+          expect(item.tagsEn, item.id).toEqual(words(legacy.en[si]!.modules[mi]!.items[ii]!.tag));
+          expect(item.tagsEn.length, `${item.id} has English tags`).toBeGreaterThan(0);
+          expect(item.tagsEn.some((tag) => CJK.test(tag)), `${item.id} English tags: ${item.tagsEn}`).toBe(false);
+          expect(item.tagsZh.every((tag) => CJK.test(tag)), `${item.id} Chinese tags: ${item.tagsZh}`).toBe(true);
+        });
+      });
+    });
+    // Guards the loops above against passing on empty data.
+    expect(seen).toBe(66);
   });
 });
 
