@@ -10,33 +10,42 @@ import {
   useTrainingState,
 } from "@/app/providers/FirestoreProvider";
 import { useIsPro } from "@/hooks/useIsPro";
+import { useLocale } from "@/hooks/useLocale";
 import { useRewardsShop } from "@/hooks/useRewardsShop";
 import { useTrainingRecords } from "@/hooks/useTrainingRecords";
+import { type DashboardMessageKey, tDashboard } from "@/shared/i18n/dashboard-messages";
+import { formatCalendarDate } from "@/shared/i18n/format";
 
-const dashboardCards = [
+/** Destinations do not depend on the language; only the text is looked up. */
+const dashboardCards: ReadonlyArray<{
+  titleKey: DashboardMessageKey;
+  bodyKey: DashboardMessageKey;
+  to: string;
+}> = [
   {
-    title: "Today's Training",
-    body: "View and complete today's task list.",
+    titleKey: "dashboard.shortcut.training.title",
+    bodyKey: "dashboard.shortcut.training.body",
     to: "/training/tasks",
   },
   {
-    title: "Latest Analysis",
-    body: "Biomechanics, pacing, and equipment insights.",
+    titleKey: "dashboard.shortcut.analysis.title",
+    bodyKey: "dashboard.shortcut.analysis.body",
     to: "/analysis",
   },
   {
-    title: "Athlete Profile",
-    body: "Profile, division, and avatar settings.",
+    titleKey: "dashboard.shortcut.athlete.title",
+    bodyKey: "dashboard.shortcut.athlete.body",
     to: "/athlete",
   },
   {
-    title: "AI Coach Recommendation",
-    body: "Personalized coaching suggestions from your data.",
+    titleKey: "dashboard.shortcut.aiCoach.title",
+    bodyKey: "dashboard.shortcut.aiCoach.body",
     to: "/ai-coach",
   },
-] as const;
+];
 
 export function DashboardPage() {
+  const locale = useLocale();
   const { data: profile, loading: profileLoading, error: profileError } =
     useAthleteProfile();
   const {
@@ -89,9 +98,13 @@ export function DashboardPage() {
 
   return (
     <section>
-      <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-slate-900">
+        {tDashboard(locale, "dashboard.title")}
+      </h1>
       <p className="mt-1 text-slate-600">
-        {loading ? "Loading your dashboard…" : `Welcome back, ${name}`}
+        {loading
+          ? tDashboard(locale, "dashboard.loading")
+          : tDashboard(locale, "dashboard.welcome", { name })}
       </p>
 
       <FirestoreStatusBanner className="mt-4" />
@@ -106,36 +119,46 @@ export function DashboardPage() {
       ) : null}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card title="Athlete">
+        <Card title={tDashboard(locale, "dashboard.card.athlete")}>
           <p className="text-lg font-semibold text-slate-900">
             {loading ? "…" : name}
           </p>
         </Card>
-        <Card title="Points">
+        <Card title={tDashboard(locale, "dashboard.card.points")}>
           <p className="text-lg font-semibold text-slate-900">
             {loading ? "…" : points}
           </p>
         </Card>
-        <Card title="Streak">
+        <Card title={tDashboard(locale, "dashboard.card.streak")}>
           <p className="text-lg font-semibold text-slate-900">
-            {loading ? "…" : `${streakDays} days`}
+            {loading
+              ? "…"
+              : tDashboard(
+                  locale,
+                  streakDays === 1 ? "dashboard.streak.one" : "dashboard.streak.other",
+                  { count: streakDays },
+                )}
           </p>
         </Card>
-        <Card title="Today's tasks">
+        <Card title={tDashboard(locale, "dashboard.card.tasks")}>
           <p className="text-lg font-semibold text-slate-900">
             {loading ? "…" : `${completedCount} / ${taskCount}`}
           </p>
-          <p className="mt-1 text-xs text-slate-500">completed / total</p>
+          <p className="mt-1 text-xs text-slate-500">
+            {tDashboard(locale, "dashboard.tasks.hint")}
+          </p>
         </Card>
-        <Card title="500m PB">
+        <Card title={tDashboard(locale, "dashboard.card.pb500")}>
           <p className="text-lg font-semibold font-mono text-slate-900">
             {loading ? "…" : pb500 ? formatSecondsToTime(pb500.timeSeconds) : "—"}
           </p>
           {pb500 ? (
-            <p className="mt-1 text-xs text-slate-500">{pb500.date}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {formatCalendarDate(pb500.date, locale)}
+            </p>
           ) : null}
         </Card>
-        <Card title="Fastest lap PB">
+        <Card title={tDashboard(locale, "dashboard.card.pbFastestLap")}>
           <p className="text-lg font-semibold font-mono text-slate-900">
             {loading
               ? "…"
@@ -144,15 +167,19 @@ export function DashboardPage() {
                 : "—"}
           </p>
           {pbFastestLap ? (
-            <p className="mt-1 text-xs text-slate-500">{pbFastestLap.date}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {formatCalendarDate(pbFastestLap.date, locale)}
+            </p>
           ) : null}
         </Card>
-        <Card title="Plan">
+        <Card title={tDashboard(locale, "dashboard.card.plan")}>
           <p className="text-lg font-semibold text-slate-900">
-            {loading ? "…" : isPro ? "PRO active" : "Free plan"}
+            {loading
+              ? "…"
+              : tDashboard(locale, isPro ? "dashboard.plan.pro" : "dashboard.plan.free")}
           </p>
         </Card>
-        <Card title="Latest redemption">
+        <Card title={tDashboard(locale, "dashboard.card.redemption")}>
           <p className="text-lg font-semibold text-slate-900">
             {loading
               ? "…"
@@ -162,13 +189,18 @@ export function DashboardPage() {
           </p>
           {latestRedemption ? (
             <p className="mt-1 text-xs text-slate-500">
-              −{latestRedemption.cost} pts · {latestRedemption.redeemedAt.slice(0, 10)}
+              {tDashboard(locale, "dashboard.redemption.cost", {
+                cost: latestRedemption.cost,
+                date: formatCalendarDate(latestRedemption.redeemedAt.slice(0, 10), locale),
+              })}
             </p>
           ) : (
-            <p className="mt-1 text-xs text-slate-500">No redemptions yet</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {tDashboard(locale, "dashboard.redemption.none")}
+            </p>
           )}
         </Card>
-        <Card title="Latest record">
+        <Card title={tDashboard(locale, "dashboard.card.record")}>
           <p className="text-lg font-semibold font-mono text-slate-900">
             {loading
               ? "…"
@@ -177,20 +209,24 @@ export function DashboardPage() {
                 : "—"}
           </p>
           {latestEntryOverall ? (
-            <p className="mt-1 text-xs text-slate-500">{latestEntryOverall.date}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {formatCalendarDate(latestEntryOverall.date, locale)}
+            </p>
           ) : (
-            <p className="mt-1 text-xs text-slate-500">No entries yet</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {tDashboard(locale, "dashboard.record.none")}
+            </p>
           )}
         </Card>
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {dashboardCards.map((card) => (
-          <Link key={card.title} to={card.to} className="block no-underline">
-            <Card title={card.title}>
-              <p>{card.body}</p>
+          <Link key={card.to} to={card.to} className="block no-underline">
+            <Card title={tDashboard(locale, card.titleKey)}>
+              <p>{tDashboard(locale, card.bodyKey)}</p>
               <span className="mt-2 inline-block text-sm font-medium text-sky-700">
-                Open →
+                {tDashboard(locale, "dashboard.shortcut.open")}
               </span>
             </Card>
           </Link>

@@ -12,10 +12,13 @@ describe("settings messages", () => {
     }
   });
 
-  it("no longer says the navigation is English only (S6b), but still warns about unfinished pages", () => {
+  it("names the screens that are still English (Training, Analysis), not ones that are done", () => {
     for (const lang of ["zh", "en"] as const) {
       const note = tSettings(lang, "settings.language.description");
-      expect(note).not.toMatch(/底部导航|bottom navigation/i);
+      // Done: navigation (S6b), Settings, Dashboard, Athlete, AI Coach (S6c).
+      expect(note).not.toMatch(/底部导航|设置页|bottom navigation|this page/i);
+      expect(note).toMatch(/训练|Training/);
+      expect(note).toMatch(/分析|Analysis/);
       expect(note).toMatch(/暂时仍是英文|still English only/);
     }
   });
