@@ -1,5 +1,13 @@
 import { PagePlaceholder } from "@/components/PagePlaceholder";
+import { useLocale } from "@/hooks/useLocale";
+import { tAnalysis } from "@/shared/i18n/analysis-messages";
 
 export function AnalysisEquipmentPage() {
-  return <PagePlaceholder title="Analysis · Equipment" />;
+  const locale = useLocale();
+
+  return (
+    <PagePlaceholder
+      title={tAnalysis(locale, "analysis.equipment.title")}
+    />
+  );
 }

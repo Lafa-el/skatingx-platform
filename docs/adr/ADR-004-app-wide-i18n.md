@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Proposed.** Scope, timing and handling of user-entered text decided by the owner 2026-10-16 (section 2). Chinese wording is a draft; the owner reviews it page by page in each slice. |
+| Status | **Accepted (2026-10-17, owner approved).** Scope, timing and handling of user-entered text decided by the owner 2026-10-16 (section 2). Slices S6a–S6e are delivered; the Chinese wording was reviewed by the owner slice by slice. Sign-in error messages are a separate follow-up slice (A2). |
 | Date | 2026-10-16 |
 | Branch | `feat/i18n-s6a` |
 | Supersedes | ADR-001, line "Existing pages hard-code mixed zh/en and bypass unified i18n; new module uses a unified i18n resource, old pages are untouched." Only that line; the rest of ADR-001 stands. |
@@ -31,7 +31,7 @@ Already bilingual and **not** in scope to re-translate: Academy lessons and stag
 | D5 | **Keys are named by domain**, `dashboard.card.todayTraining`, never by English sentence. Placeholders are `{name}`, identical in both languages (existing test pattern). Plurals and counts use separate keys or number-free wording; no string concatenation of translated pieces. | AGENTS.md; word order differs between zh and en. |
 | D6 | **The locale comes from one place**: `useLocale()` / `toLocale()`. Components do not compare a language value with `"en"`. Choosing text by language is the translator's job. | The comparison is how mixed text got in; the scan reports it. |
 | D7 | **Dates, numbers, units and money use `Intl`** with the current locale, through shared helpers (for example the Race Day `lib/schedule.ts` day format). No hand-built date strings. | AGENTS.md. |
-| D8 | **A test keeps it this way.** `i18n-coverage.test.ts` scans the app. Files not yet migrated are listed with their slice; the list only shrinks. An unlisted file with hardcoded text fails; a listed file with none left also fails until removed. When S6e lands the list is empty. | Prevents silent regressions and an unfinished slice hiding. |
+| D8 | **A test keeps it this way.** `i18n-coverage.test.ts` scans the app. Until S6e, files not yet migrated were listed with their slice and the list only shrank. S6e emptied it, so the list is gone (A2): any file with hardcoded text fails. | Prevents silent regressions and an unfinished slice hiding. |
 | D9 | **Wording rules.** Chinese is written as natural Chinese, not word-for-word. Terms are fixed once in a glossary (section 4) and reused. Text must not claim more than the app computes: no "AI", "biomechanical analysis" or "diagnosis" wording where the feature does not do it (AGENTS.md privacy and claims rules). Unverified data keeps the existing "待确认 / Pending" terms. | Consistency; honesty. |
 
 ## 3. Non-goals
@@ -79,7 +79,7 @@ Each slice is its own branch and draft PR, merged by the owner, and releasable a
 | **S6b** | Shell and navigation: bottom nav, sub navigation labels, athlete selector, status banner, placeholder, language setting, locale derivation in `useIsPro`. Update the settings language note ("some screens are still English") once true. | `app/navigation.ts`, `components/*`, `hooks/useIsPro.ts` |
 | **S6c** | Dashboard, Athlete, AI Coach, Settings pages. | `pages/*.tsx` |
 | **S6d** | Training: Home, Tasks, Records, Academy, Shop; the Pro banner they share; `useAcademyImport`, `useRewardsShop`. The ~75 inline language branches become resource keys. | `pages/training/*`, `components/ProPlanBanner.tsx`, `hooks/*` |
-| **S6e** | Analysis pages (four small placeholder pages). Then empty the not-migrated list. | `pages/analysis/*` |
+| **S6e** (done, A2) | Analysis pages (four small placeholder pages). Then empty the not-migrated list. | `pages/analysis/*` |
 
 Hooks follow the page that uses them, so `useAcademyImport` and `useRewardsShop` are in S6d, not S6e.
 
@@ -112,3 +112,11 @@ Section 3 says this work changes no data. One exception, agreed with the owner: 
 - **Existing tasks are not touched.** They keep the tags they were written with. There is no migration and no read-time mapping: the English tags are written per drill, not word for word from the Chinese (32 of 66 drills have a different number of words, and one Chinese word maps to several English ones), so a stored Chinese tag cannot be translated reliably.
 - **What the user sees.** A task shows the text it was written with, as for all user task text (D2). A task imported in Chinese keeps Chinese tags after a switch to English, next to its Chinese title, so a task never mixes the two.
 - **Rollback.** Revert the PR; new imports are written in Chinese again. English tags already written stay as they are and display as stored. No data repair is needed.
+
+### A2 (2026-10-17): S6e done, the not-migrated list is removed
+
+- **Coverage test.** `NOT_MIGRATED` is deleted together with its "listed file still has hardcoded text" test. `i18n-coverage.test.ts` is now the plain rule from D8: no file in the app may have hardcoded text. The "scans the app" test stays so an empty scan cannot pass by accident.
+- **Settings note.** The language setting no longer says that some screens are still English; every screen follows the setting. The text is now only "选择界面语言。" / "Choose the interface language."
+- **Analysis pages.** They are placeholders and say no more than that: "动作分析" (never "生物力学", D9), and the shared placeholder note. A test checks that the Chinese never says "生物力学" on them. The English hub note no longer says "Biomechanics lab" (a placeholder has no lab; owner approved 2026-10-17); it now reads "Biomechanics, pacing charts, and equipment tracking."
+- **Still shown as received, not translated.** Sign-in / sign-up error messages that come from the identity layer, and messages that come back from the data layer (Firestore errors), are shown as they arrive. Translating the sign-in ones touches `packages/firebase-client` identity code and is a separate slice with its own risk and rollback notes.
+- **Rollback.** Revert the PR; the pages show their English text again and the setting note returns to the previous wording. No data change.
