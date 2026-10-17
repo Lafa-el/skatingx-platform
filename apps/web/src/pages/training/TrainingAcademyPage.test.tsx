@@ -312,6 +312,46 @@ describe.each(["zh", "en"] as const)("TrainingAcademyPage (%s)", (locale) => {
     renderPage();
     expect(screen.getByRole("alert").textContent).toBe("permission-denied");
   });
+
+  // happy-dom does not lay anything out, so the 44px minimum is pinned by its class (min-h-11 is
+  // 2.75rem) and was measured in a real browser for the PR.
+  const hasMinHeight44 = (element: HTMLElement) => element.className.split(/\s+/).includes("min-h-11");
+
+  it("tap targets: the stage buttons and every drill's add button are at least 44px tall", () => {
+    setLocale();
+    renderPage();
+    // The stage buttons share one row and come first on the page; their text is not needed here.
+    const row = screen.getAllByRole("button")[0]!.parentElement!;
+    const stageButtons = [...row.querySelectorAll<HTMLElement>("button")];
+    expect(stageButtons).toHaveLength(stages.length);
+    for (const button of stageButtons) {
+      expect(hasMinHeight44(button), button.textContent ?? "").toBe(true);
+    }
+    const adds = screen.getAllByRole("button", { name: t.add });
+    expect(adds.length).toBe(module0.items.length);
+    for (const add of adds) {
+      expect(hasMinHeight44(add)).toBe(true);
+    }
+  });
+
+  it("tap targets: the link to the tasks after an import is at least 44px tall", () => {
+    setLocale();
+    h.state.academy.lastResult = { imported: 3, skipped: 2 };
+    renderPage();
+    expect(hasMinHeight44(screen.getByRole("link", { name: t.viewTasks }))).toBe(true);
+  });
+
+  it("tap targets: the weekday picker and the PRO import buttons are at least 44px tall", () => {
+    setLocale(true);
+    renderPage();
+    expect(hasMinHeight44(screen.getByRole("combobox", { name: t.weekday }))).toBe(true);
+    expect(hasMinHeight44(screen.getByRole("button", { name: t.importDay }))).toBe(true);
+    const plans = screen.getAllByRole("button", { name: t.importPlan });
+    expect(plans.length).toBe(stage.weeklyRoutine.dayPlans.length);
+    for (const plan of plans) {
+      expect(hasMinHeight44(plan)).toBe(true);
+    }
+  });
 });
 
 describe("TrainingAcademyPage (other)", () => {
