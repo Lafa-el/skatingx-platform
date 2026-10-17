@@ -7,16 +7,23 @@ import { Button, Card } from "@skatingx/ui";
 import { FormEvent, useMemo, useState } from "react";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
+import { useLocale } from "@/hooks/useLocale";
 import { useTrainingRecordActions } from "@/hooks/useTrainingRecordActions";
 import { useTrainingRecords } from "@/hooks/useTrainingRecords";
+import { formatCalendarDate } from "@/shared/i18n/format";
+import {
+  formatDistanceLabel,
+  formatRecordSource,
+  type RecordsMessageKey,
+  tRecords,
+} from "@/shared/i18n/records-messages";
 
-const SOURCE_OPTIONS = [
-  { value: "manual", label: "Manual" },
-  { value: "training", label: "Training" },
-  { value: "race", label: "Race" },
-] as const;
+const SOURCES = ["manual", "training", "race"] as const;
 
 export function TrainingRecordsPage() {
+  const locale = useLocale();
+  const t = (key: RecordsMessageKey, params?: Parameters<typeof tRecords>[2]) =>
+    tRecords(locale, key, params);
   const {
     loading,
     error,
@@ -35,7 +42,8 @@ export function TrainingRecordsPage() {
   const [timeInput, setTimeInput] = useState("");
   const [source, setSource] = useState<"manual" | "race" | "training">("manual");
   const [note, setNote] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
+  // The key, not the sentence, so the message follows the language if it changes while shown.
+  const [formError, setFormError] = useState<RecordsMessageKey | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
   const activeDistance = useMemo(
@@ -49,6 +57,8 @@ export function TrainingRecordsPage() {
   const best = getBestForDistance(activeDistanceId);
   const latest = getLatestForDistance(activeDistanceId);
   const doc = getDocument(activeDistanceId);
+  const entryCount = doc?.entries.length ?? 0;
+  const activeLabel = formatDistanceLabel(activeDistance.distanceId, activeDistance.label, locale);
 
   function resetForm() {
     setDate(todayDateString());
@@ -65,17 +75,17 @@ export function TrainingRecordsPage() {
     setFormError(null);
 
     if (!date.trim()) {
-      setFormError("Date is required.");
+      setFormError("records.error.dateRequired");
       return;
     }
     if (!timeInput.trim()) {
-      setFormError("Time is required.");
+      setFormError("records.error.timeRequired");
       return;
     }
 
     const seconds = parseTimeToSeconds(timeInput);
     if (seconds === null) {
-      setFormError("Enter a valid time (e.g. 49.8, 0:49.80, 1:44.23).");
+      setFormError("records.error.timeInvalid");
       return;
     }
 
@@ -113,7 +123,7 @@ export function TrainingRecordsPage() {
   }
 
   async function handleDelete(entryId: string, timeLabel: string) {
-    const confirmed = window.confirm(`Delete record ${timeLabel}?`);
+    const confirmed = window.confirm(t("records.confirm.delete", { time: timeLabel }));
     if (!confirmed) {
       return;
     }
@@ -126,9 +136,9 @@ export function TrainingRecordsPage() {
 
   return (
     <section className="max-w-lg">
-      <h1 className="text-2xl font-bold text-slate-900">PB records</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t("records.page.title")}</h1>
       <p className="mt-1 text-slate-600">
-        Track personal bests by distance. Times support seconds or M:SS.xx.
+        {t("records.page.subtitle")}
       </p>
 
       <FirestoreStatusBanner className="mt-4" />
@@ -166,41 +176,41 @@ export function TrainingRecordsPage() {
                 : "shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             }
           >
-            {distance.label}
+            {formatDistanceLabel(distance.distanceId, distance.label, locale)}
           </button>
         ))}
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Card title="Best time (PB)">
+        <Card title={t("records.card.best")}>
           <p className="text-2xl font-semibold text-slate-900">
             {loading ? "…" : best ? formatSecondsToTime(best.timeSeconds) : "—"}
           </p>
           {best ? (
-            <p className="mt-1 text-xs text-slate-500">{best.date}</p>
+            <p className="mt-1 text-xs text-slate-500">{formatCalendarDate(best.date, locale)}</p>
           ) : (
-            <p className="mt-1 text-xs text-slate-500">No entries yet</p>
+            <p className="mt-1 text-xs text-slate-500">{t("records.card.none")}</p>
           )}
         </Card>
-        <Card title="Latest time">
+        <Card title={t("records.card.latest")}>
           <p className="text-2xl font-semibold text-slate-900">
             {loading ? "…" : latest ? formatSecondsToTime(latest.timeSeconds) : "—"}
           </p>
           {latest ? (
-            <p className="mt-1 text-xs text-slate-500">{latest.date}</p>
+            <p className="mt-1 text-xs text-slate-500">{formatCalendarDate(latest.date, locale)}</p>
           ) : (
-            <p className="mt-1 text-xs text-slate-500">No entries yet</p>
+            <p className="mt-1 text-xs text-slate-500">{t("records.card.none")}</p>
           )}
         </Card>
       </div>
 
       <Card
-        title={editingEntryId ? "Edit record" : "Add PB / record"}
+        title={editingEntryId ? t("records.form.editTitle") : t("records.form.addTitle")}
         className="mt-4"
       >
         <form className="grid gap-3" onSubmit={(e) => void handleSubmit(e)}>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Date</span>
+            <span className="font-medium text-slate-700">{t("records.form.date")}</span>
             <input
               type="date"
               value={date}
@@ -210,18 +220,18 @@ export function TrainingRecordsPage() {
             />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Time</span>
+            <span className="font-medium text-slate-700">{t("records.form.time")}</span>
             <input
               type="text"
               value={timeInput}
               onChange={(e) => setTimeInput(e.target.value)}
-              placeholder="49.8 or 0:49.80 or 1:44.23"
+              placeholder={t("records.form.timePlaceholder")}
               required
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono"
             />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Source</span>
+            <span className="font-medium text-slate-700">{t("records.form.source")}</span>
             <select
               value={source}
               onChange={(e) =>
@@ -229,46 +239,56 @@ export function TrainingRecordsPage() {
               }
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
             >
-              {SOURCE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
+              {SOURCES.map((value) => (
+                <option key={value} value={value}>
+                  {formatRecordSource(value, locale)}
                 </option>
               ))}
             </select>
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Note (optional)</span>
+            <span className="font-medium text-slate-700">{t("records.form.note")}</span>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="e.g. time trial"
+              placeholder={t("records.form.notePlaceholder")}
             />
           </label>
           {formError ? (
             <p className="text-sm text-red-700" role="alert">
-              {formError}
+              {t(formError)}
             </p>
           ) : null}
           <div className="flex gap-2">
             <Button type="submit" disabled={busy}>
-              {busy ? "Saving…" : editingEntryId ? "Save changes" : "Add record"}
+              {busy
+                ? t("records.form.saving")
+                : editingEntryId
+                  ? t("records.form.save")
+                  : t("records.form.add")}
             </Button>
             {editingEntryId ? (
               <Button type="button" variant="ghost" onClick={resetForm} disabled={busy}>
-                Cancel
+                {t("records.form.cancel")}
               </Button>
             ) : null}
           </div>
         </form>
       </Card>
 
-      <Card title={`${activeDistance.label} — ${doc?.entries.length ?? 0} entries`} className="mt-4">
+      <Card
+        title={t(entryCount === 1 ? "records.list.title.one" : "records.list.title.other", {
+          label: activeLabel,
+          count: entryCount,
+        })}
+        className="mt-4"
+      >
         {loading ? (
-          <p className="text-sm text-slate-500">Loading records…</p>
+          <p className="text-sm text-slate-500">{t("records.list.loading")}</p>
         ) : entries.length === 0 ? (
           <p className="text-sm text-slate-500">
-            No records for {activeDistance.label} yet. Add your first time above.
+            {t("records.list.empty", { label: activeLabel })}
           </p>
         ) : (
           <ul className="divide-y divide-slate-100">
@@ -285,13 +305,13 @@ export function TrainingRecordsPage() {
                       {timeLabel}
                       {isBest ? (
                         <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
-                          PB
+                          {t("records.entry.pb")}
                         </span>
                       ) : null}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {entry.date}
-                      {entry.source ? ` · ${entry.source}` : ""}
+                      {formatCalendarDate(entry.date, locale)}
+                      {entry.source ? ` · ${formatRecordSource(entry.source, locale)}` : ""}
                     </p>
                     {entry.note ? (
                       <p className="mt-0.5 text-xs text-slate-600">{entry.note}</p>
@@ -304,7 +324,7 @@ export function TrainingRecordsPage() {
                       onClick={() => startEdit(entry.id)}
                       className="text-xs text-sky-700 hover:underline disabled:opacity-50"
                     >
-                      Edit
+                      {t("records.entry.edit")}
                     </button>
                     <button
                       type="button"
@@ -312,7 +332,7 @@ export function TrainingRecordsPage() {
                       onClick={() => void handleDelete(entry.id, timeLabel)}
                       className="text-xs text-red-600 hover:underline disabled:opacity-50"
                     >
-                      Delete
+                      {t("records.entry.delete")}
                     </button>
                   </div>
                 </li>

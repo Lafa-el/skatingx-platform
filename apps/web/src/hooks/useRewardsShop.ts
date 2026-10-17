@@ -6,7 +6,6 @@ import {
   trainingRewardsCatalogRef,
 } from "@skatingx/firebase-client";
 import type {
-  Language,
   RewardRedemption,
   RewardsCatalogDocument,
 } from "@skatingx/schema";
@@ -15,6 +14,15 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { type ShopMessageKey, tShop } from "@/shared/i18n/shop-messages";
+import { toLocale } from "@/shared/i18n/translator";
+
+/**
+ * What the user is told when loading the shop fails. It keeps what happened, not the sentence, so
+ * it follows the language if that changes afterwards. A message that came from the data layer is
+ * shown as it arrived.
+ */
+type ShopErrorNote = { key: ShopMessageKey } | { received: string };
 
 export function useRewardsShop() {
   const { uid } = useAuth();
@@ -24,7 +32,7 @@ export function useRewardsShop() {
   const [catalog, setCatalog] = useState<RewardsCatalogDocument | null>(null);
   const [redemptions, setRedemptions] = useState<RewardRedemption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorNote, setErrorNote] = useState<ShopErrorNote | null>(null);
 
   useEffect(() => {
     if (!uid) {
@@ -36,22 +44,22 @@ export function useRewardsShop() {
 
     const db = getFirestoreDb();
     if (!db) {
-      setError("Firestore is not available.");
+      setErrorNote({ key: "shop.error.unavailable" });
       setLoading(false);
       return;
     }
 
     let cancelled = false;
     setLoading(true);
-    setError(null);
+    setErrorNote(null);
 
     void ensureDefaultRewardsCatalog({ db, userId: uid, athleteId }).catch(
       (ensureError) => {
         if (!cancelled) {
-          setError(
+          setErrorNote(
             ensureError instanceof Error
-              ? ensureError.message
-              : "Failed to initialize rewards catalog.",
+              ? { received: ensureError.message }
+              : { key: "shop.error.catalogFailed" },
           );
         }
       },
@@ -73,7 +81,7 @@ export function useRewardsShop() {
       },
       (err) => {
         if (!cancelled) {
-          setError(err.message);
+          setErrorNote({ received: err.message });
           setLoading(false);
         }
       },
@@ -91,7 +99,7 @@ export function useRewardsShop() {
       },
       (err) => {
         if (!cancelled) {
-          setError(err.message);
+          setErrorNote({ received: err.message });
         }
       },
     );
@@ -110,7 +118,12 @@ export function useRewardsShop() {
     )[0];
   }, [redemptions]);
 
-  const language = (settings?.language === "en" ? "en" : "zh") as Language;
+  const language = toLocale(settings?.language);
+  const error = errorNote
+    ? "received" in errorNote
+      ? errorNote.received
+      : tShop(language, errorNote.key)
+    : null;
 
   return {
     catalog,

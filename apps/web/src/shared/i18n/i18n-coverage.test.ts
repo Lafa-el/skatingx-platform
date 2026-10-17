@@ -16,11 +16,7 @@ import { findHardcodedText } from "@/test/hardcoded-text";
  *
  * When the last slice is done this list is empty and the test becomes the plain rule.
  */
-const NOT_MIGRATED: Record<string, "S6d" | "S6e"> = {
-  // S6d: training (pages, the Pro banner they share, and the hooks behind them)
-  "hooks/useRewardsShop.ts": "S6d",
-  "pages/training/TrainingRecordsPage.tsx": "S6d",
-  "pages/training/TrainingShopPage.tsx": "S6d",
+const NOT_MIGRATED: Record<string, "S6e"> = {
   // S6e: analysis
   "pages/analysis/AnalysisBiomechanicsPage.tsx": "S6e",
   "pages/analysis/AnalysisEquipmentPage.tsx": "S6e",

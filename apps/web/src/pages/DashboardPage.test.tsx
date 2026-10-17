@@ -24,7 +24,8 @@ const h = vi.hoisted(() => {
     shop: {
       loading: false,
       error: null as string | null,
-      latestRedemption: null as { rewardName: string; cost: number; redeemedAt: string } | null,
+      catalog: null as { items: { id: string; nameZh: string; nameEn: string }[] } | null,
+      latestRedemption: null as { rewardId: string; rewardName: string; cost: number; redeemedAt: string } | null,
     },
   });
   return { ready, base, state: base() };
@@ -249,7 +250,13 @@ describe("DashboardPage: records and redemptions", () => {
     h.state.shop = {
       loading: false,
       error: null,
-      latestRedemption: { rewardName: "Sample Reward", cost: 50, redeemedAt: "2026-10-14T18:30:00.000Z" },
+      catalog: null,
+      latestRedemption: {
+        rewardId: "sample",
+        rewardName: "Sample Reward",
+        cost: 50,
+        redeemedAt: "2026-10-14T18:30:00.000Z",
+      },
     };
   };
 
@@ -258,6 +265,17 @@ describe("DashboardPage: records and redemptions", () => {
     renderPage();
     expect(card("最近兑换").getByText("Sample Reward")).toBeTruthy();
     expect(card("最近兑换").getByText("−50 积分 · 2026年10月14日")).toBeTruthy();
+  });
+
+  it("the reward name follows the language when the catalog knows the reward, as on the shop page", () => {
+    withRedemption();
+    h.state.shop.catalog = { items: [{ id: "sample", nameZh: "示例奖励", nameEn: "Sample (catalog)" }] };
+    const zh = renderPage();
+    expect(card("最近兑换").getByText("示例奖励")).toBeTruthy();
+    zh.unmount();
+    setLanguage("en");
+    renderPage();
+    expect(card("Latest redemption").getByText("Sample (catalog)")).toBeTruthy();
   });
 
   it("English: a redemption, previous unit", () => {

@@ -3,13 +3,23 @@ import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { useLocale } from "@/hooks/useLocale";
+import { tShop } from "@/shared/i18n/shop-messages";
+
+/** What was redeemed: the page shows the reward's name in the language it has when it reads this. */
+export type RedeemedReward = { rewardId: string; rewardName: string };
 
 export function useRewardActions() {
   const { uid } = useAuth();
   const { data: settings } = useUserSettings();
   const [busy, setBusy] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [lastSuccess, setLastSuccess] = useState<string | null>(null);
+  // A message from the data layer is kept as it arrived; otherwise nothing is kept and the sentence
+  // is written in the current language when it is read.
+  const [received, setReceived] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [lastSuccess, setLastSuccess] = useState<RedeemedReward | null>(null);
+  const language = useLocale();
+  const actionError = received ?? (failed ? tShop(language, "shop.error.redeemFailed") : null);
 
   const athleteId = settings?.activeAthleteId ?? "lindsay";
 
@@ -23,7 +33,8 @@ export function useRewardActions() {
         throw new Error("Firestore is not available.");
       }
       setBusy(true);
-      setActionError(null);
+      setReceived(null);
+      setFailed(false);
       setLastSuccess(null);
       try {
         const result = await redeemReward(
@@ -32,12 +43,14 @@ export function useRewardActions() {
           rewardName,
           cost,
         );
-        setLastSuccess(rewardName);
+        setLastSuccess({ rewardId, rewardName });
         return result;
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Redemption failed.";
-        setActionError(message);
+        if (error instanceof Error) {
+          setReceived(error.message);
+        } else {
+          setFailed(true);
+        }
         throw error;
       } finally {
         setBusy(false);
@@ -51,7 +64,10 @@ export function useRewardActions() {
     busy,
     actionError,
     lastSuccess,
-    clearActionError: () => setActionError(null),
+    clearActionError: () => {
+      setReceived(null);
+      setFailed(false);
+    },
     clearLastSuccess: () => setLastSuccess(null),
   };
 }

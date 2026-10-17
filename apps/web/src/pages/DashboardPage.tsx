@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { normalizeTrainingState } from "@skatingx/firebase-client";
-import { formatSecondsToTime } from "@skatingx/skating-domain";
+import { formatSecondsToTime, localizeRedemptionName } from "@skatingx/skating-domain";
 import { Card } from "@skatingx/ui";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
@@ -66,6 +66,7 @@ export function DashboardPage() {
   } = useTrainingRecords();
   const { isPro, loading: proLoading } = useIsPro();
   const {
+    catalog: shopCatalog,
     latestRedemption,
     loading: shopLoading,
     error: shopError,
@@ -184,7 +185,7 @@ export function DashboardPage() {
             {loading
               ? "…"
               : latestRedemption
-                ? latestRedemption.rewardName
+                ? localizeRedemptionName(latestRedemption, shopCatalog?.items ?? [], locale)
                 : "—"}
           </p>
           {latestRedemption ? (
