@@ -16,6 +16,8 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { tAcademy } from "@/shared/i18n/academy-messages";
+import { localized } from "@/shared/i18n/localized";
+import type { Locale } from "@/shared/i18n/translator";
 
 type ImportErrorKey =
   | "academy.error.importFailed"
@@ -45,6 +47,29 @@ function errorCode(error: unknown): string {
   return typeof error === "object" && error !== null && "code" in error
     ? String((error as { code: unknown }).code)
     : "none";
+}
+
+/**
+ * A routine label that matches no drill becomes a plain task. The split into a name and a target
+ * (the part after the last space, such as "3组") is a convention of the Chinese labels, so it and
+ * the id always come from the Chinese label: the id then stays the same in both languages and
+ * "already added today" keeps working after a language change. English shows the whole English
+ * label instead of cutting it at a space.
+ */
+function fallbackCandidate(
+  language: Locale,
+  label: { zh: string; en: string },
+  idFor: (name: string) => string,
+): AcademyImportCandidate {
+  const parts = label.zh.split(" ");
+  const target = parts.length > 1 ? parts.pop() : "";
+  const name = parts.join(" ").trim() || label.zh;
+  const academyItemId = idFor(name);
+  const tags = ["academy-routine"];
+  return localized<AcademyImportCandidate>(language, {
+    zh: { academyItemId, text: name, target: target || undefined, tags },
+    en: { academyItemId, text: label.en, tags },
+  });
 }
 
 export function useAcademyImport() {
@@ -125,19 +150,18 @@ export function useAcademyImport() {
       const candidates: AcademyImportCandidate[] = [];
 
       for (const routineItem of routineItems) {
-        const matched = matchRoutineTaskLabel(stage, routineItem.taskLabel);
+        // Matching is done on the Chinese label in both languages.
+        const matched = matchRoutineTaskLabel(stage, routineItem.taskLabelZh);
         if (matched) {
           candidates.push(buildAcademyImportCandidate(matched, language));
         } else {
-          const parts = routineItem.taskLabel.split(" ");
-          const target = parts.length > 1 ? parts.pop() : "";
-          const name = parts.join(" ").trim() || routineItem.taskLabel;
-          candidates.push({
-            academyItemId: `routine-fallback-${routineItem.routineItemId}`,
-            text: name,
-            target: target || undefined,
-            tags: ["academy-routine"],
-          });
+          candidates.push(
+            fallbackCandidate(
+              language,
+              { zh: routineItem.taskLabelZh, en: routineItem.taskLabelEn },
+              () => `routine-fallback-${routineItem.routineItemId}`,
+            ),
+          );
         }
       }
 
@@ -156,20 +180,19 @@ export function useAcademyImport() {
         return refuse("importDayPlan", "academy.error.planNotFound", "plan-not-found");
       }
       const candidates: AcademyImportCandidate[] = [];
-      for (const taskLabel of plan.taskLabels) {
-        const matched = matchRoutineTaskLabel(stage, taskLabel);
+      for (const [index, taskLabelZh] of plan.taskLabelsZh.entries()) {
+        const matched = matchRoutineTaskLabel(stage, taskLabelZh);
         if (matched) {
           candidates.push(buildAcademyImportCandidate(matched, language));
         } else {
-          const parts = taskLabel.split(" ");
-          const target = parts.length > 1 ? parts.pop() : "";
-          const name = parts.join(" ").trim() || taskLabel;
-          candidates.push({
-            academyItemId: `plan-fallback-${plan.id}-${name}`,
-            text: name,
-            target: target || undefined,
-            tags: ["academy-routine"],
-          });
+          candidates.push(
+            fallbackCandidate(
+              language,
+              // The content test guarantees both lists have the same length.
+              { zh: taskLabelZh, en: plan.taskLabelsEn[index] ?? taskLabelZh },
+              (name) => `plan-fallback-${plan.id}-${name}`,
+            ),
+          );
         }
       }
       return runImport("importDayPlan", candidates);

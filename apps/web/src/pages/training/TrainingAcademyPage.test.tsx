@@ -154,11 +154,15 @@ describe.each(["zh", "en"] as const)("TrainingAcademyPage (%s)", (locale) => {
     expect(card.getByText(pick(stage.coreFocusZh, stage.coreFocusEn))).toBeTruthy();
   });
 
-  it("one button per stage, named by its age range as the content stores it", () => {
+  it("one button per stage, named by its age range in the language", () => {
     setLocale();
     renderPage();
     for (const s of stages) {
-      expect(screen.getByRole("button", { name: s.ageRange }), s.ageRange).toBeTruthy();
+      const own = pick(s.ageRangeZh, s.ageRangeEn);
+      const other = pick(s.ageRangeEn, s.ageRangeZh);
+      expect(screen.getByRole("button", { name: own }), own).toBeTruthy();
+      // Not the other language's text next to it.
+      expect(screen.queryByRole("button", { name: other }), other).toBeNull();
     }
   });
 
@@ -270,8 +274,14 @@ describe.each(["zh", "en"] as const)("TrainingAcademyPage (%s)", (locale) => {
     });
     const card = within(heading.closest("article")!);
     expect(card.getByText(pick(plan0.durationZh, plan0.durationEn))).toBeTruthy();
-    for (const label of plan0.taskLabels) {
+    const own = pick(plan0.taskLabelsZh, plan0.taskLabelsEn);
+    const other = pick(plan0.taskLabelsEn, plan0.taskLabelsZh);
+    expect(own.length).toBeGreaterThan(0);
+    for (const label of own) {
       expect(card.getByText(label), label).toBeTruthy();
+    }
+    for (const label of other) {
+      expect(card.queryByText(label), label).toBeNull();
     }
     await user.click(card.getByRole("button", { name: t.importPlan }));
     expect(h.state.academy.importDayPlan).toHaveBeenCalledExactlyOnceWith(stage, plan0.id);
@@ -325,7 +335,7 @@ describe("TrainingAcademyPage (other)", () => {
     const other = stages[1]!;
     const user = userEvent.setup();
     renderPage();
-    await user.click(screen.getByRole("button", { name: other.ageRange }));
+    await user.click(screen.getByRole("button", { name: other.ageRangeZh }));
     expect(screen.getByRole("heading", { level: 3, name: other.labelZh })).toBeTruthy();
     // The same text can also be a task label further down, so look for it inside an open drill.
     const first = other.modules[0]!.items[0]!;

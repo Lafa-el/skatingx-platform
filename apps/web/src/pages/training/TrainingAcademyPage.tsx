@@ -143,7 +143,7 @@ export function TrainingAcademyPage() {
                 : "rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             }
           >
-            {s.ageRange}
+            {localized(language, { zh: s.ageRangeZh, en: s.ageRangeEn })}
           </button>
         ))}
       </div>
@@ -305,9 +305,10 @@ export function TrainingAcademyPage() {
                   {localized(language, { zh: plan.durationZh, en: plan.durationEn })}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {plan.taskLabels.map((label) => (
+                  {localized(language, { zh: plan.taskLabelsZh, en: plan.taskLabelsEn }).map((label, index) => (
                     <span
-                      key={label}
+                      // The Chinese label is the stable key: the English ones need not be unique.
+                      key={plan.taskLabelsZh[index]}
                       className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-600"
                     >
                       {label}
