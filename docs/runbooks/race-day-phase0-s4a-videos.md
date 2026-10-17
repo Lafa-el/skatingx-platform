@@ -10,8 +10,8 @@ The summary card and the coach note are **S4b**. In S4a the Summary tab is only 
 
 | Topic | Behavior |
 |---|---|
-| PRO gate | `/race-day/videos` and `/race-day/summary` open only when `settings/main.isPro === true`. It uses the same flag as the Settings toggle (a development flag). It is **not** an entitlement check and is not enforced by Security Rules; the page copy says it is a temporary arrangement for the race-day trial. |
-| Gate states | Loading: "正在准备…" (no locked card, no content). Free: locked card that says the page is open to trial accounts only and to ask an administrator (no link; the Settings switch is a development tool that is going away). Read error: locked, with a notice that the plan could not be confirmed. PRO: the page. |
+| PRO gate | `/race-day/videos` and `/race-day/summary` open only when `settings/main.isPro === true`. The flag is set by an administrator in the Firebase console (`users/{uid}/settings/main`); the Settings page no longer has a switch for it. It is **not** an entitlement check and is not enforced by Security Rules; the page copy says it is a temporary arrangement for the race-day trial. |
+| Gate states | Loading: "正在准备…" (no locked card, no content). Free: locked card that says the page is open to trial accounts only and to ask an administrator (no link: nothing in the app turns PRO on). Read error: locked, with a notice that the plan could not be confirmed. PRO: the page. |
 | No data while locked | The page content is not mounted behind the gate, so no video listener is created for a free user. |
 | Record fields | Race and athlete (required), name (required, up to 120), link (optional, up to 2048), kept at (up to 200), note (up to 1000). |
 | Links | Only plain `http://` or `https://`, no spaces, no user name or password. Checked on write and again on read: a stored record with another kind of link is hidden and counted in "有 N 条数据无法读取,已隐藏". Links open in a new tab with `rel="noopener noreferrer"` and the list shows only the host. |
@@ -29,13 +29,13 @@ Deleting a race, an athlete or an event looks up the matching video records so t
 
 Use made-up names, links and locations only. Do this in Chinese and in English (Settings, language), on a phone-width window and on a desktop-width window.
 
-**PRO off (Settings: Free plan)**
+**PRO off (`isPro` missing or false in the console)**
 
 1. Open Videos and Summary. Each shows its heading, "这一页需要 PRO", the line "这一页目前只对试用账号开放。如需使用，请联系管理员开通。", and the temporary-arrangement note. No link, no form, no list.
 2. Reload while on Videos. You see "正在准备…" briefly, then the locked card; the page never flashes content.
 3. Today, Schedule, Results and Setup are unaffected.
 
-**PRO on (Settings: toggle PRO)**
+**PRO on (`isPro` set to true in the console)**
 
 4. Reload on Videos: no locked card appears before the page.
 5. **Empty states.** No event: points to Setup. Event but no races: points to Schedule. Races but no records: "还没有视频记录…".

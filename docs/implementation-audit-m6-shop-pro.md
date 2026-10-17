@@ -1,6 +1,7 @@
 # Implementation Audit — M6 Shop / Rewards / PRO
 
 **Date:** 2026-06-03  
+**Update 2026-10-17:** the Settings PRO switch described below (and its "(dev)" copy) was removed. `isPro` is now set by an administrator in the Firebase console, and the PRO banner and locked card no longer link to Settings. The read side (`useIsPro`, strict `isPro === true`) is unchanged. The rest of this document is the record as written in M6.  
 **Prerequisites:** M0–M5  
 **Reference (read-only):** `blaze-skate-training/src/App.jsx` — `buyReward`, `customRewards`, `rewardHistory`, `isPro`, `parentPin`
 

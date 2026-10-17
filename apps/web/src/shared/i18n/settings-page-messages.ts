@@ -1,7 +1,7 @@
 import { createTranslator, type Resources } from "./translator";
 
 /**
- * Text of the Settings page: account, Pro toggle, parent settings and the sign-in forms. The
+ * Text of the Settings page: account, parent settings and the sign-in forms. The
  * language setting has its own resource (`settings-messages.ts`).
  *
  * Messages that arrive from the authentication or data layer (for example "Incorrect email or
@@ -11,19 +11,6 @@ import { createTranslator, type Resources } from "./translator";
 const zh = {
   "settings.page.title": "设置",
   "settings.page.intro": "账户与登录。个人资料和运动员数据同步将在后续阶段提供。",
-
-  "settings.pro.title": "PRO 会员",
-  "settings.pro.devNotice": "仅供开发使用。尚未接入支付。",
-  "settings.pro.devHelp": "可在下方切换 PRO，用来测试学院和商店的付费限制界面。不会扣费，也不会验证订阅状态。",
-  "settings.pro.status": "状态",
-  "settings.pro.active": "PRO 已开通",
-  "settings.pro.free": "免费版",
-  "settings.pro.saving": "保存中…",
-  "settings.pro.disable": "关闭 PRO（开发用）",
-  "settings.pro.enable": "开启 PRO（开发用）",
-  "settings.pro.enabledMessage": "PRO 已开启（开发标记）。",
-  "settings.pro.disabledMessage": "PRO 已关闭。",
-  "settings.pro.updateFailed": "PRO 状态更新失败。",
 
   "settings.parent.title": "家长设置",
   // The sentence has a field name in the middle that is not translated, so it is two pieces around
@@ -67,20 +54,6 @@ type SettingsPageKey = keyof typeof zh;
 const en: Record<SettingsPageKey, string> = {
   "settings.page.title": "Settings",
   "settings.page.intro": "Account and authentication. Profile and athlete data sync come in a later phase.",
-
-  "settings.pro.title": "PRO membership",
-  "settings.pro.devNotice": "Development only. Payment is not implemented.",
-  "settings.pro.devHelp":
-    "Toggle PRO below to test gated Academy and Shop UI. This does not charge real money or verify subscription status.",
-  "settings.pro.status": "Status",
-  "settings.pro.active": "PRO active",
-  "settings.pro.free": "Free plan",
-  "settings.pro.saving": "Saving…",
-  "settings.pro.disable": "Disable PRO (dev)",
-  "settings.pro.enable": "Enable PRO (dev)",
-  "settings.pro.enabledMessage": "PRO enabled (development flag).",
-  "settings.pro.disabledMessage": "PRO disabled.",
-  "settings.pro.updateFailed": "Failed to update PRO status.",
 
   "settings.parent.title": "Parent settings",
   "settings.parent.noteBefore":

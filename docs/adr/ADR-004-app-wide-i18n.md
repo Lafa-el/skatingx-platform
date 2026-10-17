@@ -153,3 +153,13 @@ A4 left the Academy drill text out because it is generated from the legacy extra
 - **Existing user tasks are not touched** (as in A1). A task imported before this change keeps the title it was written with, such as "蹲位保持 (静态速滑位)", and is shown as stored. "Already added today" is decided by the drill id, not the text, so it keeps working across the change. No migration, no schema, no Security Rules change.
 - **Version.** `ACADEMY_CONTENT_VERSION` goes from `1.0.0-blaze-extract` to `1.0.1-blaze-extract`. Nothing reads it today, so this has no effect; it records that the text changed.
 - **Rollback.** Revert the PR and regenerate or restore the file. Tasks imported after the change keep the full-width title they were written with; no data repair is needed.
+
+### A6 (2026-10-17, owner decision): the development PRO switch and its copy are removed
+
+The Settings page had a PRO card with a "(开发用)" switch for testing the Academy and Shop locks. Race Day's Videos and Summary now sit behind the same flag (ADR-001), so for the trial the flag is opened by an administrator in the Firebase console instead.
+
+- **What changed.** `SettingsPage` loses the PRO card (the development notice, the plan status, the switch, the saved/failed note) and all `settings.pro.*` messages. `ProPlanBanner` and `ProLockedCard` no longer link to Settings; the locked card says "目前只对试用账号开放。如需使用，请联系管理员开通。" (same wording as the Race Day card), the free-plan banner says the same about advanced import, and the "(开发开关)"/"development flag" wording is gone. `academy.pro.note` no longer calls PRO a development toggle in Settings. Chinese drafted by the agent for owner review.
+- **Kept by a test.** `messages-consistency.test.ts` fails if any shared text again points to a development PRO switch in Settings, and `SettingsPage.test.tsx` fails if the page shows any PRO, plan or development wording.
+- **Not changed.** The `isPro` read logic (`useIsPro`, `useProAccess`, the strict `=== true` check) and the gates built on it. `isPro` is still client-writable (ADR-001), so this is a UX gate, not an entitlement check, and no Security Rule changed. Texts that say a feature "needs PRO" (Shop custom rewards, Academy routine lock) are unchanged.
+- **Consequence.** Nothing in the app turns PRO on any more. An account that already has `isPro: true` keeps it; an account that needs it must be set in the console.
+- **Rollback.** Revert the PR. No data change.

@@ -66,12 +66,12 @@ const registered = () => {
 const dd = (label: string) => screen.getByText(label, { selector: "dt" }).parentElement?.querySelector("dd")?.textContent;
 
 describe("SettingsPage language", () => {
-  it("shows the language choice with the saved language selected, above the PRO card", () => {
+  it("shows the language choice with the saved language selected, as the first card, above the parent settings", () => {
     render(<SettingsPage />);
     expect((screen.getByLabelText("中文") as HTMLInputElement).checked).toBe(true);
     const language = screen.getByRole("heading", { name: "语言 / Language" });
-    const pro = screen.getByRole("heading", { name: "PRO 会员" });
-    expect(language.compareDocumentPosition(pro) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const parent = screen.getByRole("heading", { name: "家长设置" });
+    expect(language.compareDocumentPosition(parent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("choosing English saves language 'en' for the user and nothing else", async () => {
@@ -88,11 +88,12 @@ describe("SettingsPage language", () => {
     expect(screen.getByRole("heading", { name: "Language / 语言" })).toBeTruthy();
   });
 
-  it("leaves the PRO toggle working on its own (it saves isPro, not language)", async () => {
+  it("has no PRO switch: nothing here can write isPro", async () => {
     const user = userEvent.setup();
     render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
-    expect(h.update).toHaveBeenCalledExactlyOnceWith(expect.anything(), "u1234567890", { isPro: true });
+    await user.click(screen.getByLabelText("English"));
+    expect(h.update).toHaveBeenCalledExactlyOnceWith(expect.anything(), "u1234567890", { language: "en" });
+    expect(screen.queryByRole("button", { name: /\bPRO\b/ })).toBeNull();
   });
 });
 
@@ -101,7 +102,7 @@ describe("SettingsPage text", () => {
     render(<SettingsPage />);
     expect(screen.getByRole("heading", { level: 1, name: "设置" })).toBeTruthy();
     expect(screen.getByText("账户与登录。个人资料和运动员数据同步将在后续阶段提供。")).toBeTruthy();
-    for (const title of ["PRO 会员", "家长设置", "当前用户", "绑定邮箱和密码", "登录已有账户"]) {
+    for (const title of ["家长设置", "当前用户", "绑定邮箱和密码", "登录已有账户"]) {
       expect(screen.getByRole("heading", { level: 3, name: title }), title).toBeTruthy();
     }
   });
@@ -114,7 +115,6 @@ describe("SettingsPage text", () => {
       screen.getByText("Account and authentication. Profile and athlete data sync come in a later phase."),
     ).toBeTruthy();
     for (const title of [
-      "PRO membership",
       "Parent settings",
       "Current user",
       "Link email & password",
@@ -124,22 +124,17 @@ describe("SettingsPage text", () => {
     }
   });
 
-  it("PRO card, Chinese: the development-only warning and the toggle", () => {
-    render(<SettingsPage />);
-    expect(screen.getByText("仅供开发使用。尚未接入支付。")).toBeTruthy();
-    expect(
-      screen.getByText("可在下方切换 PRO，用来测试学院和商店的付费限制界面。不会扣费，也不会验证订阅状态。"),
-    ).toBeTruthy();
-    expect(screen.getByText("免费版")).toBeTruthy();
-  });
-
-  it("PRO card, English: the previous wording", () => {
-    setEnglish();
+  // The PRO switch was a development tool. Whoever opens PRO for a user does it in the Firebase
+  // console, and nothing in Settings may suggest otherwise or show a plan the app cannot verify.
+  it.each([
+    ["zh", false],
+    ["en", true],
+  ])("no PRO card, plan status or development wording (%s)", (_language, english) => {
+    if (english) setEnglish();
     h.settings = { ...h.settings, isPro: true };
-    render(<SettingsPage />);
-    expect(screen.getByText("Development only. Payment is not implemented.")).toBeTruthy();
-    expect(screen.getByText("PRO active")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Disable PRO (dev)" })).toBeTruthy();
+    const { container } = render(<SettingsPage />);
+    expect(container.textContent).not.toMatch(/\bPRO\b|开发|\bdev(elopment)?\b|免费版|Free plan/i);
+    expect(screen.queryByRole("heading", { name: /\bPRO\b/ })).toBeNull();
   });
 
   it("parent card: the sentence is built around the field name, which is not translated", () => {
@@ -161,18 +156,6 @@ describe("SettingsPage text", () => {
 });
 
 describe("SettingsPage details", () => {
-  it("the note under the PRO card follows the language if it changes afterwards", async () => {
-    const user = userEvent.setup();
-    const view = render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
-    expect(await screen.findByText("PRO 已开启（开发标记）。")).toBeTruthy();
-
-    setEnglish();
-    view.rerender(<SettingsPage />);
-    expect(screen.getByText("PRO enabled (development flag).")).toBeTruthy();
-    expect(screen.queryByText("PRO 已开启（开发标记）。")).toBeNull();
-  });
-
   // The raw field was a debug line that parents and athletes could see in Production.
   it.each([true, false, 1, undefined])(
     "never shows the internal parentPinEnabled field, whatever is stored (%s), in either language",
@@ -187,71 +170,6 @@ describe("SettingsPage details", () => {
       expect(en.container.textContent).not.toMatch(/parentPinEnabled/);
     },
   );
-});
-
-describe("SettingsPage PRO toggle messages", () => {
-  it("Chinese: confirmation after turning PRO on, and off", async () => {
-    const user = userEvent.setup();
-    const first = render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
-    expect(await screen.findByText("PRO 已开启（开发标记）。")).toBeTruthy();
-    first.unmount();
-
-    h.settings = { ...h.settings, isPro: true };
-    render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "关闭 PRO（开发用）" }));
-    expect(await screen.findByText("PRO 已关闭。")).toBeTruthy();
-  });
-
-  it("English: the previous confirmation", async () => {
-    setEnglish();
-    const user = userEvent.setup();
-    render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "Enable PRO (dev)" }));
-    expect(await screen.findByText("PRO enabled (development flag).")).toBeTruthy();
-  });
-
-  it("a failure with a technical message shows that message as received", async () => {
-    h.update = vi.fn().mockRejectedValue(new Error("Missing or insufficient permissions."));
-    const user = userEvent.setup();
-    render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
-    expect(await screen.findByText("Missing or insufficient permissions.")).toBeTruthy();
-  });
-
-  it("a failure without a message falls back to text in the active language", async () => {
-    h.update = vi.fn().mockRejectedValue("nope");
-    const user = userEvent.setup();
-    const first = render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
-    expect(await screen.findByText("PRO 状态更新失败。")).toBeTruthy();
-    first.unmount();
-
-    setEnglish();
-    render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "Enable PRO (dev)" }));
-    expect(await screen.findByText("Failed to update PRO status.")).toBeTruthy();
-  });
-
-  it("a confirmation follows the language if it is changed afterwards", async () => {
-    const user = userEvent.setup();
-    const view = render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
-    expect(await screen.findByText("PRO 已开启（开发标记）。")).toBeTruthy();
-
-    setEnglish();
-    view.rerender(<SettingsPage />);
-    expect(screen.getByText("PRO enabled (development flag).")).toBeTruthy();
-    expect(screen.queryByText("PRO 已开启（开发标记）。")).toBeNull();
-  });
-
-  it("while saving the button says so", async () => {
-    h.update = vi.fn().mockReturnValue(new Promise(() => undefined));
-    const user = userEvent.setup();
-    render(<SettingsPage />);
-    await user.click(screen.getByRole("button", { name: "开启 PRO（开发用）" }));
-    expect(await screen.findByRole("button", { name: "保存中…" })).toBeTruthy();
-  });
 });
 
 describe("SettingsPage account", () => {
@@ -460,7 +378,7 @@ describe("SettingsPage sign out", () => {
 });
 
 describe("SettingsPage: tap targets (44px)", () => {
-  it("a guest sees inputs, the PRO button and the form buttons at 44px", () => {
+  it("a guest sees inputs and the form buttons at 44px", () => {
     const { container } = render(<SettingsPage />);
     expect(container.querySelectorAll("input").length).toBeGreaterThan(4);
     expect(controlsBelowTapTarget(container)).toEqual([]);
