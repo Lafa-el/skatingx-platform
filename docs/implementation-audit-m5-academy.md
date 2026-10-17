@@ -36,6 +36,7 @@ M5 adds **static BLAZE Academy content** in `@skatingx/content` and **import int
 | `src/academy-stages.generated.ts` | Merged zh/en catalog (generated) |
 | `src/academy-legacy-raw.cjs` | Extracted legacy `BLAZE_ACADEMY` (regen input) |
 | `scripts/generate-academy.mjs` | Regenerate catalog from legacy |
+| `scripts/zh-punctuation.mjs` | Writes Chinese brackets full-width during generation (ADR-004 A5); the legacy extract itself stays as the source wrote it |
 | `src/index.ts` | Public exports |
 | `package.json` | `./academy` export, `generate:academy` script |
 
