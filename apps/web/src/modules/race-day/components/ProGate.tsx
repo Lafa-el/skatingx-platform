@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
 
 import { useLocale } from "@/hooks/useLocale";
 
 import { useProAccess } from "../hooks/useProAccess";
 import { t, type RaceDayMessageKey } from "../i18n/messages";
-import { FormMessage, PRIMARY_BUTTON } from "./fields";
+import { FormMessage } from "./fields";
 
 type ProGateProps = {
   /** Heading of the page behind the gate, so the locked state still names where you are. */
@@ -16,6 +15,9 @@ type ProGateProps = {
 /**
  * Renders `children` only for PRO users. Children are not mounted while locked, so their
  * Firestore listeners are never created: a free user's device reads no video or summary data.
+ *
+ * The locked card links nowhere. It used to point to the Settings switch, a development tool that
+ * is being removed; for now whoever opens the page for a user does it in the Firebase console.
  */
 export function ProGate({ titleKey, children }: ProGateProps) {
   const locale = useLocale();
@@ -41,9 +43,6 @@ export function ProGate({ titleKey, children }: ProGateProps) {
             <p className="text-sm text-slate-700">{t(locale, "raceDay.pro.body")}</p>
           )}
           <p className="text-sm text-slate-500">{t(locale, "raceDay.pro.provisional")}</p>
-          <Link to="/settings" className={PRIMARY_BUTTON}>
-            {t(locale, "raceDay.pro.settingsLink")}
-          </Link>
         </div>
       )}
     </section>

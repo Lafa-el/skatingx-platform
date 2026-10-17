@@ -59,13 +59,26 @@ describe("ProGate", () => {
     expect(mounted.count).toBe(0);
   });
 
-  it("locks a free user without mounting the content, and links to Settings", () => {
+  it("locks a free user without mounting the content, and says who opens it", () => {
     renderGate();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("视频");
     expect(screen.getByText("这一页需要 PRO")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "前往设置" }).getAttribute("href")).toBe("/settings");
+    expect(screen.getByText("这一页目前只对试用账号开放。如需使用，请联系管理员开通。")).toBeTruthy();
     expect(screen.queryByText("secret content")).toBeNull();
     expect(mounted.count).toBe(0);
+  });
+
+  it("sends nobody to Settings: the PRO switch there is a development tool that is going away", () => {
+    renderGate();
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/设置|开启 PRO|球队/);
+  });
+
+  it("the read-error card has no link either", () => {
+    pro.error = "boom";
+    renderGate();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 
   it("calls the arrangement provisional and makes no claim of protection", () => {
@@ -88,7 +101,10 @@ describe("ProGate", () => {
     renderGate();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Videos");
     expect(screen.getByText("This page needs PRO")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Go to Settings" })).toBeTruthy();
+    expect(
+      screen.getByText("This page is only available to trial accounts for now. Contact your team admin to get access."),
+    ).toBeTruthy();
+    expect(screen.queryByRole("link")).toBeNull();
     expect(screen.getByText(/temporary arrangement/)).toBeTruthy();
   });
 });
