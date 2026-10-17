@@ -22,10 +22,8 @@ const NOT_MIGRATED: Record<string, "S6d" | "S6e"> = {
   "hooks/useAcademyImport.ts": "S6d",
   "hooks/useRewardsShop.ts": "S6d",
   "pages/training/TrainingAcademyPage.tsx": "S6d",
-  "pages/training/TrainingHomePage.tsx": "S6d",
   "pages/training/TrainingRecordsPage.tsx": "S6d",
   "pages/training/TrainingShopPage.tsx": "S6d",
-  "pages/training/TrainingTasksPage.tsx": "S6d",
   // S6e: analysis
   "pages/analysis/AnalysisBiomechanicsPage.tsx": "S6e",
   "pages/analysis/AnalysisEquipmentPage.tsx": "S6e",

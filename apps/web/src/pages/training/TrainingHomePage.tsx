@@ -9,13 +9,28 @@ import {
   useAthleteProfile,
   useGamification,
   useTrainingState,
-  useUserSettings,
 } from "@/app/providers/FirestoreProvider";
 import { useIsPro } from "@/hooks/useIsPro";
+import { useLocale } from "@/hooks/useLocale";
 import { useTrainingRecords } from "@/hooks/useTrainingRecords";
+import {
+  type TrainingHomeMessageKey,
+  tTrainingHome,
+} from "@/shared/i18n/training-home-messages";
+
+/** A count with its unit: the language's singular or plural form, chosen by the number. */
+function countKey(
+  count: number,
+  one: TrainingHomeMessageKey,
+  other: TrainingHomeMessageKey,
+): TrainingHomeMessageKey {
+  return count === 1 ? one : other;
+}
 
 export function TrainingHomePage() {
-  const { data: settings } = useUserSettings();
+  const locale = useLocale();
+  const t = (key: TrainingHomeMessageKey, params?: Record<string, string | number>) =>
+    tTrainingHome(locale, key, params);
   const { data: profile, loading: profileLoading } = useAthleteProfile();
   const { data: gamification, loading: gamificationLoading } = useGamification();
   const { data: rawState, loading: stateLoading, error } = useTrainingState();
@@ -32,20 +47,19 @@ export function TrainingHomePage() {
   const recordsErr = recordsError;
   const state = rawState ? normalizeTrainingState(rawState) : null;
   const tasks = state?.todayTasks ?? [];
-  const completed = tasks.filter((t) => t.completed).length;
+  const completed = tasks.filter((task) => task.completed).length;
   const pb500 = getBestForDistance("500m");
-  const language = settings?.language === "en" ? "en" : "zh";
+  const points = gamification?.points ?? 0;
+  const streakDays = gamification?.streakDays ?? 0;
   const defaultStage = getAcademyStages()[1] ?? getAcademyStages()[0];
-  const academyLabel = defaultStage
-    ? localizeStageLabel(defaultStage, language)
-    : "Academy";
+  // The stage label and age range are content data, shown as stored; only the labels around them
+  // are translated.
+  const academyLabel = defaultStage ? localizeStageLabel(defaultStage, locale) : "";
 
   return (
     <section>
-      <h1 className="text-2xl font-bold text-slate-900">Training</h1>
-      <p className="mt-1 text-slate-600">
-        Daily tasks, academy, records, and shop — tasks are live on Firestore.
-      </p>
+      <h1 className="text-2xl font-bold text-slate-900">{t("trainingHome.title")}</h1>
+      <p className="mt-1 text-slate-600">{t("trainingHome.subtitle")}</p>
 
       <FirestoreStatusBanner className="mt-4" />
 
@@ -56,22 +70,26 @@ export function TrainingHomePage() {
       ) : null}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <Card title="Athlete">
-          <p className="text-lg font-semibold text-slate-900">
+        <Card title={t("trainingHome.card.athlete")} className="min-w-0">
+          <p className="break-words text-lg font-semibold text-slate-900">
             {loading ? "…" : (profile?.displayName ?? "—")}
           </p>
         </Card>
-        <Card title="Points">
+        <Card title={t("trainingHome.card.points")}>
           <p className="text-lg font-semibold text-slate-900">
-            {loading ? "…" : (gamification?.points ?? 0)}
+            {loading ? "…" : points}
           </p>
         </Card>
-        <Card title="Streak">
+        <Card title={t("trainingHome.card.streak")}>
           <p className="text-lg font-semibold text-slate-900">
-            {loading ? "…" : `${gamification?.streakDays ?? 0} days`}
+            {loading
+              ? "…"
+              : t(countKey(streakDays, "trainingHome.streak.one", "trainingHome.streak.other"), {
+                  count: streakDays,
+                })}
           </p>
         </Card>
-        <Card title="Today's tasks">
+        <Card title={t("trainingHome.card.tasks")}>
           <p className="text-lg font-semibold text-slate-900">
             {loading ? "…" : `${completed} / ${tasks.length}`}
           </p>
@@ -79,83 +97,104 @@ export function TrainingHomePage() {
             to="/training/tasks"
             className="mt-2 inline-block text-sm font-medium text-sky-700"
           >
-            Open task list →
+            {t("trainingHome.tasks.open")}
           </Link>
         </Card>
-        <Card title="Records">
+        <Card title={t("trainingHome.card.records")}>
           <p className="text-lg font-semibold text-slate-900">
-            {loading ? "…" : `${totalEntryCount} entries`}
+            {loading
+              ? "…"
+              : t(
+                  countKey(
+                    totalEntryCount,
+                    "trainingHome.records.entries.one",
+                    "trainingHome.records.entries.other",
+                  ),
+                  { count: totalEntryCount },
+                )}
           </p>
           <p className="mt-1 font-mono text-sm text-slate-600">
-            {loading ? "…" : pb500 ? `500m PB ${formatSecondsToTime(pb500.timeSeconds)}` : "No 500m PB yet"}
+            {loading
+              ? "…"
+              : pb500
+                ? t("trainingHome.records.pb", { time: formatSecondsToTime(pb500.timeSeconds) })
+                : t("trainingHome.records.noPb")}
           </p>
           <Link
             to="/training/records"
             className="mt-2 inline-block text-sm font-medium text-sky-700"
           >
-            Open records →
+            {t("trainingHome.records.open")}
           </Link>
         </Card>
       </div>
 
-      <Card title="Shop / Rewards" className="mt-4">
+      <Card title={t("trainingHome.card.shop")} className="mt-4">
         <p className="text-lg font-semibold text-slate-900">
-          {loading ? "…" : `${gamification?.points ?? 0} points`}
-        </p>
-        <p className="mt-1 text-sm text-slate-600">
           {loading
             ? "…"
-            : isPro
-              ? language === "en"
-                ? "PRO active · catalog + custom rewards (placeholder)"
-                : "PRO 已开启 · 目录奖励 + 自定义奖励（占位）"
-              : language === "en"
-                ? "Free plan · catalog rewards only"
-                : "免费版 · 仅目录奖励"}
+            : t(countKey(points, "trainingHome.shop.points.one", "trainingHome.shop.points.other"), {
+                count: points,
+              })}
+        </p>
+        <p className="mt-1 text-sm text-slate-600">
+          {loading ? "…" : t(isPro ? "trainingHome.shop.pro" : "trainingHome.shop.free")}
         </p>
         <Link
           to="/training/shop"
           className="mt-2 inline-block text-sm font-medium text-sky-700"
         >
-          Open shop →
+          {t("trainingHome.shop.open")}
         </Link>
       </Card>
 
-      <Card title="Academy" className="mt-4">
+      <Card title={t("trainingHome.card.academy")} className="mt-4">
         <p className="text-sm text-slate-600">
           {defaultStage
-            ? language === "en"
-              ? `Reference stage: ${academyLabel} (${defaultStage.ageRange})`
-              : `参考阶段：${academyLabel}（${defaultStage.ageRange}）`
-            : "Import dryland training from BLAZE Academy."}
+            ? t("trainingHome.academy.reference", {
+                stage: academyLabel,
+                ageRange: defaultStage.ageRange,
+              })
+            : t("trainingHome.academy.import")}
         </p>
         <Link
           to="/training/academy"
           className="mt-2 inline-block text-sm font-medium text-sky-700"
         >
-          Open academy →
+          {t("trainingHome.academy.open")}
         </Link>
       </Card>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <Link to="/training/tasks" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
-          <span className="font-medium text-slate-900">Tasks</span>
-          <p className="mt-1 text-sm text-slate-600">Add and complete today&apos;s list</p>
+          <span className="font-medium text-slate-900">{t("trainingHome.shortcut.tasks.title")}</span>
+          <p className="mt-1 text-sm text-slate-600">{t("trainingHome.shortcut.tasks.body")}</p>
         </Link>
         <Link to="/training/academy" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
-          <span className="font-medium text-slate-900">Academy</span>
+          <span className="font-medium text-slate-900">{t("trainingHome.shortcut.academy.title")}</span>
           <p className="mt-1 text-sm text-slate-600">
-            {defaultStage ? `${academyLabel} · dryland plans` : "BLAZE Academy"}
+            {defaultStage
+              ? t("trainingHome.shortcut.academy.body", { stage: academyLabel })
+              : t("trainingHome.shortcut.academy.fallback")}
           </p>
         </Link>
         <Link to="/training/records" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
-          <span className="font-medium text-slate-900">Records</span>
-          <p className="mt-1 text-sm text-slate-600">PB times by distance</p>
+          <span className="font-medium text-slate-900">{t("trainingHome.shortcut.records.title")}</span>
+          <p className="mt-1 text-sm text-slate-600">{t("trainingHome.shortcut.records.body")}</p>
         </Link>
         <Link to="/training/shop" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
-          <span className="font-medium text-slate-900">Shop</span>
+          <span className="font-medium text-slate-900">{t("trainingHome.shortcut.shop.title")}</span>
           <p className="mt-1 text-sm text-slate-600">
-            {loading ? "…" : `${gamification?.points ?? 0} points available`}
+            {loading
+              ? "…"
+              : t(
+                  countKey(
+                    points,
+                    "trainingHome.shortcut.shop.body.one",
+                    "trainingHome.shortcut.shop.body.other",
+                  ),
+                  { count: points },
+                )}
           </p>
         </Link>
       </div>
