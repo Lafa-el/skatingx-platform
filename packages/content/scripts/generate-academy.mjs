@@ -84,9 +84,15 @@ function buildStages() {
     };
     const dayPlans = z.weeklyPlan.map((wp, wi) => {
       const weekday = DAY_MAP[wp.day] || "monday";
+      const enPlan = e.weeklyPlan[wi];
+      // A label with no English counterpart would show Chinese in English mode, so fail here.
+      if (enPlan.tasks.length !== wp.tasks.length) {
+        throw new Error(`${z.id} plan ${wi}: ${wp.tasks.length} Chinese labels, ${enPlan.tasks.length} English`);
+      }
       const routineItems = wp.tasks.map((taskStr, ti) => ({
         routineItemId: `${z.id}-w${wi}-t${ti}`,
-        taskLabel: taskStr,
+        taskLabelZh: taskStr,
+        taskLabelEn: enPlan.tasks[ti],
       }));
       days[weekday] = routineItems;
       return {
@@ -98,7 +104,8 @@ function buildStages() {
         durationZh: wp.duration,
         durationEn: e.weeklyPlan[wi].duration,
         weekday,
-        taskLabels: wp.tasks,
+        taskLabelsZh: wp.tasks,
+        taskLabelsEn: enPlan.tasks,
       };
     });
 
@@ -106,7 +113,8 @@ function buildStages() {
       id: z.id,
       labelZh: z.title,
       labelEn: e.title,
-      ageRange: z.age,
+      ageRangeZh: z.age,
+      ageRangeEn: e.age,
       overviewZh: z.target,
       overviewEn: e.target,
       durationZh: z.duration,
@@ -130,5 +138,12 @@ function buildStages() {
 
 const stages = buildStages();
 const out = `/** Auto-generated from blaze-skate-training BLAZE_ACADEMY */\nimport type { AcademyStage } from "./academy-types";\n\nexport const ACADEMY_STAGES: AcademyStage[] = ${JSON.stringify(stages, null, 2)};\n`;
-fs.writeFileSync(path.join(__dirname, "../src/academy-stages.generated.ts"), out);
+// `--out <file>` lets a test regenerate into a temporary file without touching the committed one.
+const outIndex = process.argv.indexOf("--out");
+const target =
+  outIndex >= 0 ? process.argv[outIndex + 1] : path.join(__dirname, "../src/academy-stages.generated.ts");
+if (!target) {
+  throw new Error("--out needs a file path");
+}
+fs.writeFileSync(target, out);
 console.log(`Generated ${stages.length} stages`);

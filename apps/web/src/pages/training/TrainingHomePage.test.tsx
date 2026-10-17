@@ -103,7 +103,7 @@ describe("TrainingHomePage: Chinese", () => {
 
   it("academy card names the reference stage and its age range as stored", () => {
     renderPage();
-    expect(card("学院").getByText(`参考阶段:${stage.labelZh}(${stage.ageRange})`)).toBeTruthy();
+    expect(card("学院").getByText(`参考阶段:${stage.labelZh}(${stage.ageRangeZh})`)).toBeTruthy();
   });
 
   it("the four shortcuts and their lines", () => {
@@ -147,7 +147,7 @@ describe("TrainingHomePage: English", () => {
   it("English academy card and shortcuts", () => {
     setLanguage("en");
     renderPage();
-    expect(card("Academy").getByText(`Reference stage: ${stage.labelEn} (${stage.ageRange})`)).toBeTruthy();
+    expect(card("Academy").getByText(`Reference stage: ${stage.labelEn} (${stage.ageRangeEn})`)).toBeTruthy();
     const link = (to: string) => document.querySelector(`a[href="${to}"].rounded-xl`) as HTMLElement;
     expect(link("/training/tasks").textContent).toBe("TasksAdd and complete today's list");
     expect(link("/training/academy").textContent).toBe(`Academy${stage.labelEn} · dryland plans`);

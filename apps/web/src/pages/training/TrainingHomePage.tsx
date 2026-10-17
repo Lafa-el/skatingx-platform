@@ -13,6 +13,7 @@ import {
 import { useIsPro } from "@/hooks/useIsPro";
 import { useLocale } from "@/hooks/useLocale";
 import { useTrainingRecords } from "@/hooks/useTrainingRecords";
+import { localized } from "@/shared/i18n/localized";
 import {
   type TrainingHomeMessageKey,
   tTrainingHome,
@@ -153,7 +154,7 @@ export function TrainingHomePage() {
           {defaultStage
             ? t("trainingHome.academy.reference", {
                 stage: academyLabel,
-                ageRange: defaultStage.ageRange,
+                ageRange: localized(locale, { zh: defaultStage.ageRangeZh, en: defaultStage.ageRangeEn }),
               })
             : t("trainingHome.academy.import")}
         </p>

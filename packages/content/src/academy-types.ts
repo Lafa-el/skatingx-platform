@@ -40,7 +40,9 @@ export interface AcademyModule {
 
 export interface AcademyRoutineItem {
   routineItemId: string;
-  taskLabel: string;
+  // Matching against academy items uses the Chinese label, in both languages.
+  taskLabelZh: string;
+  taskLabelEn: string;
 }
 
 export interface AcademyDayPlan {
@@ -52,7 +54,9 @@ export interface AcademyDayPlan {
   durationZh: string;
   durationEn: string;
   weekday: WeekdayKey;
-  taskLabels: string[];
+  // Same length and order: taskLabelsEn[i] is the English of taskLabelsZh[i].
+  taskLabelsZh: string[];
+  taskLabelsEn: string[];
 }
 
 export interface WeeklyRoutine {
@@ -68,7 +72,8 @@ export interface AcademyStage {
   id: string;
   labelZh: string;
   labelEn: string;
-  ageRange: string;
+  ageRangeZh: string;
+  ageRangeEn: string;
   overviewZh: string;
   overviewEn: string;
   durationZh: string;

@@ -6,7 +6,8 @@ export const ACADEMY_STAGES: AcademyStage[] = [
     "id": "age4_6",
     "labelZh": "启蒙阶段",
     "labelEn": "Intro Stage",
-    "ageRange": "4-6岁",
+    "ageRangeZh": "4-6岁",
+    "ageRangeEn": "Age 4-6",
     "overviewZh": "以游戏化训练为核心，建立运动兴趣与基础协调能力。每次训练30-45分钟，每周2-3次，重在参与感与动作习惯养成，绝不以竞技成绩为导向。",
     "overviewEn": "Gamified training to build interest & basic coordination. Focus on participation and habits, absolutely no competition-driven results.",
     "durationZh": "30-45 分钟",
@@ -302,57 +303,69 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "tuesday": [
           {
             "routineItemId": "age4_6-w0-t0",
-            "taskLabel": "单脚站立游戏 3组"
+            "taskLabelZh": "单脚站立游戏 3组",
+            "taskLabelEn": "Single-leg Stance 3 sets"
           },
           {
             "routineItemId": "age4_6-w0-t1",
-            "taskLabel": "“鸭子步”低姿走 3趟"
+            "taskLabelZh": "“鸭子步”低姿走 3趟",
+            "taskLabelEn": "Duck Walk 3 laps"
           },
           {
             "routineItemId": "age4_6-w0-t2",
-            "taskLabel": "梯格游戏 (速度梯)"
+            "taskLabelZh": "梯格游戏 (速度梯)",
+            "taskLabelEn": "Agility Ladder Drills"
           },
           {
             "routineItemId": "age4_6-w0-t3",
-            "taskLabel": "髋关节环绕与蝴蝶展翅"
+            "taskLabelZh": "髋关节环绕与蝴蝶展翅",
+            "taskLabelEn": "Butterfly & Hip Circles"
           }
         ],
         "wednesday": [],
         "thursday": [
           {
             "routineItemId": "age4_6-w1-t0",
-            "taskLabel": "平衡垫站立 3组"
+            "taskLabelZh": "平衡垫站立 3组",
+            "taskLabelEn": "Balance Pad Stance"
           },
           {
             "routineItemId": "age4_6-w1-t1",
-            "taskLabel": "侧滑步基础 每侧5步"
+            "taskLabelZh": "侧滑步基础 每侧5步",
+            "taskLabelEn": "Lateral Push 5 reps/side"
           },
           {
             "routineItemId": "age4_6-w1-t2",
-            "taskLabel": "追逐反应游戏 6次"
+            "taskLabelZh": "追逐反应游戏 6次",
+            "taskLabelEn": "Reaction Chase Game"
           },
           {
             "routineItemId": "age4_6-w1-t3",
-            "taskLabel": "儿童瑜伽体式"
+            "taskLabelZh": "儿童瑜伽体式",
+            "taskLabelEn": "Kids Yoga (Gamified)"
           }
         ],
         "friday": [],
         "saturday": [
           {
             "routineItemId": "age4_6-w2-t0",
-            "taskLabel": "走胶带线/平衡木"
+            "taskLabelZh": "走胶带线/平衡木",
+            "taskLabelEn": "Tape Walk/Beam"
           },
           {
             "routineItemId": "age4_6-w2-t1",
-            "taskLabel": "蹲位保持 (静态速滑)"
+            "taskLabelZh": "蹲位保持 (静态速滑)",
+            "taskLabelEn": "Squat Hold (Static)"
           },
           {
             "routineItemId": "age4_6-w2-t2",
-            "taskLabel": "动物爬行模仿"
+            "taskLabelZh": "动物爬行模仿",
+            "taskLabelEn": "Animal Crawls"
           },
           {
             "routineItemId": "age4_6-w2-t3",
-            "taskLabel": "俯卧撑位平板支撑"
+            "taskLabelZh": "俯卧撑位平板支撑",
+            "taskLabelEn": "Modified Plank"
           }
         ],
         "sunday": []
@@ -367,11 +380,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "35分钟",
           "durationEn": "35 mins",
           "weekday": "tuesday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "单脚站立游戏 3组",
             "“鸭子步”低姿走 3趟",
             "梯格游戏 (速度梯)",
             "髋关节环绕与蝴蝶展翅"
+          ],
+          "taskLabelsEn": [
+            "Single-leg Stance 3 sets",
+            "Duck Walk 3 laps",
+            "Agility Ladder Drills",
+            "Butterfly & Hip Circles"
           ]
         },
         {
@@ -383,11 +402,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "40分钟",
           "durationEn": "40 mins",
           "weekday": "thursday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "平衡垫站立 3组",
             "侧滑步基础 每侧5步",
             "追逐反应游戏 6次",
             "儿童瑜伽体式"
+          ],
+          "taskLabelsEn": [
+            "Balance Pad Stance",
+            "Lateral Push 5 reps/side",
+            "Reaction Chase Game",
+            "Kids Yoga (Gamified)"
           ]
         },
         {
@@ -399,11 +424,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "45分钟",
           "durationEn": "45 mins",
           "weekday": "saturday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "走胶带线/平衡木",
             "蹲位保持 (静态速滑)",
             "动物爬行模仿",
             "俯卧撑位平板支撑"
+          ],
+          "taskLabelsEn": [
+            "Tape Walk/Beam",
+            "Squat Hold (Static)",
+            "Animal Crawls",
+            "Modified Plank"
           ]
         }
       ]
@@ -413,7 +444,8 @@ export const ACADEMY_STAGES: AcademyStage[] = [
     "id": "age7_10",
     "labelZh": "进阶阶段",
     "labelEn": "Advanced Stage",
-    "ageRange": "7-10岁",
+    "ageRangeZh": "7-10岁",
+    "ageRangeEn": "Age 7-10",
     "overviewZh": "系统建立速滑专项陆地技术，引入基础力量与爆发力训练。每次60-75分钟，每周3-4次。开始区分短道/大道方向，技术动作规范化是核心。",
     "overviewEn": "Systematically establish dryland skating techniques, introduce basic strength & plyometrics. Quality of form is the absolute priority.",
     "durationZh": "60-75 分钟",
@@ -834,104 +866,127 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "monday": [
           {
             "routineItemId": "age7_10-w0-t0",
-            "taskLabel": "速滑基本站位与重心控制"
+            "taskLabelZh": "速滑基本站位与重心控制",
+            "taskLabelEn": "Basic Stance & CoG Control"
           },
           {
             "routineItemId": "age7_10-w0-t1",
-            "taskLabel": "陆地侧推步 (连贯技术)"
+            "taskLabelZh": "陆地侧推步 (连贯技术)",
+            "taskLabelEn": "Dryland Lateral Pushes"
           },
           {
             "routineItemId": "age7_10-w0-t2",
-            "taskLabel": "摆臂技术专项训练"
+            "taskLabelZh": "摆臂技术专项训练",
+            "taskLabelEn": "Arm Swing Specific Training"
           },
           {
             "routineItemId": "age7_10-w0-t3",
-            "taskLabel": "滑行板训练"
+            "taskLabelZh": "滑行板训练",
+            "taskLabelEn": "Slide Board Training"
           },
           {
             "routineItemId": "age7_10-w0-t4",
-            "taskLabel": "平板支撑变式"
+            "taskLabelZh": "平板支撑变式",
+            "taskLabelEn": "Plank Variations"
           }
         ],
         "tuesday": [
           {
             "routineItemId": "age7_10-w1-t0",
-            "taskLabel": "臀肌激活 (弹力带侧走)"
+            "taskLabelZh": "臀肌激活 (弹力带侧走)",
+            "taskLabelEn": "Glute Activation (Banded Walk)"
           },
           {
             "routineItemId": "age7_10-w1-t1",
-            "taskLabel": "徒手深蹲 (体能基础)"
+            "taskLabelZh": "徒手深蹲 (体能基础)",
+            "taskLabelEn": "Bodyweight Squats"
           },
           {
             "routineItemId": "age7_10-w1-t2",
-            "taskLabel": "单腿深蹲 (重组推刃力量)"
+            "taskLabelZh": "单腿深蹲 (重组推刃力量)",
+            "taskLabelEn": "Assisted Pistol Squats"
           },
           {
             "routineItemId": "age7_10-w1-t3",
-            "taskLabel": "臀桥"
+            "taskLabelZh": "臀桥",
+            "taskLabelEn": "Glute Bridges"
           },
           {
             "routineItemId": "age7_10-w1-t4",
-            "taskLabel": "俯卧撑"
+            "taskLabelZh": "俯卧撑",
+            "taskLabelEn": "Push-ups"
           }
         ],
         "wednesday": [],
         "thursday": [
           {
             "routineItemId": "age7_10-w2-t0",
-            "taskLabel": "侧向跨跳 (行进间)"
+            "taskLabelZh": "侧向跨跳 (行进间)",
+            "taskLabelEn": "Lateral Bounds (Moving)"
           },
           {
             "routineItemId": "age7_10-w2-t1",
-            "taskLabel": "蛙跳 (爆发力基础)"
+            "taskLabelZh": "蛙跳 (爆发力基础)",
+            "taskLabelEn": "Frog Jumps"
           },
           {
             "routineItemId": "age7_10-w2-t2",
-            "taskLabel": "侧向滑步跳"
+            "taskLabelZh": "侧向滑步跳",
+            "taskLabelEn": "Skater Jumps"
           },
           {
             "routineItemId": "age7_10-w2-t3",
-            "taskLabel": "敏捷梯进阶"
+            "taskLabelZh": "敏捷梯进阶",
+            "taskLabelEn": "Agility Ladder Advanced"
           },
           {
             "routineItemId": "age7_10-w2-t4",
-            "taskLabel": "折返跑"
+            "taskLabelZh": "折返跑",
+            "taskLabelEn": "T-Drill / Shuttle Runs"
           }
         ],
         "friday": [
           {
             "routineItemId": "age7_10-w3-t0",
-            "taskLabel": "持续低姿态陆地连滑步"
+            "taskLabelZh": "持续低姿态陆地连滑步",
+            "taskLabelEn": "Continuous Low Posture Slide"
           },
           {
             "routineItemId": "age7_10-w3-t1",
-            "taskLabel": "速滑位等长收缩 + 上肢稳定"
+            "taskLabelZh": "速滑位等长收缩 + 上肢稳定",
+            "taskLabelEn": "Skating Iso-Hold + Arm Swing"
           },
           {
             "routineItemId": "age7_10-w3-t2",
-            "taskLabel": "死虫式 (Dead Bug)"
+            "taskLabelZh": "死虫式 (Dead Bug)",
+            "taskLabelEn": "Dead Bug"
           },
           {
             "routineItemId": "age7_10-w3-t3",
-            "taskLabel": "靠墙单腿姿势控制"
+            "taskLabelZh": "靠墙单腿姿势控制",
+            "taskLabelEn": "Wall-sit Single Leg Hold"
           }
         ],
         "saturday": [
           {
             "routineItemId": "age7_10-w4-t0",
-            "taskLabel": "间歇冲刺 (20米 x 6-8次)"
+            "taskLabelZh": "间歇冲刺 (20米 x 6-8次)",
+            "taskLabelEn": "Interval Sprints (20m)"
           },
           {
             "routineItemId": "age7_10-w4-t1",
-            "taskLabel": "变速跑 (节奏感知训练)"
+            "taskLabelZh": "变速跑 (节奏感知训练)",
+            "taskLabelEn": "Fartlek (Pace Perception)"
           },
           {
             "routineItemId": "age7_10-w4-t2",
-            "taskLabel": "弯道交叉步模仿"
+            "taskLabelZh": "弯道交叉步模仿",
+            "taskLabelEn": "Corner Crossovers Mimic"
           },
           {
             "routineItemId": "age7_10-w4-t3",
-            "taskLabel": "侧蹬抗阻模仿"
+            "taskLabelZh": "侧蹬抗阻模仿",
+            "taskLabelEn": "Banded Lateral Pushes"
           }
         ],
         "sunday": []
@@ -946,12 +1001,19 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "60分钟",
           "durationEn": "60 mins",
           "weekday": "monday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "速滑基本站位与重心控制",
             "陆地侧推步 (连贯技术)",
             "摆臂技术专项训练",
             "滑行板训练",
             "平板支撑变式"
+          ],
+          "taskLabelsEn": [
+            "Basic Stance & CoG Control",
+            "Dryland Lateral Pushes",
+            "Arm Swing Specific Training",
+            "Slide Board Training",
+            "Plank Variations"
           ]
         },
         {
@@ -963,12 +1025,19 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "60分钟",
           "durationEn": "60 mins",
           "weekday": "tuesday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "臀肌激活 (弹力带侧走)",
             "徒手深蹲 (体能基础)",
             "单腿深蹲 (重组推刃力量)",
             "臀桥",
             "俯卧撑"
+          ],
+          "taskLabelsEn": [
+            "Glute Activation (Banded Walk)",
+            "Bodyweight Squats",
+            "Assisted Pistol Squats",
+            "Glute Bridges",
+            "Push-ups"
           ]
         },
         {
@@ -980,12 +1049,19 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "60分钟",
           "durationEn": "60 mins",
           "weekday": "thursday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "侧向跨跳 (行进间)",
             "蛙跳 (爆发力基础)",
             "侧向滑步跳",
             "敏捷梯进阶",
             "折返跑"
+          ],
+          "taskLabelsEn": [
+            "Lateral Bounds (Moving)",
+            "Frog Jumps",
+            "Skater Jumps",
+            "Agility Ladder Advanced",
+            "T-Drill / Shuttle Runs"
           ]
         },
         {
@@ -997,11 +1073,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "75分钟",
           "durationEn": "75 mins",
           "weekday": "friday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "持续低姿态陆地连滑步",
             "速滑位等长收缩 + 上肢稳定",
             "死虫式 (Dead Bug)",
             "靠墙单腿姿势控制"
+          ],
+          "taskLabelsEn": [
+            "Continuous Low Posture Slide",
+            "Skating Iso-Hold + Arm Swing",
+            "Dead Bug",
+            "Wall-sit Single Leg Hold"
           ]
         },
         {
@@ -1013,11 +1095,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "75分钟",
           "durationEn": "75 mins",
           "weekday": "saturday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "间歇冲刺 (20米 x 6-8次)",
             "变速跑 (节奏感知训练)",
             "弯道交叉步模仿",
             "侧蹬抗阻模仿"
+          ],
+          "taskLabelsEn": [
+            "Interval Sprints (20m)",
+            "Fartlek (Pace Perception)",
+            "Corner Crossovers Mimic",
+            "Banded Lateral Pushes"
           ]
         }
       ]
@@ -1027,7 +1115,8 @@ export const ACADEMY_STAGES: AcademyStage[] = [
     "id": "age11_16",
     "labelZh": "青少年专项阶段",
     "labelEn": "Pro Youth Stage",
-    "ageRange": "11-16岁",
+    "ageRangeZh": "11-16岁",
+    "ageRangeEn": "Age 11-16",
     "overviewZh": "全面转向高强度的专项竞技体能体系。最大力量、爆发力、专项无氧耐力全面提升，每次90-120分钟，每周4-6次。以陆地测验成绩对标冰上能力表现。",
     "overviewEn": "Full transition to high-intensity competitive conditioning. Maximize strength, explosive power, and anaerobic endurance.",
     "durationZh": "90-120 分钟",
@@ -1462,127 +1551,155 @@ export const ACADEMY_STAGES: AcademyStage[] = [
         "monday": [
           {
             "routineItemId": "age11_16-w0-t0",
-            "taskLabel": "负重深蹲 (杠铃/哑铃) 5组x6次"
+            "taskLabelZh": "负重深蹲 (杠铃/哑铃) 5组x6次",
+            "taskLabelEn": "Barbell Back Squats 5x6"
           },
           {
             "routineItemId": "age11_16-w0-t1",
-            "taskLabel": "北欧腘绳肌 (Nordic Curl) 4组"
+            "taskLabelZh": "北欧腘绳肌 (Nordic Curl) 4组",
+            "taskLabelEn": "Nordic Hamstring Curls 4 sets"
           },
           {
             "routineItemId": "age11_16-w0-t2",
-            "taskLabel": "罗马尼亚硬拉 (RDL) 4组"
+            "taskLabelZh": "罗马尼亚硬拉 (RDL) 4组",
+            "taskLabelEn": "Romanian Deadlift (RDL) 4x8"
           },
           {
             "routineItemId": "age11_16-w0-t3",
-            "taskLabel": "上肢拉力训练 (引体向上/划船) 3组"
+            "taskLabelZh": "上肢拉力训练 (引体向上/划船) 3组",
+            "taskLabelEn": "Pull-ups / Rows 3 sets"
           },
           {
             "routineItemId": "age11_16-w0-t4",
-            "taskLabel": "负重平板支撑 / 健腹轮抗伸展 1分钟"
+            "taskLabelZh": "负重平板支撑 / 健腹轮抗伸展 1分钟",
+            "taskLabelEn": "Weighted Plank / Ab Wheel 1 min"
           }
         ],
         "tuesday": [
           {
             "routineItemId": "age11_16-w1-t0",
-            "taskLabel": "连续跳箱训练 (Box Jumps) 4组x6次"
+            "taskLabelZh": "连续跳箱训练 (Box Jumps) 4组x6次",
+            "taskLabelEn": "Box Jumps 4x6"
           },
           {
             "routineItemId": "age11_16-w1-t1",
-            "taskLabel": "敏捷梯/锥桶组合变向 (In-Out-Cut) 5趟"
+            "taskLabelZh": "敏捷梯/锥桶组合变向 (In-Out-Cut) 5趟",
+            "taskLabelEn": "Agility Cuts (In-Out-Cut) 5 laps"
           },
           {
             "routineItemId": "age11_16-w1-t2",
-            "taskLabel": "侧向跳跃 (连贯性单腿) 4组"
+            "taskLabelZh": "侧向跳跃 (连贯性单腿) 4组",
+            "taskLabelEn": "Continuous Lateral Bounds 4 sets"
           },
           {
             "routineItemId": "age11_16-w1-t3",
-            "taskLabel": "壶铃摇摆 (Kettlebell Swing) 4组"
+            "taskLabelZh": "壶铃摇摆 (Kettlebell Swing) 4组",
+            "taskLabelEn": "Kettlebell Swings 4 sets"
           },
           {
             "routineItemId": "age11_16-w1-t4",
-            "taskLabel": "医药球侧向抛掷 4组"
+            "taskLabelZh": "医药球侧向抛掷 4组",
+            "taskLabelEn": "Med Ball Rotational Throws 4 sets"
           }
         ],
         "wednesday": [
           {
             "routineItemId": "age11_16-w2-t0",
-            "taskLabel": "核心-骨盆控制与激活 (Bird-Dog) 3组"
+            "taskLabelZh": "核心-骨盆控制与激活 (Bird-Dog) 3组",
+            "taskLabelEn": "Core-Pelvic Activation (Bird-Dog) 3 sets"
           },
           {
             "routineItemId": "age11_16-w2-t1",
-            "taskLabel": "踝关节强化与本体感觉进阶 3组"
+            "taskLabelZh": "踝关节强化与本体感觉进阶 3组",
+            "taskLabelEn": "Advanced Ankle Proprioception 3 sets"
           },
           {
             "routineItemId": "age11_16-w2-t2",
-            "taskLabel": "髋部屈肌深层拉伸 (Couch Stretch) 每侧60秒"
+            "taskLabelZh": "髋部屈肌深层拉伸 (Couch Stretch) 每侧60秒",
+            "taskLabelEn": "Couch Stretch (Deep Hip Flexors) 60s/side"
           },
           {
             "routineItemId": "age11_16-w2-t3",
-            "taskLabel": "筋膜枪与泡沫轴 (深层组织松解) 20分"
+            "taskLabelZh": "筋膜枪与泡沫轴 (深层组织松解) 20分",
+            "taskLabelEn": "Massage Gun & Foam Rolling 20 mins"
           }
         ],
         "thursday": [
           {
             "routineItemId": "age11_16-w3-t0",
-            "taskLabel": "滑行板高强度间歇 (HIIT) 10组"
+            "taskLabelZh": "滑行板高强度间歇 (HIIT) 10组",
+            "taskLabelEn": "Slide Board HIIT 10 sets"
           },
           {
             "routineItemId": "age11_16-w3-t1",
-            "taskLabel": "动感单车冲刺 (Sprint Intervals) 10组"
+            "taskLabelZh": "动感单车冲刺 (Sprint Intervals) 10组",
+            "taskLabelEn": "Spin Bike Sprints 10 sets"
           },
           {
             "routineItemId": "age11_16-w3-t2",
-            "taskLabel": "靠墙静蹲 (负重/单腿/TRX) 3组"
+            "taskLabelZh": "靠墙静蹲 (负重/单腿/TRX) 3组",
+            "taskLabelEn": "Wall-sit (Weighted/Single-leg/TRX) 3 sets"
           },
           {
             "routineItemId": "age11_16-w3-t3",
-            "taskLabel": "抗旋转核心训练 (Pallof Press) 4组"
+            "taskLabelZh": "抗旋转核心训练 (Pallof Press) 4组",
+            "taskLabelEn": "Pallof Press (Anti-Rotation) 4 sets"
           }
         ],
         "friday": [
           {
             "routineItemId": "age11_16-w4-t0",
-            "taskLabel": "阻力冲刺 (雪橇拖拽/降落伞) 8趟"
+            "taskLabelZh": "阻力冲刺 (雪橇拖拽/降落伞) 8趟",
+            "taskLabelEn": "Sled Pushes / Parachute Sprints 8 laps"
           },
           {
             "routineItemId": "age11_16-w4-t1",
-            "taskLabel": "保加利亚分腿蹲 4组"
+            "taskLabelZh": "保加利亚分腿蹲 4组",
+            "taskLabelEn": "Bulgarian Split Squats 4 sets"
           },
           {
             "routineItemId": "age11_16-w4-t2",
-            "taskLabel": "深跳 (Drop Jump) + 连续跳 4组"
+            "taskLabelZh": "深跳 (Drop Jump) + 连续跳 4组",
+            "taskLabelEn": "Drop Jump to Bound 4 sets"
           },
           {
             "routineItemId": "age11_16-w4-t3",
-            "taskLabel": "悬垂举腿 / 俄罗斯转体 4组"
+            "taskLabelZh": "悬垂举腿 / 俄罗斯转体 4组",
+            "taskLabelEn": "Hanging Leg Raises / Russian Twists 4 sets"
           }
         ],
         "saturday": [
           {
             "routineItemId": "age11_16-w5-t0",
-            "taskLabel": "400米/800米田径场冲刺 4组"
+            "taskLabelZh": "400米/800米田径场冲刺 4组",
+            "taskLabelEn": "400m/800m Track Sprints 4 sets"
           },
           {
             "routineItemId": "age11_16-w5-t1",
-            "taskLabel": "臀推 (杠铃/弹力带) 4组x10次"
+            "taskLabelZh": "臀推 (杠铃/弹力带) 4组x10次",
+            "taskLabelEn": "Barbell Hip Thrusts 4x10"
           },
           {
             "routineItemId": "age11_16-w5-t2",
-            "taskLabel": "敏捷梯/锥桶组合变向 (In-Out-Cut) 6趟"
+            "taskLabelZh": "敏捷梯/锥桶组合变向 (In-Out-Cut) 6趟",
+            "taskLabelEn": "Agility Cuts (In-Out-Cut) 6 laps"
           }
         ],
         "sunday": [
           {
             "routineItemId": "age11_16-w6-t0",
-            "taskLabel": "静态拉伸 (全面柔韧性) 15分"
+            "taskLabelZh": "静态拉伸 (全面柔韧性) 15分",
+            "taskLabelEn": "Static Stretching 15 mins"
           },
           {
             "routineItemId": "age11_16-w6-t1",
-            "taskLabel": "髋部屈肌深层拉伸 (Couch Stretch) 2组"
+            "taskLabelZh": "髋部屈肌深层拉伸 (Couch Stretch) 2组",
+            "taskLabelEn": "Couch Stretch (Deep Hip Flexors) 2 sets"
           },
           {
             "routineItemId": "age11_16-w6-t2",
-            "taskLabel": "冰浴与冷热交替浴 10分"
+            "taskLabelZh": "冰浴与冷热交替浴 10分",
+            "taskLabelEn": "Ice / Contrast Baths 10 mins"
           }
         ]
       },
@@ -1596,12 +1713,19 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "90分钟",
           "durationEn": "90 mins",
           "weekday": "monday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "负重深蹲 (杠铃/哑铃) 5组x6次",
             "北欧腘绳肌 (Nordic Curl) 4组",
             "罗马尼亚硬拉 (RDL) 4组",
             "上肢拉力训练 (引体向上/划船) 3组",
             "负重平板支撑 / 健腹轮抗伸展 1分钟"
+          ],
+          "taskLabelsEn": [
+            "Barbell Back Squats 5x6",
+            "Nordic Hamstring Curls 4 sets",
+            "Romanian Deadlift (RDL) 4x8",
+            "Pull-ups / Rows 3 sets",
+            "Weighted Plank / Ab Wheel 1 min"
           ]
         },
         {
@@ -1613,12 +1737,19 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "80分钟",
           "durationEn": "80 mins",
           "weekday": "tuesday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "连续跳箱训练 (Box Jumps) 4组x6次",
             "敏捷梯/锥桶组合变向 (In-Out-Cut) 5趟",
             "侧向跳跃 (连贯性单腿) 4组",
             "壶铃摇摆 (Kettlebell Swing) 4组",
             "医药球侧向抛掷 4组"
+          ],
+          "taskLabelsEn": [
+            "Box Jumps 4x6",
+            "Agility Cuts (In-Out-Cut) 5 laps",
+            "Continuous Lateral Bounds 4 sets",
+            "Kettlebell Swings 4 sets",
+            "Med Ball Rotational Throws 4 sets"
           ]
         },
         {
@@ -1630,11 +1761,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "45分钟",
           "durationEn": "45 mins",
           "weekday": "wednesday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "核心-骨盆控制与激活 (Bird-Dog) 3组",
             "踝关节强化与本体感觉进阶 3组",
             "髋部屈肌深层拉伸 (Couch Stretch) 每侧60秒",
             "筋膜枪与泡沫轴 (深层组织松解) 20分"
+          ],
+          "taskLabelsEn": [
+            "Core-Pelvic Activation (Bird-Dog) 3 sets",
+            "Advanced Ankle Proprioception 3 sets",
+            "Couch Stretch (Deep Hip Flexors) 60s/side",
+            "Massage Gun & Foam Rolling 20 mins"
           ]
         },
         {
@@ -1646,11 +1783,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "100分钟",
           "durationEn": "100 mins",
           "weekday": "thursday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "滑行板高强度间歇 (HIIT) 10组",
             "动感单车冲刺 (Sprint Intervals) 10组",
             "靠墙静蹲 (负重/单腿/TRX) 3组",
             "抗旋转核心训练 (Pallof Press) 4组"
+          ],
+          "taskLabelsEn": [
+            "Slide Board HIIT 10 sets",
+            "Spin Bike Sprints 10 sets",
+            "Wall-sit (Weighted/Single-leg/TRX) 3 sets",
+            "Pallof Press (Anti-Rotation) 4 sets"
           ]
         },
         {
@@ -1662,11 +1805,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "90分钟",
           "durationEn": "90 mins",
           "weekday": "friday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "阻力冲刺 (雪橇拖拽/降落伞) 8趟",
             "保加利亚分腿蹲 4组",
             "深跳 (Drop Jump) + 连续跳 4组",
             "悬垂举腿 / 俄罗斯转体 4组"
+          ],
+          "taskLabelsEn": [
+            "Sled Pushes / Parachute Sprints 8 laps",
+            "Bulgarian Split Squats 4 sets",
+            "Drop Jump to Bound 4 sets",
+            "Hanging Leg Raises / Russian Twists 4 sets"
           ]
         },
         {
@@ -1678,10 +1827,15 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "90分钟",
           "durationEn": "90 mins",
           "weekday": "saturday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "400米/800米田径场冲刺 4组",
             "臀推 (杠铃/弹力带) 4组x10次",
             "敏捷梯/锥桶组合变向 (In-Out-Cut) 6趟"
+          ],
+          "taskLabelsEn": [
+            "400m/800m Track Sprints 4 sets",
+            "Barbell Hip Thrusts 4x10",
+            "Agility Cuts (In-Out-Cut) 6 laps"
           ]
         },
         {
@@ -1693,10 +1847,15 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationZh": "60分钟",
           "durationEn": "60 mins",
           "weekday": "sunday",
-          "taskLabels": [
+          "taskLabelsZh": [
             "静态拉伸 (全面柔韧性) 15分",
             "髋部屈肌深层拉伸 (Couch Stretch) 2组",
             "冰浴与冷热交替浴 10分"
+          ],
+          "taskLabelsEn": [
+            "Static Stretching 15 mins",
+            "Couch Stretch (Deep Hip Flexors) 2 sets",
+            "Ice / Contrast Baths 10 mins"
           ]
         }
       ]
