@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Proposed.** Scope, timing and handling of user-entered text decided by the owner 2026-10-16 (section 2). Chinese wording is a draft; the owner reviews it page by page in each slice. |
+| Status | **Accepted (2026-10-17, owner approved).** Scope, timing and handling of user-entered text decided by the owner 2026-10-16 (section 2). Slices S6a–S6e are delivered; the Chinese wording was reviewed by the owner slice by slice. Sign-in error messages are a separate follow-up slice (A2). |
 | Date | 2026-10-16 |
 | Branch | `feat/i18n-s6a` |
 | Supersedes | ADR-001, line "Existing pages hard-code mixed zh/en and bypass unified i18n; new module uses a unified i18n resource, old pages are untouched." Only that line; the rest of ADR-001 stands. |
@@ -117,6 +117,6 @@ Section 3 says this work changes no data. One exception, agreed with the owner: 
 
 - **Coverage test.** `NOT_MIGRATED` is deleted together with its "listed file still has hardcoded text" test. `i18n-coverage.test.ts` is now the plain rule from D8: no file in the app may have hardcoded text. The "scans the app" test stays so an empty scan cannot pass by accident.
 - **Settings note.** The language setting no longer says that some screens are still English; every screen follows the setting. The text is now only "选择界面语言。" / "Choose the interface language."
-- **Analysis pages.** They are placeholders and say no more than that: "动作分析" (never "生物力学", D9), and the shared placeholder note. A test checks that the Chinese never says "生物力学" on them.
+- **Analysis pages.** They are placeholders and say no more than that: "动作分析" (never "生物力学", D9), and the shared placeholder note. A test checks that the Chinese never says "生物力学" on them. The English hub note no longer says "Biomechanics lab" (a placeholder has no lab; owner approved 2026-10-17); it now reads "Biomechanics, pacing charts, and equipment tracking."
 - **Still shown as received, not translated.** Sign-in / sign-up error messages that come from the identity layer, and messages that come back from the data layer (Firestore errors), are shown as they arrive. Translating the sign-in ones touches `packages/firebase-client` identity code and is a separate slice with its own risk and rollback notes.
 - **Rollback.** Revert the PR; the pages show their English text again and the setting note returns to the previous wording. No data change.

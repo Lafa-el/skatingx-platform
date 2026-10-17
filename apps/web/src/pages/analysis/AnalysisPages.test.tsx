@@ -18,7 +18,8 @@ afterEach(() => {
 
 // These pages are placeholders: the text must say no more than that. "Biomechanics" is "动作分析"
 // in Chinese (owner decision 2026-10-16, ADR-004 glossary): "生物力学" would claim more than a
-// placeholder does. English is the wording the pages had before they were translated.
+// placeholder does. English is the wording the pages had before they were translated, except the hub note, which no
+// longer says "Biomechanics lab" (a placeholder has no lab; owner approved 2026-10-17).
 const PLACEHOLDER = {
   zh: "占位页面:原有功能将在后续阶段迁移。",
   en: "Placeholder page — legacy logic will be migrated in a later phase.",
@@ -36,7 +37,7 @@ const PAGES: {
     title: { zh: "分析", en: "Analysis" },
     note: {
       zh: "动作分析、配速图表和装备追踪。",
-      en: "Biomechanics lab, pacing charts, and equipment tracking.",
+      en: "Biomechanics, pacing charts, and equipment tracking.",
     },
   },
   {
@@ -69,6 +70,12 @@ describe.each(["zh", "en"] as const)("analysis pages (%s)", (locale) => {
 });
 
 describe("analysis pages: wording that must not overclaim", () => {
+  it("English does not call a placeholder a lab", () => {
+    state.locale = "en";
+    const view = render(<AnalysisHubPage />);
+    expect(view.container.textContent).not.toMatch(/\blab\b/i);
+  });
+
   it("Chinese never says 生物力学 on a placeholder page", () => {
     for (const { page } of PAGES) {
       state.locale = "zh";

@@ -18,7 +18,9 @@ type AnalysisKey = keyof typeof zh;
 
 const en: Record<AnalysisKey, string> = {
   "analysis.hub.title": "Analysis",
-  "analysis.hub.description": "Biomechanics lab, pacing charts, and equipment tracking.",
+  // The earlier text said "Biomechanics lab"; a placeholder page has no lab, so the word is dropped
+  // (owner approved 2026-10-17). It matches the Chinese and the Dashboard card.
+  "analysis.hub.description": "Biomechanics, pacing charts, and equipment tracking.",
   "analysis.biomechanics.title": "Analysis · Biomechanics",
   "analysis.pacing.title": "Analysis · Pacing",
   "analysis.equipment.title": "Analysis · Equipment",
