@@ -110,7 +110,7 @@ describe("TrainingHomePage: Chinese", () => {
     renderPage();
     const link = (to: string) => document.querySelector(`a[href="${to}"].rounded-xl`) as HTMLElement;
     expect(link("/training/tasks").textContent).toBe("任务添加并完成今天的清单");
-    expect(link("/training/academy").textContent).toBe(`学院${stage.labelZh} · 陆上训练计划`);
+    expect(link("/training/academy").textContent).toBe(`学院${stage.labelZh} · 陆地训练计划`);
     expect(link("/training/records").textContent).toBe("纪录各距离的个人最好成绩");
     expect(link("/training/shop").textContent).toBe("商店可用 120 积分");
   });
