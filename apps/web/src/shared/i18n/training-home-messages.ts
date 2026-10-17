@@ -29,10 +29,10 @@ const zh = {
   "trainingHome.records.open": "打开纪录 →",
   "trainingHome.shop.points.one": "{count} 积分",
   "trainingHome.shop.points.other": "{count} 积分",
-  "trainingHome.shop.pro": "PRO 已开启 · 目录奖励 + 自定义奖励(占位)",
+  "trainingHome.shop.pro": "PRO 已开启 · 目录奖励 + 自定义奖励（占位）",
   "trainingHome.shop.free": "免费版 · 仅目录奖励",
   "trainingHome.shop.open": "打开商店 →",
-  "trainingHome.academy.reference": "参考阶段:{stage}({ageRange})",
+  "trainingHome.academy.reference": "参考阶段：{stage}（{ageRange}）",
   "trainingHome.academy.import": "从 BLAZE Academy 导入陆地训练。",
   "trainingHome.academy.open": "打开学院 →",
 

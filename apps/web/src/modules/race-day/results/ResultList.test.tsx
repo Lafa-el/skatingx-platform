@@ -114,9 +114,9 @@ describe("ResultList", () => {
   });
 
   it.each([
-    ["DNS", "未出发(DNS)"],
-    ["DNF", "未完赛(DNF)"],
-    ["DQ", "取消资格(DQ)"],
+    ["DNS", "未出发（DNS）"],
+    ["DNF", "未完赛（DNF）"],
+    ["DQ", "取消资格（DQ）"],
   ] as const)("shows %s as text instead of a time", (status, text) => {
     setup([result("ann", { status, timeSeconds: null })]);
     expect(within(item("Ann")).getByText(text)).toBeTruthy();
@@ -170,7 +170,7 @@ describe("ResultList", () => {
     const { onDelete, user } = setup([result("ann"), result("bob")]);
     await user.click(within(item("Ann")).getByRole("button", { name: /^删除/ }));
     expect(onDelete).not.toHaveBeenCalled();
-    expect(within(item("Ann")).getByText("删除这条成绩,无法恢复。")).toBeTruthy();
+    expect(within(item("Ann")).getByText("删除这条成绩，无法恢复。")).toBeTruthy();
     await user.click(within(item("Ann")).getByRole("button", { name: /^确认删除/ }));
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ result: expect.objectContaining({ resultId: "race-1_ann" }) }));
@@ -182,7 +182,7 @@ describe("ResultList", () => {
     await user.click(screen.getByRole("button", { name: "取消" }));
     expect(onDelete).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /^编辑/ })).toBeTruthy();
-    expect(screen.queryByText("删除这条成绩,无法恢复。")).toBeNull();
+    expect(screen.queryByText("删除这条成绩，无法恢复。")).toBeNull();
   });
 
   it("disables the actions while another action is running", () => {

@@ -14,21 +14,21 @@ const zh = {
 
   "settings.pro.title": "PRO 会员",
   "settings.pro.devNotice": "仅供开发使用。尚未接入支付。",
-  "settings.pro.devHelp": "可在下方切换 PRO,用来测试学院和商店的付费限制界面。不会扣费,也不会验证订阅状态。",
+  "settings.pro.devHelp": "可在下方切换 PRO，用来测试学院和商店的付费限制界面。不会扣费，也不会验证订阅状态。",
   "settings.pro.status": "状态",
   "settings.pro.active": "PRO 已开通",
   "settings.pro.free": "免费版",
   "settings.pro.saving": "保存中…",
-  "settings.pro.disable": "关闭 PRO(开发用)",
-  "settings.pro.enable": "开启 PRO(开发用)",
-  "settings.pro.enabledMessage": "PRO 已开启(开发标记)。",
+  "settings.pro.disable": "关闭 PRO（开发用）",
+  "settings.pro.enable": "开启 PRO（开发用）",
+  "settings.pro.enabledMessage": "PRO 已开启（开发标记）。",
   "settings.pro.disabledMessage": "PRO 已关闭。",
   "settings.pro.updateFailed": "PRO 状态更新失败。",
 
   "settings.parent.title": "家长设置",
   // The sentence has a field name in the middle that is not translated, so it is two pieces around
   // a <code> element. The space before the field name is part of the first piece.
-  "settings.parent.noteBefore": "家长 PIN 锁在 M6 中尚未实现。PIN 不会以明文保存。PIN 安全功能上线后,只会把哈希值保存在 ",
+  "settings.parent.noteBefore": "家长 PIN 锁在 M6 中尚未实现。PIN 不会以明文保存。PIN 安全功能上线后，只会把哈希值保存在 ",
   "settings.parent.noteAfter": " 中。",
 
   "settings.account.title": "当前用户",
@@ -38,11 +38,11 @@ const zh = {
   "settings.account.email": "邮箱",
   "settings.account.loading": "加载中…",
   "settings.account.notConfigured": "服务未配置",
-  "settings.account.guest": "访客(匿名)",
+  "settings.account.guest": "访客（匿名）",
   "settings.account.registered": "已注册用户",
   "settings.account.yes": "是",
   "settings.account.no": "否",
-  "settings.account.guestUid": "访客 UID(前 8 位):{uid}",
+  "settings.account.guestUid": "访客 UID（前 8 位）：{uid}",
 
   "settings.field.email": "邮箱",
   "settings.field.password": "密码",
@@ -53,13 +53,13 @@ const zh = {
   "settings.link.busy": "绑定中…",
 
   "settings.signIn.title": "登录已有账户",
-  "settings.signIn.help": "使用已注册的邮箱和密码登录。登录会替换当前会话(访客数据不会自动合并)。",
+  "settings.signIn.help": "使用已注册的邮箱和密码登录。登录会替换当前会话（访客数据不会自动合并）。",
   "settings.signIn.submit": "登录",
   "settings.signIn.busy": "登录中…",
 
   "settings.signOut.button": "退出登录",
   "settings.signOut.confirm":
-    "要退出登录吗?你会回到一个新的访客会话。除非你之前已经绑定账户,否则这台设备上未保存的访客数据不会转移到已注册账户。",
+    "要退出登录吗？你会回到一个新的访客会话。除非你之前已经绑定账户，否则这台设备上未保存的访客数据不会转移到已注册账户。",
 } as const;
 
 type SettingsPageKey = keyof typeof zh;

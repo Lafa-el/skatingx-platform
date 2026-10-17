@@ -255,7 +255,7 @@ describe("VideosPage states", () => {
     h.videos = ready([], [{ id: "d", reason: "x" }]);
     h.races = ready([race()], [{ id: "b", reason: "x" }]);
     renderPage();
-    expect(screen.getByText("有 2 条数据无法读取,已隐藏。")).toBeTruthy();
+    expect(screen.getByText("有 2 条数据无法读取，已隐藏。")).toBeTruthy();
   });
 
   it("shows the sync-failed alert and dismisses it", async () => {
@@ -296,7 +296,7 @@ describe("VideosPage entry", () => {
     const user = renderPage();
     await choose(user, "race-1", "ann");
     await user.type(screen.getByLabelText(/视频名称/), "Start");
-    await user.type(screen.getByLabelText("链接(可选)"), "https://example.com/v");
+    await user.type(screen.getByLabelText("链接（可选）"), "https://example.com/v");
     await user.click(screen.getByRole("button", { name: "保存视频记录" }));
     await waitFor(() => {
       expect(actions().createVideo).toHaveBeenCalledTimes(1);
@@ -330,7 +330,7 @@ describe("VideosPage entry", () => {
     const user = renderPage();
     await choose(user, "race-1", "ann");
     await user.type(screen.getByLabelText(/视频名称/), "x");
-    await user.type(screen.getByLabelText("链接(可选)"), "javascript:alert(1)");
+    await user.type(screen.getByLabelText("链接（可选）"), "javascript:alert(1)");
     await user.click(screen.getByRole("button", { name: "保存视频记录" }));
     expect(actions().createVideo).not.toHaveBeenCalled();
     expect(screen.getByText(/链接需要以 http/)).toBeTruthy();
@@ -365,7 +365,7 @@ describe("VideosPage entry", () => {
     const user = renderPage();
     await choose(user, "race-1", "ann");
     await user.type(screen.getByLabelText(/视频名称/), "Private name");
-    await user.type(screen.getByLabelText("链接(可选)"), "https://secret.example.com/x");
+    await user.type(screen.getByLabelText("链接（可选）"), "https://secret.example.com/x");
     await user.click(screen.getByRole("button", { name: "保存视频记录" }));
     await waitFor(() => {
       expect(spy).toHaveBeenCalled();
@@ -402,7 +402,7 @@ describe("VideosPage list, edit and delete", () => {
     await user.click(screen.getByRole("button", { name: /^编辑/ }));
     const form = screen.getByRole("form", { name: "编辑视频记录" });
     expect((within(form).getByLabelText(/视频名称/) as HTMLInputElement).value).toBe("Start");
-    expect((within(form).getByLabelText("备注(可选)") as HTMLInputElement).value).toBe("n1");
+    expect((within(form).getByLabelText("备注（可选）") as HTMLInputElement).value).toBe("n1");
     expect(screen.queryByLabelText("比赛")).toBeNull();
     expect(screen.queryByLabelText("运动员")).toBeNull();
     expect(screen.getByText("Ann")).toBeTruthy();

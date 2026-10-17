@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { halfWidthPunctuation } from "@/test/zhPunctuation";
+
 import { coreResources } from "./core-messages";
 import { raceDayResources, t } from "./messages";
 
@@ -18,6 +20,13 @@ describe("Race Day resources", () => {
       expect(en.trim(), `en ${key}`).not.toBe("");
       expect(placeholders(en), key).toEqual(placeholders(zh));
     }
+  });
+
+  it("Chinese text uses full-width punctuation next to Chinese characters", () => {
+    const wrong = Object.entries(raceDayResources.zh).flatMap(([key, text]) =>
+      halfWidthPunctuation(text).map((pair) => `${key}: ${pair}`),
+    );
+    expect(wrong).toEqual([]);
   });
 
   it("keys are named by domain, not by English sentence", () => {

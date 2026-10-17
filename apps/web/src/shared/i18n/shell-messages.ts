@@ -9,16 +9,16 @@ const zh = {
   // `{detail}` is the technical reason from the data service, shown as it arrives so a problem can
   // be reported. Chinese says 数据服务 for parents and athletes; English keeps the product name
   // Firestore (owner decision 2026-10-16).
-  "shell.status.connectError": "无法连接到数据服务:{detail}",
+  "shell.status.connectError": "无法连接到数据服务：{detail}",
   "shell.status.unavailable": "数据服务不可用。",
   "shell.status.initFailed": "初始化数据失败。",
 
   "shell.athlete.listLabel": "选择运动员",
   "shell.athlete.active": "当前",
-  "shell.athlete.switchingLater": "多运动员切换:后续阶段提供。",
+  "shell.athlete.switchingLater": "多运动员切换：后续阶段提供。",
   "shell.athlete.profileLink": "运动员档案 →",
 
-  "shell.placeholder.default": "占位页面:原有功能将在后续阶段迁移。",
+  "shell.placeholder.default": "占位页面：原有功能将在后续阶段迁移。",
 } as const;
 
 type ShellKey = keyof typeof zh;

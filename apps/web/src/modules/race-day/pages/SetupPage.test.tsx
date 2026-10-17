@@ -162,7 +162,7 @@ describe("SetupPage states", () => {
     h.events = ready([event()], [{ id: "bad", reason: "schema" }]);
     h.roster = ready([rosterEntry()], [{ id: "bad2", reason: "schema" }]);
     render(<SetupPage />);
-    expect(screen.getByText("有 2 条数据无法读取,已隐藏。")).toBeTruthy();
+    expect(screen.getByText("有 2 条数据无法读取，已隐藏。")).toBeTruthy();
   });
 
   it("shows the sync-failed alert and lets the user dismiss it", async () => {
@@ -209,7 +209,7 @@ describe("SetupPage event", () => {
   it("shows the event with its pending marker and dates", () => {
     render(<SetupPage />);
     expect(screen.getByText("Buffalo Championships")).toBeTruthy();
-    expect(screen.getByText("比赛日期:10月24日周六、10月25日周日")).toBeTruthy();
+    expect(screen.getByText("比赛日期：10月24日周六、10月25日周日")).toBeTruthy();
     expect(screen.getAllByText("待确认").length).toBeGreaterThan(0);
   });
 

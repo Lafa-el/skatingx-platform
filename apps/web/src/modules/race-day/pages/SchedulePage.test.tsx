@@ -178,7 +178,7 @@ describe("SchedulePage states", () => {
     h.races = ready([race()], [{ id: "b", reason: "x" }]);
     h.roster = ready([ann], [{ id: "c", reason: "x" }]);
     renderPage();
-    expect(screen.getByText("有 3 条数据无法读取,已隐藏。")).toBeTruthy();
+    expect(screen.getByText("有 3 条数据无法读取，已隐藏。")).toBeTruthy();
   });
 
   it("warns, with a link, when the event has no time zone", () => {

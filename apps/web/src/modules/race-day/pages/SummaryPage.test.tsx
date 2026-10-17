@@ -266,7 +266,7 @@ describe("SummaryPage states", () => {
     h.races = ready([race()], [{ id: "b", reason: "x" }]);
     h.results = ready([], [{ id: "d", reason: "x" }]);
     renderPage();
-    expect(screen.getByText("有 2 条数据无法读取,已隐藏。")).toBeTruthy();
+    expect(screen.getByText("有 2 条数据无法读取，已隐藏。")).toBeTruthy();
   });
 
   it("shows the sync-failed alert and dismisses it", async () => {
@@ -296,7 +296,7 @@ describe("SummaryPage card", () => {
       { ...result("me", { timeSeconds: 99, verification: "verified" }), raceId: "race-2", resultId: "race-2_me" },
     ]);
     renderPage();
-    const fastest = screen.getByText("最快完赛时间(仅统计已确认成绩)").closest("div") as HTMLElement;
+    const fastest = screen.getByText("最快完赛时间（仅统计已确认成绩）").closest("div") as HTMLElement;
     expect(within(fastest).getByText("1:39.00")).toBeTruthy();
     expect(screen.getByTestId("pending-banner").textContent).toContain("1 项成绩仍待确认");
   });
@@ -304,7 +304,7 @@ describe("SummaryPage card", () => {
   it("with several own athletes shows which one the card is for", () => {
     h.roster = ready([me, athlete("zed", "Zed Skater", true)]);
     renderPage();
-    expect(screen.getByText("有多位运动员被标记为本人,这里显示的是 Me Skater。")).toBeTruthy();
+    expect(screen.getByText("有多位运动员被标记为本人，这里显示的是 Me Skater。")).toBeTruthy();
   });
 });
 
@@ -332,7 +332,7 @@ describe("SummaryPage note", () => {
   it("an unreadable saved note is hidden and cannot be overwritten, only deleted", async () => {
     h.summary = { status: "ready", state: { kind: "invalid", reason: "x" }, error: null };
     const user = renderPage();
-    expect(screen.getByText(/无法读取,已隐藏/)).toBeTruthy();
+    expect(screen.getByText(/无法读取，已隐藏/)).toBeTruthy();
     expect(screen.queryByLabelText("备注")).toBeNull();
     await user.click(screen.getByRole("button", { name: "删除总结备注" }));
     await user.click(screen.getByRole("button", { name: "确认删除" }));
@@ -414,7 +414,7 @@ describe("SummaryPage note", () => {
     await user.paste("n".repeat(2001));
     await user.click(screen.getByRole("button", { name: "保存备注" }));
     expect(actions().saveSummaryNote).not.toHaveBeenCalled();
-    expect(screen.getByText("内容太长,请缩短")).toBeTruthy();
+    expect(screen.getByText("内容太长，请缩短")).toBeTruthy();
   });
 
   it("logs a failed save without the note text", async () => {

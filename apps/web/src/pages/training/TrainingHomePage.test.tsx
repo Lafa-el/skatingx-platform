@@ -98,12 +98,12 @@ describe("TrainingHomePage: Chinese", () => {
 
     setLanguage("zh", true);
     renderPage();
-    expect(card("商店 / 奖励").getByText("PRO 已开启 · 目录奖励 + 自定义奖励(占位)")).toBeTruthy();
+    expect(card("商店 / 奖励").getByText("PRO 已开启 · 目录奖励 + 自定义奖励（占位）")).toBeTruthy();
   });
 
   it("academy card names the reference stage and its age range as stored", () => {
     renderPage();
-    expect(card("学院").getByText(`参考阶段:${stage.labelZh}(${stage.ageRangeZh})`)).toBeTruthy();
+    expect(card("学院").getByText(`参考阶段：${stage.labelZh}（${stage.ageRangeZh}）`)).toBeTruthy();
   });
 
   it("the four shortcuts and their lines", () => {

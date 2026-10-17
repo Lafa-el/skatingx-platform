@@ -133,3 +133,12 @@ A2 left sign-in errors as received and said translating them "touches identity c
 - **Risks.** Identity: no change to sign-in, link, sign-out, uid handling or Security Rules; the catch blocks still rethrow where they did. Privacy: development logging is now `[auth] <operation> failed` with the error code only, never the message, email or password (a test checks this). Account enumeration: the "wrong email or password" and "email already registered" texts are the same as before, in two languages; this slice neither adds nor removes any distinction.
 - **Left alone.** `getAuthErrorMessage` is no longer called by the app but stays as public API of `firebase-client`.
 - **Rollback.** Revert the PR; the English sentences come back. No data change.
+
+### A4 (2026-10-17): Chinese punctuation is full-width
+
+- **Rule.** In the Chinese text of the app, the marks `，：；？！（）` are full-width. A half-width `, : ; ? ! ( )` that touches a Chinese character is wrong. Marks between Latin letters or digits stay as they are: the time `0:49.80`, the format `M:SS.xx` and the address `https://`.
+- **What changed.** 100 Chinese texts in the `zh` side of the resource files (78 in Race Day, 22 in the shared files). Only the marks changed; a script compared every changed line with its old version after mapping full-width back to half-width and found no other difference. The English side is untouched.
+- **Kept by a test.** `messages-consistency.test.ts` and Race Day's `messages.test.ts` fail if a Chinese text has a half-width mark next to a Chinese character, so a later slice cannot bring it back.
+- **Not changed (own decision).** The Academy drill text in `packages/content` comes from the legacy source, is generated, and is copied into the user's own tasks when imported (A1); it has about 60 such places (for example "（改良版）" written as " (改良版)"). It would be its own change with its own review, and it changes data users import.
+- **Not part of this rule.** Quotation marks (the text uses both “ ” and 「 」) and the spaced dash in "{label} — {count} 条纪录" are separate style questions.
+- **Rollback.** Revert the PR. No data change.

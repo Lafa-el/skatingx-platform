@@ -124,7 +124,7 @@ describe("useAcademyImport: nothing to write to", () => {
     expect(en.result.current.actionError).toBe("Sign-in is not ready yet. Try again in a moment.");
   });
 
-  it("database not available: same, with the service named as the owner decided (数据服务 in Chinese only)", async () => {
+  it("database not available: same, with the service named as the owner decided （数据服务 in Chinese only）", async () => {
     h.state.db = null;
     const zh = renderHook(() => useAcademyImport());
     await act(() => zh.result.current.importItem(item));
