@@ -15,25 +15,30 @@ import { ProLockedCard, ProPlanBanner } from "@/components/ProPlanBanner";
 import { useAcademyImport } from "@/hooks/useAcademyImport";
 import { useIsPro } from "@/hooks/useIsPro";
 import { useTrainingState } from "@/app/providers/FirestoreProvider";
+import {
+  type AcademyMessageKey,
+  formatAcademyCategory,
+  tAcademy,
+} from "@/shared/i18n/academy-messages";
+import { localized } from "@/shared/i18n/localized";
 
-const WEEKDAYS: { key: WeekdayKey; labelZh: string; labelEn: string }[] = [
-  { key: "monday", labelZh: "周一", labelEn: "Mon" },
-  { key: "tuesday", labelZh: "周二", labelEn: "Tue" },
-  { key: "wednesday", labelZh: "周三", labelEn: "Wed" },
-  { key: "thursday", labelZh: "周四", labelEn: "Thu" },
-  { key: "friday", labelZh: "周五", labelEn: "Fri" },
-  { key: "saturday", labelZh: "周六", labelEn: "Sat" },
-  { key: "sunday", labelZh: "周日", labelEn: "Sun" },
+/** Weekdays in the order of the week; the label of each is looked up by its key. */
+const WEEKDAYS: { key: WeekdayKey; labelKey: AcademyMessageKey }[] = [
+  { key: "monday", labelKey: "academy.weekday.monday" },
+  { key: "tuesday", labelKey: "academy.weekday.tuesday" },
+  { key: "wednesday", labelKey: "academy.weekday.wednesday" },
+  { key: "thursday", labelKey: "academy.weekday.thursday" },
+  { key: "friday", labelKey: "academy.weekday.friday" },
+  { key: "saturday", labelKey: "academy.weekday.saturday" },
+  { key: "sunday", labelKey: "academy.weekday.sunday" },
 ];
 
 const stages = getAcademyStages();
 
-const ROUTINE_LOCK_EN =
-  "PRO required for advanced routine import and AI-powered training plans.";
-const ROUTINE_LOCK_ZH = "高阶计划导入与 AI 训练计划需要 PRO。";
-
 export function TrainingAcademyPage() {
   const { isPro, language } = useIsPro();
+  const t = (key: AcademyMessageKey, params?: Record<string, string | number>) =>
+    tAcademy(language, key, params);
   const { data: rawState, loading: tasksLoading } = useTrainingState();
   const {
     importItem,
@@ -52,7 +57,6 @@ export function TrainingAcademyPage() {
   );
   const [routineWeekday, setRoutineWeekday] = useState<WeekdayKey>("tuesday");
 
-  const isEn = language === "en";
   const todayTasks = rawState?.todayTasks ?? [];
 
   const stage = useMemo(
@@ -93,22 +97,18 @@ export function TrainingAcademyPage() {
   if (!stage) {
     return (
       <section>
-        <p className="text-sm text-slate-600">Academy content is not available.</p>
+        <p className="text-sm text-slate-600">{t("academy.unavailable")}</p>
       </section>
     );
   }
 
   return (
     <section className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-slate-900">BLAZE SKATE Academy</h1>
-      <p className="mt-1 text-slate-600">
-        {isEn
-          ? "Professional dryland training — browse free; import single drills anytime."
-          : "全周期速滑专业陆地训练 — 免费浏览；单项可随时导入今日任务。"}
-      </p>
+      <h1 className="text-2xl font-bold text-slate-900">{t("academy.title")}</h1>
+      <p className="mt-1 text-slate-600">{t("academy.subtitle")}</p>
 
       <FirestoreStatusBanner className="mt-4" />
-      <ProPlanBanner isPro={isPro} isEn={isEn} className="mt-4" />
+      <ProPlanBanner isPro={isPro} locale={language} className="mt-4" />
 
       {actionError ? (
         <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
@@ -118,11 +118,12 @@ export function TrainingAcademyPage() {
 
       {lastResult ? (
         <p className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
-          {isEn
-            ? `Imported ${lastResult.imported}, skipped ${lastResult.skipped} (already on today’s list).`
-            : `已导入 ${lastResult.imported} 项，跳过 ${lastResult.skipped} 项（今日已存在）。`}
+          {t("academy.import.result", {
+            imported: lastResult.imported,
+            skipped: lastResult.skipped,
+          })}
           <Link to="/training/tasks" className="ml-2 font-medium underline">
-            {isEn ? "View tasks" : "查看任务"}
+            {t("academy.import.viewTasks")}
           </Link>
         </p>
       ) : null}
@@ -149,33 +150,27 @@ export function TrainingAcademyPage() {
 
       <Card title={localizeStageLabel(stage, language)} className="mt-4">
         <p className="text-sm text-slate-600">
-          {isEn ? stage.overviewEn : stage.overviewZh}
+          {localized(language, { zh: stage.overviewZh, en: stage.overviewEn })}
         </p>
         <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 sm:grid-cols-3">
           <div>
-            <dt className="font-medium text-slate-500">
-              {isEn ? "Duration" : "时长"}
-            </dt>
-            <dd>{isEn ? stage.durationEn : stage.durationZh}</dd>
+            <dt className="font-medium text-slate-500">{t("academy.stage.duration")}</dt>
+            <dd>{localized(language, { zh: stage.durationZh, en: stage.durationEn })}</dd>
           </div>
           <div>
-            <dt className="font-medium text-slate-500">
-              {isEn ? "Frequency" : "频率"}
-            </dt>
-            <dd>{isEn ? stage.frequencyEn : stage.frequencyZh}</dd>
+            <dt className="font-medium text-slate-500">{t("academy.stage.frequency")}</dt>
+            <dd>{localized(language, { zh: stage.frequencyZh, en: stage.frequencyEn })}</dd>
           </div>
           <div>
-            <dt className="font-medium text-slate-500">
-              {isEn ? "Focus" : "风格"}
-            </dt>
-            <dd>{isEn ? stage.coreFocusEn : stage.coreFocusZh}</dd>
+            <dt className="font-medium text-slate-500">{t("academy.stage.focus")}</dt>
+            <dd>{localized(language, { zh: stage.coreFocusZh, en: stage.coreFocusEn })}</dd>
           </div>
         </dl>
       </Card>
 
       <div className="mt-6 space-y-3">
         <h2 className="text-lg font-semibold text-slate-900">
-          {isEn ? "Training modules" : "训练模块"}
+          {t("academy.modules.title")}
         </h2>
         {stage.modules.map((module) => {
           const expanded = expandedModuleId === module.id;
@@ -191,7 +186,7 @@ export function TrainingAcademyPage() {
                   setExpandedModuleId(expanded ? null : module.id)
                 }
               >
-                {isEn ? module.titleEn : module.titleZh}
+                {localized(language, { zh: module.titleZh, en: module.titleEn })}
                 <span className="text-slate-400">{expanded ? "−" : "+"}</span>
               </button>
               {expanded ? (
@@ -217,7 +212,7 @@ export function TrainingAcademyPage() {
                             </p>
                           </div>
                           <span className="shrink-0 rounded bg-white px-2 py-0.5 text-[10px] font-medium text-sky-800 ring-1 ring-slate-200">
-                            {item.category}
+                            {formatAcademyCategory(item.category, language)}
                           </span>
                         </div>
                         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -231,14 +226,10 @@ export function TrainingAcademyPage() {
                             className="!px-3 !py-1.5 text-xs"
                           >
                             {alreadyAdded
-                              ? isEn
-                                ? "Added"
-                                : "已添加"
+                              ? t("academy.item.added")
                               : busy
                                 ? "…"
-                                : isEn
-                                  ? "Add to today"
-                                  : "导入今日"}
+                                : t("academy.item.add")}
                           </Button>
                         </div>
                         {item.tags.length > 0 ? (
@@ -258,22 +249,20 @@ export function TrainingAcademyPage() {
 
       <div className="mt-8 border-t border-dashed border-slate-200 pt-6">
         <h2 className="text-lg font-semibold text-slate-900">
-          {isEn ? stage.weeklyRoutine.titleEn : stage.weeklyRoutine.titleZh}
+          {localized(language, {
+            zh: stage.weeklyRoutine.titleZh,
+            en: stage.weeklyRoutine.titleEn,
+          })}
           <span className="ml-2 text-xs font-normal text-slate-500">
-            {isEn ? "(PRO)" : "（PRO）"}
+            {t("academy.routine.proTag")}
           </span>
         </h2>
-        <p className="mt-1 text-sm text-slate-600">
-          {isEn
-            ? "Reference weekly plans — browse anytime; bulk import requires PRO."
-            : "参考周计划 — 可随时浏览；批量导入需要 PRO。"}
-        </p>
+        <p className="mt-1 text-sm text-slate-600">{t("academy.routine.intro")}</p>
 
         {!isPro ? (
           <ProLockedCard
-            isEn={isEn}
-            messageEn={ROUTINE_LOCK_EN}
-            messageZh={ROUTINE_LOCK_ZH}
+            locale={language}
+            message={t("academy.routine.lock")}
             className="mt-4"
           />
         ) : null}
@@ -282,7 +271,7 @@ export function TrainingAcademyPage() {
           <div className="flex flex-wrap items-end gap-2">
             <label className="text-sm">
               <span className="font-medium text-slate-700">
-                {isEn ? "Import weekday routine" : "导入指定星期"}
+                {t("academy.routine.weekday")}
               </span>
               <select
                 value={routineWeekday}
@@ -292,7 +281,7 @@ export function TrainingAcademyPage() {
               >
                 {WEEKDAYS.map((d) => (
                   <option key={d.key} value={d.key}>
-                    {isEn ? d.labelEn : d.labelZh}
+                    {t(d.labelKey)}
                   </option>
                 ))}
               </select>
@@ -302,13 +291,7 @@ export function TrainingAcademyPage() {
               disabled={busy || !isPro}
               onClick={() => void handleImportWeekday()}
             >
-              {busy
-                ? isEn
-                  ? "Importing…"
-                  : "导入中…"
-                : isEn
-                  ? "Import day"
-                  : "导入该日"}
+              {busy ? t("academy.routine.importing") : t("academy.routine.importDay")}
             </Button>
           </div>
 
@@ -316,10 +299,10 @@ export function TrainingAcademyPage() {
             {stage.weeklyRoutine.dayPlans.map((plan) => (
               <Card
                 key={plan.id}
-                title={`${isEn ? plan.dayLabelEn : plan.dayLabelZh} · ${isEn ? plan.titleEn : plan.titleZh}`}
+                title={`${localized(language, { zh: plan.dayLabelZh, en: plan.dayLabelEn })} · ${localized(language, { zh: plan.titleZh, en: plan.titleEn })}`}
               >
                 <p className="text-xs text-slate-500">
-                  {isEn ? plan.durationEn : plan.durationZh}
+                  {localized(language, { zh: plan.durationZh, en: plan.durationEn })}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {plan.taskLabels.map((label) => (
@@ -337,13 +320,7 @@ export function TrainingAcademyPage() {
                   disabled={busy || !isPro}
                   onClick={() => void handleImportDayPlan(plan.id)}
                 >
-                  {busy
-                    ? isEn
-                      ? "Importing…"
-                      : "导入中…"
-                    : isEn
-                      ? "Import this plan to today"
-                      : "导入本日到今日任务"}
+                  {busy ? t("academy.routine.importing") : t("academy.routine.importPlan")}
                 </Button>
               </Card>
             ))}
@@ -352,17 +329,13 @@ export function TrainingAcademyPage() {
       </div>
 
       {isPro ? (
-        <Card title={isEn ? "PRO features" : "PRO 功能"} className="mt-8">
+        <Card title={t("academy.pro.title")} className="mt-8">
           <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
-            <li>{isEn ? "Advanced routine import (enabled)" : "高阶计划导入（已开启）"}</li>
-            <li>{isEn ? "Custom training plans (coming)" : "自定义训练方案（即将推出）"}</li>
-            <li>{isEn ? "AI Coach integration (coming)" : "AI 教练联动（即将推出）"}</li>
+            <li>{t("academy.pro.import")}</li>
+            <li>{t("academy.pro.custom")}</li>
+            <li>{t("academy.pro.coach")}</li>
           </ul>
-          <p className="mt-3 text-xs text-slate-500">
-            {isEn
-              ? "Payment is not integrated; PRO is a development toggle in Settings."
-              : "支付尚未接入；PRO 为设置中的开发开关。"}
-          </p>
+          <p className="mt-3 text-xs text-slate-500">{t("academy.pro.note")}</p>
         </Card>
       ) : null}
     </section>

@@ -18,10 +18,7 @@ import { findHardcodedText } from "@/test/hardcoded-text";
  */
 const NOT_MIGRATED: Record<string, "S6d" | "S6e"> = {
   // S6d: training (pages, the Pro banner they share, and the hooks behind them)
-  "components/ProPlanBanner.tsx": "S6d",
-  "hooks/useAcademyImport.ts": "S6d",
   "hooks/useRewardsShop.ts": "S6d",
-  "pages/training/TrainingAcademyPage.tsx": "S6d",
   "pages/training/TrainingRecordsPage.tsx": "S6d",
   "pages/training/TrainingShopPage.tsx": "S6d",
   // S6e: analysis

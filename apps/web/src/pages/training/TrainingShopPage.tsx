@@ -60,7 +60,7 @@ export function TrainingShopPage() {
       </p>
 
       <FirestoreStatusBanner className="mt-4" />
-      <ProPlanBanner isPro={isPro} isEn={isEn} className="mt-4" />
+      <ProPlanBanner isPro={isPro} locale={language} className="mt-4" />
 
       {error ? (
         <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
@@ -163,9 +163,12 @@ export function TrainingShopPage() {
         </Card>
       ) : (
         <ProLockedCard
-          isEn={isEn}
-          messageEn="Unlock PRO to create and manage custom rewards for your athlete."
-          messageZh="开启 PRO 后可创建并管理运动员专属自定义奖励。"
+          locale={language}
+          message={
+            isEn
+              ? "Unlock PRO to create and manage custom rewards for your athlete."
+              : "开启 PRO 后可创建并管理运动员专属自定义奖励。"
+          }
           className="mt-3"
         />
       )}

@@ -3,7 +3,6 @@ import {
   importAcademyTasks,
   type AcademyImportResult,
 } from "@skatingx/firebase-client";
-import type { AcademyLanguage } from "@skatingx/content";
 import {
   buildAcademyImportCandidate,
   matchRoutineTaskLabel,
@@ -15,16 +14,30 @@ import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { useLocale } from "@/hooks/useLocale";
+import { tAcademy } from "@/shared/i18n/academy-messages";
+
+/**
+ * What the user is told when an import fails. It keeps what happened, not the sentence, so it
+ * follows the language if it changes afterwards. A message that came from the data layer is shown
+ * as it arrived.
+ */
+type ImportErrorNote = { failed: true } | { received: string };
 
 export function useAcademyImport() {
   const { uid } = useAuth();
   const { data: settings } = useUserSettings();
   const [busy, setBusy] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [errorNote, setErrorNote] = useState<ImportErrorNote | null>(null);
   const [lastResult, setLastResult] = useState<AcademyImportResult | null>(null);
 
   const athleteId = settings?.activeAthleteId ?? "lindsay";
-  const language: AcademyLanguage = settings?.language === "en" ? "en" : "zh";
+  const language = useLocale();
+  const actionError = errorNote
+    ? "received" in errorNote
+      ? errorNote.received
+      : tAcademy(language, "academy.error.importFailed")
+    : null;
 
   const runImport = useCallback(
     async (candidates: AcademyImportCandidate[]) => {
@@ -36,7 +49,7 @@ export function useAcademyImport() {
         throw new Error("Firestore is not available.");
       }
       setBusy(true);
-      setActionError(null);
+      setErrorNote(null);
       try {
         const result = await importAcademyTasks(
           { db, userId: uid, athleteId },
@@ -45,9 +58,7 @@ export function useAcademyImport() {
         setLastResult(result);
         return result;
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Academy import failed.";
-        setActionError(message);
+        setErrorNote(error instanceof Error ? { received: error.message } : { failed: true });
         throw error;
       } finally {
         setBusy(false);
@@ -67,11 +78,7 @@ export function useAcademyImport() {
   const importWeekdayRoutine = useCallback(
     async (stage: AcademyStage, weekday: WeekdayKey, requirePro = true) => {
       if (requirePro && settings?.isPro !== true) {
-        throw new Error(
-          language === "en"
-            ? "PRO is required for advanced routine import."
-            : "高阶计划导入需要 PRO。",
-        );
+        throw new Error(tAcademy(language, "academy.error.proRequired"));
       }
       const routineItems = getWeekdayRoutineItems(stage, weekday);
       const candidates: AcademyImportCandidate[] = [];
@@ -101,11 +108,7 @@ export function useAcademyImport() {
   const importDayPlan = useCallback(
     async (stage: AcademyStage, dayPlanId: string, requirePro = true) => {
       if (requirePro && settings?.isPro !== true) {
-        throw new Error(
-          language === "en"
-            ? "PRO is required for advanced routine import."
-            : "高阶计划导入需要 PRO。",
-        );
+        throw new Error(tAcademy(language, "academy.error.proRequired"));
       }
       const plan = stage.weeklyRoutine.dayPlans.find((p) => p.id === dayPlanId);
       if (!plan) {
@@ -140,7 +143,7 @@ export function useAcademyImport() {
     busy,
     actionError,
     lastResult,
-    clearActionError: () => setActionError(null),
+    clearActionError: () => setErrorNote(null),
     clearLastResult: () => setLastResult(null),
     language,
   };
