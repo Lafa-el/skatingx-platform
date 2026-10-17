@@ -70,10 +70,28 @@ describe("AthletePage", () => {
     render(<AthletePage />);
     expect(term("姓名")).toBe("Sample Skater");
     expect(term("出生日期")).toBe("2015年1月14日");
-    expect(term("项目")).toBe("short_track_speed_skating");
+    expect(term("项目")).toBe("短道速滑");
     expect(term("国家/地区")).toBe("USA");
     expect(term("当前运动员 ID")).toBe("athlete-1");
     expect(term("账户 UID")).toBe("uid-123");
+  });
+
+  it("English shows the sport as a readable name, not the stored identifier", () => {
+    h.state.locale = "en";
+    render(<AthletePage />);
+    expect(term("Sport")).toBe("Short track speed skating");
+  });
+
+  it("a sport value we have no name for is shown as stored, never hidden or guessed", () => {
+    h.state.profile = h.ready({ displayName: "X", birthDate: "2015-01-14", sport: "curling", country: "c" });
+    render(<AthletePage />);
+    expect(term("项目")).toBe("curling");
+  });
+
+  it("a sport value that is also an object property name is not mistaken for a known sport", () => {
+    h.state.profile = h.ready({ displayName: "X", birthDate: "2015-01-14", sport: "constructor", country: "c" });
+    render(<AthletePage />);
+    expect(term("项目")).toBe("constructor");
   });
 
   it("English birth date", () => {

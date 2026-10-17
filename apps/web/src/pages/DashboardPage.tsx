@@ -133,7 +133,11 @@ export function DashboardPage() {
           <p className="text-lg font-semibold text-slate-900">
             {loading
               ? "…"
-              : tDashboard(locale, "dashboard.streak.days", { count: streakDays })}
+              : tDashboard(
+                  locale,
+                  streakDays === 1 ? "dashboard.streak.one" : "dashboard.streak.other",
+                  { count: streakDays },
+                )}
           </p>
         </Card>
         <Card title={tDashboard(locale, "dashboard.card.tasks")}>

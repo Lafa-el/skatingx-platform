@@ -123,6 +123,24 @@ describe("DashboardPage: values", () => {
     expect(card("Streak").getByText("3 days")).toBeTruthy();
   });
 
+  it("English: a streak of one day is singular, zero is plural", () => {
+    setLanguage("en");
+    h.state.gamification = h.ready({ points: 120, streakDays: 1 });
+    const first = renderPage();
+    expect(card("Streak").getByText("1 day")).toBeTruthy();
+    first.unmount();
+
+    h.state.gamification = h.ready({ points: 120, streakDays: 0 });
+    renderPage();
+    expect(card("Streak").getByText("0 days")).toBeTruthy();
+  });
+
+  it("Chinese: a streak of one day uses the same unit", () => {
+    h.state.gamification = h.ready({ points: 120, streakDays: 1 });
+    renderPage();
+    expect(card("连续天数").getByText("1 天")).toBeTruthy();
+  });
+
   it("the plan card follows the Pro flag (free)", () => {
     renderPage();
     expect(card("方案").getByText("免费版")).toBeTruthy();

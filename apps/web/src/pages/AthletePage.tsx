@@ -9,7 +9,7 @@ import {
   useUserSettings,
 } from "@/hooks/firestore";
 import { useLocale } from "@/hooks/useLocale";
-import { tAthlete } from "@/shared/i18n/athlete-messages";
+import { formatSport, tAthlete } from "@/shared/i18n/athlete-messages";
 import { formatCalendarDate } from "@/shared/i18n/format";
 
 export function AthletePage() {
@@ -73,7 +73,11 @@ export function AthletePage() {
           <div>
             <dt className="text-slate-500">{tAthlete(locale, "athlete.field.sport")}</dt>
             <dd className="font-medium text-slate-900">
-              {loading ? "…" : (profile?.sport ?? "—")}
+              {loading
+                ? "…"
+                : profile?.sport
+                  ? formatSport(profile.sport, locale)
+                  : "—"}
             </dd>
           </div>
           <div>

@@ -17,7 +17,8 @@ const zh = {
   "dashboard.card.record": "最近纪录",
 
   "dashboard.tasks.hint": "已完成 / 总数",
-  "dashboard.streak.days": "{count} 天",
+  "dashboard.streak.one": "{count} 天",
+  "dashboard.streak.other": "{count} 天",
   "dashboard.plan.pro": "PRO 已开通",
   "dashboard.plan.free": "免费版",
   "dashboard.redemption.cost": "−{cost} 积分 · {date}",
@@ -53,7 +54,8 @@ const en: Record<DashboardKey, string> = {
   "dashboard.card.record": "Latest record",
 
   "dashboard.tasks.hint": "completed / total",
-  "dashboard.streak.days": "{count} days",
+  "dashboard.streak.one": "{count} day",
+  "dashboard.streak.other": "{count} days",
   "dashboard.plan.pro": "PRO active",
   "dashboard.plan.free": "Free plan",
   "dashboard.redemption.cost": "−{cost} pts · {date}",
