@@ -8,6 +8,22 @@ export function localizeRewardName(
   return language === "en" ? item.nameEn : item.nameZh;
 }
 
+/**
+ * The name to show for a past redemption. The redemption stores the name it was made under, in
+ * the language of that moment, and the reward's id. The catalog has both names for the reward, so
+ * the current language wins; a reward no longer in the catalog (or without a name in this
+ * language) is shown under the name stored with the redemption.
+ */
+export function localizeRedemptionName(
+  redemption: Pick<RewardRedemption, "rewardId" | "rewardName">,
+  catalogItems: readonly Pick<RewardItem, "id" | "nameZh" | "nameEn">[],
+  language: Language,
+): string {
+  const item = catalogItems.find((candidate) => candidate.id === redemption.rewardId);
+  const current = item ? localizeRewardName(item, language).trim() : "";
+  return current || redemption.rewardName;
+}
+
 export function localizeRewardDescription(
   item: Pick<RewardItem, "descriptionZh" | "descriptionEn">,
   language: Language,

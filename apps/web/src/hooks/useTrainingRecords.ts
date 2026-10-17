@@ -18,6 +18,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { useLocale } from "@/hooks/useLocale";
+import { type RecordsMessageKey, tRecords } from "@/shared/i18n/records-messages";
+
+/**
+ * What the user is told when loading the records fails. It keeps what happened, not the sentence,
+ * so it follows the language if that changes afterwards. A message that came from the data layer
+ * is shown as it arrived.
+ */
+type RecordsErrorNote = { key: RecordsMessageKey } | { received: string };
 
 export type DistanceRecordsMap = Record<string, DistanceRecordsDocument>;
 
@@ -30,7 +39,7 @@ export function useTrainingRecords() {
     {},
   );
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorNote, setErrorNote] = useState<RecordsErrorNote | null>(null);
   const [ensuring, setEnsuring] = useState(false);
 
   useEffect(() => {
@@ -42,14 +51,14 @@ export function useTrainingRecords() {
 
     const db = getFirestoreDb();
     if (!db) {
-      setError("Firestore is not available.");
+      setErrorNote({ key: "records.error.unavailable" });
       setLoading(false);
       return;
     }
 
     let cancelled = false;
     setLoading(true);
-    setError(null);
+    setErrorNote(null);
 
     void (async () => {
       try {
@@ -57,10 +66,10 @@ export function useTrainingRecords() {
         await ensureDefaultDistanceRecords({ db, userId: uid, athleteId });
       } catch (ensureError) {
         if (!cancelled) {
-          setError(
+          setErrorNote(
             ensureError instanceof Error
-              ? ensureError.message
-              : "Failed to initialize distance records.",
+              ? { received: ensureError.message }
+              : { key: "records.error.loadFailed" },
           );
         }
       } finally {
@@ -105,11 +114,11 @@ export function useTrainingRecords() {
 
         setRecordsByDistance(next);
         setLoading(false);
-        setError(null);
+        setErrorNote(null);
       },
       (snapshotError) => {
         if (!cancelled) {
-          setError(snapshotError.message);
+          setErrorNote({ received: snapshotError.message });
           setLoading(false);
         }
       },
@@ -120,6 +129,13 @@ export function useTrainingRecords() {
       unsubscribe();
     };
   }, [uid, athleteId]);
+
+  const language = useLocale();
+  const error = errorNote
+    ? "received" in errorNote
+      ? errorNote.received
+      : tRecords(language, errorNote.key)
+    : null;
 
   const distances = useMemo(
     () =>

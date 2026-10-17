@@ -2,6 +2,7 @@ import type { RewardItem } from "@skatingx/schema";
 import {
   formatRedemptionStatus,
   getActiveRewards,
+  localizeRedemptionName,
   localizeRewardDescription,
   localizeRewardName,
   sortRedemptionsNewest,
@@ -14,6 +15,8 @@ import { useGamification } from "@/app/providers/FirestoreProvider";
 import { useIsPro } from "@/hooks/useIsPro";
 import { useRewardActions } from "@/hooks/useRewardActions";
 import { useRewardsShop } from "@/hooks/useRewardsShop";
+import { formatCalendarDate } from "@/shared/i18n/format";
+import { tShop } from "@/shared/i18n/shop-messages";
 
 export function TrainingShopPage() {
   const { isPro, language } = useIsPro();
@@ -28,7 +31,8 @@ export function TrainingShopPage() {
     clearLastSuccess,
   } = useRewardActions();
 
-  const isEn = language === "en";
+  const t = (key: Parameters<typeof tShop>[1], params?: Parameters<typeof tShop>[2]) =>
+    tShop(language, key, params);
   const points = gamification?.points ?? 0;
   const rewards = getActiveRewards(catalog?.items ?? []);
   const history = sortRedemptionsNewest(redemptions);
@@ -36,9 +40,10 @@ export function TrainingShopPage() {
   async function handleRedeem(reward: RewardItem) {
     const name = localizeRewardName(reward, language);
     const confirmed = window.confirm(
-      isEn
-        ? `Redeem "${name}" for ${reward.cost} points?`
-        : `使用 ${reward.cost} 积分兑换「${name}」？`,
+      t(reward.cost === 1 ? "shop.confirm.one" : "shop.confirm.other", {
+        name,
+        cost: reward.cost,
+      }),
     );
     if (!confirmed) {
       return;
@@ -51,12 +56,10 @@ export function TrainingShopPage() {
   return (
     <section className="max-w-lg">
       <h1 className="text-2xl font-bold text-slate-900">
-        {isEn ? "Reward shop" : "奖励商店"}
+        {t("shop.page.title")}
       </h1>
       <p className="mt-1 text-slate-600">
-        {isEn
-          ? "Catalog rewards are always available. Custom rewards require PRO."
-          : "目录奖励始终可兑换。自定义奖励需要 PRO。"}
+        {t("shop.page.subtitle")}
       </p>
 
       <FirestoreStatusBanner className="mt-4" />
@@ -76,27 +79,27 @@ export function TrainingShopPage() {
 
       {lastSuccess ? (
         <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          {isEn
-            ? `Redeemed successfully! Enjoy your ${lastSuccess}.`
-            : `兑换成功！快去享受【${lastSuccess}】吧！`}
+          {t("shop.success", {
+            name: localizeRedemptionName(lastSuccess, catalog?.items ?? [], language),
+          })}
         </p>
       ) : null}
 
-      <Card title={isEn ? "Your points" : "当前积分"} className="mt-4">
+      <Card title={t("shop.points.title")} className="mt-4">
         <p className="text-3xl font-bold text-slate-900">
           {pointsLoading || loading ? "…" : points}
         </p>
       </Card>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-900">
-        {isEn ? "Catalog rewards" : "目录奖励"}
+        {t("shop.catalog.title")}
       </h2>
 
       {loading ? (
-        <p className="mt-2 text-sm text-slate-500">{isEn ? "Loading…" : "加载中…"}</p>
+        <p className="mt-2 text-sm text-slate-500">{t("shop.catalog.loading")}</p>
       ) : rewards.length === 0 ? (
         <p className="mt-2 text-sm text-slate-500">
-          {isEn ? "No rewards in catalog yet." : "暂无奖励商品。"}
+          {t("shop.catalog.empty")}
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
@@ -118,7 +121,7 @@ export function TrainingShopPage() {
                     <p className="mt-0.5 text-xs text-slate-600">{description}</p>
                   ) : null}
                   <p className="mt-1 text-sm font-medium text-sky-700">
-                    {reward.cost} {isEn ? "pts" : "分"}
+                    {t("shop.reward.cost", { cost: reward.cost })}
                   </p>
                   <Button
                     type="button"
@@ -127,16 +130,10 @@ export function TrainingShopPage() {
                     onClick={() => void handleRedeem(reward)}
                   >
                     {busy
-                      ? isEn
-                        ? "Redeeming…"
-                        : "兑换中…"
+                      ? t("shop.reward.redeeming")
                       : canAfford
-                        ? isEn
-                          ? "Redeem"
-                          : "兑换"
-                        : isEn
-                          ? "Not enough points"
-                          : "积分不足"}
+                        ? t("shop.reward.redeem")
+                        : t("shop.reward.notEnough")}
                   </Button>
                 </div>
               </div>
@@ -146,50 +143,46 @@ export function TrainingShopPage() {
       )}
 
       <h2 className="mt-8 text-lg font-semibold text-slate-900">
-        {isEn ? "Custom rewards" : "自定义奖励"}
-        <span className="ml-2 text-xs font-normal text-slate-500">PRO</span>
+        {t("shop.custom.title")}
+        <span className="ml-2 text-xs font-normal text-slate-500">{t("shop.custom.proTag")}</span>
       </h2>
 
       {isPro ? (
-        <Card title={isEn ? "PRO — custom rewards" : "PRO — 自定义奖励"} className="mt-3">
+        <Card title={t("shop.custom.cardTitle")} className="mt-3">
           <p className="text-sm font-semibold text-emerald-800">
-            {isEn ? "PRO active" : "PRO 已开启"}
+            {t("shop.custom.active")}
           </p>
           <p className="mt-2 text-sm text-slate-600">
-            {isEn
-              ? "Custom reward management is a placeholder in M6. Full add/edit UI ships with payment and parent tools later."
-              : "自定义奖励管理为 M6 占位功能，完整增删改将在支付与家长功能上线后提供。"}
+            {t("shop.custom.placeholder")}
           </p>
         </Card>
       ) : (
         <ProLockedCard
           locale={language}
-          message={
-            isEn
-              ? "Unlock PRO to create and manage custom rewards for your athlete."
-              : "开启 PRO 后可创建并管理运动员专属自定义奖励。"
-          }
+          message={t("shop.custom.locked")}
           className="mt-3"
         />
       )}
 
       <h2 className="mt-8 text-lg font-semibold text-slate-900">
-        {isEn ? "Redemption history" : "兑换记录"}
+        {t("shop.history.title")}
       </h2>
 
       {history.length === 0 ? (
         <p className="mt-2 text-sm text-slate-500">
-          {isEn ? "No redemptions yet." : "还没有兑换记录。"}
+          {t("shop.history.empty")}
         </p>
       ) : (
         <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
           {history.map((entry) => (
             <li key={entry.id} className="flex items-start justify-between gap-3 px-4 py-3">
               <div>
-                <p className="font-medium text-slate-900">{entry.rewardName}</p>
+                <p className="font-medium text-slate-900">{localizeRedemptionName(entry, catalog?.items ?? [], language)}</p>
                 <p className="text-xs text-slate-500">
-                  {entry.redeemedAt.slice(0, 10)} · −{entry.cost}{" "}
-                  {isEn ? "pts" : "分"}
+                  {t("shop.history.line", {
+                    date: formatCalendarDate(entry.redeemedAt.slice(0, 10), language),
+                    cost: entry.cost,
+                  })}
                 </p>
               </div>
               <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">

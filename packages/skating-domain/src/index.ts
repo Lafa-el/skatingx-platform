@@ -12,6 +12,7 @@ export {
   formatRedemptionStatus,
   getActiveRewards,
   localizeRewardDescription,
+  localizeRedemptionName,
   localizeRewardName,
   sortRedemptionsNewest,
 } from "./rewards";
