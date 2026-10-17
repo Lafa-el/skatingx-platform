@@ -10,6 +10,8 @@ const zh = {
   // be reported. Chinese says 数据服务 for parents and athletes; English keeps the product name
   // Firestore (owner decision 2026-10-16).
   "shell.status.connectError": "无法连接到数据服务:{detail}",
+  "shell.status.unavailable": "数据服务不可用。",
+  "shell.status.initFailed": "初始化数据失败。",
 
   "shell.athlete.listLabel": "选择运动员",
   "shell.athlete.active": "当前",
@@ -24,6 +26,8 @@ type ShellKey = keyof typeof zh;
 const en: Record<ShellKey, string> = {
   "shell.status.loading": "Loading your data…",
   "shell.status.connectError": "Unable to connect to Firestore: {detail}",
+  "shell.status.unavailable": "Firestore is not available.",
+  "shell.status.initFailed": "Failed to initialize Firestore documents.",
 
   "shell.athlete.listLabel": "Select athlete",
   "shell.athlete.active": "Active",
