@@ -122,7 +122,7 @@ export function TrainingAcademyPage() {
             imported: lastResult.imported,
             skipped: lastResult.skipped,
           })}
-          <Link to="/training/tasks" className="ml-2 font-medium underline">
+          <Link to="/training/tasks" className="ml-2 inline-flex min-h-11 items-center font-medium underline">
             {t("academy.import.viewTasks")}
           </Link>
         </p>
@@ -139,8 +139,8 @@ export function TrainingAcademyPage() {
             }}
             className={
               stageId === s.id
-                ? "rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white"
-                : "rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                ? "min-h-11 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white"
+                : "min-h-11 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             }
           >
             {localized(language, { zh: s.ageRangeZh, en: s.ageRangeEn })}
@@ -223,7 +223,7 @@ export function TrainingAcademyPage() {
                             type="button"
                             disabled={busy || alreadyAdded || tasksLoading}
                             onClick={() => void handleImportItem(item)}
-                            className="!px-3 !py-1.5 text-xs"
+                            className="min-h-11 !px-3 !py-1.5 text-xs"
                           >
                             {alreadyAdded
                               ? t("academy.item.added")
@@ -277,7 +277,7 @@ export function TrainingAcademyPage() {
                 value={routineWeekday}
                 disabled={!isPro}
                 onChange={(e) => setRoutineWeekday(e.target.value as WeekdayKey)}
-                className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-100"
+                className="mt-1 block min-h-11 rounded-lg border border-slate-300 px-3 py-2 disabled:bg-slate-100"
               >
                 {WEEKDAYS.map((d) => (
                   <option key={d.key} value={d.key}>
@@ -288,6 +288,7 @@ export function TrainingAcademyPage() {
             </label>
             <Button
               type="button"
+              className="min-h-11"
               disabled={busy || !isPro}
               onClick={() => void handleImportWeekday()}
             >
@@ -317,7 +318,7 @@ export function TrainingAcademyPage() {
                 </div>
                 <Button
                   type="button"
-                  className="mt-3 w-full sm:w-auto"
+                  className="mt-3 min-h-11 w-full sm:w-auto"
                   disabled={busy || !isPro}
                   onClick={() => void handleImportDayPlan(plan.id)}
                 >

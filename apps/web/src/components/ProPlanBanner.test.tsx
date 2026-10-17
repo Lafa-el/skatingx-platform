@@ -67,3 +67,25 @@ describe("ProLockedCard", () => {
     expect(screen.getByRole("link", { name: "Enable PRO in Settings (dev)" })).toBeTruthy();
   });
 });
+
+// happy-dom does not lay anything out, so the 44px minimum is pinned by its class (min-h-11 is
+// 2.75rem) and was measured in a real browser for the PR.
+const hasMinHeight44 = (element: HTMLElement) => element.className.split(/\s+/).includes("min-h-11");
+
+describe("tap targets", () => {
+  it("the settings link in the free-plan banner is at least 44px tall, in both languages", () => {
+    const zh = inRouter(<ProPlanBanner isPro={false} locale="zh" />);
+    expect(hasMinHeight44(screen.getByRole("link", { name: "打开设置" }))).toBe(true);
+    zh.unmount();
+    inRouter(<ProPlanBanner isPro={false} locale="en" />);
+    expect(hasMinHeight44(screen.getByRole("link", { name: "Open Settings" }))).toBe(true);
+  });
+
+  it("the settings link in the locked card is at least 44px tall, and still lines up with the text", () => {
+    inRouter(<ProLockedCard locale="en" message="Needs PRO." />);
+    const link = screen.getByRole("link", { name: "Enable PRO in Settings (dev)" });
+    expect(hasMinHeight44(link)).toBe(true);
+    // Centred in its taller box, so the text does not sit at the top edge.
+    expect(link.className.split(/\s+/)).toContain("items-center");
+  });
+});
