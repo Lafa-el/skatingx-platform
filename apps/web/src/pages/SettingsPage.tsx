@@ -10,8 +10,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { type SettingsPageMessageKey, tSettingsPage } from "@/shared/i18n/settings-page-messages";
 import type { Locale } from "@/shared/i18n/translator";
 
-/** A data field and a document path shown to developers as they are written. Identifiers, not copy. */
-const PARENT_PIN_FIELD = "parentPinEnabled";
+/** A document path shown as it is written. An identifier, not copy. */
 const SETTINGS_DOC_PATH = "settings/main";
 
 /**
@@ -204,9 +203,6 @@ export function SettingsPage() {
           {t("settings.parent.noteBefore")}
           <code className="text-xs">{SETTINGS_DOC_PATH}</code>
           {t("settings.parent.noteAfter")}
-        </p>
-        <p className="mt-2 text-xs text-slate-500">
-          {PARENT_PIN_FIELD}: {String(Boolean(settings?.parentPinEnabled))}
         </p>
       </Card>
 
