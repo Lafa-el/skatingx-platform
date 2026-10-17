@@ -32,6 +32,9 @@ const zh = {
   "trainingTasks.list.complete": "完成:{task}",
   "trainingTasks.list.delete": "删除",
   "trainingTasks.list.deleteConfirm": "删除任务「{task}」?",
+  "trainingTasks.error.notSignedIn": "登录状态还没准备好，请稍后再试。",
+  "trainingTasks.error.unavailable": "数据服务暂时不可用，请稍后再试。",
+  "trainingTasks.error.actionFailed": "任务操作失败。",
 } as const;
 
 type TrainingTasksKey = keyof typeof zh;
@@ -64,6 +67,9 @@ const en: Record<TrainingTasksKey, string> = {
   "trainingTasks.list.complete": "Complete {task}",
   "trainingTasks.list.delete": "Delete",
   "trainingTasks.list.deleteConfirm": "Delete task \"{task}\"?",
+  "trainingTasks.error.notSignedIn": "Sign-in is not ready yet. Try again in a moment.",
+  "trainingTasks.error.unavailable": "Firestore is not available right now. Try again later.",
+  "trainingTasks.error.actionFailed": "Training action failed.",
 };
 
 export type TrainingTasksMessageKey = TrainingTasksKey;

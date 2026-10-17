@@ -29,6 +29,7 @@ const zh = {
   "shop.history.title": "兑换记录",
   "shop.history.empty": "还没有兑换记录。",
   "shop.history.line": "{date} · −{cost} 分",
+  "shop.error.notSignedIn": "登录状态还没准备好，请稍后再试。",
   "shop.error.unavailable": "数据服务暂时不可用，请稍后再试。",
   "shop.error.catalogFailed": "初始化奖励目录失败。",
   "shop.error.redeemFailed": "兑换失败。",
@@ -61,7 +62,8 @@ const en: Record<ShopKey, string> = {
   "shop.history.title": "Redemption history",
   "shop.history.empty": "No redemptions yet.",
   "shop.history.line": "{date} · −{cost} pts",
-  "shop.error.unavailable": "Firestore is not available.",
+  "shop.error.notSignedIn": "Sign-in is not ready yet. Try again in a moment.",
+  "shop.error.unavailable": "Firestore is not available right now. Try again later.",
   "shop.error.catalogFailed": "Failed to initialize rewards catalog.",
   "shop.error.redeemFailed": "Redemption failed.",
 };

@@ -48,7 +48,7 @@ describe("useTrainingRecordActions: errors", () => {
 
     h.state.settings = { language: "en" };
     rerender();
-    expect(result.current.actionError).toBe("Sign in required.");
+    expect(result.current.actionError).toBe("Sign-in is not ready yet. Try again in a moment.");
   });
 
   it("data service unavailable: says so in the language and still throws", async () => {
@@ -61,7 +61,7 @@ describe("useTrainingRecordActions: errors", () => {
 
     h.state.settings = { language: "en" };
     rerender();
-    expect(result.current.actionError).toBe("Firestore is not available.");
+    expect(result.current.actionError).toBe("Firestore is not available right now. Try again later.");
   });
 
   it("a message from the data layer is shown as it arrived, and the error is rethrown to the page", async () => {

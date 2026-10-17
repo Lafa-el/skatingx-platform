@@ -38,7 +38,7 @@ afterEach(() => {
   h.state = h.base();
 });
 
-const UNAVAILABLE = { zh: "数据服务暂时不可用，请稍后再试。", en: "Firestore is not available." };
+const UNAVAILABLE = { zh: "数据服务暂时不可用，请稍后再试。", en: "Firestore is not available right now. Try again later." };
 const CATALOG_FAILED = { zh: "初始化奖励目录失败。", en: "Failed to initialize rewards catalog." };
 
 describe("useRewardsShop: errors", () => {

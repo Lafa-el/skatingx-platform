@@ -1,7 +1,6 @@
 import {
   addTimeEntry,
   deleteTimeEntry,
-  getFirestoreDb,
   updateTimeEntry,
   type RecordsActorContext,
 } from "@skatingx/firebase-client";
@@ -13,13 +12,7 @@ import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { type RecordsMessageKey, tRecords } from "@/shared/i18n/records-messages";
 
-/** Thrown before anything is written, so the page can say why in the user's language. */
-class RecordsUnavailableError extends Error {
-  constructor(readonly key: RecordsMessageKey) {
-    super(key);
-    this.name = "RecordsUnavailableError";
-  }
-}
+import { ActionPreconditionError, requireActor } from "./actionPrecondition";
 
 export function useTrainingRecordActions() {
   const { uid } = useAuth();
@@ -37,16 +30,10 @@ export function useTrainingRecordActions() {
 
   const athleteId = settings?.activeAthleteId ?? "lindsay";
 
-  const getContext = useCallback((): RecordsActorContext => {
-    if (!uid) {
-      throw new RecordsUnavailableError("records.error.notSignedIn");
-    }
-    const db = getFirestoreDb();
-    if (!db) {
-      throw new RecordsUnavailableError("records.error.unavailable");
-    }
-    return { db, userId: uid, athleteId };
-  }, [uid, athleteId]);
+  const getContext = useCallback(
+    (): RecordsActorContext => ({ ...requireActor(uid), athleteId }),
+    [uid, athleteId],
+  );
 
   const withActor = useCallback(
     async <T,>(fn: (ctx: RecordsActorContext) => Promise<T>): Promise<T> => {
@@ -57,8 +44,13 @@ export function useTrainingRecordActions() {
       } catch (error) {
         // The error is still thrown: the page relies on that to keep the form as it was.
         setErrorNote(
-          error instanceof RecordsUnavailableError
-            ? { key: error.key }
+          error instanceof ActionPreconditionError
+            ? {
+                key:
+                  error.kind === "notSignedIn"
+                    ? "records.error.notSignedIn"
+                    : "records.error.unavailable",
+              }
             : error instanceof Error
               ? { received: error.message }
               : { key: "records.error.actionFailed" },

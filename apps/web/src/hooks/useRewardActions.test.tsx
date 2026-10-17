@@ -31,6 +31,38 @@ afterEach(() => {
   h.redeemReward.mockImplementation(async () => "redeemed");
 });
 
+describe("useRewardActions: a redemption that cannot start tells the user why", () => {
+  it("not signed in: says so in the language, redeems nothing, still throws, and is not left busy", async () => {
+    h.state.uid = null;
+    const { result, rerender } = renderHook(() => useRewardActions());
+    await act(async () => {
+      await expect(result.current.redeem("cheap", "Cheap", 50)).rejects.toThrow();
+    });
+    expect(result.current.actionError).toBe("登录状态还没准备好，请稍后再试。");
+    expect(h.redeemReward).not.toHaveBeenCalled();
+    expect(result.current.busy).toBe(false);
+    expect(result.current.lastSuccess).toBeNull();
+
+    h.state.settings = { language: "en" };
+    rerender();
+    expect(result.current.actionError).toBe("Sign-in is not ready yet. Try again in a moment.");
+  });
+
+  it("data service unavailable: says so in the language and redeems nothing", async () => {
+    h.state.db = null;
+    const { result, rerender } = renderHook(() => useRewardActions());
+    await act(async () => {
+      await expect(result.current.redeem("cheap", "Cheap", 50)).rejects.toThrow();
+    });
+    expect(result.current.actionError).toBe("数据服务暂时不可用，请稍后再试。");
+    expect(h.redeemReward).not.toHaveBeenCalled();
+
+    h.state.settings = { language: "en" };
+    rerender();
+    expect(result.current.actionError).toBe("Firestore is not available right now. Try again later.");
+  });
+});
+
 describe("useRewardActions", () => {
   it("redeems for the signed-in user and the active athlete, and keeps what was redeemed", async () => {
     const { result } = renderHook(() => useRewardActions());
@@ -49,6 +81,20 @@ describe("useRewardActions", () => {
     expect(result.current.busy).toBe(false);
 
     act(() => result.current.clearLastSuccess());
+    expect(result.current.lastSuccess).toBeNull();
+  });
+
+  it("a new attempt clears the earlier success, so a failure is not shown next to an old \"redeemed\"", async () => {
+    const { result } = renderHook(() => useRewardActions());
+    await act(async () => {
+      await result.current.redeem("cheap", "Cheap", 50);
+    });
+    expect(result.current.lastSuccess).not.toBeNull();
+
+    h.redeemReward.mockRejectedValueOnce(new Error("denied"));
+    await act(async () => {
+      await expect(result.current.redeem("dear", "Dear", 500)).rejects.toThrow("denied");
+    });
     expect(result.current.lastSuccess).toBeNull();
   });
 

@@ -85,8 +85,8 @@ const en: Record<RecordsKey, string> = {
   "records.error.dateRequired": "Date is required.",
   "records.error.timeRequired": "Time is required.",
   "records.error.timeInvalid": "Enter a valid time (e.g. 49.8, 0:49.80, 1:44.23).",
-  "records.error.notSignedIn": "Sign in required.",
-  "records.error.unavailable": "Firestore is not available.",
+  "records.error.notSignedIn": "Sign-in is not ready yet. Try again in a moment.",
+  "records.error.unavailable": "Firestore is not available right now. Try again later.",
   "records.error.actionFailed": "Record action failed.",
   "records.error.loadFailed": "Failed to initialize distance records.",
 };
