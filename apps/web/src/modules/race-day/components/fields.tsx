@@ -206,7 +206,7 @@ export function FormMessage({ children, tone }: { children: ReactNode; tone: "er
       ? "border-red-200 bg-red-50 text-red-800"
       : "border-sky-200 bg-sky-50 text-sky-900";
   return (
-    <p role={tone === "error" ? "alert" : "status"} className={`rounded-lg border px-3 py-2 text-sm ${style}`}>
+    <p role={tone === "error" ? "alert" : "status"} className={`break-words rounded-lg border px-3 py-2 text-sm ${style}`}>
       {children}
     </p>
   );

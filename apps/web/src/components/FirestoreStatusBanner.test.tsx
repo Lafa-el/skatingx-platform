@@ -68,3 +68,11 @@ describe("FirestoreStatusBanner", () => {
     expect(container.firstElementChild?.className).toContain("mt-4");
   });
 });
+
+describe("FirestoreStatusBanner: a reason with no spaces", () => {
+  it("wraps instead of widening the page", () => {
+    state.status = { ready: false, connectivityError: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" };
+    render(<FirestoreStatusBanner />);
+    expect(screen.getByRole("alert").className).toContain("break-words");
+  });
+});

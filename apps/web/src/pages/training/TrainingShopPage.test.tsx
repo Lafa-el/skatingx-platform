@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
+import { controlsBelowTapTarget } from "@/test/tapTarget";
 
 import { TrainingShopPage } from "./TrainingShopPage";
 
@@ -309,5 +310,14 @@ describe.each(["zh", "en"] as const)("TrainingShopPage (%s)", (locale) => {
     expect(items[1]!.textContent).toContain("Old name");
     expect(items[1]!.textContent).toContain(t.status.used);
     expect(items[2]!.textContent).toContain(name(gone));
+  });
+});
+
+describe("TrainingShopPage: tap targets (44px)", () => {
+  it("the redeem buttons ask for 44px, with and without enough points", () => {
+    h.state.shop.catalog = { items: [reward("cheap", 50), reward("dear", 900)] };
+    const { container } = renderPage();
+    expect(container.querySelectorAll("button").length).toBe(2);
+    expect(controlsBelowTapTarget(container, { skipLinks: true })).toEqual([]);
   });
 });

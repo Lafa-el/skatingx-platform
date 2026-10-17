@@ -145,7 +145,7 @@ export function TrainingRecordsPage() {
 
       {error ? (
         <p
-          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
           role="alert"
         >
           {error}
@@ -154,7 +154,7 @@ export function TrainingRecordsPage() {
 
       {actionError ? (
         <p
-          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
           role="alert"
         >
           {actionError}
@@ -172,8 +172,8 @@ export function TrainingRecordsPage() {
             }}
             className={
               activeDistanceId === distance.distanceId
-                ? "shrink-0 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white"
-                : "shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                ? "min-h-11 shrink-0 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white"
+                : "min-h-11 shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             }
           >
             {formatDistanceLabel(distance.distanceId, distance.label, locale)}
@@ -216,7 +216,7 @@ export function TrainingRecordsPage() {
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
             />
           </label>
           <label className="block text-sm">
@@ -227,7 +227,7 @@ export function TrainingRecordsPage() {
               onChange={(e) => setTimeInput(e.target.value)}
               placeholder={t("records.form.timePlaceholder")}
               required
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono"
+              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono"
             />
           </label>
           <label className="block text-sm">
@@ -237,7 +237,7 @@ export function TrainingRecordsPage() {
               onChange={(e) =>
                 setSource(e.target.value as "manual" | "race" | "training")
               }
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
             >
               {SOURCES.map((value) => (
                 <option key={value} value={value}>
@@ -251,7 +251,7 @@ export function TrainingRecordsPage() {
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
               placeholder={t("records.form.notePlaceholder")}
             />
           </label>
@@ -317,12 +317,12 @@ export function TrainingRecordsPage() {
                       <p className="mt-0.5 text-xs text-slate-600">{entry.note}</p>
                     ) : null}
                   </div>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 gap-1">
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => startEdit(entry.id)}
-                      className="text-xs text-sky-700 hover:underline disabled:opacity-50"
+                      className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs text-sky-700 hover:underline disabled:opacity-50"
                     >
                       {t("records.entry.edit")}
                     </button>
@@ -330,7 +330,7 @@ export function TrainingRecordsPage() {
                       type="button"
                       disabled={busy}
                       onClick={() => void handleDelete(entry.id, timeLabel)}
-                      className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                      className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs text-red-600 hover:underline disabled:opacity-50"
                     >
                       {t("records.entry.delete")}
                     </button>

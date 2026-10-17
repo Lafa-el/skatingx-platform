@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
+import { controlsBelowTapTarget } from "@/test/tapTarget";
 
 import { TrainingTasksPage } from "./TrainingTasksPage";
 
@@ -255,5 +256,14 @@ describe("TrainingTasksPage: errors", () => {
     h.state.actions.actionError = "Write failed";
     render(<TrainingTasksPage />);
     expect(screen.getAllByRole("alert").map((e) => e.textContent)).toEqual(["Read failed", "Write failed"]);
+  });
+});
+
+describe("TrainingTasksPage: tap targets (44px)", () => {
+  it("inputs, buttons and the check box (through its label) ask for 44px; Delete also for the width", () => {
+    const { container } = render(<TrainingTasksPage />);
+    expect(container.querySelectorAll('input[type="checkbox"]').length).toBe(2);
+    const isDelete = (el: Element) => el.tagName === "BUTTON" && el.closest("li") !== null;
+    expect(controlsBelowTapTarget(container, { wide: isDelete })).toEqual([]);
   });
 });

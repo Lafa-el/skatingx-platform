@@ -111,7 +111,7 @@ export function TrainingAcademyPage() {
       <ProPlanBanner isPro={isPro} locale={language} className="mt-4" />
 
       {actionError ? (
-        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+        <p className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
           {actionError}
         </p>
       ) : null}
@@ -181,7 +181,7 @@ export function TrainingAcademyPage() {
             >
               <button
                 type="button"
-                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                className="flex min-h-11 w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50"
                 onClick={() =>
                   setExpandedModuleId(expanded ? null : module.id)
                 }

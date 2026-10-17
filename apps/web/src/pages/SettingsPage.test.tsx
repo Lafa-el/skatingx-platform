@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
+import { controlsBelowTapTarget } from "@/test/tapTarget";
 
 import { SettingsPage } from "./SettingsPage";
 
@@ -455,5 +456,26 @@ describe("SettingsPage sign out", () => {
   it("a guest has no sign-out button", () => {
     render(<SettingsPage />);
     expect(screen.queryByRole("button", { name: "退出登录" })).toBeNull();
+  });
+});
+
+describe("SettingsPage: tap targets (44px)", () => {
+  it("a guest sees inputs, the PRO button and the form buttons at 44px", () => {
+    const { container } = render(<SettingsPage />);
+    expect(container.querySelectorAll("input").length).toBeGreaterThan(4);
+    expect(controlsBelowTapTarget(container)).toEqual([]);
+  });
+
+  it("a signed-in person sees the sign-out button at 44px too", () => {
+    registered();
+    const { container } = render(<SettingsPage />);
+    expect(screen.getByRole("button", { name: "退出登录" })).toBeTruthy();
+    expect(controlsBelowTapTarget(container)).toEqual([]);
+  });
+
+  it("an error message with no spaces wraps instead of widening the page", () => {
+    h.auth.authError = { received: "Error-auth/some-very-long-unbroken-token-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" };
+    render(<SettingsPage />);
+    expect(screen.getByRole("alert").className).toContain("break-words");
   });
 });

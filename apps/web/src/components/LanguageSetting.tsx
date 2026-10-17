@@ -60,7 +60,7 @@ export function LanguageSetting({ language, disabled, failed, onChange }: Langua
       {failed ? (
         <p
           role="alert"
-          className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          className="mt-3 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
         >
           {tSettings(language, "settings.language.error")}
         </p>

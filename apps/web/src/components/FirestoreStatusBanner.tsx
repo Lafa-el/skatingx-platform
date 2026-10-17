@@ -26,7 +26,7 @@ export function FirestoreStatusBanner({
   if (connectivityError) {
     return (
       <p
-        className={`rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 ${className}`.trim()}
+        className={`break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 ${className}`.trim()}
         role="alert"
       >
         {tShell(locale, "shell.status.connectError", { detail: connectivityError })}
