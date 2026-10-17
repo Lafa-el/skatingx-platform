@@ -54,11 +54,14 @@ describe("useAcademyImport: language", () => {
     const zh = renderHook(() => useAcademyImport());
     await act(() => zh.result.current.importItem(item));
     expect(candidatesOfLastCall()[0]?.text).toBe(item.titleZh);
+    expect(h.importAcademyTasks.mock.calls.at(-1)?.[1]).toMatchObject([{ tags: item.tagsZh }]);
 
     h.state.settings = { language: "en", isPro: true };
     const en = renderHook(() => useAcademyImport());
     await act(() => en.result.current.importItem(item));
     expect(candidatesOfLastCall()[0]?.text).toBe(item.titleEn);
+    // The tags are written in the same language as the title, never mixed with it.
+    expect(h.importAcademyTasks.mock.calls.at(-1)?.[1]).toMatchObject([{ tags: item.tagsEn }]);
   });
 });
 

@@ -101,3 +101,14 @@ Every slice is front-end text only: no data, schema, rules, index or dependency 
 ## 8. Validation per slice
 
 `npm ci`, `npm run lint`, `npm run typecheck`, `npm run test -- --run`, `npm run build`; `npm run test:rules` and `npm run test:migration` once per PR as a regression check although nothing in them changes. Plus: mutation checks on the key replacements, bundle size before and after, zh and en walk-through at 320 and 375 px, and the owner's phone check.
+
+## 9. Amendments
+
+### A1 (2026-10-17, owner approved): imported Academy tasks are written in one language
+
+Section 3 says this work changes no data. One exception, agreed with the owner: when a drill is imported into today's tasks, its **tags** are now written in the language active at that moment, like the title, target and description already were. Before, the tags were always Chinese, so an English task carried Chinese tags.
+
+- **What changes.** Only the value of `tags` on newly imported tasks. The field, its type and `academyItemId` are unchanged. No schema, Security Rules, index or dependency change; the rules do not look at `tags`. Nothing in the code reads `tags` except to show them.
+- **Existing tasks are not touched.** They keep the tags they were written with. There is no migration and no read-time mapping: the English tags are written per drill, not word for word from the Chinese (32 of 66 drills have a different number of words, and one Chinese word maps to several English ones), so a stored Chinese tag cannot be translated reliably.
+- **What the user sees.** A task shows the text it was written with, as for all user task text (D2). A task imported in Chinese keeps Chinese tags after a switch to English, next to its Chinese title, so a task never mixes the two.
+- **Rollback.** Revert the PR; new imports are written in Chinese again. English tags already written stay as they are and display as stored. No data repair is needed.

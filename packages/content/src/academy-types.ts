@@ -24,7 +24,8 @@ export interface AcademyItem {
   category: AcademyItemCategory;
   targetZh: string;
   targetEn: string;
-  tags: string[];
+  tagsZh: string[];
+  tagsEn: string[];
   suggestedDurationMinutes?: number;
   difficultyLevel?: number;
 }

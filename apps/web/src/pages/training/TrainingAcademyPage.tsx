@@ -232,9 +232,9 @@ export function TrainingAcademyPage() {
                                 : t("academy.item.add")}
                           </Button>
                         </div>
-                        {item.tags.length > 0 ? (
+                        {localized.tags.length > 0 ? (
                           <p className="mt-1 text-[10px] text-slate-500">
-                            {item.tags.join(" · ")}
+                            {localized.tags.join(" · ")}
                           </p>
                         ) : null}
                       </div>
