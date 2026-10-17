@@ -35,7 +35,11 @@ export function LanguageSetting({ language, disabled, failed, onChange }: Langua
           {OPTIONS.map((option) => {
             const id = `${name}-${option}`;
             return (
-              <div key={option} className="flex items-center gap-2">
+              <label
+                key={option}
+                htmlFor={id}
+                className="flex min-h-11 cursor-pointer items-center gap-2 pr-2 text-sm font-medium text-slate-900 has-disabled:cursor-not-allowed"
+              >
                 <input
                   id={id}
                   type="radio"
@@ -47,10 +51,8 @@ export function LanguageSetting({ language, disabled, failed, onChange }: Langua
                   }}
                   className="h-5 w-5 border-slate-300 text-sky-700 focus:ring-sky-300"
                 />
-                <label htmlFor={id} className="text-sm font-medium text-slate-900">
-                  {tSettings(language, OPTION_LABEL[option])}
-                </label>
-              </div>
+                {tSettings(language, OPTION_LABEL[option])}
+              </label>
             );
           })}
         </div>
