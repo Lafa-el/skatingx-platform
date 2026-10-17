@@ -23,6 +23,23 @@ describe("LanguageSetting", () => {
     expect(screen.getByLabelText("English")).toBeTruthy();
   });
 
+  // Layout is not computed in happy-dom, so the 44px touch target (min-h-11) is pinned through its
+  // class, and the label wraps the radio so the whole row is the target, not only the 20px circle.
+  it("makes the whole option row a tap target of at least 44px", () => {
+    setup({ language: "zh" });
+    for (const radio of screen.getAllByRole("radio")) {
+      const label = radio.closest("label");
+      expect(label, radio.getAttribute("value") ?? "").toBeTruthy();
+      expect(label?.className).toContain("min-h-11");
+    }
+  });
+
+  it("selects an option when its text is tapped", async () => {
+    const { onChange, user } = setup({ language: "zh" });
+    await user.click(screen.getByText("English"));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith("en");
+  });
+
   it("reports the language the user picks", async () => {
     const { onChange, user } = setup({ language: "zh" });
     await user.click(screen.getByLabelText("English"));
