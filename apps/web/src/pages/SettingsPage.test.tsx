@@ -148,7 +148,6 @@ describe("SettingsPage text", () => {
       "家长 PIN 锁在 M6 中尚未实现。PIN 不会以明文保存。PIN 安全功能上线后,只会把哈希值保存在 settings/main 中。",
     );
     expect(container.querySelector("code")?.textContent).toBe("settings/main");
-    expect(screen.getByText("parentPinEnabled: false")).toBeTruthy();
   });
 
   it("parent card, English: the previous sentence", () => {
@@ -173,17 +172,20 @@ describe("SettingsPage details", () => {
     expect(screen.queryByText("PRO 已开启(开发标记)。")).toBeNull();
   });
 
-  it("the parent PIN line keeps its previous truthiness rule and its field name in both languages", () => {
-    h.settings = { ...h.settings, parentPinEnabled: 1 };
-    const zh = render(<SettingsPage />);
-    expect(screen.getByText("parentPinEnabled: true")).toBeTruthy();
-    zh.unmount();
+  // The raw field was a debug line that parents and athletes could see in Production.
+  it.each([true, false, 1, undefined])(
+    "never shows the internal parentPinEnabled field, whatever is stored (%s), in either language",
+    (stored) => {
+      h.settings = { ...h.settings, parentPinEnabled: stored };
+      const zh = render(<SettingsPage />);
+      expect(zh.container.textContent).not.toMatch(/parentPinEnabled/);
+      zh.unmount();
 
-    setEnglish();
-    h.settings = { ...h.settings, parentPinEnabled: undefined };
-    render(<SettingsPage />);
-    expect(screen.getByText("parentPinEnabled: false")).toBeTruthy();
-  });
+      setEnglish();
+      const en = render(<SettingsPage />);
+      expect(en.container.textContent).not.toMatch(/parentPinEnabled/);
+    },
+  );
 });
 
 describe("SettingsPage PRO toggle messages", () => {
