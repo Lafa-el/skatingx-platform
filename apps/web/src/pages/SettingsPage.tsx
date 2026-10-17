@@ -6,6 +6,20 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { LanguageSetting } from "@/components/LanguageSetting";
 import { useLanguageSetting } from "@/hooks/useLanguageSetting";
+import { useLocale } from "@/hooks/useLocale";
+import { type SettingsPageMessageKey, tSettingsPage } from "@/shared/i18n/settings-page-messages";
+import type { Locale } from "@/shared/i18n/translator";
+
+/** A data field and a document path shown to developers as they are written. Identifiers, not copy. */
+const PARENT_PIN_FIELD = "parentPinEnabled";
+const SETTINGS_DOC_PATH = "settings/main";
+
+/**
+ * The note under the PRO card. It keeps what happened, not the sentence, so it follows the
+ * language if the user changes it afterwards. A message that came from the data layer is shown as
+ * it arrived.
+ */
+type ProNote = { key: SettingsPageMessageKey } | { received: string };
 
 function AuthField({
   id,
@@ -58,8 +72,11 @@ export function SettingsPage() {
   const { data: settings, loading: settingsLoading } = useUserSettings();
   const [formBusy, setFormBusy] = useState(false);
   const [proBusy, setProBusy] = useState(false);
-  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+  const [proNote, setProNote] = useState<ProNote | null>(null);
   const languageSetting = useLanguageSetting();
+  const locale: Locale = useLocale();
+  const t = (key: SettingsPageMessageKey, params?: Record<string, string | number>) =>
+    tSettingsPage(locale, key, params);
 
   async function handleBindSubmit(event: FormEvent) {
     event.preventDefault();
@@ -95,9 +112,7 @@ export function SettingsPage() {
   }
 
   async function handleLogout() {
-    const confirmed = window.confirm(
-      "Sign out? You will return to a new guest session. Unsaved guest data on this device will not carry over to a registered account unless you linked first.",
-    );
+    const confirmed = window.confirm(t("settings.signOut.confirm"));
     if (!confirmed) return;
     setFormBusy(true);
     try {
@@ -108,12 +123,12 @@ export function SettingsPage() {
   }
 
   const accountLabel = loading
-    ? "Loading…"
+    ? t("settings.account.loading")
     : !firebaseReady
-      ? "Firebase not configured"
+      ? t("settings.account.notConfigured")
       : isAnonymous
-        ? "Guest (anonymous)"
-        : "Registered User";
+        ? t("settings.account.guest")
+        : t("settings.account.registered");
 
   const emailDisplay = user?.email ?? "—";
   const isPro = settings?.isPro === true;
@@ -123,15 +138,17 @@ export function SettingsPage() {
     const db = getFirestoreDb();
     if (!db) return;
     setProBusy(true);
-    setSettingsMessage(null);
+    setProNote(null);
     try {
       await updateUserSettings(db, uid, { isPro: !isPro });
-      setSettingsMessage(
-        !isPro ? "PRO enabled (development flag)." : "PRO disabled.",
-      );
+      setProNote({
+        key: !isPro ? "settings.pro.enabledMessage" : "settings.pro.disabledMessage",
+      });
     } catch (error) {
-      setSettingsMessage(
-        error instanceof Error ? error.message : "Failed to update PRO status.",
+      setProNote(
+        error instanceof Error
+          ? { received: error.message }
+          : { key: "settings.pro.updateFailed" },
       );
     } finally {
       setProBusy(false);
@@ -140,11 +157,10 @@ export function SettingsPage() {
 
   return (
     <section className="max-w-lg">
-      <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
-      <p className="mt-1 text-slate-600">
-        Account and authentication. Profile and athlete data sync come in a
-        later phase.
-      </p>
+      <h1 className="text-2xl font-bold text-slate-900">
+        {t("settings.page.title")}
+      </h1>
+      <p className="mt-1 text-slate-600">{t("settings.page.intro")}</p>
 
       <LanguageSetting
         language={languageSetting.language}
@@ -153,19 +169,20 @@ export function SettingsPage() {
         onChange={languageSetting.setLanguage}
       />
 
-      <Card title="PRO membership" className="mt-4">
+      <Card title={t("settings.pro.title")} className="mt-4">
         <p className="text-sm font-medium text-amber-800">
-          Development only. Payment is not implemented.
+          {t("settings.pro.devNotice")}
         </p>
         <p className="mt-2 text-sm text-slate-600">
-          Toggle PRO below to test gated Academy and Shop UI. This does not
-          charge real money or verify subscription status.
+          {t("settings.pro.devHelp")}
         </p>
         <dl className="mt-3 grid gap-2 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Status</dt>
+            <dt className="text-slate-500">{t("settings.pro.status")}</dt>
             <dd className="font-medium text-slate-900">
-              {settingsLoading ? "…" : isPro ? "PRO active" : "Free plan"}
+              {settingsLoading
+                ? "…"
+                : t(isPro ? "settings.pro.active" : "settings.pro.free")}
             </dd>
           </div>
         </dl>
@@ -177,50 +194,50 @@ export function SettingsPage() {
           onClick={() => void handleProToggle()}
         >
           {proBusy
-            ? "Saving…"
-            : isPro
-              ? "Disable PRO (dev)"
-              : "Enable PRO (dev)"}
+            ? t("settings.pro.saving")
+            : t(isPro ? "settings.pro.disable" : "settings.pro.enable")}
         </Button>
       </Card>
 
-      <Card title="Parent settings" className="mt-4">
+      <Card title={t("settings.parent.title")} className="mt-4">
         <p className="text-sm text-slate-600">
-          Parent PIN lock is not implemented in M6. PINs are not stored in
-          plaintext. When PIN security ships, only a hash will be saved on{" "}
-          <code className="text-xs">settings/main</code>.
+          {t("settings.parent.noteBefore")}
+          <code className="text-xs">{SETTINGS_DOC_PATH}</code>
+          {t("settings.parent.noteAfter")}
         </p>
         <p className="mt-2 text-xs text-slate-500">
-          parentPinEnabled: {settings?.parentPinEnabled ? "true" : "false"}
+          {PARENT_PIN_FIELD}: {String(Boolean(settings?.parentPinEnabled))}
         </p>
       </Card>
 
-      {settingsMessage ? (
+      {proNote ? (
         <p className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
-          {settingsMessage}
+          {"received" in proNote ? proNote.received : t(proNote.key)}
         </p>
       ) : null}
 
-      <Card title="Current user" className="mt-4">
+      <Card title={t("settings.account.title")} className="mt-4">
         <dl className="grid gap-2 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Status</dt>
+            <dt className="text-slate-500">{t("settings.account.status")}</dt>
             <dd className="font-medium text-slate-900">{accountLabel}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">UID</dt>
+            <dt className="text-slate-500">{t("settings.account.uid")}</dt>
             <dd className="font-mono text-xs text-slate-800 break-all">
               {loading ? "…" : (uid ?? "—")}
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Anonymous</dt>
+            <dt className="text-slate-500">{t("settings.account.anonymous")}</dt>
             <dd className="font-medium text-slate-900">
-              {loading ? "…" : isAnonymous ? "Yes" : "No"}
+              {loading
+                ? "…"
+                : t(isAnonymous ? "settings.account.yes" : "settings.account.no")}
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Email</dt>
+            <dt className="text-slate-500">{t("settings.account.email")}</dt>
             <dd className="font-medium text-slate-900">{emailDisplay}</dd>
           </div>
         </dl>
@@ -236,15 +253,14 @@ export function SettingsPage() {
       ) : null}
 
       {firebaseReady && isAnonymous && !loading ? (
-        <Card title="Link email & password" className="mt-4">
+        <Card title={t("settings.link.title")} className="mt-4">
           <p className="mb-4 text-sm text-slate-600">
-            Turn this guest session into a permanent account. Password must be
-            at least 6 characters.
+            {t("settings.link.help")}
           </p>
           <form className="grid gap-3" onSubmit={handleBindSubmit}>
             <AuthField
               id="bind-email"
-              label="Email"
+              label={t("settings.field.email")}
               type="email"
               value={bindEmail}
               onChange={setBindEmail}
@@ -252,7 +268,7 @@ export function SettingsPage() {
             />
             <AuthField
               id="bind-password"
-              label="Password"
+              label={t("settings.field.password")}
               type="password"
               value={bindPassword}
               onChange={setBindPassword}
@@ -262,22 +278,21 @@ export function SettingsPage() {
               type="submit"
               disabled={formBusy || !bindEmail || bindPassword.length < 6}
             >
-              {formBusy ? "Linking…" : "Link account"}
+              {formBusy ? t("settings.link.busy") : t("settings.link.submit")}
             </Button>
           </form>
         </Card>
       ) : null}
 
       {firebaseReady && !loading ? (
-        <Card title="Sign in to existing account" className="mt-4">
+        <Card title={t("settings.signIn.title")} className="mt-4">
           <p className="mb-4 text-sm text-slate-600">
-            Use a registered email and password. Signing in replaces the
-            current session (guest data is not merged automatically).
+            {t("settings.signIn.help")}
           </p>
           <form className="grid gap-3" onSubmit={handleSignInSubmit}>
             <AuthField
               id="signin-email"
-              label="Email"
+              label={t("settings.field.email")}
               type="email"
               value={signInEmail}
               onChange={setSignInEmail}
@@ -285,7 +300,7 @@ export function SettingsPage() {
             />
             <AuthField
               id="signin-password"
-              label="Password"
+              label={t("settings.field.password")}
               type="password"
               value={signInPassword}
               onChange={setSignInPassword}
@@ -297,7 +312,7 @@ export function SettingsPage() {
               className="border border-slate-300"
               disabled={formBusy || !signInEmail || !signInPassword}
             >
-              {formBusy ? "Signing in…" : "Sign in"}
+              {formBusy ? t("settings.signIn.busy") : t("settings.signIn.submit")}
             </Button>
           </form>
         </Card>
@@ -311,14 +326,14 @@ export function SettingsPage() {
             disabled={formBusy}
             onClick={handleLogout}
           >
-            Sign out
+            {t("settings.signOut.button")}
           </Button>
         </div>
       ) : null}
 
       {firebaseReady && user && isAnonymous && !loading ? (
         <p className="mt-6 text-xs text-slate-500">
-          Guest UID (first 8 chars): {uid?.slice(0, 8) ?? "—"}
+          {t("settings.account.guestUid", { uid: uid?.slice(0, 8) ?? "—" })}
         </p>
       ) : null}
     </section>

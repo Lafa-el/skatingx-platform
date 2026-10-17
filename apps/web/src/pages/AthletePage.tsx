@@ -8,8 +8,12 @@ import {
   useAthleteProfile,
   useUserSettings,
 } from "@/hooks/firestore";
+import { useLocale } from "@/hooks/useLocale";
+import { tAthlete } from "@/shared/i18n/athlete-messages";
+import { formatCalendarDate } from "@/shared/i18n/format";
 
 export function AthletePage() {
+  const locale = useLocale();
   const { uid } = useAuth();
   const { athleteId, loading: activeLoading, error: activeError } =
     useActiveAthlete();
@@ -25,9 +29,11 @@ export function AthletePage() {
     <section>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Athlete</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {tAthlete(locale, "athlete.title")}
+          </h1>
           <p className="mt-1 text-slate-600">
-            Profile loaded from Firestore for the active skater.
+            {tAthlete(locale, "athlete.subtitle")}
           </p>
         </div>
         <AthleteSelector />
@@ -44,40 +50,52 @@ export function AthletePage() {
         </p>
       ) : null}
 
-      <Card title="Active profile" className="mt-6">
+      <Card title={tAthlete(locale, "athlete.profile.title")} className="mt-6">
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-slate-500">Name</dt>
+            <dt className="text-slate-500">{tAthlete(locale, "athlete.field.name")}</dt>
             <dd className="font-medium text-slate-900">
               {loading ? "…" : (profile?.displayName ?? "—")}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Birth date</dt>
+            <dt className="text-slate-500">
+              {tAthlete(locale, "athlete.field.birthDate")}
+            </dt>
             <dd className="font-medium text-slate-900">
-              {loading ? "…" : (profile?.birthDate ?? "—")}
+              {loading
+                ? "…"
+                : profile?.birthDate
+                  ? formatCalendarDate(profile.birthDate, locale)
+                  : "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Sport</dt>
+            <dt className="text-slate-500">{tAthlete(locale, "athlete.field.sport")}</dt>
             <dd className="font-medium text-slate-900">
               {loading ? "…" : (profile?.sport ?? "—")}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Country</dt>
+            <dt className="text-slate-500">
+              {tAthlete(locale, "athlete.field.country")}
+            </dt>
             <dd className="font-medium text-slate-900">
               {loading ? "…" : (profile?.country ?? "—")}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Active athlete ID</dt>
+            <dt className="text-slate-500">
+              {tAthlete(locale, "athlete.field.activeId")}
+            </dt>
             <dd className="font-medium text-slate-900">
               {loading ? "…" : (settings?.activeAthleteId ?? athleteId)}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Account UID</dt>
+            <dt className="text-slate-500">
+              {tAthlete(locale, "athlete.field.accountUid")}
+            </dt>
             <dd className="font-mono text-xs text-slate-800 break-all">
               {uid ?? "—"}
             </dd>
