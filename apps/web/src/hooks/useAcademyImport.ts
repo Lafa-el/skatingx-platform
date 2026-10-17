@@ -17,12 +17,35 @@ import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { tAcademy } from "@/shared/i18n/academy-messages";
 
+type ImportErrorKey =
+  | "academy.error.importFailed"
+  | "academy.error.proRequired"
+  | "academy.error.notSignedIn"
+  | "academy.error.unavailable"
+  | "academy.error.planNotFound";
+
 /**
  * What the user is told when an import fails. It keeps what happened, not the sentence, so it
  * follows the language if it changes afterwards. A message that came from the data layer is shown
  * as it arrived.
  */
-type ImportErrorNote = { failed: true } | { received: string };
+type ImportErrorNote = { key: ImportErrorKey } | { received: string };
+
+type ImportOperation = "importItem" | "importWeekdayRoutine" | "importDayPlan";
+
+/**
+ * Developer-facing context: the operation and an error code only. An error message can carry
+ * document paths, so it is never logged.
+ */
+function logImportFailure(operation: ImportOperation, code: string): void {
+  console.error(`[academy-import] ${operation} failed`, { code });
+}
+
+function errorCode(error: unknown): string {
+  return typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code: unknown }).code)
+    : "none";
+}
 
 export function useAcademyImport() {
   const { uid } = useAuth();
@@ -36,17 +59,32 @@ export function useAcademyImport() {
   const actionError = errorNote
     ? "received" in errorNote
       ? errorNote.received
-      : tAcademy(language, "academy.error.importFailed")
+      : tAcademy(language, errorNote.key)
     : null;
 
+  /**
+   * An import that cannot happen is reported on screen and returns null. It does not throw: the
+   * page starts these from a click and nothing there catches, so a throw would leave the user
+   * with no message at all.
+   */
+  const refuse = useCallback(
+    (operation: ImportOperation, key: ImportErrorKey, code?: string): null => {
+      setErrorNote({ key });
+      // A PRO refusal is the app working as designed, not a failure worth a log line.
+      if (code) logImportFailure(operation, code);
+      return null;
+    },
+    [],
+  );
+
   const runImport = useCallback(
-    async (candidates: AcademyImportCandidate[]) => {
+    async (operation: ImportOperation, candidates: AcademyImportCandidate[]) => {
       if (!uid) {
-        throw new Error("Sign in required.");
+        return refuse(operation, "academy.error.notSignedIn", "not-signed-in");
       }
       const db = getFirestoreDb();
       if (!db) {
-        throw new Error("Firestore is not available.");
+        return refuse(operation, "academy.error.unavailable", "db-unavailable");
       }
       setBusy(true);
       setErrorNote(null);
@@ -58,19 +96,22 @@ export function useAcademyImport() {
         setLastResult(result);
         return result;
       } catch (error) {
-        setErrorNote(error instanceof Error ? { received: error.message } : { failed: true });
-        throw error;
+        setErrorNote(
+          error instanceof Error ? { received: error.message } : { key: "academy.error.importFailed" },
+        );
+        logImportFailure(operation, errorCode(error));
+        return null;
       } finally {
         setBusy(false);
       }
     },
-    [uid, athleteId],
+    [uid, athleteId, refuse],
   );
 
   const importItem = useCallback(
     async (item: AcademyItem) => {
       const candidate = buildAcademyImportCandidate(item, language);
-      return runImport([candidate]);
+      return runImport("importItem", [candidate]);
     },
     [language, runImport],
   );
@@ -78,7 +119,7 @@ export function useAcademyImport() {
   const importWeekdayRoutine = useCallback(
     async (stage: AcademyStage, weekday: WeekdayKey, requirePro = true) => {
       if (requirePro && settings?.isPro !== true) {
-        throw new Error(tAcademy(language, "academy.error.proRequired"));
+        return refuse("importWeekdayRoutine", "academy.error.proRequired");
       }
       const routineItems = getWeekdayRoutineItems(stage, weekday);
       const candidates: AcademyImportCandidate[] = [];
@@ -100,19 +141,19 @@ export function useAcademyImport() {
         }
       }
 
-      return runImport(candidates);
+      return runImport("importWeekdayRoutine", candidates);
     },
-    [language, runImport, settings?.isPro],
+    [language, runImport, refuse, settings?.isPro],
   );
 
   const importDayPlan = useCallback(
     async (stage: AcademyStage, dayPlanId: string, requirePro = true) => {
       if (requirePro && settings?.isPro !== true) {
-        throw new Error(tAcademy(language, "academy.error.proRequired"));
+        return refuse("importDayPlan", "academy.error.proRequired");
       }
       const plan = stage.weeklyRoutine.dayPlans.find((p) => p.id === dayPlanId);
       if (!plan) {
-        throw new Error("Day plan not found.");
+        return refuse("importDayPlan", "academy.error.planNotFound", "plan-not-found");
       }
       const candidates: AcademyImportCandidate[] = [];
       for (const taskLabel of plan.taskLabels) {
@@ -131,9 +172,9 @@ export function useAcademyImport() {
           });
         }
       }
-      return runImport(candidates);
+      return runImport("importDayPlan", candidates);
     },
-    [language, runImport, settings?.isPro],
+    [language, runImport, refuse, settings?.isPro],
   );
 
   return {

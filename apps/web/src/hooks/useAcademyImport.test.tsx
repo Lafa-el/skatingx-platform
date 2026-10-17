@@ -26,7 +26,10 @@ vi.mock("@skatingx/firebase-client", () => ({
   importAcademyTasks: h.importAcademyTasks,
 }));
 
+const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
 afterEach(() => {
+  logged.mockClear();
   h.state = h.base();
   h.importAcademyTasks.mockClear();
   h.importAcademyTasks.mockImplementation(async () => ({ imported: 2, skipped: 1 }));
@@ -83,49 +86,124 @@ describe("useAcademyImport: importing", () => {
     expect(result.current.lastResult).toBeNull();
 
     h.importAcademyTasks.mockRejectedValueOnce(new Error("Write failed"));
-    await act(() => result.current.importItem(item).catch(() => undefined));
+    await act(() => result.current.importItem(item));
     expect(result.current.actionError).toBe("Write failed");
     act(() => result.current.clearActionError());
     expect(result.current.actionError).toBeNull();
   });
 
-  it("does nothing when nobody is signed in, and says why to developers", async () => {
-    h.state.uid = null;
+  it("returns the result on success", async () => {
     const { result } = renderHook(() => useAcademyImport());
-    await expect(act(() => result.current.importItem(item))).rejects.toThrow("Sign in required.");
+    let returned: unknown;
+    await act(async () => {
+      returned = await result.current.importItem(item);
+    });
+    expect(returned).toEqual({ imported: 2, skipped: 1 });
+  });
+});
+
+describe("useAcademyImport: nothing to write to", () => {
+  it("not signed in: writes nothing, tells the user in their language, and does not throw", async () => {
+    h.state.uid = null;
+    const zh = renderHook(() => useAcademyImport());
+    let returned: unknown = "unset";
+    await act(async () => {
+      returned = await zh.result.current.importItem(item);
+    });
+    expect(returned).toBeNull();
+    expect(zh.result.current.actionError).toBe("登录状态还没准备好，请稍后再试。");
+    expect(zh.result.current.busy).toBe(false);
     expect(h.importAcademyTasks).not.toHaveBeenCalled();
+
+    h.state.settings = { language: "en" };
+    const en = renderHook(() => useAcademyImport());
+    await act(() => en.result.current.importItem(item));
+    expect(en.result.current.actionError).toBe("Sign-in is not ready yet. Try again in a moment.");
   });
 
-  it("does nothing when the database is not available", async () => {
+  it("database not available: same, with the service named as the owner decided (数据服务 in Chinese only)", async () => {
     h.state.db = null;
-    const { result } = renderHook(() => useAcademyImport());
-    await expect(act(() => result.current.importItem(item))).rejects.toThrow("Firestore is not available.");
+    const zh = renderHook(() => useAcademyImport());
+    await act(() => zh.result.current.importItem(item));
+    expect(zh.result.current.actionError).toBe("数据服务暂时不可用，请稍后再试。");
+
+    h.state.settings = { language: "en" };
+    const en = renderHook(() => useAcademyImport());
+    await act(() => en.result.current.importItem(item));
+    expect(en.result.current.actionError).toBe("Firestore is not available right now. Try again later.");
     expect(h.importAcademyTasks).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith("[academy-import] importItem failed", { code: "db-unavailable" });
+  });
+
+  it("the message follows the language if it changes afterwards", async () => {
+    h.state.uid = null;
+    const view = renderHook(() => useAcademyImport());
+    await act(() => view.result.current.importItem(item));
+    expect(view.result.current.actionError).toBe("登录状态还没准备好，请稍后再试。");
+    h.state.settings = { language: "en" };
+    view.rerender();
+    expect(view.result.current.actionError).toBe("Sign-in is not ready yet. Try again in a moment.");
+  });
+
+  it("a later success clears the message", async () => {
+    h.state.uid = null;
+    const view = renderHook(() => useAcademyImport());
+    await act(() => view.result.current.importItem(item));
+    expect(view.result.current.actionError).not.toBeNull();
+    h.state.uid = "uid-1";
+    view.rerender();
+    await act(() => view.result.current.importItem(item));
+    expect(view.result.current.actionError).toBeNull();
+  });
+
+  it("leaves a developer-facing line with the operation and the code, never the message", async () => {
+    h.state.uid = null;
+    const { result } = renderHook(() => useAcademyImport());
+    await act(() => result.current.importItem(item));
+    expect(logged).toHaveBeenCalledTimes(1);
+    const [text, context] = logged.mock.calls[0] as [string, Record<string, unknown>];
+    expect(text).toBe("[academy-import] importItem failed");
+    expect(context).toEqual({ code: "not-signed-in" });
   });
 });
 
 describe("useAcademyImport: failures", () => {
-  it("shows the message from the data layer as it arrived, and rethrows", async () => {
+  it("shows the message from the data layer as it arrived, returns null and does not throw", async () => {
     h.importAcademyTasks.mockRejectedValueOnce(new Error("permission-denied"));
     const { result } = renderHook(() => useAcademyImport());
-    let thrown: unknown;
-    // The error is caught inside act so the state it set is flushed before we look at it.
+    let returned: unknown = "unset";
     await act(async () => {
-      try {
-        await result.current.importItem(item);
-      } catch (error) {
-        thrown = error;
-      }
+      returned = await result.current.importItem(item);
     });
-    expect((thrown as Error).message).toBe("permission-denied");
+    expect(returned).toBeNull();
     expect(result.current.actionError).toBe("permission-denied");
     expect(result.current.busy).toBe(false);
+  });
+
+  it("logs the error code only, because a message can carry document paths", async () => {
+    h.importAcademyTasks.mockRejectedValueOnce(Object.assign(new Error("No access to users/uid-1/x"), { code: "permission-denied" }));
+    const { result } = renderHook(() => useAcademyImport());
+    await act(() => result.current.importItem(item));
+    expect(logged).toHaveBeenCalledWith("[academy-import] importItem failed", { code: "permission-denied" });
+    expect(JSON.stringify(logged.mock.calls)).not.toContain("uid-1");
+  });
+
+  it("names the operation that failed: a whole day and a whole weekday as well as one item", async () => {
+    const { result } = renderHook(() => useAcademyImport());
+    h.importAcademyTasks.mockRejectedValueOnce(new Error("x"));
+    await act(() => result.current.importDayPlan(stage, plan.id));
+    h.importAcademyTasks.mockRejectedValueOnce(new Error("x"));
+    await act(() => result.current.importWeekdayRoutine(stage, "tuesday"));
+    expect(logged.mock.calls.map((c) => c[0])).toEqual([
+      "[academy-import] importDayPlan failed",
+      "[academy-import] importWeekdayRoutine failed",
+    ]);
   });
 
   it("an error that is not an Error is a readable sentence in the language, and follows it", async () => {
     h.importAcademyTasks.mockRejectedValueOnce("boom");
     const view = renderHook(() => useAcademyImport());
-    await act(() => view.result.current.importItem(item).catch(() => undefined));
+    await act(() => view.result.current.importItem(item));
     expect(view.result.current.actionError).toBe("导入学院内容失败。");
 
     h.state.settings = { language: "en", isPro: true };
@@ -136,7 +214,7 @@ describe("useAcademyImport: failures", () => {
   it("a later success clears an earlier error", async () => {
     h.importAcademyTasks.mockRejectedValueOnce(new Error("first"));
     const { result } = renderHook(() => useAcademyImport());
-    await act(() => result.current.importItem(item).catch(() => undefined));
+    await act(() => result.current.importItem(item));
     expect(result.current.actionError).toBe("first");
     await act(() => result.current.importItem(item));
     expect(result.current.actionError).toBeNull();
@@ -144,23 +222,30 @@ describe("useAcademyImport: failures", () => {
 });
 
 describe("useAcademyImport: PRO plans", () => {
-  it("a day plan needs PRO, and the refusal is worded in the language", async () => {
+  it("a day plan needs PRO: nothing is written, the refusal is worded in the language, and it is not a failure to log", async () => {
     h.state.settings = { language: "zh", isPro: false };
     const zh = renderHook(() => useAcademyImport());
-    await expect(act(() => zh.result.current.importDayPlan(stage, plan.id))).rejects.toThrow("高阶计划导入需要 PRO。");
+    let returned: unknown = "unset";
+    await act(async () => {
+      returned = await zh.result.current.importDayPlan(stage, plan.id);
+    });
+    expect(returned).toBeNull();
+    expect(zh.result.current.actionError).toBe("高阶计划导入需要 PRO。");
 
     h.state.settings = { language: "en", isPro: false };
     const en = renderHook(() => useAcademyImport());
-    await expect(act(() => en.result.current.importDayPlan(stage, plan.id))).rejects.toThrow(
-      "PRO is required for advanced routine import.",
-    );
+    await act(() => en.result.current.importDayPlan(stage, plan.id));
+    expect(en.result.current.actionError).toBe("PRO is required for advanced routine import.");
     expect(h.importAcademyTasks).not.toHaveBeenCalled();
+    expect(logged).not.toHaveBeenCalled();
   });
 
   it("the PRO flag must be exactly true", async () => {
     h.state.settings = { language: "en", isPro: "yes" };
     const { result } = renderHook(() => useAcademyImport());
-    await expect(act(() => result.current.importWeekdayRoutine(stage, "tuesday"))).rejects.toThrow(/PRO is required/);
+    await act(() => result.current.importWeekdayRoutine(stage, "tuesday"));
+    expect(result.current.actionError).toBe("PRO is required for advanced routine import.");
+    expect(h.importAcademyTasks).not.toHaveBeenCalled();
   });
 
   it("with PRO, a day plan imports one task per label", async () => {
@@ -182,9 +267,16 @@ describe("useAcademyImport: PRO plans", () => {
     expect(h.importAcademyTasks).toHaveBeenCalledTimes(1);
   });
 
-  it("an unknown day plan is refused before anything is written", async () => {
-    const { result } = renderHook(() => useAcademyImport());
-    await expect(act(() => result.current.importDayPlan(stage, "no-such-plan"))).rejects.toThrow("Day plan not found.");
+  it("an unknown day plan is reported to the user and refused before anything is written", async () => {
+    const zh = renderHook(() => useAcademyImport());
+    await act(() => zh.result.current.importDayPlan(stage, "no-such-plan"));
+    expect(zh.result.current.actionError).toBe("没有找到这个日计划。");
     expect(h.importAcademyTasks).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith("[academy-import] importDayPlan failed", { code: "plan-not-found" });
+
+    h.state.settings = { language: "en", isPro: true };
+    const en = renderHook(() => useAcademyImport());
+    await act(() => en.result.current.importDayPlan(stage, "no-such-plan"));
+    expect(en.result.current.actionError).toBe("That day plan was not found.");
   });
 });
