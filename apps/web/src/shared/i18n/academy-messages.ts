@@ -52,6 +52,9 @@ const zh = {
 
   "academy.error.importFailed": "导入学院内容失败。",
   "academy.error.proRequired": "高阶计划导入需要 PRO。",
+  "academy.error.notSignedIn": "登录状态还没准备好，请稍后再试。",
+  "academy.error.unavailable": "数据服务暂时不可用，请稍后再试。",
+  "academy.error.planNotFound": "没有找到这个日计划。",
 } as const;
 
 type AcademyKey = keyof typeof zh;
@@ -104,6 +107,9 @@ const en: Record<AcademyKey, string> = {
 
   "academy.error.importFailed": "Academy import failed.",
   "academy.error.proRequired": "PRO is required for advanced routine import.",
+  "academy.error.notSignedIn": "Sign-in is not ready yet. Try again in a moment.",
+  "academy.error.unavailable": "Firestore is not available right now. Try again later.",
+  "academy.error.planNotFound": "That day plan was not found.",
 };
 
 export type AcademyMessageKey = AcademyKey;
