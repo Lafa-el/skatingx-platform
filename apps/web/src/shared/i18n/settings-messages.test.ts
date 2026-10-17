@@ -12,14 +12,13 @@ describe("settings messages", () => {
     }
   });
 
-  it("names the screens that are still English (Training, Analysis), not ones that are done", () => {
+  it("does not say that some screens are still in one language: every screen follows the setting now", () => {
+    expect(tSettings("zh", "settings.language.description")).toBe("选择界面语言。");
+    expect(tSettings("en", "settings.language.description")).toBe("Choose the interface language.");
     for (const lang of ["zh", "en"] as const) {
-      const note = tSettings(lang, "settings.language.description");
-      // Done: navigation (S6b), Settings, Dashboard, Athlete, AI Coach (S6c).
-      expect(note).not.toMatch(/底部导航|设置页|bottom navigation|this page/i);
-      expect(note).toMatch(/训练|Training/);
-      expect(note).toMatch(/分析|Analysis/);
-      expect(note).toMatch(/暂时仍是英文|still English only/);
+      expect(tSettings(lang, "settings.language.description")).not.toMatch(
+        /暂时|仍是英文|still English|English only|Training|Analysis|训练|分析/,
+      );
     }
   });
 
