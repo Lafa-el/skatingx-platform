@@ -35,7 +35,7 @@ Use made-up names and note text only. Do this in Chinese and in English, on a ph
 
 **PRO off**
 
-1. Open Summary: heading, "这一页需要 PRO", the temporary-arrangement note and a link to Settings. No card, no note box. Reload: "正在准备…" briefly, then the locked card, never a flash of content.
+1. Open Summary: heading, "这一页需要 PRO", the "contact the administrator" line and the temporary-arrangement note, with no link. No card, no note box. Reload: "正在准备…" briefly, then the locked card, never a flash of content.
 
 **PRO on, card**
 
