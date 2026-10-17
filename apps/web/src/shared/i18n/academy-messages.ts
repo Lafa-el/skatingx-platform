@@ -30,7 +30,7 @@ const zh = {
 
   "academy.routine.proTag": "（PRO）",
   "academy.routine.intro": "参考周计划 — 可随时浏览；批量导入需要 PRO。",
-  "academy.routine.lock": "高阶计划导入与 AI 训练计划需要 PRO。",
+  "academy.routine.lock": "高阶计划导入需要 PRO。AI 训练计划尚未推出，推出后也将需要 PRO。",
   "academy.routine.weekday": "导入指定星期",
   "academy.routine.importDay": "导入该日",
   "academy.routine.importing": "导入中…",
@@ -81,7 +81,8 @@ const en: Record<AcademyKey, string> = {
 
   "academy.routine.proTag": "(PRO)",
   "academy.routine.intro": "Reference weekly plans — browse anytime; bulk import requires PRO.",
-  "academy.routine.lock": "PRO required for advanced routine import and AI-powered training plans.",
+  "academy.routine.lock":
+    "PRO required for advanced routine import. AI training plans are not available yet and will also need PRO.",
   "academy.routine.weekday": "Import weekday routine",
   "academy.routine.importDay": "Import day",
   "academy.routine.importing": "Importing…",

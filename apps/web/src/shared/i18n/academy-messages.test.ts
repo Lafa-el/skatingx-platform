@@ -31,6 +31,17 @@ describe("Academy drill categories", () => {
 });
 
 describe("Academy wording decided by the owner (2026-10-16)", () => {
+  // AI training plans do not exist. The lock may say they will need PRO, but never that they are
+  // available (AGENTS.md: no claim beyond what the product does).
+  it("the PRO lock says AI training plans are not available yet, in both languages", () => {
+    expect(tAcademy("zh", "academy.routine.lock")).toBe(
+      "高阶计划导入需要 PRO。AI 训练计划尚未推出，推出后也将需要 PRO。",
+    );
+    expect(tAcademy("en", "academy.routine.lock")).toBe(
+      "PRO required for advanced routine import. AI training plans are not available yet and will also need PRO.",
+    );
+  });
+
   it("says 陆地训练 for dryland", () => {
     expect(tAcademy("zh", "academy.subtitle")).toContain("陆地训练");
     expect(tAcademy("zh", "academy.subtitle")).not.toContain("陆上");
