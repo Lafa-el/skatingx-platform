@@ -7,9 +7,23 @@ import {
   useGamification,
   useTrainingState,
 } from "@/app/providers/FirestoreProvider";
+import { useLocale } from "@/hooks/useLocale";
 import { useTrainingActions } from "@/hooks/useTrainingActions";
+import {
+  type TrainingTasksMessageKey,
+  tTrainingTasks,
+} from "@/shared/i18n/training-tasks-messages";
+
+/**
+ * The note after a toggle. It keeps what happened, not the sentence, so it follows the language
+ * if the user changes it afterwards.
+ */
+type BonusNote = { kind: "applied"; points: number } | { kind: "removed" };
 
 export function TrainingTasksPage() {
+  const locale = useLocale();
+  const t = (key: TrainingTasksMessageKey, params?: Record<string, string | number>) =>
+    tTrainingTasks(locale, key, params);
   const { data: rawState, loading, error } = useTrainingState();
   const { data: gamification } = useGamification();
   const { addTask, removeTask, toggleTask, busy, actionError, clearActionError } =
@@ -17,7 +31,7 @@ export function TrainingTasksPage() {
 
   const [text, setText] = useState("");
   const [target, setTarget] = useState("");
-  const [bonusMessage, setBonusMessage] = useState<string | null>(null);
+  const [bonusNote, setBonusNote] = useState<BonusNote | null>(null);
 
   const state = rawState ? normalizeTrainingState(rawState) : null;
   const tasks = state?.todayTasks ?? [];
@@ -39,18 +53,18 @@ export function TrainingTasksPage() {
 
   async function handleToggle(taskId: string) {
     clearActionError();
-    setBonusMessage(null);
+    setBonusNote(null);
     const result = await toggleTask(taskId);
     if (result.bonusApplied) {
-      setBonusMessage(`Daily bonus +${dailyBonus} points!`);
+      setBonusNote({ kind: "applied", points: dailyBonus });
     }
     if (result.bonusRemoved) {
-      setBonusMessage("Daily bonus removed.");
+      setBonusNote({ kind: "removed" });
     }
   }
 
   async function handleDelete(taskId: string, label: string) {
-    const confirmed = window.confirm(`Delete task "${label}"?`);
+    const confirmed = window.confirm(t("trainingTasks.list.deleteConfirm", { task: label }));
     if (!confirmed) {
       return;
     }
@@ -60,11 +74,11 @@ export function TrainingTasksPage() {
 
   return (
     <section className="max-w-lg">
-      <h1 className="text-2xl font-bold text-slate-900">Today&apos;s tasks</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t("trainingTasks.title")}</h1>
       <p className="mt-1 text-slate-600">
         {loading
-          ? "Loading tasks…"
-          : `${completedCount} of ${tasks.length} completed`}
+          ? t("trainingTasks.loading")
+          : t("trainingTasks.summary", { done: completedCount, total: tasks.length })}
       </p>
 
       <FirestoreStatusBanner className="mt-4" />
@@ -81,52 +95,54 @@ export function TrainingTasksPage() {
         </p>
       ) : null}
 
-      {bonusMessage ? (
+      {bonusNote ? (
         <p className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
-          {bonusMessage}
+          {bonusNote.kind === "applied"
+            ? t("trainingTasks.bonus.applied", { points: bonusNote.points })
+            : t("trainingTasks.bonus.removed")}
         </p>
       ) : null}
 
-      <Card title="Points rules" className="mt-4">
+      <Card title={t("trainingTasks.rules.title")} className="mt-4">
         <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
-          <li>+{pointsPerTask} points per completed task</li>
-          <li>+{dailyBonus} daily bonus when all tasks are done</li>
-          <li>Current balance: {loading ? "…" : points} points</li>
+          <li>{t("trainingTasks.rules.perTask", { points: pointsPerTask })}</li>
+          <li>{t("trainingTasks.rules.dailyBonus", { points: dailyBonus })}</li>
+          <li>{t("trainingTasks.rules.balance", { balance: loading ? "…" : points })}</li>
         </ul>
       </Card>
 
-      <Card title="Add task" className="mt-4">
+      <Card title={t("trainingTasks.add.title")} className="mt-4">
         <form className="grid gap-3" onSubmit={handleAdd}>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Task</span>
+            <span className="font-medium text-slate-700">{t("trainingTasks.add.task")}</span>
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="e.g. 500m intervals"
+              placeholder={t("trainingTasks.add.taskPlaceholder")}
               required
             />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">Target (optional)</span>
+            <span className="font-medium text-slate-700">{t("trainingTasks.add.target")}</span>
             <input
               value={target}
               onChange={(e) => setTarget(e.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="e.g. 3 sets"
+              placeholder={t("trainingTasks.add.targetPlaceholder")}
             />
           </label>
           <Button type="submit" disabled={busy || !text.trim()}>
-            {busy ? "Saving…" : "Add task"}
+            {busy ? t("trainingTasks.add.saving") : t("trainingTasks.add.submit")}
           </Button>
         </form>
       </Card>
 
-      <Card title="Task list" className="mt-4">
+      <Card title={t("trainingTasks.list.title")} className="mt-4">
         {loading ? (
-          <p className="text-sm text-slate-500">Loading…</p>
+          <p className="text-sm text-slate-500">{t("trainingTasks.list.loading")}</p>
         ) : tasks.length === 0 ? (
-          <p className="text-sm text-slate-500">No tasks for today. Add one above.</p>
+          <p className="text-sm text-slate-500">{t("trainingTasks.list.empty")}</p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {tasks.map((task) => (
@@ -137,31 +153,31 @@ export function TrainingTasksPage() {
                   disabled={busy}
                   onChange={() => void handleToggle(task.id)}
                   className="mt-1 h-4 w-4 rounded border-slate-300"
-                  aria-label={`Complete ${task.text}`}
+                  aria-label={t("trainingTasks.list.complete", { task: task.text })}
                 />
                 <div className="min-w-0 flex-1">
                   <p
                     className={
                       task.completed
-                        ? "text-sm text-slate-500 line-through"
-                        : "text-sm font-medium text-slate-900"
+                        ? "break-words text-sm text-slate-500 line-through"
+                        : "break-words text-sm font-medium text-slate-900"
                     }
                   >
                     {task.text}
                   </p>
                   {task.source === "academy" ? (
                     <span className="mt-0.5 inline-block rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-800">
-                      Academy
+                      {t("trainingTasks.list.academyBadge")}
                     </span>
                   ) : null}
                   {task.description ? (
-                    <p className="mt-1 text-xs text-slate-600">{task.description}</p>
+                    <p className="mt-1 break-words text-xs text-slate-600">{task.description}</p>
                   ) : null}
                   {task.target ? (
-                    <p className="text-xs text-slate-500">{task.target}</p>
+                    <p className="break-words text-xs text-slate-500">{task.target}</p>
                   ) : null}
                   {task.tags && task.tags.length > 0 ? (
-                    <p className="text-[10px] text-slate-400">{task.tags.join(" · ")}</p>
+                    <p className="break-words text-[10px] text-slate-400">{task.tags.join(" · ")}</p>
                   ) : null}
                 </div>
                 <button
@@ -170,7 +186,7 @@ export function TrainingTasksPage() {
                   onClick={() => void handleDelete(task.id, task.text)}
                   className="text-xs text-red-600 hover:underline disabled:opacity-50"
                 >
-                  Delete
+                  {t("trainingTasks.list.delete")}
                 </button>
               </li>
             ))}
