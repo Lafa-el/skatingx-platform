@@ -1,5 +1,4 @@
 import {
-  getAuthErrorMessage,
   getFirebaseAuth,
   initFirebase,
   isAnonymousUser,
@@ -22,6 +21,20 @@ import {
   type ReactNode,
 } from "react";
 
+import {
+  authErrorCode,
+  toAuthErrorNote,
+  type AuthErrorNote,
+} from "@/shared/i18n/auth-messages";
+
+/**
+ * For whoever diagnoses a problem: the operation and the error code only. The message can carry
+ * the email address, so it is never logged.
+ */
+function reportAuthFailure(operation: string, error: unknown): void {
+  console.error(`[auth] ${operation} failed`, { code: authErrorCode(error) });
+}
+
 async function resolveUserSnapshot(
   auth: NonNullable<ReturnType<typeof getFirebaseAuth>>,
   currentUser: User,
@@ -41,7 +54,11 @@ export type AuthContextValue = {
   uid: string | null;
   isAnonymous: boolean;
   loading: boolean;
-  authError: string | null;
+  /**
+   * What went wrong, not the sentence: this provider sits above the language settings, so the page
+   * that shows it writes it in the user's language (`formatAuthError`).
+   */
+  authError: AuthErrorNote | null;
   firebaseReady: boolean;
   clearAuthError: () => void;
   linkEmailPassword: (email: string, password: string) => Promise<void>;
@@ -54,7 +71,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<AuthErrorNote | null>(null);
   const [firebaseReady, setFirebaseReady] = useState(false);
 
   useEffect(() => {
@@ -64,9 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth) {
       setFirebaseReady(false);
       setLoading(false);
-      setAuthError(
-        "Firebase is not configured. Copy .env.example to apps/web/.env.local and set VITE_FIREBASE_* values.",
-      );
+      setAuthError({ key: "auth.error.notConfiguredSetup" });
       return;
     }
 
@@ -92,7 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await signInAnonymouslyIfNeeded(auth);
       } catch (error) {
         signingInAnonymously = false;
-        setAuthError(getAuthErrorMessage(error));
+        reportAuthFailure("anonymous sign-in", error);
+        setAuthError(toAuthErrorNote(error));
         setLoading(false);
       }
     });
@@ -106,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       const auth = getFirebaseAuth();
       if (!auth) {
-        setAuthError("Firebase is not configured.");
+        setAuthError({ key: "auth.error.notConfigured" });
         return;
       }
       setAuthError(null);
@@ -119,7 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(refreshed);
         setLoading(false);
       } catch (error) {
-        setAuthError(getAuthErrorMessage(error));
+        reportAuthFailure("account link", error);
+        setAuthError(toAuthErrorNote(error));
         throw error;
       }
     },
@@ -130,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       const auth = getFirebaseAuth();
       if (!auth) {
-        setAuthError("Firebase is not configured.");
+        setAuthError({ key: "auth.error.notConfigured" });
         return;
       }
       setAuthError(null);
@@ -143,7 +160,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(refreshed);
         setLoading(false);
       } catch (error) {
-        setAuthError(getAuthErrorMessage(error));
+        reportAuthFailure("sign-in", error);
+        setAuthError(toAuthErrorNote(error));
         throw error;
       }
     },
@@ -161,7 +179,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signOutUser(auth);
       setUser(null);
     } catch (error) {
-      setAuthError(getAuthErrorMessage(error));
+      reportAuthFailure("sign-out", error);
+      setAuthError(toAuthErrorNote(error));
       setLoading(false);
     }
   }, []);

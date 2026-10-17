@@ -25,6 +25,32 @@ import {
 } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { tAuth } from "@/shared/i18n/auth-messages";
+import { tShell } from "@/shared/i18n/shell-messages";
+import { type Locale, toLocale } from "@/shared/i18n/translator";
+
+/**
+ * Why the data service could not start. It keeps what happened, not the sentence, so the banner
+ * writes it in the language the user has when it is shown; a message that came from the data
+ * layer is kept as received.
+ */
+type BootstrapNote =
+  | { kind: "notConfigured" | "unavailable" | "initFailed" }
+  | { received: string };
+
+function formatBootstrapNote(note: BootstrapNote, locale: Locale): string {
+  if ("received" in note) {
+    return note.received;
+  }
+  switch (note.kind) {
+    case "notConfigured":
+      return tAuth(locale, "auth.error.notConfigured");
+    case "unavailable":
+      return tShell(locale, "shell.status.unavailable");
+    case "initFailed":
+      return tShell(locale, "shell.status.initFailed");
+  }
+}
 
 export type FirestoreHookState<T> = {
   data: T | null;
@@ -34,7 +60,7 @@ export type FirestoreHookState<T> = {
 
 type FirestoreContextValue = {
   ready: boolean;
-  bootstrapError: string | null;
+  bootstrapNote: BootstrapNote | null;
   settings: FirestoreHookState<UserSettings>;
   profile: FirestoreHookState<AthleteProfile>;
   gamification: FirestoreHookState<Gamification>;
@@ -53,7 +79,7 @@ const FirestoreContext = createContext<FirestoreContextValue | null>(null);
 export function FirestoreProvider({ children }: { children: ReactNode }) {
   const { uid, loading: authLoading, firebaseReady } = useAuth();
   const [ready, setReady] = useState(false);
-  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+  const [bootstrapNote, setBootstrapNote] = useState<BootstrapNote | null>(null);
   const [settings, setSettings] =
     useState<FirestoreHookState<UserSettings>>(initialSlice);
   const [profile, setProfile] =
@@ -73,9 +99,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
 
     if (!firebaseReady || !uid) {
       setReady(false);
-      setBootstrapError(
-        firebaseReady ? null : "Firebase is not configured.",
-      );
+      setBootstrapNote(firebaseReady ? null : { kind: "notConfigured" });
       setSettings(initialSlice());
       setProfile(initialSlice());
       setGamification(initialSlice());
@@ -85,7 +109,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
 
     const dbMaybe = getFirestoreDb();
     if (!dbMaybe) {
-      setBootstrapError("Firestore is not available.");
+      setBootstrapNote({ kind: "unavailable" });
       setReady(false);
       return;
     }
@@ -99,7 +123,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setBootstrapError(null);
+      setBootstrapNote(null);
       setSettings({ data: null, loading: true, error: null });
       setProfile({ data: null, loading: true, error: null });
       setGamification({ data: null, loading: true, error: null });
@@ -111,10 +135,10 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
         await bootstrapUserDocuments(db, uid);
       } catch (error) {
         if (!cancelled) {
-          setBootstrapError(
+          setBootstrapNote(
             error instanceof Error
-              ? error.message
-              : "Failed to initialize Firestore documents.",
+              ? { received: error.message }
+              : { kind: "initFailed" },
           );
           setReady(false);
         }
@@ -176,7 +200,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     (): FirestoreContextValue => ({
       ready,
-      bootstrapError,
+      bootstrapNote,
       settings,
       profile,
       gamification,
@@ -185,7 +209,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
     }),
     [
       ready,
-      bootstrapError,
+      bootstrapNote,
       settings,
       profile,
       gamification,
@@ -259,11 +283,14 @@ export function useFirestoreStatus(): {
   connectivityError: string | null;
 } {
   const ctx = useFirestoreContext();
-  const connectivityError =
-    ctx.bootstrapError ?? (ctx.ready ? firstListenerError(ctx) : null);
+  // The language comes straight from the settings slice: `useLocale` goes through this provider's
+  // own hooks, so importing it here would be a cycle.
+  const locale = toLocale(ctx.settings.data?.language);
+  const bootstrapError = ctx.bootstrapNote ? formatBootstrapNote(ctx.bootstrapNote, locale) : null;
+  const connectivityError = bootstrapError ?? (ctx.ready ? firstListenerError(ctx) : null);
   return {
     ready: ctx.ready,
-    bootstrapError: ctx.bootstrapError,
+    bootstrapError,
     connectivityError,
   };
 }

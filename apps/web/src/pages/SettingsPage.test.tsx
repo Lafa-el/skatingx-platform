@@ -11,7 +11,7 @@ const h = vi.hoisted(() => {
     uid: "u1234567890" as string | null,
     isAnonymous: true,
     loading: false,
-    authError: null as string | null,
+    authError: null as { key: string } | { received: string } | null,
     firebaseReady: true,
     clearAuthError: vi.fn(),
     linkEmailPassword: vi.fn(),
@@ -308,10 +308,34 @@ describe("SettingsPage account", () => {
     expect(dd("Email")).toBe("—");
   });
 
-  it("an authentication error is shown as an alert, exactly as received", () => {
-    h.auth.authError = "Incorrect email or password.";
+  it("an authentication error is shown as an alert in the language of the page", () => {
+    h.auth.authError = { key: "auth.error.wrongCredential" };
+    const zh = render(<SettingsPage />);
+    expect(screen.getByRole("alert").textContent).toBe("邮箱或密码不正确。");
+    zh.unmount();
+
+    setEnglish();
     render(<SettingsPage />);
     expect(screen.getByRole("alert").textContent).toBe("Incorrect email or password.");
+  });
+
+  it("an authentication error follows a change of language while it is shown", () => {
+    h.auth.authError = { key: "auth.error.wrongCredential" };
+    const view = render(<SettingsPage />);
+    setEnglish();
+    view.rerender(<SettingsPage />);
+    expect(screen.getByRole("alert").textContent).toBe("Incorrect email or password.");
+  });
+
+  it("a message that did not come from a known error is shown as received, in either language", () => {
+    h.auth.authError = { received: "No signed-in user to link." };
+    const zh = render(<SettingsPage />);
+    expect(screen.getByRole("alert").textContent).toBe("No signed-in user to link.");
+    zh.unmount();
+
+    setEnglish();
+    render(<SettingsPage />);
+    expect(screen.getByRole("alert").textContent).toBe("No signed-in user to link.");
   });
 
   it("a guest sees the first eight characters of the guest id", () => {

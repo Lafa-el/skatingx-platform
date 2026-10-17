@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Accepted (2026-10-17, owner approved).** Scope, timing and handling of user-entered text decided by the owner 2026-10-16 (section 2). Slices S6a–S6e are delivered; the Chinese wording was reviewed by the owner slice by slice. Sign-in error messages are a separate follow-up slice (A2). |
+| Status | **Accepted (2026-10-17, owner approved).** Scope, timing and handling of user-entered text decided by the owner 2026-10-16 (section 2). Slices S6a–S6e are delivered; the Chinese wording was reviewed by the owner slice by slice. Sign-in error messages and the connection banner follow in A3. |
 | Date | 2026-10-16 |
 | Branch | `feat/i18n-s6a` |
 | Supersedes | ADR-001, line "Existing pages hard-code mixed zh/en and bypass unified i18n; new module uses a unified i18n resource, old pages are untouched." Only that line; the rest of ADR-001 stands. |
@@ -118,5 +118,18 @@ Section 3 says this work changes no data. One exception, agreed with the owner: 
 - **Coverage test.** `NOT_MIGRATED` is deleted together with its "listed file still has hardcoded text" test. `i18n-coverage.test.ts` is now the plain rule from D8: no file in the app may have hardcoded text. The "scans the app" test stays so an empty scan cannot pass by accident.
 - **Settings note.** The language setting no longer says that some screens are still English; every screen follows the setting. The text is now only "选择界面语言。" / "Choose the interface language."
 - **Analysis pages.** They are placeholders and say no more than that: "动作分析" (never "生物力学", D9), and the shared placeholder note. A test checks that the Chinese never says "生物力学" on them. The English hub note no longer says "Biomechanics lab" (a placeholder has no lab; owner approved 2026-10-17); it now reads "Biomechanics, pacing charts, and equipment tracking."
-- **Still shown as received, not translated.** Sign-in / sign-up error messages that come from the identity layer, and messages that come back from the data layer (Firestore errors), are shown as they arrive. Translating the sign-in ones touches `packages/firebase-client` identity code and is a separate slice with its own risk and rollback notes.
+- **Still shown as received, not translated (A3 later translated the sign-in ones).** Sign-in / sign-up error messages that come from the identity layer, and messages that come back from the data layer (Firestore errors), are shown as they arrive. Translating the sign-in ones touches `packages/firebase-client` identity code and is a separate slice with its own risk and rollback notes.
 - **Rollback.** Revert the PR; the pages show their English text again and the setting note returns to the previous wording. No data change.
+
+### A3 (2026-10-17, owner approved): sign-in error messages and the connection banner
+
+A2 left sign-in errors as received and said translating them "touches identity code". The slice avoids that: the mapping lives in `apps/web`, and `packages/firebase-client` (including `getAuthErrorMessage`) is not modified.
+
+- **What changes.** `AuthProvider` keeps what happened as a note, `{ key }` or `{ received }`, instead of an English sentence. `SettingsPage` turns the note into text in the current language when it draws it, so an error already on screen follows a language switch. New file `shared/i18n/auth-messages.ts` holds the ten known Firebase codes, the general "身份验证失败。" and the two "Firebase is not configured" texts. The banner details that `FirestoreProvider` produces itself (not configured, service not available, failed to initialise) are handled the same way.
+- **English is unchanged.** A test compares each English text with `getAuthErrorMessage` for all ten codes and for the fallback cases, so the English wording cannot drift from the identity layer.
+- **Not translated, shown as received (owner decision).** A code that is not in the table, an error with no code that has its own message ("No signed-in user to link."), and messages that come from the data layer. Unknown codes are looked up with `Object.hasOwn`, so names like `constructor` are not taken for codes.
+- **The setup message is fully translated** (owner decision); `.env.example`, `.env.local` and `VITE_FIREBASE_*` stay as written.
+- **Language of connection-banner problems.** They appear before the settings are loaded, so the language is not known yet and the banner is Chinese, the app default. This was already so for its fixed prefix; the detail now matches it. English is used when the settings were already known.
+- **Risks.** Identity: no change to sign-in, link, sign-out, uid handling or Security Rules; the catch blocks still rethrow where they did. Privacy: development logging is now `[auth] <operation> failed` with the error code only, never the message, email or password (a test checks this). Account enumeration: the "wrong email or password" and "email already registered" texts are the same as before, in two languages; this slice neither adds nor removes any distinction.
+- **Left alone.** `getAuthErrorMessage` is no longer called by the app but stays as public API of `firebase-client`.
+- **Rollback.** Revert the PR; the English sentences come back. No data change.

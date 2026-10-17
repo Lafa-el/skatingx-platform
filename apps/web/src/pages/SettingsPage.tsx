@@ -7,6 +7,7 @@ import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { LanguageSetting } from "@/components/LanguageSetting";
 import { useLanguageSetting } from "@/hooks/useLanguageSetting";
 import { useLocale } from "@/hooks/useLocale";
+import { formatAuthError } from "@/shared/i18n/auth-messages";
 import { type SettingsPageMessageKey, tSettingsPage } from "@/shared/i18n/settings-page-messages";
 import type { Locale } from "@/shared/i18n/translator";
 
@@ -244,7 +245,7 @@ export function SettingsPage() {
           className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
           role="alert"
         >
-          {authError}
+          {formatAuthError(authError, locale)}
         </p>
       ) : null}
 
