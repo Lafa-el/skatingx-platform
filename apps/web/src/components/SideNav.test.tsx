@@ -105,4 +105,21 @@ describe("SideNav", () => {
     const bottom = renderAt("/dashboard", <BottomNav />);
     expect(bottom.container.querySelector("nav")?.className).toContain("lg:hidden");
   });
+
+  it("the side bar and the bottom bar switch at the same breakpoint, so no width has both or neither", () => {
+    const side = renderAt("/dashboard");
+    const sideClasses = side.container.querySelector("aside")!.className.split(/\s+/);
+    side.unmount();
+    const bottom = renderAt("/dashboard", <BottomNav />);
+    const bottomClasses = bottom.container.querySelector("nav")!.className.split(/\s+/);
+
+    // Hidden by default and shown from a breakpoint, against shown by default and hidden from it.
+    const shownFrom = sideClasses.find((c) => /^(sm|md|lg|xl|2xl):flex$/.test(c))?.split(":")[0];
+    const hiddenFrom = bottomClasses.find((c) => /^(sm|md|lg|xl|2xl):hidden$/.test(c))?.split(":")[0];
+    expect(sideClasses).toContain("hidden");
+    expect(shownFrom).toBeDefined();
+    expect(shownFrom).toBe(hiddenFrom);
+    // The bottom bar is not hidden below that breakpoint.
+    expect(bottomClasses).not.toContain("hidden");
+  });
 });

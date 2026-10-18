@@ -40,3 +40,10 @@ export function hueDistance(a: string, b: string): number {
   const d = Math.abs(hue(a) - hue(b));
   return Math.min(d, 360 - d);
 }
+
+/** The colour a foreground gets when it is drawn at `alpha` (0 to 1) over a background: what `text-brand-navy/70` looks like. */
+export function blend(fg: string, bg: string, alpha: number): string {
+  const [f, b] = [parseHex(fg), parseHex(bg)];
+  const mixed = f.map((c, i) => Math.round(c * alpha + b[i] * (1 - alpha)));
+  return `#${mixed.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
