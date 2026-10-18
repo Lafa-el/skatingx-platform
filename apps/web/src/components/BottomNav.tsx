@@ -1,43 +1,45 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
-import { isRaceDayEnabled } from "@/app/features";
-import { getPrimaryNav, isNavActive } from "@/app/navigation";
+import { NavIcon } from "@/components/NavIcon";
 import { useLocale } from "@/hooks/useLocale";
-import { tCore } from "@/modules/race-day/i18n/core-messages";
+import { usePrimaryNav } from "@/hooks/usePrimaryNav";
 import { tNav } from "@/shared/i18n/nav-messages";
 
+/**
+ * Phone navigation (hidden from the `lg` breakpoint, where the side bar takes over). On white, so
+ * the selected item is navy text with a flame bar on top and a flame icon (flame on white is
+ * 3.51:1, enough for a graphic but not for text).
+ */
 export function BottomNav() {
-  const { pathname } = useLocation();
   const locale = useLocale();
-  const primaryNav = getPrimaryNav({
-    raceDay: isRaceDayEnabled(),
-    raceDayLabel: tCore(locale, "raceDay.nav.title"),
-    locale,
-  });
+  const items = usePrimaryNav();
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white"
+      className="fixed bottom-0 left-0 right-0 z-30 border-t border-brand-navy/10 bg-white lg:hidden"
       style={{ height: "var(--sx-nav-height)" }}
       aria-label={tNav(locale, "nav.primary.label")}
     >
       <ul className="mx-auto flex h-full max-w-5xl items-stretch justify-around">
-        {primaryNav.map((item) => (
+        {items.map((item) => (
           <li key={item.to} className="flex flex-1">
             <NavLink
               to={item.to}
               end={!item.matchPrefix}
-              className={({ isActive }) => {
-                const active = isActive || isNavActive(pathname, item);
-                return [
-                  "flex flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors",
-                  active ? "text-sky-700" : "text-slate-500 hover:text-slate-800",
-                ].join(" ");
-              }}
+              className={({ isActive }) =>
+                [
+                  "relative flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-navy",
+                  isActive || item.active
+                    ? "font-semibold text-brand-navy before:absolute before:inset-x-5 before:top-0 before:h-1 before:rounded-b-full before:bg-brand-flame before:content-['']"
+                    : "font-medium text-brand-navy/70 hover:text-brand-navy",
+                ].join(" ")
+              }
             >
-              <span className="text-[10px] uppercase tracking-wide">
-                {item.label}
-              </span>
+              <NavIcon
+                to={item.to}
+                className={`size-5 ${item.active ? "text-brand-flame" : ""}`.trim()}
+              />
+              <span>{item.label}</span>
             </NavLink>
           </li>
         ))}

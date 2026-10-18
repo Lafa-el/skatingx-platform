@@ -1,4 +1,4 @@
-import { Card } from "@skatingx/ui";
+import { Card, ErrorNotice } from "@skatingx/ui";
 import { useId } from "react";
 
 import { tSettings, type SettingsMessageKey } from "@/shared/i18n/settings-messages";
@@ -25,10 +25,10 @@ export function LanguageSetting({ language, disabled, failed, onChange }: Langua
   const descriptionId = `${name}-description`;
 
   return (
-    <Card title={tSettings(language, "settings.language.title")} className="mt-6">
+    <Card variant="raised" title={tSettings(language, "settings.language.title")} className="mt-6">
       <fieldset disabled={disabled} aria-describedby={descriptionId}>
         <legend className="sr-only">{tSettings(language, "settings.language.title")}</legend>
-        <p id={descriptionId} className="text-sm text-slate-600">
+        <p id={descriptionId} className="text-sm text-brand-navy/80">
           {tSettings(language, "settings.language.description")}
         </p>
         <div className="mt-3 flex gap-6">
@@ -38,7 +38,7 @@ export function LanguageSetting({ language, disabled, failed, onChange }: Langua
               <label
                 key={option}
                 htmlFor={id}
-                className="flex min-h-11 cursor-pointer items-center gap-2 pr-2 text-sm font-medium text-slate-900 has-disabled:cursor-not-allowed"
+                className="flex min-h-11 cursor-pointer items-center gap-2 pr-2 text-sm font-medium text-brand-navy has-disabled:cursor-not-allowed"
               >
                 <input
                   id={id}
@@ -49,7 +49,7 @@ export function LanguageSetting({ language, disabled, failed, onChange }: Langua
                   onChange={() => {
                     onChange(option);
                   }}
-                  className="h-5 w-5 border-slate-300 text-sky-700 focus:ring-sky-300"
+                  className="h-5 w-5 border-brand-navy/50 accent-brand-flame focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy"
                 />
                 {tSettings(language, OPTION_LABEL[option])}
               </label>
@@ -58,12 +58,7 @@ export function LanguageSetting({ language, disabled, failed, onChange }: Langua
         </div>
       </fieldset>
       {failed ? (
-        <p
-          role="alert"
-          className="mt-3 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          {tSettings(language, "settings.language.error")}
-        </p>
+        <ErrorNotice className="mt-3">{tSettings(language, "settings.language.error")}</ErrorNotice>
       ) : null}
     </Card>
   );

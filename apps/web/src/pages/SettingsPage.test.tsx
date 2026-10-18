@@ -428,3 +428,39 @@ describe("SettingsPage: tap targets (44px)", () => {
     expect(screen.getByRole("alert").className).toContain("break-words");
   });
 });
+
+// UI v1, phase 1: the page was restyled only. These pin the look, because a class that is off
+// here is invisible to every behaviour test above.
+describe("SettingsPage look (UI v1)", () => {
+  it("uses the brand tokens and none of the old blue, grey or red classes, in any state", () => {
+    h.auth.authError = { key: "auth.error.wrongCredential" };
+    const { container } = render(<SettingsPage />);
+    const classes = Array.from(container.querySelectorAll("[class]")).flatMap((el) => (el.getAttribute("class") ?? "").split(/\s+/));
+    const legacy = classes.filter((c) => /(^|:)(text|bg|border|ring|accent|outline)-(sky|slate|red)-\d/.test(c) || c === "text-white");
+    expect(legacy).toEqual([]);
+  });
+
+  it("a sign-in error is shown with an icon and the words, not colour alone", () => {
+    h.auth.authError = { key: "auth.error.wrongCredential" };
+    render(<SettingsPage />);
+    const alert = screen.getByRole("alert");
+    expect(alert.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+    expect(alert.textContent?.length).toBeGreaterThan(0);
+    expect(alert.className).toContain("text-status-danger");
+  });
+
+  it("the link button is the brand button, the sign-in button an outline, sign-out the red outline", () => {
+    render(<SettingsPage />);
+    expect(screen.getByRole("button", { name: "绑定账户" }).className).toContain("bg-brand-flame");
+    expect(screen.getByRole("button", { name: "绑定账户" }).className).toContain("text-brand-navy");
+    expect(screen.getByRole("button", { name: "登录" }).className).toContain("border-brand-navy/50");
+  });
+
+  it("sign-out uses the error red, never the brand flame", () => {
+    registered();
+    render(<SettingsPage />);
+    const signOut = screen.getByRole("button", { name: "退出登录" });
+    expect(signOut.className).toContain("text-status-danger");
+    expect(signOut.className).not.toContain("brand-flame");
+  });
+});

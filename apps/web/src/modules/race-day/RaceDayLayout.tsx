@@ -1,10 +1,9 @@
 import { Outlet } from "react-router-dom";
 
 import type { NavItem } from "@/app/navigation";
-import { BottomNav } from "@/components/BottomNav";
-import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { useLocale } from "@/hooks/useLocale";
+import { ShellFrame } from "@/layouts/ShellFrame";
 
 import { t } from "./i18n/messages";
 
@@ -21,16 +20,14 @@ export function RaceDayLayout() {
   ];
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <Header />
-      <SubNav items={items} label={t(locale, "raceDay.nav.section")} />
-      <main className="mx-auto w-full max-w-5xl flex-1 break-words px-4 py-6 pb-[calc(var(--sx-nav-height)+1.5rem)]">
-        <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {t(locale, "raceDay.phase0.notice")}
-        </p>
-        <Outlet />
-      </main>
-      <BottomNav />
-    </div>
+    <ShellFrame
+      subNav={<SubNav items={items} label={t(locale, "raceDay.nav.section")} />}
+      mainClassName="break-words"
+    >
+      <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        {t(locale, "raceDay.phase0.notice")}
+      </p>
+      <Outlet />
+    </ShellFrame>
   );
 }

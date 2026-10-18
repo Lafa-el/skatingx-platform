@@ -50,21 +50,21 @@ export function AthleteSelector() {
         aria-controls={listboxId}
         onClick={() => setOpen((prev) => !prev)}
         disabled={loading}
-        className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-60"
+        className="flex min-h-11 items-center gap-2 rounded-control border border-brand-navy/15 px-3 py-1.5 text-sm hover:bg-brand-ice focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy disabled:opacity-60"
       >
         <span
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-xs font-semibold text-sky-800"
+          className="sx-energy-gradient flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-brand-navy"
           aria-hidden
         >
           {displayName.charAt(0)}
         </span>
         <span className="hidden text-left sm:inline">
-          <span className="block font-medium text-slate-900">
+          <span className="block font-medium text-brand-navy">
             {displayName}
           </span>
-          <span className="block text-xs text-slate-500">{athleteId}</span>
+          <span className="block text-xs text-brand-navy/70">{athleteId}</span>
         </span>
-        <span className="text-slate-400" aria-hidden>
+        <span className="text-brand-navy/60" aria-hidden>
           ▾
         </span>
       </button>
@@ -74,40 +74,40 @@ export function AthleteSelector() {
           id={listboxId}
           role="listbox"
           aria-label={tShell(locale, "shell.athlete.listLabel")}
-          className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          className="absolute right-0 z-50 mt-2 w-56 rounded-card border border-brand-navy/10 bg-white py-1 shadow-card"
         >
           <div
             role="option"
             aria-selected
-            className="flex w-full items-center gap-3 bg-sky-50 px-3 py-2 text-left text-sm text-sky-900"
+            className="flex w-full items-center gap-3 bg-brand-ice px-3 py-2 text-left text-sm text-brand-navy"
           >
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-semibold"
+              className="sx-energy-gradient flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-brand-navy"
               aria-hidden
             >
               {displayName.charAt(0)}
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{displayName}</span>
-              <span className="block truncate text-xs text-slate-500">
+              <span className="block truncate text-xs text-brand-navy/70">
                 {athleteId}
               </span>
             </span>
-            <span className="text-xs font-medium text-sky-700">
+            <span className="text-xs font-semibold text-brand-navy">
               {tShell(locale, "shell.athlete.active")}
             </span>
           </div>
 
-          <div className="my-1 border-t border-slate-100" />
+          <div className="my-1 border-t border-brand-navy/10" />
 
-          <p className="px-3 py-2 text-xs text-slate-500">
+          <p className="px-3 py-2 text-xs text-brand-navy/70">
             {tShell(locale, "shell.athlete.switchingLater")}
           </p>
 
           <Link
             to="/athlete"
             onClick={() => setOpen(false)}
-            className="flex min-h-11 items-center px-3 text-sm font-medium text-sky-700 hover:bg-slate-50"
+            className="flex min-h-11 items-center px-3 text-sm font-semibold text-brand-navy underline underline-offset-2 hover:bg-brand-ice"
           >
             {tShell(locale, "shell.athlete.profileLink")}
           </Link>
