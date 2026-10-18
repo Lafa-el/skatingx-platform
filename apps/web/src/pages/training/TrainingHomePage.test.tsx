@@ -3,6 +3,8 @@ import { getAcademyStages } from "@skatingx/content";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { isIcePage } from "@/layouts/icePages";
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, within } from "@/test/dom";
 
 import { TrainingHomePage } from "./TrainingHomePage";
@@ -108,7 +110,7 @@ describe("TrainingHomePage: Chinese", () => {
 
   it("the four shortcuts and their lines", () => {
     renderPage();
-    const link = (to: string) => document.querySelector(`a[href="${to}"].rounded-xl`) as HTMLElement;
+    const link = (to: string) => document.querySelector(`a[href="${to}"].rounded-card`) as HTMLElement;
     expect(link("/training/tasks").textContent).toBe("任务添加并完成今天的清单");
     expect(link("/training/academy").textContent).toBe(`学院${stage.labelZh} · 陆地训练计划`);
     expect(link("/training/records").textContent).toBe("纪录各距离的个人最好成绩");
@@ -148,7 +150,7 @@ describe("TrainingHomePage: English", () => {
     setLanguage("en");
     renderPage();
     expect(card("Academy").getByText(`Reference stage: ${stage.labelEn} (${stage.ageRangeEn})`)).toBeTruthy();
-    const link = (to: string) => document.querySelector(`a[href="${to}"].rounded-xl`) as HTMLElement;
+    const link = (to: string) => document.querySelector(`a[href="${to}"].rounded-card`) as HTMLElement;
     expect(link("/training/tasks").textContent).toBe("TasksAdd and complete today's list");
     expect(link("/training/academy").textContent).toBe(`Academy${stage.labelEn} · dryland plans`);
     expect(link("/training/records").textContent).toBe("RecordsPB times by distance");
@@ -163,7 +165,7 @@ describe("TrainingHomePage: English", () => {
     expect(card("Streak").getByText("1 day")).toBeTruthy();
     expect(card("Records").getByText("1 entry")).toBeTruthy();
     expect(card("Shop / Rewards").getByText("1 point")).toBeTruthy();
-    expect(document.querySelector('a[href="/training/shop"].rounded-xl')?.textContent).toBe("Shop1 point available");
+    expect(document.querySelector('a[href="/training/shop"].rounded-card')?.textContent).toBe("Shop1 point available");
     one.unmount();
 
     h.state.gamification = h.ready({ points: 0, streakDays: 0 });
@@ -233,5 +235,43 @@ describe("TrainingHomePage: states", () => {
     h.state.settings = h.ready(null);
     renderPage();
     expect(screen.getByRole("heading", { level: 1, name: "训练" })).toBeTruthy();
+  });
+});
+
+describe("TrainingHomePage: UI v1 look", () => {
+  // The Training pages are on the warm-white colour (ICE_PAGES), where the old grey text is under 4.5:1.
+  it.each([
+    ["Chinese", "zh", false],
+    ["English, Pro", "en", true],
+  ] as const)("%s: no old colour class is left", (_name, language, isPro) => {
+    setLanguage(language, isPro);
+    h.state.records = { ...h.state.records, error: "Some technical reason" };
+    const { container } = renderPage();
+    expect(legacyColourClasses(container)).toEqual([]);
+  });
+
+  it("is registered as a warm-white page, sub-pages included", () => {
+    expect(isIcePage("/training")).toBe(true);
+    expect(isIcePage("/training/shop")).toBe(true);
+  });
+
+  it("the tasks card is the hero card with progress 1 of 2, and has no bar without tasks", () => {
+    const first = renderPage();
+    const article = screen.getByRole("heading", { level: 3, name: "今日任务" }).closest("article")!;
+    expect(article.className).toContain("sx-energy-gradient");
+    const bar = within(article).getByRole("progressbar", { name: "今日任务" });
+    expect(bar.getAttribute("aria-valuenow")).toBe("1");
+    expect(bar.getAttribute("aria-valuemax")).toBe("2");
+    first.unmount();
+
+    h.state.training = h.ready({ todayTasks: [] });
+    const none = renderPage();
+    expect(none.container.querySelector('[role="progressbar"]')).toBeNull();
+  });
+
+  it("an error has an icon as well as words", () => {
+    h.state.records = { ...h.state.records, error: "Some technical reason" };
+    renderPage();
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
   });
 });

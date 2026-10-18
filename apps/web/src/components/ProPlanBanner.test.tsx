@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import { render, screen } from "@/test/dom";
+import { legacyColourClasses } from "@/test/legacyLook";
 
 import { ProLockedCard, ProPlanBanner } from "./ProPlanBanner";
 
@@ -69,5 +70,29 @@ describe("ProLockedCard", () => {
       screen.getByText("Only available to trial accounts for now. Contact your team admin to get access."),
     ).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
+describe("ProPlanBanner and ProLockedCard: UI v1 look", () => {
+  it("no old colour class on the Pro banner, the free banner or the locked card", () => {
+    for (const node of [
+      <ProPlanBanner isPro locale="en" />,
+      <ProPlanBanner isPro={false} locale="zh" />,
+      <ProLockedCard locale="en" message="Locked" />,
+    ]) {
+      const { container, unmount } = inRouter(node);
+      expect(legacyColourClasses(container)).toEqual([]);
+      unmount();
+    }
+  });
+
+  it("each banner has an icon as well as words, and the locked card is announced", () => {
+    const pro = inRouter(<ProPlanBanner isPro locale="en" />);
+    expect(pro.container.querySelector("svg")).not.toBeNull();
+    pro.unmount();
+    const locked = inRouter(<ProLockedCard locale="en" message="Locked" />);
+    expect(screen.getByRole("status").querySelector("svg")).not.toBeNull();
+    expect(screen.getByText("Locked")).toBeTruthy();
+    locked.unmount();
   });
 });

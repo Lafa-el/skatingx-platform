@@ -3,6 +3,7 @@ import { getAcademyStages } from "@skatingx/content";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
 
@@ -59,7 +60,7 @@ const item0 = module0.items[0]!;
 const plan0 = stage.weeklyRoutine.dayPlans[0]!;
 
 const itemBox = (title: string) => {
-  const box = screen.getByText(title).closest("div.rounded-lg");
+  const box = screen.getByText(title).closest("div.rounded-control");
   if (!box) {
     throw new Error(`no drill titled ${title}`);
   }
@@ -197,7 +198,7 @@ describe.each(["zh", "en"] as const)("TrainingAcademyPage (%s)", (locale) => {
     h.state.training = h.ready({ todayTasks: [] });
     h.state.academy.busy = true;
     renderPage();
-    expect(within(screen.getByText(pick(item0.titleZh, item0.titleEn)).closest("div.rounded-lg") as HTMLElement).getByRole("button", { name: "…" })).toBeTruthy();
+    expect(within(screen.getByText(pick(item0.titleZh, item0.titleEn)).closest("div.rounded-control") as HTMLElement).getByRole("button", { name: "…" })).toBeTruthy();
   });
 
   it("a drill shows its tags in the language, and not the other language's", () => {
@@ -393,7 +394,7 @@ describe("TrainingAcademyPage (other)", () => {
     const first = other.modules[0]!.items[0]!;
     const inOpenDrill = screen
       .getAllByText(first.titleZh)
-      .some((element) => element.closest("div.rounded-lg") !== null);
+      .some((element) => element.closest("div.rounded-control") !== null);
     expect(inOpenDrill).toBe(true);
     expect(screen.getByText(first.descriptionZh)).toBeTruthy();
   });
@@ -423,5 +424,30 @@ describe("TrainingAcademyPage: tap targets (44px)", () => {
     const { container } = renderPage();
     expect(container.querySelectorAll("button").length).toBeGreaterThan(5);
     expect(controlsBelowTapTarget(container)).toEqual([]);
+  });
+});
+
+describe("TrainingAcademyPage: UI v1 look", () => {
+  it.each([
+    ["Chinese, free", "zh", false],
+    ["English, Pro", "en", true],
+  ] as const)("%s: no old colour class is left, with an import result and an error showing", (_name, language, isPro) => {
+    setSettings(language, isPro);
+    h.state.academy = {
+      ...h.state.academy,
+      actionError: "Some action failure",
+      lastResult: { imported: 2, skipped: 1 },
+    };
+    const { container } = renderPage();
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
+    expect(legacyColourClasses(container)).toEqual([]);
+  });
+
+  it("the selected stage button says so to assistive technology, and only one is selected", () => {
+    renderPage();
+    const pressed = screen
+      .getAllByRole("button")
+      .filter((button) => button.getAttribute("aria-pressed") === "true");
+    expect(pressed).toHaveLength(1);
   });
 });

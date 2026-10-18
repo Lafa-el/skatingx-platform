@@ -3,7 +3,7 @@ import {
   formatSecondsToTime,
   parseTimeToSeconds,
 } from "@skatingx/skating-domain";
-import { Button, Card } from "@skatingx/ui";
+import { Button, Card, ErrorNotice, StatusTag } from "@skatingx/ui";
 import { FormEvent, useMemo, useState } from "react";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
@@ -147,29 +147,19 @@ export function TrainingRecordsPage() {
 
   return (
     <section className="max-w-lg">
-      <h1 className="text-2xl font-bold text-slate-900">{t("records.page.title")}</h1>
-      <p className="mt-1 text-slate-600">
+      <h1 className="text-2xl font-bold text-brand-navy">{t("records.page.title")}</h1>
+      <p className="mt-1 text-brand-navy/80">
         {t("records.page.subtitle")}
       </p>
 
       <FirestoreStatusBanner className="mt-4" />
 
       {error ? (
-        <p
-          className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-          role="alert"
-        >
-          {error}
-        </p>
+        <ErrorNotice className="mt-4">{error}</ErrorNotice>
       ) : null}
 
       {actionError ? (
-        <p
-          className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-          role="alert"
-        >
-          {actionError}
-        </p>
+        <ErrorNotice className="mt-4">{actionError}</ErrorNotice>
       ) : null}
 
       <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
@@ -177,14 +167,15 @@ export function TrainingRecordsPage() {
           <button
             key={distance.distanceId}
             type="button"
+            aria-pressed={activeDistanceId === distance.distanceId}
             onClick={() => {
               setActiveDistanceId(distance.distanceId);
               resetForm();
             }}
             className={
               activeDistanceId === distance.distanceId
-                ? "min-h-11 shrink-0 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white"
-                : "min-h-11 shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                ? "min-h-11 shrink-0 rounded-control bg-brand-flame px-4 py-2 text-sm font-semibold text-brand-navy"
+                : "min-h-11 shrink-0 rounded-card border border-brand-navy/10 bg-white px-4 py-2 text-sm font-medium text-brand-navy hover:bg-brand-ice"
             }
           >
             {formatDistanceLabel(distance.distanceId, distance.label, locale)}
@@ -193,62 +184,62 @@ export function TrainingRecordsPage() {
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Card title={t("records.card.best")}>
-          <p className="text-2xl font-semibold text-slate-900">
+        <Card variant="raised" title={t("records.card.best")}>
+          <p className="sx-numeric text-3xl text-brand-navy">
             {loading ? "…" : best ? formatSecondsToTime(best.timeSeconds) : "—"}
           </p>
           {best ? (
-            <p className="mt-1 text-xs text-slate-500">{formatCalendarDate(best.date, locale)}</p>
+            <p className="mt-1 text-xs text-brand-navy/70">{formatCalendarDate(best.date, locale)}</p>
           ) : (
-            <p className="mt-1 text-xs text-slate-500">{t("records.card.none")}</p>
+            <p className="mt-1 text-xs text-brand-navy/70">{t("records.card.none")}</p>
           )}
         </Card>
-        <Card title={t("records.card.latest")}>
-          <p className="text-2xl font-semibold text-slate-900">
+        <Card variant="raised" title={t("records.card.latest")}>
+          <p className="sx-numeric text-3xl text-brand-navy">
             {loading ? "…" : latest ? formatSecondsToTime(latest.timeSeconds) : "—"}
           </p>
           {latest ? (
-            <p className="mt-1 text-xs text-slate-500">{formatCalendarDate(latest.date, locale)}</p>
+            <p className="mt-1 text-xs text-brand-navy/70">{formatCalendarDate(latest.date, locale)}</p>
           ) : (
-            <p className="mt-1 text-xs text-slate-500">{t("records.card.none")}</p>
+            <p className="mt-1 text-xs text-brand-navy/70">{t("records.card.none")}</p>
           )}
         </Card>
       </div>
 
-      <Card
+      <Card variant="raised"
         title={editingEntryId ? t("records.form.editTitle") : t("records.form.addTitle")}
         className="mt-4"
       >
         <form className="grid gap-3" onSubmit={(e) => void handleSubmit(e)}>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">{t("records.form.date")}</span>
+            <span className="font-medium text-brand-navy">{t("records.form.date")}</span>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-control border border-brand-navy/50 px-3 py-2"
             />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">{t("records.form.time")}</span>
+            <span className="font-medium text-brand-navy">{t("records.form.time")}</span>
             <input
               type="text"
               value={timeInput}
               onChange={(e) => setTimeInput(e.target.value)}
               placeholder={t("records.form.timePlaceholder")}
               required
-              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono"
+              className="mt-1 min-h-11 w-full rounded-control border border-brand-navy/50 px-3 py-2 font-mono"
             />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">{t("records.form.source")}</span>
+            <span className="font-medium text-brand-navy">{t("records.form.source")}</span>
             <select
               value={source}
               onChange={(e) =>
                 setSource(e.target.value as "manual" | "race" | "training")
               }
-              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-control border border-brand-navy/50 px-3 py-2"
             >
               {SOURCES.map((value) => (
                 <option key={value} value={value}>
@@ -258,21 +249,19 @@ export function TrainingRecordsPage() {
             </select>
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">{t("records.form.note")}</span>
+            <span className="font-medium text-brand-navy">{t("records.form.note")}</span>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-control border border-brand-navy/50 px-3 py-2"
               placeholder={t("records.form.notePlaceholder")}
             />
           </label>
           {formError ? (
-            <p className="text-sm text-red-700" role="alert">
-              {t(formError)}
-            </p>
+            <ErrorNotice>{t(formError)}</ErrorNotice>
           ) : null}
           <div className="flex gap-2">
-            <Button type="submit" disabled={busy}>
+            <Button variant="brand" type="submit" disabled={busy}>
               {busy
                 ? t("records.form.saving")
                 : editingEntryId
@@ -280,7 +269,7 @@ export function TrainingRecordsPage() {
                   : t("records.form.add")}
             </Button>
             {editingEntryId ? (
-              <Button type="button" variant="ghost" onClick={resetForm} disabled={busy}>
+              <Button type="button" variant="outline" onClick={resetForm} disabled={busy}>
                 {t("records.form.cancel")}
               </Button>
             ) : null}
@@ -288,7 +277,7 @@ export function TrainingRecordsPage() {
         </form>
       </Card>
 
-      <Card
+      <Card variant="raised"
         title={t(entryCount === 1 ? "records.list.title.one" : "records.list.title.other", {
           label: activeLabel,
           count: entryCount,
@@ -296,13 +285,13 @@ export function TrainingRecordsPage() {
         className="mt-4"
       >
         {loading ? (
-          <p className="text-sm text-slate-500">{t("records.list.loading")}</p>
+          <p className="text-sm text-brand-navy/70">{t("records.list.loading")}</p>
         ) : entries.length === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-brand-navy/70">
             {t("records.list.empty", { label: activeLabel })}
           </p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-brand-navy/10">
             {entries.map((entry) => {
               const timeLabel = formatSecondsToTime(entry.timeSeconds);
               const isBest = best?.id === entry.id;
@@ -312,20 +301,20 @@ export function TrainingRecordsPage() {
                   className="flex items-start justify-between gap-3 py-3"
                 >
                   <div>
-                    <p className="font-mono text-lg font-semibold text-slate-900">
+                    <p className="sx-numeric text-xl text-brand-navy">
                       {timeLabel}
                       {isBest ? (
-                        <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                        <StatusTag tone="brand" className="ml-2 align-middle">
                           {t("records.entry.pb")}
-                        </span>
+                        </StatusTag>
                       ) : null}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-brand-navy/70">
                       {formatCalendarDate(entry.date, locale)}
                       {entry.source ? ` · ${formatRecordSource(entry.source, locale)}` : ""}
                     </p>
                     {entry.note ? (
-                      <p className="mt-0.5 text-xs text-slate-600">{entry.note}</p>
+                      <p className="mt-0.5 text-xs text-brand-navy/80">{entry.note}</p>
                     ) : null}
                   </div>
                   <div className="flex shrink-0 gap-1">
@@ -333,7 +322,7 @@ export function TrainingRecordsPage() {
                       type="button"
                       disabled={busy}
                       onClick={() => startEdit(entry.id)}
-                      className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs text-sky-700 hover:underline disabled:opacity-50"
+                      className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs font-semibold text-brand-navy underline underline-offset-2 disabled:opacity-50"
                     >
                       {t("records.entry.edit")}
                     </button>
@@ -341,7 +330,7 @@ export function TrainingRecordsPage() {
                       type="button"
                       disabled={busy}
                       onClick={() => void handleDelete(entry.id, timeLabel)}
-                      className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs text-red-600 hover:underline disabled:opacity-50"
+                      className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs font-semibold text-status-danger underline underline-offset-2 disabled:opacity-50"
                     >
                       {t("records.entry.delete")}
                     </button>

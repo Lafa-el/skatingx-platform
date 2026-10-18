@@ -1,5 +1,5 @@
 import { normalizeTrainingState } from "@skatingx/firebase-client";
-import { Button, Card } from "@skatingx/ui";
+import { Button, Card, ErrorNotice, Notice, StatusTag } from "@skatingx/ui";
 import { FormEvent, useState } from "react";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
@@ -91,8 +91,8 @@ export function TrainingTasksPage() {
 
   return (
     <section className="max-w-lg">
-      <h1 className="text-2xl font-bold text-slate-900">{t("trainingTasks.title")}</h1>
-      <p className="mt-1 text-slate-600">
+      <h1 className="text-2xl font-bold text-brand-navy">{t("trainingTasks.title")}</h1>
+      <p className="mt-1 text-brand-navy/80">
         {loading
           ? t("trainingTasks.loading")
           : t("trainingTasks.summary", { done: completedCount, total: tasks.length })}
@@ -101,67 +101,63 @@ export function TrainingTasksPage() {
       <FirestoreStatusBanner className="mt-4" />
 
       {error ? (
-        <p className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-          {error}
-        </p>
+        <ErrorNotice className="mt-4">{error}</ErrorNotice>
       ) : null}
 
       {actionError ? (
-        <p className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-          {actionError}
-        </p>
+        <ErrorNotice className="mt-4">{actionError}</ErrorNotice>
       ) : null}
 
       {bonusNote ? (
-        <p className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+        <Notice tone="info" role="status" className="mt-4">
           {bonusNote.kind === "applied"
             ? t("trainingTasks.bonus.applied", { points: bonusNote.points })
             : t("trainingTasks.bonus.removed")}
-        </p>
+        </Notice>
       ) : null}
 
-      <Card title={t("trainingTasks.rules.title")} className="mt-4">
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
+      <Card variant="raised" title={t("trainingTasks.rules.title")} className="mt-4">
+        <ul className="list-disc space-y-1 pl-5 text-sm text-brand-navy/80">
           <li>{t("trainingTasks.rules.perTask", { points: pointsPerTask })}</li>
           <li>{t("trainingTasks.rules.dailyBonus", { points: dailyBonus })}</li>
           <li>{t("trainingTasks.rules.balance", { balance: loading ? "…" : points })}</li>
         </ul>
       </Card>
 
-      <Card title={t("trainingTasks.add.title")} className="mt-4">
+      <Card variant="raised" title={t("trainingTasks.add.title")} className="mt-4">
         <form className="grid gap-3" onSubmit={handleAdd}>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">{t("trainingTasks.add.task")}</span>
+            <span className="font-medium text-brand-navy">{t("trainingTasks.add.task")}</span>
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-control border border-brand-navy/50 px-3 py-2"
               placeholder={t("trainingTasks.add.taskPlaceholder")}
               required
             />
           </label>
           <label className="block text-sm">
-            <span className="font-medium text-slate-700">{t("trainingTasks.add.target")}</span>
+            <span className="font-medium text-brand-navy">{t("trainingTasks.add.target")}</span>
             <input
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 min-h-11 w-full rounded-control border border-brand-navy/50 px-3 py-2"
               placeholder={t("trainingTasks.add.targetPlaceholder")}
             />
           </label>
-          <Button type="submit" disabled={busy || !text.trim()}>
+          <Button variant="brand" type="submit" disabled={busy || !text.trim()}>
             {busy ? t("trainingTasks.add.saving") : t("trainingTasks.add.submit")}
           </Button>
         </form>
       </Card>
 
-      <Card title={t("trainingTasks.list.title")} className="mt-4">
+      <Card variant="raised" title={t("trainingTasks.list.title")} className="mt-4">
         {loading ? (
-          <p className="text-sm text-slate-500">{t("trainingTasks.list.loading")}</p>
+          <p className="text-sm text-brand-navy/70">{t("trainingTasks.list.loading")}</p>
         ) : tasks.length === 0 ? (
-          <p className="text-sm text-slate-500">{t("trainingTasks.list.empty")}</p>
+          <p className="text-sm text-brand-navy/70">{t("trainingTasks.list.empty")}</p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-brand-navy/10">
             {tasks.map((task) => (
               <li key={task.id} className="flex items-start gap-3 py-3">
                 {/* The box stays small to look at; its label is the 44px the finger hits. The negative
@@ -172,7 +168,7 @@ export function TrainingTasksPage() {
                     checked={task.completed}
                     disabled={busy}
                     onChange={() => void handleToggle(task.id)}
-                    className="h-4 w-4 rounded border-slate-300"
+                    className="h-4 w-4 rounded border-brand-navy/50 accent-brand-navy"
                     aria-label={t("trainingTasks.list.complete", { task: task.text })}
                   />
                 </label>
@@ -180,32 +176,32 @@ export function TrainingTasksPage() {
                   <p
                     className={
                       task.completed
-                        ? "break-words text-sm text-slate-500 line-through"
-                        : "break-words text-sm font-medium text-slate-900"
+                        ? "break-words text-sm text-brand-navy/70 line-through"
+                        : "break-words text-sm font-medium text-brand-navy"
                     }
                   >
                     {task.text}
                   </p>
                   {task.source === "academy" ? (
-                    <span className="mt-0.5 inline-block rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-800">
+                    <StatusTag tone="neutral" className="mt-1">
                       {t("trainingTasks.list.academyBadge")}
-                    </span>
+                    </StatusTag>
                   ) : null}
                   {task.description ? (
-                    <p className="mt-1 break-words text-xs text-slate-600">{task.description}</p>
+                    <p className="mt-1 break-words text-xs text-brand-navy/80">{task.description}</p>
                   ) : null}
                   {task.target ? (
-                    <p className="break-words text-xs text-slate-500">{task.target}</p>
+                    <p className="break-words text-xs text-brand-navy/70">{task.target}</p>
                   ) : null}
                   {task.tags && task.tags.length > 0 ? (
-                    <p className="break-words text-[10px] text-slate-400">{task.tags.join(" · ")}</p>
+                    <p className="break-words text-xs text-brand-navy/70">{task.tags.join(" · ")}</p>
                   ) : null}
                 </div>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void handleDelete(task.id, task.text)}
-                  className="-my-3 -mr-2 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center px-2 text-xs text-red-600 hover:underline disabled:opacity-50"
+                  className="-my-3 -mr-2 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center px-2 text-xs font-semibold text-status-danger underline underline-offset-2 disabled:opacity-50"
                 >
                   {t("trainingTasks.list.delete")}
                 </button>

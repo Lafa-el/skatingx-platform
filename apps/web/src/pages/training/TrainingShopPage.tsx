@@ -7,7 +7,7 @@ import {
   localizeRewardName,
   sortRedemptionsNewest,
 } from "@skatingx/skating-domain";
-import { Button, Card } from "@skatingx/ui";
+import { Button, Card, ErrorNotice, Notice, StatusTag } from "@skatingx/ui";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import { ProLockedCard, ProPlanBanner } from "@/components/ProPlanBanner";
@@ -61,10 +61,10 @@ export function TrainingShopPage() {
 
   return (
     <section className="max-w-lg">
-      <h1 className="text-2xl font-bold text-slate-900">
+      <h1 className="text-2xl font-bold text-brand-navy">
         {t("shop.page.title")}
       </h1>
-      <p className="mt-1 text-slate-600">
+      <p className="mt-1 text-brand-navy/80">
         {t("shop.page.subtitle")}
       </p>
 
@@ -72,39 +72,35 @@ export function TrainingShopPage() {
       <ProPlanBanner isPro={isPro} locale={language} className="mt-4" />
 
       {error ? (
-        <p className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-          {error}
-        </p>
+        <ErrorNotice className="mt-4">{error}</ErrorNotice>
       ) : null}
 
       {actionError ? (
-        <p className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-          {actionError}
-        </p>
+        <ErrorNotice className="mt-4">{actionError}</ErrorNotice>
       ) : null}
 
       {lastSuccess ? (
-        <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <Notice tone="success" role="status" className="mt-4">
           {t("shop.success", {
             name: localizeRedemptionName(lastSuccess, catalog?.items ?? [], language),
           })}
-        </p>
+        </Notice>
       ) : null}
 
-      <Card title={t("shop.points.title")} className="mt-4">
-        <p className="text-3xl font-bold text-slate-900">
+      <Card variant="raised" title={t("shop.points.title")} className="mt-4">
+        <p className="sx-numeric text-3xl text-brand-navy">
           {pointsLoading || loading ? "…" : points}
         </p>
       </Card>
 
-      <h2 className="mt-6 text-lg font-semibold text-slate-900">
+      <h2 className="mt-6 text-lg font-semibold text-brand-navy">
         {t("shop.catalog.title")}
       </h2>
 
       {loading ? (
-        <p className="mt-2 text-sm text-slate-500">{t("shop.catalog.loading")}</p>
+        <p className="mt-2 text-sm text-brand-navy/70">{t("shop.catalog.loading")}</p>
       ) : rewards.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-brand-navy/70">
           {t("shop.catalog.empty")}
         </p>
       ) : (
@@ -116,20 +112,20 @@ export function TrainingShopPage() {
             return (
               <div
                 key={reward.id}
-                className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="flex gap-3 rounded-card border border-brand-navy/10 bg-white p-4 shadow-card"
               >
                 <span className="text-3xl" aria-hidden>
                   {reward.icon}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-900">{name}</p>
+                  <p className="font-semibold text-brand-navy">{name}</p>
                   {description ? (
-                    <p className="mt-0.5 text-xs text-slate-600">{description}</p>
+                    <p className="mt-0.5 text-xs text-brand-navy/80">{description}</p>
                   ) : null}
-                  <p className="mt-1 text-sm font-medium text-sky-700">
+                  <p className="mt-1 text-sm font-semibold text-brand-navy">
                     {t("shop.reward.cost", { cost: reward.cost })}
                   </p>
-                  <Button
+                  <Button variant="brand"
                     type="button"
                     className="mt-2"
                     disabled={busy || !canAfford}
@@ -148,17 +144,17 @@ export function TrainingShopPage() {
         </div>
       )}
 
-      <h2 className="mt-8 text-lg font-semibold text-slate-900">
+      <h2 className="mt-8 text-lg font-semibold text-brand-navy">
         {t("shop.custom.title")}
-        <span className="ml-2 text-xs font-normal text-slate-500">{t("shop.custom.proTag")}</span>
+        <span className="ml-2 text-xs font-normal text-brand-navy/70">{t("shop.custom.proTag")}</span>
       </h2>
 
       {isPro ? (
-        <Card title={t("shop.custom.cardTitle")} className="mt-3">
-          <p className="text-sm font-semibold text-emerald-800">
+        <Card variant="raised" title={t("shop.custom.cardTitle")} className="mt-3">
+          <p className="text-sm font-semibold text-status-success">
             {t("shop.custom.active")}
           </p>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-brand-navy/80">
             {t("shop.custom.placeholder")}
           </p>
         </Card>
@@ -170,30 +166,30 @@ export function TrainingShopPage() {
         />
       )}
 
-      <h2 className="mt-8 text-lg font-semibold text-slate-900">
+      <h2 className="mt-8 text-lg font-semibold text-brand-navy">
         {t("shop.history.title")}
       </h2>
 
       {history.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-brand-navy/70">
           {t("shop.history.empty")}
         </p>
       ) : (
-        <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+        <ul className="mt-3 divide-y divide-brand-navy/10 rounded-card border border-brand-navy/10 bg-white">
           {history.map((entry) => (
             <li key={entry.id} className="flex items-start justify-between gap-3 px-4 py-3">
               <div>
-                <p className="font-medium text-slate-900">{localizeRedemptionName(entry, catalog?.items ?? [], language)}</p>
-                <p className="text-xs text-slate-500">
+                <p className="font-medium text-brand-navy">{localizeRedemptionName(entry, catalog?.items ?? [], language)}</p>
+                <p className="text-xs text-brand-navy/70">
                   {t("shop.history.line", {
                     date: formatCalendarDate(entry.redeemedAt.slice(0, 10), language),
                     cost: entry.cost,
                   })}
                 </p>
               </div>
-              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+              <StatusTag tone="neutral" className="shrink-0">
                 {formatRedemptionStatus(entry.status, language)}
-              </span>
+              </StatusTag>
             </li>
           ))}
         </ul>

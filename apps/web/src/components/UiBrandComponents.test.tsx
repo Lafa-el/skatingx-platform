@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { Button, Card, ErrorNotice, ProgressBar, StatusTag, type StatusTone } from "@skatingx/ui";
+import { Button, Card, ErrorNotice, Notice, ProgressBar, StatusTag, type StatusTone } from "@skatingx/ui";
 import { describe, expect, it } from "vitest";
 
 import { render, screen } from "@/test/dom";
@@ -181,5 +181,42 @@ describe("ProgressBar", () => {
   it("never fills past the end", () => {
     render(<ProgressBar label="Over" value={9} max={4} />);
     expect((screen.getByRole("progressbar", { name: "Over" }).firstElementChild as HTMLElement).style.width).toBe("100%");
+  });
+});
+
+describe("Notice", () => {
+  it.each(["info", "success", "pending"] as const)("%s: an icon next to the words, navy text", (tone) => {
+    const { container } = render(<Notice tone={tone}>Something happened</Notice>);
+    const box = container.firstElementChild!;
+    expect(box.querySelector("svg")).not.toBeNull();
+    expect(screen.getByText("Something happened")).toBeTruthy();
+    expect(classesOf(box)).toContain("text-brand-navy");
+    expect(classesOf(box)).not.toContain("text-white");
+  });
+
+  it("each tone has a different icon shape, so the kind can be told without colour", () => {
+    const shapes = (["info", "success", "pending"] as const).map((tone) => {
+      const { container, unmount } = render(<Notice tone={tone}>x</Notice>);
+      const shape = container.querySelector("svg")!.innerHTML;
+      unmount();
+      return shape;
+    });
+    expect(new Set(shapes).size).toBe(3);
+  });
+
+  it("a title is shown above the body; without one there is no empty heading line", () => {
+    const withTitle = render(<Notice tone="success" title="Done">Body</Notice>);
+    expect(screen.getByText("Done").className).toContain("font-semibold");
+    withTitle.unmount();
+    const without = render(<Notice tone="info">Body</Notice>);
+    expect(without.container.querySelectorAll("p")).toHaveLength(0);
+  });
+
+  it("the role is only set when asked for", () => {
+    const quiet = render(<Notice tone="info">Body</Notice>);
+    expect(quiet.container.firstElementChild!.getAttribute("role")).toBeNull();
+    quiet.unmount();
+    render(<Notice tone="info" role="status">Body</Notice>);
+    expect(screen.getByRole("status")).toBeTruthy();
   });
 });
