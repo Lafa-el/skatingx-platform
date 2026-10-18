@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
+import { watchUnhandledRejections } from "@/test/unhandledRejections";
 
 import { SettingsPage } from "./SettingsPage";
 
@@ -170,6 +171,36 @@ describe("SettingsPage details", () => {
       expect(en.container.textContent).not.toMatch(/parentPinEnabled/);
     },
   );
+});
+
+// The provider shows the reason and logs the code (AuthProvider.test.tsx), then rethrows so the
+// form can tell the call failed. The page swallows that on purpose; this pins that it does, that
+// nothing typed is lost, and that the page does not log the same failure a second time.
+describe("SettingsPage forms: a failed sign-in or link", () => {
+  const fail = () => Object.assign(new Error("auth/wrong-password"), { code: "auth/wrong-password" });
+
+  it.each([
+    ["link", "绑定账户", "linkEmailPassword", "123456"],
+    ["sign-in", "登录", "signInEmailPassword", "secret"],
+  ] as const)("%s: no unhandled rejection, the fields keep their text, the button is usable again", async (_name, button, method, password) => {
+    const watcher = watchUnhandledRejections();
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    h.auth[method] = vi.fn().mockRejectedValue(fail());
+    const user = userEvent.setup();
+    render(<SettingsPage />);
+    const submit = screen.getByRole("button", { name: button }) as HTMLButtonElement;
+    const form = submit.closest("form") as HTMLElement;
+    await user.type(within(form).getByLabelText("邮箱"), "a@example.com");
+    await user.type(within(form).getByLabelText("密码"), password);
+    await user.click(submit);
+    expect(await watcher.settled()).toEqual([]);
+    watcher.stop();
+    expect((within(form).getByLabelText("邮箱") as HTMLInputElement).value).toBe("a@example.com");
+    expect((within(form).getByLabelText("密码") as HTMLInputElement).value).toBe(password);
+    expect((screen.getByRole("button", { name: button }) as HTMLButtonElement).disabled).toBe(false);
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
 });
 
 describe("SettingsPage account", () => {
