@@ -1,3 +1,5 @@
+import { Notice } from "@skatingx/ui";
+
 import { useLocale } from "@/hooks/useLocale";
 import { tShell } from "@/shared/i18n/shell-messages";
 
@@ -13,8 +15,11 @@ export function PagePlaceholder({ title, description }: PagePlaceholderProps) {
 
   return (
     <section>
-      <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-      <p className="mt-2 text-slate-600">{note}</p>
+      <h1 className="text-2xl font-bold text-brand-navy">{title}</h1>
+      {/* Neutral tone: the note says the page is not built yet or what it will hold, not that something is wrong. */}
+      <Notice tone="info" className="mt-3">
+        {note}
+      </Notice>
     </section>
   );
 }

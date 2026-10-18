@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
 import { PagePlaceholder } from "./PagePlaceholder";
@@ -34,5 +35,11 @@ describe("PagePlaceholder", () => {
     render(<PagePlaceholder title="T" description="自定义说明" />);
     expect(screen.getByText("自定义说明")).toBeTruthy();
     expect(screen.queryByText("占位页面：原有功能将在后续阶段迁移。")).toBeNull();
+  });
+
+  it("uses the UI v1 colours: navy heading and no old grey classes", () => {
+    const view = render(<PagePlaceholder title="T" />);
+    expect(legacyColourClasses(view.container)).toEqual([]);
+    expect(screen.getByRole("heading", { name: "T" }).className).toContain("text-brand-navy");
   });
 });
