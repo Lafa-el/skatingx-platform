@@ -1,5 +1,3 @@
-import { Link } from "react-router-dom";
-
 import { tPro } from "@/shared/i18n/pro-messages";
 import type { Locale } from "@/shared/i18n/translator";
 
@@ -35,12 +33,6 @@ export function ProPlanBanner({ isPro, locale, className = "" }: ProPlanBannerPr
       <p className="mt-1 text-xs text-amber-800">
         {tPro(locale, "pro.banner.free.body")}
       </p>
-      <Link
-        to="/settings"
-        className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-amber-900 underline"
-      >
-        {tPro(locale, "pro.banner.free.settings")}
-      </Link>
     </div>
   );
 }
@@ -64,12 +56,7 @@ export function ProLockedCard({
         {tPro(locale, "pro.locked.title")}
       </p>
       <p className="mt-1 text-sm text-amber-800">{message}</p>
-      <Link
-        to="/settings"
-        className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-amber-900 underline"
-      >
-        {tPro(locale, "pro.locked.settings")}
-      </Link>
+      <p className="mt-1 text-xs text-amber-800">{tPro(locale, "pro.locked.contact")}</p>
     </div>
   );
 }

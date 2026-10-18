@@ -25,7 +25,7 @@ Everything here can be checked from a browser or the consoles. Tick each and fil
 - [ ] A **Production** deployment exists in Vercel for exactly that commit and is Ready. A merge once produced no deployment (2026-10-16); if there is none, create one from the Vercel dashboard for `main`. Do not deploy from a local folder: the release must be tied to a Git commit.
 - [ ] Vercel production environment has `VITE_FEATURE_RACE_DAY=true` and the six `VITE_FIREBASE_*` values for project `skatingx-platform`. A changed value needs a redeploy.
 - [ ] The Rules published in the Firebase console are identical to `firestore.rules` on `main` (open the Rules tab and compare). Rules are published by hand; the app cannot do it. Note the console's last-published time in the record, which is also the rollback point.
-- [ ] Settings on the race-day account: language chosen, and PRO on (Videos and Summary are behind it; the flag is a temporary arrangement, not an entitlement).
+- [ ] The race-day account: language chosen in Settings, and `isPro` set to `true` in the Firebase console on `users/{uid}/settings/main` (Videos and Summary are behind it; the flag is a temporary arrangement, not an entitlement). The Settings page has no PRO switch since PR B, so confirm Lindsay can open Videos and Summary **before** relying on it.
 - [ ] The event exists with the right days, the time zone `America/New_York` and the venue. Entries seeded from a template or typed in are still "待确认" until checked. Nothing is shown as confirmed unless you confirmed it.
 - [ ] Roster: Lindsay marked "这是我自己的运动员", bib #134, plus anyone followed. Schedule: every race that is known, with the time where known.
 - [ ] Smoke test below passed on the race-day phone.

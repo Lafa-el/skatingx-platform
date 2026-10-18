@@ -1,9 +1,7 @@
-import { getFirestoreDb, updateUserSettings } from "@skatingx/firebase-client";
 import { Button, Card } from "@skatingx/ui";
 import { FormEvent, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
-import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { LanguageSetting } from "@/components/LanguageSetting";
 import { useLanguageSetting } from "@/hooks/useLanguageSetting";
 import { useLocale } from "@/hooks/useLocale";
@@ -13,13 +11,6 @@ import type { Locale } from "@/shared/i18n/translator";
 
 /** A document path shown as it is written. An identifier, not copy. */
 const SETTINGS_DOC_PATH = "settings/main";
-
-/**
- * The note under the PRO card. It keeps what happened, not the sentence, so it follows the
- * language if the user changes it afterwards. A message that came from the data layer is shown as
- * it arrived.
- */
-type ProNote = { key: SettingsPageMessageKey } | { received: string };
 
 function AuthField({
   id,
@@ -69,10 +60,7 @@ export function SettingsPage() {
   const [bindPassword, setBindPassword] = useState("");
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
-  const { data: settings, loading: settingsLoading } = useUserSettings();
   const [formBusy, setFormBusy] = useState(false);
-  const [proBusy, setProBusy] = useState(false);
-  const [proNote, setProNote] = useState<ProNote | null>(null);
   const languageSetting = useLanguageSetting();
   const locale: Locale = useLocale();
   const t = (key: SettingsPageMessageKey, params?: Record<string, string | number>) =>
@@ -131,29 +119,6 @@ export function SettingsPage() {
         : t("settings.account.registered");
 
   const emailDisplay = user?.email ?? "—";
-  const isPro = settings?.isPro === true;
-
-  async function handleProToggle() {
-    if (!uid) return;
-    const db = getFirestoreDb();
-    if (!db) return;
-    setProBusy(true);
-    setProNote(null);
-    try {
-      await updateUserSettings(db, uid, { isPro: !isPro });
-      setProNote({
-        key: !isPro ? "settings.pro.enabledMessage" : "settings.pro.disabledMessage",
-      });
-    } catch (error) {
-      setProNote(
-        error instanceof Error
-          ? { received: error.message }
-          : { key: "settings.pro.updateFailed" },
-      );
-    } finally {
-      setProBusy(false);
-    }
-  }
 
   return (
     <section className="max-w-lg">
@@ -169,36 +134,6 @@ export function SettingsPage() {
         onChange={languageSetting.setLanguage}
       />
 
-      <Card title={t("settings.pro.title")} className="mt-4">
-        <p className="text-sm font-medium text-amber-800">
-          {t("settings.pro.devNotice")}
-        </p>
-        <p className="mt-2 text-sm text-slate-600">
-          {t("settings.pro.devHelp")}
-        </p>
-        <dl className="mt-3 grid gap-2 text-sm">
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">{t("settings.pro.status")}</dt>
-            <dd className="font-medium text-slate-900">
-              {settingsLoading
-                ? "…"
-                : t(isPro ? "settings.pro.active" : "settings.pro.free")}
-            </dd>
-          </div>
-        </dl>
-        <Button
-          type="button"
-          className="mt-3"
-          variant="ghost"
-          disabled={proBusy || settingsLoading || !uid}
-          onClick={() => void handleProToggle()}
-        >
-          {proBusy
-            ? t("settings.pro.saving")
-            : t(isPro ? "settings.pro.disable" : "settings.pro.enable")}
-        </Button>
-      </Card>
-
       <Card title={t("settings.parent.title")} className="mt-4">
         <p className="text-sm text-slate-600">
           {t("settings.parent.noteBefore")}
@@ -206,12 +141,6 @@ export function SettingsPage() {
           {t("settings.parent.noteAfter")}
         </p>
       </Card>
-
-      {proNote ? (
-        <p className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
-          {"received" in proNote ? proNote.received : t(proNote.key)}
-        </p>
-      ) : null}
 
       <Card title={t("settings.account.title")} className="mt-4">
         <dl className="grid gap-2 text-sm">

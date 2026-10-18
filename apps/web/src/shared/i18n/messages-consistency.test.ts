@@ -58,6 +58,20 @@ describe("shared i18n resources", () => {
     });
   });
 
+  // The PRO switch in Settings was a development tool and is gone. Copy that still sends people to
+  // it, or calls PRO a development flag, would be a dead instruction.
+  it("no text points to a development PRO switch in Settings", () => {
+    const stale = /开发开关|开发用|（开发[^）]*）|设置中开启 PRO|\(dev\)|development (flag|toggle)|PRO in Settings/i;
+    const found = resourceSets.flatMap(({ file, resources }) =>
+      (["zh", "en"] as const).flatMap((language) =>
+        Object.entries(resources[language])
+          .filter(([, text]) => stale.test(text))
+          .map(([key]) => `${file} ${language} ${key}`),
+      ),
+    );
+    expect(found).toEqual([]);
+  });
+
   it("keys are unique across files, so two domains cannot silently share one", () => {
     const seen = new Map<string, string>();
     const clashes: string[] = [];

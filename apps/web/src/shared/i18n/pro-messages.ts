@@ -1,18 +1,18 @@
 import { createTranslator, type Resources } from "./translator";
 
 /**
- * Text of the PRO plan banner and the PRO-locked card, shared by the Academy and the Shop. The
- * wording is what these components said before, in both languages. Both still point to the PRO
- * switch in Settings, which exists for development and is kept until the Buffalo trip is over.
+ * Text of the PRO plan banner and the PRO-locked card, shared by the Academy and the Shop. PRO is
+ * opened for a trial account by an administrator in the Firebase console, so neither component
+ * links anywhere: the Settings switch that used to do it was a development tool and is gone. The
+ * flag is a UX gate, not an entitlement check (ADR-001).
  */
 const zh = {
   "pro.banner.active.title": "PRO 已开启",
-  "pro.banner.active.body": "高阶计划导入与 PRO 专区已解锁（开发开关）。",
+  "pro.banner.active.body": "高阶计划导入与 PRO 专区已解锁。",
   "pro.banner.free.title": "免费版",
-  "pro.banner.free.body": "可浏览学院内容与兑换默认奖励。在设置中开启 PRO（开发）以使用高阶导入。",
-  "pro.banner.free.settings": "打开设置",
+  "pro.banner.free.body": "可浏览学院内容与兑换默认奖励。高阶导入目前只对试用账号开放。如需使用，请联系管理员开通。",
   "pro.locked.title": "需要 PRO",
-  "pro.locked.settings": "在设置中开启 PRO（开发）",
+  "pro.locked.contact": "目前只对试用账号开放。如需使用，请联系管理员开通。",
 } as const;
 
 type ProKey = keyof typeof zh;
@@ -20,13 +20,12 @@ type ProKey = keyof typeof zh;
 const en: Record<ProKey, string> = {
   "pro.banner.active.title": "PRO active",
   "pro.banner.active.body":
-    "Advanced routine import and PRO-only sections are unlocked (development flag).",
+    "Advanced routine import and PRO-only sections are unlocked.",
   "pro.banner.free.title": "Free plan",
   "pro.banner.free.body":
-    "Browse Academy content and redeem catalog rewards. Enable PRO in Settings (dev) for advanced imports.",
-  "pro.banner.free.settings": "Open Settings",
+    "Browse Academy content and redeem catalog rewards. Advanced imports are only available to trial accounts for now. Contact your team admin to get access.",
   "pro.locked.title": "PRO required",
-  "pro.locked.settings": "Enable PRO in Settings (dev)",
+  "pro.locked.contact": "Only available to trial accounts for now. Contact your team admin to get access.",
 };
 
 export type ProMessageKey = ProKey;
