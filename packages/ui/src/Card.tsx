@@ -5,18 +5,13 @@ type CardProps = {
   children?: ReactNode;
   className?: string;
   /**
-   * `default` is the look every page has today. `raised` and `hero` are the UI v1 looks.
-   * `hero` is flame-to-energy, so everything on it is navy (white fails on the energy end).
+   * `raised` is the everyday card; `hero` is flame-to-energy, so everything on it is navy
+   * (white fails on the energy end).
    */
-  variant?: "default" | "raised" | "hero";
+  variant?: "raised" | "hero";
 };
 
 const looks = {
-  default: {
-    card: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm",
-    title: "text-sm font-semibold text-slate-900",
-    body: "mt-2 text-sm text-slate-600",
-  },
   raised: {
     card: "rounded-card border border-brand-navy/10 bg-white p-4 shadow-card",
     title: "text-sm font-semibold text-brand-navy",
@@ -30,7 +25,7 @@ const looks = {
   },
 } as const;
 
-export function Card({ title, children, className = "", variant = "default" }: CardProps) {
+export function Card({ title, children, className = "", variant = "raised" }: CardProps) {
   const look = looks[variant];
   return (
     <article className={`${look.card} ${className}`.trim()}>

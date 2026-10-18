@@ -63,12 +63,13 @@ describe("Button", () => {
 });
 
 describe("Card", () => {
-  it("default is exactly the card every page has today", () => {
+  it("without a variant the card is the raised card, with no old slate classes", () => {
     const { container } = render(<Card title="Points">12</Card>);
-    const article = container.querySelector("article");
-    expect(article?.getAttribute("class")).toBe("rounded-xl border border-slate-200 bg-white p-4 shadow-sm");
-    expect(screen.getByRole("heading", { name: "Points" }).getAttribute("class")).toBe("text-sm font-semibold text-slate-900");
-    expect(screen.getByText("12").getAttribute("class")).toBe("mt-2 text-sm text-slate-600");
+    const article = container.querySelector("article")!;
+    expect(article.getAttribute("class")).toBe("rounded-card border border-brand-navy/10 bg-white p-4 shadow-card");
+    expect(article.outerHTML).not.toMatch(/slate-\d/);
+    expect(screen.getByRole("heading", { name: "Points" }).className).toContain("text-brand-navy");
+    expect(screen.getByText("12").className).toContain("text-brand-navy");
   });
 
   it("raised: large radius, navy text", () => {

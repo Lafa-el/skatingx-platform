@@ -268,4 +268,4 @@ SkatingX 全 app 界面改版 v1.0。设计已定稿（见附件截图：设计�
 - 范围：`AthletePage.tsx`。标题和字段值改 navy，字段名和副标题改 `navy/70`，资料卡改 `raised` 卡片，数据层错误改 `ErrorNotice`（图标 + 文字，文字内容原样显示）。`/athlete` 登记进 `ICE_PAGES`。
 - 不动：数据读取、字段、文案、路由、`AthleteSelector` 和 `FirestoreStatusBanner`（它们早已是新外观）。
 - 至此路由里所有页面都在 `ICE_PAGES` 里；`ShellFrame` 测试里"不在名单上的页面"改用虚构路径 `/not-on-the-list`。名单本身保留，新页面仍须在同一次改动里登记并加深灰字。
-- `Card` 的 `default` 外观（旧 `slate` 样式）现在没有页面使用，可在 Button 清理的同一批里评估是否删除。
+- `Card` 的 `default` 外观（旧 `slate` 样式）在 #46 之后没有页面使用，已在独立的清理 PR 中删除；`Card` 不带 `variant` 时等同 `raised`。
