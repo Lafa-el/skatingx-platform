@@ -229,7 +229,7 @@ SkatingX 全 app 界面改版 v1.0。设计已定稿（见附件截图：设计�
 - 范围：训练首页、任务、学院、纪录、商店五个页面，加 `ProPlanBanner` / `ProLockedCard`。只改外观，不改数据、路由、文案和业务逻辑。`/training` 登记进 `ICE_PAGES`（含所有子页面），五个页面都已迁移，旧灰字已全部加深。
 - 新增共享组件 `Notice`（`packages/ui`）：非错误提示，图标 + 文字，三种语气（info / success / pending），字一律深色，图标形状各不相同，不靠颜色区分。用于任务奖励提示、学院导入结果、商店兑换成功、套餐横幅、PRO 锁定卡。错误仍用 `ErrorNotice`。
 - 页面上的旧小徽章（学院、纪录个人最好、兑换状态、训练分类）统一改用 `StatusTag`（图标 + 文字）；原来 10px 的小字提到 12px。
-- 按钮：训练页的提交 / 兑换 / 导入按钮用 `brand`，原来的幽灵按钮（取消）用 `outline`。至此没有页面再用 `primary` 和 `ghost` 变体，变体本身暂时保留，清理另开 PR。
+- 按钮：训练页的提交 / 兑换 / 导入按钮用 `brand`，原来的幽灵按钮（取消）用 `outline`。至此没有页面再用 `primary` 和 `ghost` 变体；这两个变体已在独立的清理 PR 中删除，`Button` 不带 `variant` 时等同 `brand`。
 - 距离、学院阶段选择按钮：选中为焰橙红底 + 深色字，并加 `aria-pressed`（原来只靠颜色，辅助技术读不出选中项）。
 - 数字：积分、纪录时间、任务 N / M、商店积分用 `sx-numeric`。含中文的整句（如"最好成绩 49.80"）保持正体，不加斜体。
 - 训练首页"今日任务"卡改 `hero` 并加进度条（规则同总览页）。
@@ -261,7 +261,7 @@ SkatingX 全 app 界面改版 v1.0。设计已定稿（见附件截图：设计�
 - "待确认 / 已确认"标记（`VerificationBadge`）改用 `StatusTag`：`pending` 和 `success` 两种色调、两种图标形状，文字不变；`data-verification` 属性保留；未知值仍显示为待确认，不会显示为已确认。为此 `StatusTag` 现在会透传额外属性，`@skatingx/ui` 导出 `StatusGlyph`。
 - "我的比赛" / "本人" 标记改为 `brand` 标签（flame 底 + navy 字）；成绩时间和总结数字用 `sx-numeric`；待确认横幅用 `energy` 边框 + `pending-tint` 底 + navy 字；视频外链改为 navy 下划线，仍是 44px 高。
 - 小号灰字全部加深为 `brand-navy/70`，旧的 `slate`、`sky`、`red`、`amber`、`emerald` 类在比赛日目录里已清零，每个页面都有测试用 `legacyColourClasses` 断言。
-- 不在本阶段：`/athlete`（运动员页）不属于任何阶段，仍是旧外观；`Button` 的 `primary` / `ghost` 变体已无人使用，另开 PR 清理。
+- 不在本阶段：`/athlete`（运动员页）不属于任何阶段，后来由 owner 决定单独做（见 B.17）；`Button` 的 `primary` / `ghost` 变体已在独立 PR 中清理。
 - 发布风险：比赛日页面是 Buffalo 实测（2026-10-24/25）要用的页面，runbook 规定 2026-10-21 晚上代码冻结，冻结后只收阻塞性修复。合并时间由 owner 决定。
 
 ### B.17 运动员页（`/athlete`）换皮
