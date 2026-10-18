@@ -8,7 +8,7 @@ import { controlsBelowTapTarget } from "@/test/tapTarget";
 // The shared Button lives in packages/ui, whose tests do not render React; this is where the
 // 44px minimum of every button in the app is held.
 describe("shared Button: tap target (44px)", () => {
-  it.each(["primary", "ghost"] as const)("the %s button asks for 44px, also when a caller adds classes", (variant) => {
+  it.each(["primary", "ghost", "brand", "outline", "danger-outline"] as const)("the %s button asks for 44px, also when a caller adds classes", (variant) => {
     const { container } = render(
       <>
         <Button variant={variant}>OK</Button>

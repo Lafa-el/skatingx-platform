@@ -9,9 +9,10 @@ import { TrainingLayout } from "./TrainingLayout";
 
 const state = vi.hoisted(() => ({ locale: "zh" as "zh" | "en" }));
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
-// The header and bottom bar have their own tests; here only the section navigation is under test.
+// The header and the two main bars have their own tests; here only the section navigation is under test.
 vi.mock("@/components/Header", () => ({ Header: () => null }));
 vi.mock("@/components/BottomNav", () => ({ BottomNav: () => null }));
+vi.mock("@/components/SideNav", () => ({ SideNav: () => null }));
 
 afterEach(() => {
   state.locale = "zh";

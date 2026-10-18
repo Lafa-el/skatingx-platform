@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen } from "@/test/dom";
+import { controlsBelowTapTarget } from "@/test/tapTarget";
 
 import { BottomNav } from "./BottomNav";
 
@@ -88,13 +89,31 @@ describe("BottomNav", () => {
   it("the Race Day tab stays active on its sub-pages", () => {
     vi.stubEnv("VITE_FEATURE_RACE_DAY", "true");
     renderAt("/race-day/schedule");
-    expect(screen.getByRole("link", { name: "比赛日" }).className).toContain("text-sky-700");
-    expect(screen.getByRole("link", { name: "总览" }).className).not.toContain("text-sky-700");
+    expect(screen.getByRole("link", { name: "比赛日" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("link", { name: "总览" }).getAttribute("aria-current")).toBeNull();
   });
 
   it("any value other than 'true' keeps the flag off", () => {
     vi.stubEnv("VITE_FEATURE_RACE_DAY", "1");
     renderAt("/dashboard");
     expect(screen.queryByRole("link", { name: "比赛日" })).toBeNull();
+  });
+
+  it("the selected tab is navy text with a flame bar and a flame icon, and meets the touch size", () => {
+    vi.stubEnv("VITE_FEATURE_RACE_DAY", "true");
+    const { container } = render(
+      <MemoryRouter initialEntries={["/training/tasks"]}>
+        <BottomNav />
+      </MemoryRouter>,
+    );
+    const current = screen.getByRole("link", { name: "训练" });
+    expect(current.className).toContain("text-brand-navy");
+    expect(current.className).toContain("before:bg-brand-flame");
+    expect(current.querySelector("svg")?.getAttribute("class")).toContain("text-brand-flame");
+    expect(screen.getByRole("link", { name: "分析" }).querySelector("svg")?.getAttribute("class")).not.toContain("text-brand-flame");
+    expect(controlsBelowTapTarget(container)).toEqual([]);
+    for (const svg of container.querySelectorAll("svg")) {
+      expect(svg.getAttribute("aria-hidden")).toBe("true");
+    }
   });
 });

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { Button, Card, ProgressBar, StatusTag, type StatusTone } from "@skatingx/ui";
+import { Button, Card, ErrorNotice, ProgressBar, StatusTag, type StatusTone } from "@skatingx/ui";
 import { describe, expect, it } from "vitest";
 
 import { render, screen } from "@/test/dom";
@@ -26,6 +26,31 @@ describe("Button", () => {
       </Button>,
     );
     expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it.each(["primary", "ghost", "brand", "outline", "danger-outline"] as const)(
+    "%s has exactly one font weight and one text colour, so no class clash decides the look",
+    (variant) => {
+      render(<Button variant={variant}>Go</Button>);
+      const classes = classesOf(screen.getByRole("button", { name: "Go" })).filter((c) => !c.includes(":"));
+      expect(classes.filter((c) => /^font-(medium|semibold|bold)$/.test(c))).toHaveLength(1);
+      expect(classes.filter((c) => /^text-(white|slate-\d+|brand-navy|status-danger)$/.test(c))).toHaveLength(1);
+    },
+  );
+
+  it("outline: navy text and border, no fill; danger-outline: error red, not the brand flame", () => {
+    render(
+      <>
+        <Button variant="outline">Out</Button>
+        <Button variant="danger-outline">Del</Button>
+      </>,
+    );
+    expect(classesOf(screen.getByRole("button", { name: "Out" }))).toEqual(
+      expect.arrayContaining(["text-brand-navy", "border-brand-navy/50", "bg-transparent"]),
+    );
+    const danger = screen.getByRole("button", { name: "Del" });
+    expect(classesOf(danger)).toContain("text-status-danger");
+    expect(danger.className).not.toMatch(/brand-flame/);
   });
 
   it("primary and ghost keep the look every page has today", () => {
@@ -108,6 +133,17 @@ describe("StatusTag", () => {
     const tag = container.querySelector("span")!;
     expect(classesOf(tag)).toEqual(expect.arrayContaining(["text-status-danger", "bg-status-danger-tint"]));
     expect(tag.className).not.toMatch(/brand-flame/);
+  });
+});
+
+describe("ErrorNotice", () => {
+  it("is an alert with an icon and the words, in the error red", () => {
+    const { container } = render(<ErrorNotice>Could not save</ErrorNotice>);
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toBe("Could not save");
+    expect(container.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+    expect(classesOf(alert)).toEqual(expect.arrayContaining(["text-status-danger", "bg-status-danger-tint"]));
+    expect(alert.className).not.toMatch(/brand-flame/);
   });
 });
 

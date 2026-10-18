@@ -7,6 +7,7 @@ import { render, screen } from "@/test/dom";
 import { Header } from "./Header";
 
 vi.mock("@/components/AthleteSelector", () => ({ AthleteSelector: () => null }));
+vi.mock("@/hooks/useLocale", () => ({ useLocale: () => "zh" }));
 
 describe("Header", () => {
   it("links the product name to the dashboard", () => {
@@ -29,5 +30,22 @@ describe("Header", () => {
     const link = screen.getByRole("link", { name: "SkatingX" });
     expect(link.className).toContain("min-h-11");
     expect(link.className).toContain("inline-flex");
+  });
+
+  it("from the lg breakpoint shows a trail to the current section; on a page outside the main tabs, only the name", () => {
+    const { unmount } = render(
+      <MemoryRouter initialEntries={["/training/tasks"]}>
+        <Header />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("训练")).toBeTruthy();
+    unmount();
+    render(
+      <MemoryRouter initialEntries={["/athlete"]}>
+        <Header />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText("训练")).toBeNull();
+    expect(screen.queryByText("总览")).toBeNull();
   });
 });

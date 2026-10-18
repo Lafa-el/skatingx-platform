@@ -1,4 +1,4 @@
-import { Button, Card } from "@skatingx/ui";
+import { Button, Card, ErrorNotice } from "@skatingx/ui";
 import { FormEvent, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -29,14 +29,14 @@ function AuthField({
 }) {
   return (
     <label className="block text-sm" htmlFor={id}>
-      <span className="font-medium text-slate-700">{label}</span>
+      <span className="font-medium text-brand-navy">{label}</span>
       <input
         id={id}
         type={type}
         value={value}
         autoComplete={autoComplete}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+        className="mt-1 min-h-11 w-full rounded-control border border-brand-navy/50 px-3 py-2 text-brand-navy focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-flame"
       />
     </label>
   );
@@ -124,10 +124,10 @@ export function SettingsPage() {
 
   return (
     <section className="max-w-lg">
-      <h1 className="text-2xl font-bold text-slate-900">
+      <h1 className="text-2xl font-bold text-brand-navy">
         {t("settings.page.title")}
       </h1>
-      <p className="mt-1 text-slate-600">{t("settings.page.intro")}</p>
+      <p className="mt-1 text-brand-navy/80">{t("settings.page.intro")}</p>
 
       <LanguageSetting
         language={languageSetting.language}
@@ -136,53 +136,48 @@ export function SettingsPage() {
         onChange={languageSetting.setLanguage}
       />
 
-      <Card title={t("settings.parent.title")} className="mt-4">
-        <p className="text-sm text-slate-600">
+      <Card variant="raised" title={t("settings.parent.title")} className="mt-4">
+        <p className="text-sm text-brand-navy/80">
           {t("settings.parent.noteBefore")}
           <code className="text-xs">{SETTINGS_DOC_PATH}</code>
           {t("settings.parent.noteAfter")}
         </p>
       </Card>
 
-      <Card title={t("settings.account.title")} className="mt-4">
+      <Card variant="raised" title={t("settings.account.title")} className="mt-4">
         <dl className="grid gap-2 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">{t("settings.account.status")}</dt>
-            <dd className="font-medium text-slate-900">{accountLabel}</dd>
+            <dt className="text-brand-navy/70">{t("settings.account.status")}</dt>
+            <dd className="font-medium text-brand-navy">{accountLabel}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">{t("settings.account.uid")}</dt>
-            <dd className="font-mono text-xs text-slate-800 break-all">
+            <dt className="text-brand-navy/70">{t("settings.account.uid")}</dt>
+            <dd className="font-mono text-xs text-brand-navy break-all">
               {loading ? "…" : (uid ?? "—")}
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">{t("settings.account.anonymous")}</dt>
-            <dd className="font-medium text-slate-900">
+            <dt className="text-brand-navy/70">{t("settings.account.anonymous")}</dt>
+            <dd className="font-medium text-brand-navy">
               {loading
                 ? "…"
                 : t(isAnonymous ? "settings.account.yes" : "settings.account.no")}
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">{t("settings.account.email")}</dt>
-            <dd className="font-medium text-slate-900">{emailDisplay}</dd>
+            <dt className="text-brand-navy/70">{t("settings.account.email")}</dt>
+            <dd className="font-medium text-brand-navy">{emailDisplay}</dd>
           </div>
         </dl>
       </Card>
 
       {authError ? (
-        <p
-          className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-          role="alert"
-        >
-          {formatAuthError(authError, locale)}
-        </p>
+        <ErrorNotice className="mt-4">{formatAuthError(authError, locale)}</ErrorNotice>
       ) : null}
 
       {firebaseReady && isAnonymous && !loading ? (
-        <Card title={t("settings.link.title")} className="mt-4">
-          <p className="mb-4 text-sm text-slate-600">
+        <Card variant="raised" title={t("settings.link.title")} className="mt-4">
+          <p className="mb-4 text-sm text-brand-navy/80">
             {t("settings.link.help")}
           </p>
           <form className="grid gap-3" onSubmit={handleBindSubmit}>
@@ -204,6 +199,7 @@ export function SettingsPage() {
             />
             <Button
               type="submit"
+              variant="brand"
               disabled={formBusy || !bindEmail || bindPassword.length < 6}
             >
               {formBusy ? t("settings.link.busy") : t("settings.link.submit")}
@@ -213,8 +209,8 @@ export function SettingsPage() {
       ) : null}
 
       {firebaseReady && !loading ? (
-        <Card title={t("settings.signIn.title")} className="mt-4">
-          <p className="mb-4 text-sm text-slate-600">
+        <Card variant="raised" title={t("settings.signIn.title")} className="mt-4">
+          <p className="mb-4 text-sm text-brand-navy/80">
             {t("settings.signIn.help")}
           </p>
           <form className="grid gap-3" onSubmit={handleSignInSubmit}>
@@ -236,8 +232,7 @@ export function SettingsPage() {
             />
             <Button
               type="submit"
-              variant="ghost"
-              className="border border-slate-300"
+              variant="outline"
               disabled={formBusy || !signInEmail || !signInPassword}
             >
               {formBusy ? t("settings.signIn.busy") : t("settings.signIn.submit")}
@@ -249,8 +244,7 @@ export function SettingsPage() {
       {firebaseReady && user && !isAnonymous && !loading ? (
         <div className="mt-4">
           <Button
-            variant="ghost"
-            className="border border-slate-300 text-red-700 hover:bg-red-50"
+            variant="danger-outline"
             disabled={formBusy}
             onClick={handleLogout}
           >
@@ -260,7 +254,7 @@ export function SettingsPage() {
       ) : null}
 
       {firebaseReady && user && isAnonymous && !loading ? (
-        <p className="mt-6 text-xs text-slate-500">
+        <p className="mt-6 text-xs text-brand-navy/70">
           {t("settings.account.guestUid", { uid: uid?.slice(0, 8) ?? "—" })}
         </p>
       ) : null}
