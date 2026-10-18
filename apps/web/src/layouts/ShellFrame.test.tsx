@@ -56,7 +56,8 @@ describe("ICE_PAGES", () => {
     expect(isIcePage("/analysis/pacing")).toBe(true);
     expect(isIcePage("/analysisx")).toBe(false);
     expect(isIcePage("/race-day")).toBe(false);
-    expect(isIcePage("/ai-coach")).toBe(false);
+    expect(isIcePage("/ai-coach")).toBe(true);
+    expect(isIcePage("/ai-coachx")).toBe(false);
     expect(isIcePage("/training/shop")).toBe(true);
   });
 });

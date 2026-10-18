@@ -9,7 +9,7 @@
  *
  * An entry matches its own path and everything below it (`/training` covers `/training/shop`).
  */
-export const ICE_PAGES: readonly string[] = ["/settings", "/dashboard", "/training", "/analysis"];
+export const ICE_PAGES: readonly string[] = ["/settings", "/dashboard", "/training", "/analysis", "/ai-coach"];
 
 export function isIcePage(pathname: string): boolean {
   return ICE_PAGES.some((page) => pathname === page || pathname.startsWith(`${page}/`));
