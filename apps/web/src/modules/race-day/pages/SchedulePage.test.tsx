@@ -3,6 +3,7 @@ import type { RaceEntry, RaceEvent, RaceRosterEntry } from "@skatingx/schema";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, waitFor } from "@/test/dom";
 
 import type { ListState } from "../hooks/useRaceDayData";
@@ -277,5 +278,48 @@ describe("SchedulePage races", () => {
     renderPage();
     expect((screen.getByLabelText("当前赛事") as HTMLSelectElement).value).toBe("buffalo-1");
     expect(h.racesCalls.at(-1)).toBe("buffalo-1");
+  });
+});
+
+describe("SchedulePage look", () => {
+  const clean = () => expect(legacyColourClasses(document.body)).toEqual([]);
+  const alertsHaveIcons = () => {
+    for (const alert of screen.queryAllByRole("alert")) expect(alert.querySelector("svg")).not.toBeNull();
+  };
+  const fieldErrorsHaveIcons = () => {
+    expect(document.querySelectorAll("p[id$='-error']").length).toBeGreaterThan(0);
+    for (const error of document.querySelectorAll("p[id$='-error']")) expect(error.querySelector("svg")).not.toBeNull();
+  };
+
+  it("the race list, its pending marker and the empty and error states carry no old colour classes", () => {
+    renderPage();
+    clean();
+    document.body.innerHTML = "";
+    h.races = ready([]);
+    renderPage();
+    clean();
+  });
+
+  it("the race form with its errors is in the new look", async () => {
+    const user = renderPage();
+    await user.click(screen.getByRole("button", { name: "添加比赛" }));
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    fieldErrorsHaveIcons();
+    clean();
+  });
+
+  it("the delete confirmation is an alert with an icon and a danger-outline confirm button", async () => {
+    const user = renderPage();
+    await user.click(screen.getByRole("button", { name: /^删除 500m/ }));
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: /确认删除/ }).className).toContain("text-status-danger");
+    clean();
+  });
+
+  it("a load error has an icon", () => {
+    h.races = { status: "error", items: [], invalid: [], error: { code: "unavailable", message: "x" } };
+    renderPage();
+    alertsHaveIcons();
+    clean();
   });
 });

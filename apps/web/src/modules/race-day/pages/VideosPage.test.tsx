@@ -3,6 +3,7 @@ import type { RaceEntry, RaceEvent, RaceRosterEntry, RaceVideoRef } from "@skati
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, waitFor, within } from "@/test/dom";
 
 import type { ListState } from "../hooks/useRaceDayData";
@@ -494,5 +495,46 @@ describe("VideosPage in English", () => {
     pro.isPro = false;
     renderPage();
     expect(screen.getByText("This page needs PRO")).toBeTruthy();
+  });
+});
+
+describe("VideosPage look", () => {
+  const clean = () => expect(legacyColourClasses(document.body)).toEqual([]);
+  const alertsHaveIcons = () => {
+    for (const alert of screen.queryAllByRole("alert")) expect(alert.querySelector("svg")).not.toBeNull();
+  };
+  const fieldErrorsHaveIcons = () => {
+    expect(document.querySelectorAll("p[id$='-error']").length).toBeGreaterThan(0);
+    for (const error of document.querySelectorAll("p[id$='-error']")) expect(error.querySelector("svg")).not.toBeNull();
+  };
+
+  it("the list, the link and the entry form carry no old colour classes", async () => {
+    h.videos = ready([video({ externalUrl: "https://example.com/v", storedWhere: "Phone" })]);
+    const user = renderPage();
+    clean();
+    const link = screen.getByRole("link", { name: /example\.com/ });
+    expect(link.className).toContain("underline");
+    expect(link.className).toContain("text-brand-navy");
+    await choose(user, "race-1", "ann");
+    clean();
+  });
+
+  it("form errors have an icon", async () => {
+    const user = renderPage();
+    await choose(user, "race-1", "ann");
+    await user.click(screen.getByRole("button", { name: "保存视频记录" }));
+    fieldErrorsHaveIcons();
+    clean();
+  });
+
+  it("the locked, loading and error states are clean", () => {
+    pro.isPro = false;
+    renderPage();
+    clean();
+    document.body.innerHTML = "";
+    pro.error = "x";
+    renderPage();
+    alertsHaveIcons();
+    clean();
   });
 });

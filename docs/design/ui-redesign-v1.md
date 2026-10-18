@@ -253,3 +253,13 @@ SkatingX 全 app 界面改版 v1.0。设计已定稿（见附件截图：设计�
 
 ### B.15 AI 教练页加入 `ICE_PAGES`
 - 页面除 `PagePlaceholder` 外没有任何自己的样式（核对过 `AiCoachPage.tsx`），所以加入后没有残留的旧颜色类。`/ai-coach` 登记进 `ICE_PAGES`，`AiCoachPage.test.tsx` 增加"中英文都没有旧颜色类"的断言，并断言 `isIcePage("/ai-coach")` 为真。
+
+### B.16 阶段 4：比赛日六个子页换皮
+- 范围：`RaceDayLayout`、今天 / 赛程 / 成绩 / 视频 / 总结 / 设置六页和它们的组件（25 个文件）、`RaceDayRoute` 的加载提示。只改外观：路由、数据、文案、时间解析、时区转换、PRO 门、校验规则、"待确认"标记语义都没动，原有测试的断言一条没改，只新增了外观测试（唯一改动的旧断言是 `ShellFrame.test.tsx` 里"旧底色样例页"从 `/race-day` 换成 `/athlete`）。`/race-day` 登记进 `ICE_PAGES`（含所有子页面）。
+- 共享部分集中在 `components/fields.tsx`，改一处六页同时生效：输入框边框 `brand-navy/50`、聚焦轮廓 navy、无效态边框用错误红；字段错误 = 图标 + 文字（新 `FieldError`）；`FormMessage` 的错误态是 `ErrorNotice`、信息态是 `Notice`；三个按钮样式对应 `Button` 的 `brand` / `outline` / `danger-outline`（主按钮 flame 底 + navy 字，危险按钮是红色描边，不再是红底白字）。仍是类字符串，因为比赛日把它们用在链接上。
+- 旧琥珀提示条（`RaceDayLayout` 里的"实测版"说明）改为 `Notice tone="pending"`，文案不变，多了图标。
+- "待确认 / 已确认"标记（`VerificationBadge`）改用 `StatusTag`：`pending` 和 `success` 两种色调、两种图标形状，文字不变；`data-verification` 属性保留；未知值仍显示为待确认，不会显示为已确认。为此 `StatusTag` 现在会透传额外属性，`@skatingx/ui` 导出 `StatusGlyph`。
+- "我的比赛" / "本人" 标记改为 `brand` 标签（flame 底 + navy 字）；成绩时间和总结数字用 `sx-numeric`；待确认横幅用 `energy` 边框 + `pending-tint` 底 + navy 字；视频外链改为 navy 下划线，仍是 44px 高。
+- 小号灰字全部加深为 `brand-navy/70`，旧的 `slate`、`sky`、`red`、`amber`、`emerald` 类在比赛日目录里已清零，每个页面都有测试用 `legacyColourClasses` 断言。
+- 不在本阶段：`/athlete`（运动员页）不属于任何阶段，仍是旧外观；`Button` 的 `primary` / `ghost` 变体已无人使用，另开 PR 清理。
+- 发布风险：比赛日页面是 Buffalo 实测（2026-10-24/25）要用的页面，runbook 规定 2026-10-21 晚上代码冻结，冻结后只收阻塞性修复。合并时间由 owner 决定。

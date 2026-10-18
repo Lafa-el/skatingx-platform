@@ -68,7 +68,7 @@ function VideosContent() {
     [videos.items, races.items, roster.items],
   );
 
-  const heading = <h1 className="text-2xl font-bold text-slate-900">{t(locale, "raceDay.tab.videos")}</h1>;
+  const heading = <h1 className="text-2xl font-bold text-brand-navy">{t(locale, "raceDay.tab.videos")}</h1>;
 
   function afterWrite(outcome: WriteOutcome | null): boolean {
     if (outcome === null) {
@@ -82,7 +82,7 @@ function VideosContent() {
     return (
       <div className="space-y-4">
         {heading}
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       </div>
@@ -112,7 +112,7 @@ function VideosContent() {
       <div className="space-y-4">
         {heading}
         {notices}
-        <p className="text-sm text-slate-600">{t(locale, "raceDay.videos.noEvent")}</p>
+        <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.videos.noEvent")}</p>
         <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
           {t(locale, "raceDay.schedule.goSetup")}
         </Link>
@@ -166,7 +166,7 @@ function VideosContent() {
     <div className="space-y-6">
       {heading}
       {notices}
-      <p className="text-sm text-slate-600">{t(locale, "raceDay.videos.intro")}</p>
+      <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.videos.intro")}</p>
       {invalidCount > 0 ? (
         <FormMessage tone="info">{t(locale, "raceDay.state.invalidHidden", { count: invalidCount })}</FormMessage>
       ) : null}
@@ -182,12 +182,12 @@ function VideosContent() {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{activeEvent.name}</span>
+        <span className="text-base font-semibold text-brand-navy min-w-0 break-words">{activeEvent.name}</span>
         <VerificationBadge verification={activeEvent.verification} />
       </div>
 
       {loading ? (
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       ) : failed ? (
@@ -196,19 +196,19 @@ function VideosContent() {
         <>
           {races.items.length === 0 ? (
             <div className="space-y-3">
-              <p className="text-sm text-slate-600">{t(locale, "raceDay.videos.needRaces")}</p>
+              <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.videos.needRaces")}</p>
               <Link to="/race-day/schedule" className={PRIMARY_BUTTON}>
                 {t(locale, "raceDay.tab.schedule")}
               </Link>
             </div>
           ) : (
             <section aria-labelledby="videos-entry-heading" className="space-y-4">
-              <h2 id="videos-entry-heading" className="text-lg font-semibold text-slate-900">
+              <h2 id="videos-entry-heading" className="text-lg font-semibold text-brand-navy">
                 {t(locale, "raceDay.videos.entry.title")}
               </h2>
               {editing ? (
                 <>
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-slate-700">
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-brand-navy">
                     <dt className="font-medium">{t(locale, "raceDay.videos.form.race")}</dt>
                     <dd>{editingRace ? editingRace.label : t(locale, "raceDay.videos.item.unknownRace")}</dd>
                     <dt className="font-medium">{t(locale, "raceDay.videos.form.athlete")}</dt>
@@ -288,11 +288,11 @@ function VideosContent() {
           )}
 
           <section aria-labelledby="videos-list-heading" className="space-y-3">
-            <h2 id="videos-list-heading" className="text-lg font-semibold text-slate-900">
+            <h2 id="videos-list-heading" className="text-lg font-semibold text-brand-navy">
               {t(locale, "raceDay.videos.list.title")}
             </h2>
             {groups.length === 0 ? (
-              <p className="text-sm text-slate-600">{t(locale, "raceDay.videos.list.empty")}</p>
+              <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.videos.list.empty")}</p>
             ) : (
               <VideoList
                 groups={groups}

@@ -1,4 +1,5 @@
 import type { RaceRosterEntry } from "@skatingx/schema";
+import { ErrorNotice, StatusTag } from "@skatingx/ui";
 import { useMemo, useState } from "react";
 
 import { useLocale } from "@/hooks/useLocale";
@@ -22,7 +23,7 @@ export function RosterList({ entries, busy, onEdit, onSetVerified, onDelete }: R
   const sorted = useMemo(() => sortRosterEntries(entries, locale), [entries, locale]);
 
   if (sorted.length === 0) {
-    return <p className="text-sm text-slate-600">{t(locale, "raceDay.setup.roster.empty")}</p>;
+    return <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.setup.roster.empty")}</p>;
   }
 
   return (
@@ -33,31 +34,29 @@ export function RosterList({ entries, busy, onEdit, onSetVerified, onDelete }: R
         return (
           <li
             key={entry.rosterId}
-            className="rounded-xl border border-slate-200 bg-white p-4"
+            className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{entry.displayName}</span>
+              <span className="text-base font-semibold text-brand-navy min-w-0 break-words">{entry.displayName}</span>
               {entry.isSelf ? (
-                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-900">
-                  {t(locale, "raceDay.setup.roster.self")}
-                </span>
+                <StatusTag tone="brand">{t(locale, "raceDay.setup.roster.self")}</StatusTag>
               ) : entry.isFollowed ? (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                <span className="rounded-full bg-brand-ice px-2 py-0.5 text-xs font-semibold text-brand-navy">
                   {t(locale, "raceDay.setup.roster.following")}
                 </span>
               ) : null}
               <VerificationBadge verification={entry.verification} />
             </div>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-brand-navy/70">
               {t(locale, "raceDay.setup.roster.bib", { bib: entry.bib })} · {entry.division}
             </p>
 
             <div className="mt-3 flex flex-wrap gap-2">
               {confirming ? (
                 <>
-                  <p role="alert" className="w-full text-sm font-medium text-red-800">
+                  <ErrorNotice className="w-full">
                     {t(locale, "raceDay.setup.roster.deleteWarning")}
-                  </p>
+                  </ErrorNotice>
                   <button
                     type="button"
                     disabled={busy}

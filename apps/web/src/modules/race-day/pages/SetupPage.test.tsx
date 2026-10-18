@@ -2,6 +2,7 @@
 import type { RaceEvent, RaceRosterEntry } from "@skatingx/schema";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, waitFor } from "@/test/dom";
 
 import type { ListState } from "../hooks/useRaceDayData";
@@ -454,5 +455,59 @@ describe("SetupPage template", () => {
     render(<SetupPage />);
     await user.click(screen.getAllByRole("button", { name: /^编辑/ })[0]!);
     expect(screen.queryByText("使用模板")).toBeNull();
+  });
+});
+
+describe("SetupPage look", () => {
+  const clean = () => expect(legacyColourClasses(document.body)).toEqual([]);
+  const everyAlertHasIcon = () => {
+    for (const alert of screen.queryAllByRole("alert")) expect(alert.querySelector("svg")).not.toBeNull();
+  };
+
+  it("the event, its pending marker, the roster and the templates carry no old colour classes", () => {
+    render(<SetupPage />);
+    clean();
+    document.body.innerHTML = "";
+    h.events = ready([]);
+    render(<SetupPage />);
+    expect(screen.getByRole("heading", { name: /模板/ })).toBeTruthy();
+    clean();
+  });
+
+  it("form errors (event dates, roster fields) have an icon and no old colour classes", async () => {
+    h.events = ready([]);
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(document.querySelectorAll("p[id$='-error']").length).toBeGreaterThan(0);
+    for (const error of document.querySelectorAll("p[id$='-error']")) expect(error.querySelector("svg")).not.toBeNull();
+    everyAlertHasIcon();
+    clean();
+  });
+
+  it("the roster form and its errors are in the new look", async () => {
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    await user.click(screen.getByRole("button", { name: "添加运动员" }));
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(document.querySelectorAll("p[id$='-error']").length).toBeGreaterThan(0);
+    for (const error of document.querySelectorAll("p[id$='-error']")) expect(error.querySelector("svg")).not.toBeNull();
+    clean();
+  });
+
+  it("the delete confirmation is an alert with an icon, the confirm button is the danger outline", async () => {
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    await user.click(screen.getByRole("button", { name: "删除" }));
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "确认删除" }).className).toContain("text-status-danger");
+    clean();
+  });
+
+  it("the load-error and loading states are clean", () => {
+    h.roster = { status: "error", items: [], invalid: [], error: { code: "permission-denied", message: "x" } };
+    render(<SetupPage />);
+    everyAlertHasIcon();
+    clean();
   });
 });

@@ -41,7 +41,7 @@ describe("ShellFrame", () => {
     const ice = inFrame("/dashboard");
     expect(frame(ice.container).className).toContain("bg-brand-ice");
     ice.unmount();
-    const legacy = inFrame("/race-day");
+    const legacy = inFrame("/athlete");
     expect(frame(legacy.container).className).not.toContain("bg-brand-ice");
   });
 });
@@ -55,7 +55,10 @@ describe("ICE_PAGES", () => {
     expect(isIcePage("/analysis")).toBe(true);
     expect(isIcePage("/analysis/pacing")).toBe(true);
     expect(isIcePage("/analysisx")).toBe(false);
-    expect(isIcePage("/race-day")).toBe(false);
+    expect(isIcePage("/race-day")).toBe(true);
+    expect(isIcePage("/race-day/results")).toBe(true);
+    expect(isIcePage("/race-dayx")).toBe(false);
+    expect(isIcePage("/athlete")).toBe(false);
     expect(isIcePage("/ai-coach")).toBe(true);
     expect(isIcePage("/ai-coachx")).toBe(false);
     expect(isIcePage("/training/shop")).toBe(true);

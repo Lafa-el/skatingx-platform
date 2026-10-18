@@ -1,9 +1,19 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
-import { CheckboxField, DANGER_BUTTON, PRIMARY_BUTTON, SECONDARY_BUTTON, SelectField, TextField } from "./fields";
+import {
+  CheckboxField,
+  DANGER_BUTTON,
+  FormMessage,
+  PRIMARY_BUTTON,
+  SECONDARY_BUTTON,
+  SelectField,
+  TextAreaField,
+  TextField,
+} from "./fields";
 
 /**
  * Phone-use guards. Layout cannot be measured in happy-dom, so these pin the classes that were
@@ -38,5 +48,51 @@ describe("touch targets", () => {
     expect(label.className).toContain("break-words");
     expect(label.className).toContain("min-w-0");
     expect(label.parentElement?.className).toContain("min-h-11");
+  });
+});
+
+describe("UI v1 look", () => {
+  it("fields, errors, hints and the checkbox carry no old colour classes", () => {
+    const view = render(
+      <>
+        <TextField label="Name" value="" onChange={() => undefined} error="Required" hint="A hint" />
+        <TextAreaField label="Note" value="" onChange={() => undefined} error="Too long" hint="Another hint" />
+        <SelectField label="Day" value="" options={[{ value: "", label: "x" }]} onChange={() => undefined} error="Pick one" />
+        <CheckboxField label="Mine" checked={false} onChange={() => undefined} />
+      </>,
+    );
+    expect(legacyColourClasses(view.container)).toEqual([]);
+  });
+
+  it("a field error is an icon plus words, in the error red", () => {
+    render(<TextField label="Name" value="" onChange={() => undefined} error="Required" />);
+    const message = screen.getByText("Required").parentElement as HTMLElement;
+    expect(message.querySelector("svg")).not.toBeNull();
+    expect(message.className).toContain("text-status-danger");
+    expect(screen.getByLabelText("Name").getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByLabelText("Name").className).toContain("aria-[invalid=true]:border-status-danger");
+  });
+
+  it("an error message is an alert with an icon; an info message is a status with an icon", () => {
+    const view = render(
+      <>
+        <FormMessage tone="error">Broke</FormMessage>
+        <FormMessage tone="info">FYI</FormMessage>
+      </>,
+    );
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("status").querySelector("svg")).not.toBeNull();
+    expect(legacyColourClasses(view.container)).toEqual([]);
+  });
+
+  it("buttons put navy text on flame, never white, and the danger button uses the error red", () => {
+    expect(PRIMARY_BUTTON).toContain("bg-brand-flame");
+    expect(PRIMARY_BUTTON).toContain("text-brand-navy");
+    for (const style of [PRIMARY_BUTTON, SECONDARY_BUTTON, DANGER_BUTTON]) {
+      expect(style).not.toContain("text-white");
+      expect(style).not.toMatch(/-(sky|slate|red|amber|emerald)-\d/);
+    }
+    expect(DANGER_BUTTON).toContain("text-status-danger");
+    expect(DANGER_BUTTON).not.toContain("bg-brand-flame");
   });
 });

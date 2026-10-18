@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 import { StatusGlyph, type StatusTone } from "./StatusGlyph";
 
 export type { StatusTone } from "./StatusGlyph";
 
-type StatusTagProps = {
+type StatusTagProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
   tone: StatusTone;
   /** The status in words. A tag is never colour alone, so there is no way to leave this out. */
   children: ReactNode;
@@ -20,10 +20,11 @@ const tones: Record<StatusTone, string> = {
   brand: "bg-brand-flame text-brand-navy",
 };
 
-export function StatusTag({ tone, children, className = "" }: StatusTagProps) {
+export function StatusTag({ tone, children, className = "", ...rest }: StatusTagProps) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${tones[tone]} ${className}`.trim()}
+      {...rest}
       data-tone={tone}
     >
       <StatusGlyph tone={tone} />

@@ -83,9 +83,9 @@ export function RosterForm({
       noValidate
       aria-label={title}
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-slate-200 bg-white p-4"
+      className="space-y-4 rounded-card border border-brand-navy/10 bg-white p-4 shadow-card"
     >
-      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+      <h3 className="text-lg font-semibold text-brand-navy">{title}</h3>
 
       {errors.size > 0 ? <FormMessage tone="error">{t(locale, "raceDay.form.summaryError")}</FormMessage> : null}
       {submitErrorKey ? <FormMessage tone="error">{t(locale, submitErrorKey)}</FormMessage> : null}

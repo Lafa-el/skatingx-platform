@@ -7,6 +7,7 @@ import {
   zonedDateTimeToInstant,
   type RaceInput,
 } from "@skatingx/skating-domain";
+import { ErrorNotice } from "@skatingx/ui";
 import { useRef, useState, type FormEvent } from "react";
 
 import { useLocale } from "@/hooks/useLocale";
@@ -147,9 +148,9 @@ export function RaceForm({
       noValidate
       aria-label={title}
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-slate-200 bg-white p-4"
+      className="space-y-4 rounded-card border border-brand-navy/10 bg-white p-4 shadow-card"
     >
-      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+      <h3 className="text-lg font-semibold text-brand-navy">{title}</h3>
 
       {errors.size > 0 ? <FormMessage tone="error">{t(locale, "raceDay.form.summaryError")}</FormMessage> : null}
       {submitErrorKey ? <FormMessage tone="error">{t(locale, submitErrorKey)}</FormMessage> : null}
@@ -210,11 +211,11 @@ export function RaceForm({
       />
 
       <fieldset className="min-w-0 space-y-2">
-        <legend className="text-sm font-medium text-slate-800">
+        <legend className="text-sm font-medium text-brand-navy">
           {t(locale, "raceDay.form.race.athletes")}
         </legend>
         {sortedRoster.length === 0 ? (
-          <p className="text-sm text-slate-600">{t(locale, "raceDay.form.race.noRoster")}</p>
+          <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.form.race.noRoster")}</p>
         ) : (
           sortedRoster.map((entry) => (
             <CheckboxField
@@ -229,9 +230,9 @@ export function RaceForm({
           ))
         )}
         {errorText("rosterIds") ? (
-          <p role="alert" className="text-sm font-medium text-red-700">
+          <ErrorNotice className="w-full">
             {errorText("rosterIds")}
-          </p>
+          </ErrorNotice>
         ) : null}
       </fieldset>
 

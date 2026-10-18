@@ -2,6 +2,7 @@
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent } from "@/test/dom";
 
 import RaceDayModule from "./RaceDayModule";
@@ -120,5 +121,17 @@ describe("RaceDayModule", () => {
       "Setup",
     ]);
     expect(screen.getByText(/marked Pending/)).toBeTruthy();
+  });
+});
+
+describe("RaceDayLayout look", () => {
+  it.each(["zh", "en"] as const)("%s: the field-test notice is a pending notice with an icon, and no old colour classes remain", (code) => {
+    locale.current = code;
+    renderAt("/race-day");
+    const main = document.querySelector("main") as HTMLElement;
+    expect(legacyColourClasses(main)).toEqual([]);
+    const notice = main.querySelector("div.rounded-control") as HTMLElement;
+    expect(notice.querySelector("svg")).not.toBeNull();
+    expect(notice.className).toContain("bg-status-pending-tint");
   });
 });

@@ -21,7 +21,7 @@ export function RaceDayRoute() {
   return (
     <Suspense
       fallback={
-        <p role="status" className="p-6 text-slate-600">
+        <p role="status" className="p-6 text-brand-navy/70">
           {tCore(locale, "raceDay.state.loading")}
         </p>
       }

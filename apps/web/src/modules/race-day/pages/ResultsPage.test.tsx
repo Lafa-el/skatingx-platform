@@ -3,6 +3,7 @@ import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skating
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, waitFor, within } from "@/test/dom";
 
 import type { ListState } from "../hooks/useRaceDayData";
@@ -508,5 +509,38 @@ describe("ResultsPage in English", () => {
     await user.selectOptions(screen.getByLabelText("Athlete"), "bob");
     expect(screen.getByText(/Up to three decimals/)).toBeTruthy();
     expect(screen.getByText("Place 1")).toBeTruthy();
+  });
+});
+
+describe("ResultsPage look", () => {
+  const clean = () => expect(legacyColourClasses(document.body)).toEqual([]);
+  const alertsHaveIcons = () => {
+    for (const alert of screen.queryAllByRole("alert")) expect(alert.querySelector("svg")).not.toBeNull();
+  };
+
+  it("the entry form, the feed with pending and confirmed results and the removed-from-race note have no old colour classes", async () => {
+    h.results = ready([result("ann"), result("bob", { verification: "verified" })]);
+    h.races = ready([race({ rosterIds: ["ann"] })]);
+    const user = renderPage();
+    clean();
+    expect(document.querySelectorAll(".sx-numeric").length).toBeGreaterThan(0);
+    await choose(user, "race-1", "ann");
+    clean();
+  });
+
+  it("the removed-from-race note is a pending notice with an icon", () => {
+    h.results = ready([result("bob")]);
+    h.races = ready([race({ rosterIds: ["ann"] })]);
+    renderPage();
+    const note = screen.getByText(/不在这场比赛|已从比赛中移除|不再/);
+    expect((note.closest("div.rounded-control") as HTMLElement).querySelector("svg")).not.toBeNull();
+  });
+
+  it("form errors have an icon", async () => {
+    const user = renderPage();
+    await choose(user, "race-1", "ann");
+    await user.click(screen.getByRole("button", { name: "保存成绩" }));
+    alertsHaveIcons();
+    clean();
   });
 });

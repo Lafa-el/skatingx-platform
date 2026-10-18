@@ -56,7 +56,7 @@ export function ResultsPage() {
     [results.items, races.items, roster.items],
   );
 
-  const heading = <h1 className="text-2xl font-bold text-slate-900">{t(locale, "raceDay.tab.results")}</h1>;
+  const heading = <h1 className="text-2xl font-bold text-brand-navy">{t(locale, "raceDay.tab.results")}</h1>;
 
   function afterWrite(outcome: WriteOutcome | null): boolean {
     if (outcome === null) {
@@ -70,7 +70,7 @@ export function ResultsPage() {
     return (
       <div className="space-y-4">
         {heading}
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       </div>
@@ -100,7 +100,7 @@ export function ResultsPage() {
       <div className="space-y-4">
         {heading}
         {notices}
-        <p className="text-sm text-slate-600">{t(locale, "raceDay.results.noEvent")}</p>
+        <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.results.noEvent")}</p>
         <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
           {t(locale, "raceDay.schedule.goSetup")}
         </Link>
@@ -163,12 +163,12 @@ export function ResultsPage() {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{activeEvent.name}</span>
+        <span className="text-base font-semibold text-brand-navy min-w-0 break-words">{activeEvent.name}</span>
         <VerificationBadge verification={activeEvent.verification} />
       </div>
 
       {loading ? (
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       ) : failed ? (
@@ -177,14 +177,14 @@ export function ResultsPage() {
         <>
           {races.items.length === 0 ? (
             <div className="space-y-3">
-              <p className="text-sm text-slate-600">{t(locale, "raceDay.results.needRaces")}</p>
+              <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.results.needRaces")}</p>
               <Link to="/race-day/schedule" className={PRIMARY_BUTTON}>
                 {t(locale, "raceDay.tab.schedule")}
               </Link>
             </div>
           ) : (
             <section aria-labelledby="results-entry-heading" className="space-y-4">
-              <h2 id="results-entry-heading" className="text-lg font-semibold text-slate-900">
+              <h2 id="results-entry-heading" className="text-lg font-semibold text-brand-navy">
                 {t(locale, "raceDay.results.entry.title")}
               </h2>
               <SelectField
@@ -244,12 +244,12 @@ export function ResultsPage() {
           )}
 
           <section aria-labelledby="results-feed-heading" className="space-y-3">
-            <h2 id="results-feed-heading" className="text-lg font-semibold text-slate-900">
+            <h2 id="results-feed-heading" className="text-lg font-semibold text-brand-navy">
               {t(locale, "raceDay.results.feed.title")}
             </h2>
-            <p className="text-sm text-slate-500">{t(locale, "raceDay.results.feed.live")}</p>
+            <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.results.feed.live")}</p>
             {views.length === 0 ? (
-              <p className="text-sm text-slate-600">{t(locale, "raceDay.results.feed.empty")}</p>
+              <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.results.feed.empty")}</p>
             ) : (
               <ResultList
                 views={views}

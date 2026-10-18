@@ -2,6 +2,7 @@
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
 import { ProGate } from "./ProGate";
@@ -19,7 +20,7 @@ function Probe() {
 }
 
 function renderGate() {
-  render(
+  return render(
     <MemoryRouter>
       <ProGate titleKey="raceDay.tab.videos">
         <Probe />
@@ -106,5 +107,24 @@ describe("ProGate", () => {
     ).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
     expect(screen.getByText(/temporary arrangement/)).toBeTruthy();
+  });
+});
+
+describe("ProGate look", () => {
+  it.each([
+    ["loading", () => (pro.loading = true)],
+    ["locked", () => undefined],
+    ["read error", () => (pro.error = "boom")],
+  ])("%s: no old colour classes, navy heading", (_name, apply) => {
+    apply();
+    const view = renderGate();
+    expect(legacyColourClasses(view.container)).toEqual([]);
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-brand-navy");
+  });
+
+  it("the read error has an icon", () => {
+    pro.error = "boom";
+    renderGate();
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
   });
 });

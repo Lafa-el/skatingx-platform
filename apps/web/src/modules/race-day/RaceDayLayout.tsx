@@ -1,3 +1,4 @@
+import { Notice } from "@skatingx/ui";
 import { Outlet } from "react-router-dom";
 
 import type { NavItem } from "@/app/navigation";
@@ -24,9 +25,9 @@ export function RaceDayLayout() {
       subNav={<SubNav items={items} label={t(locale, "raceDay.nav.section")} />}
       mainClassName="break-words"
     >
-      <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      <Notice tone="pending" className="mb-4">
         {t(locale, "raceDay.phase0.notice")}
-      </p>
+      </Notice>
       <Outlet />
     </ShellFrame>
   );

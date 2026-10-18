@@ -22,7 +22,7 @@ export function TemplatePicker({ existingEventIds, saving, submitErrorKey, onApp
 
   return (
     <section aria-labelledby="race-day-templates" className="space-y-3">
-      <h3 id="race-day-templates" className="text-lg font-semibold text-slate-900">
+      <h3 id="race-day-templates" className="text-lg font-semibold text-brand-navy">
         {t(locale, "raceDay.template.title")}
       </h3>
       {submitErrorKey ? <FormMessage tone="error">{t(locale, submitErrorKey)}</FormMessage> : null}
@@ -32,11 +32,11 @@ export function TemplatePicker({ existingEventIds, saving, submitErrorKey, onApp
           const title = titleKey ? t(locale, titleKey) : template.event.name;
           const applied = existingEventIds.has(template.eventId);
           return (
-            <li key={template.eventId} className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-base font-semibold text-slate-900">{title}</p>
-              <p className="text-sm text-slate-600">{t(locale, "raceDay.template.description")}</p>
+            <li key={template.eventId} className="space-y-2 rounded-card border border-brand-navy/10 bg-white p-4 shadow-card">
+              <p className="text-base font-semibold text-brand-navy">{title}</p>
+              <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.template.description")}</p>
               {applied ? (
-                <p className="text-sm font-medium text-slate-700">{t(locale, "raceDay.template.applied")}</p>
+                <p className="text-sm font-medium text-brand-navy">{t(locale, "raceDay.template.applied")}</p>
               ) : (
                 <button
                   type="button"

@@ -63,7 +63,7 @@ function SummaryContent() {
   );
   const numbers = useMemo(() => raceNumberById(races.items), [races.items]);
 
-  const heading = <h1 className="text-2xl font-bold text-slate-900">{t(locale, "raceDay.tab.summary")}</h1>;
+  const heading = <h1 className="text-2xl font-bold text-brand-navy">{t(locale, "raceDay.tab.summary")}</h1>;
 
   function afterWrite(outcome: WriteOutcome | null): boolean {
     if (outcome === null) {
@@ -77,7 +77,7 @@ function SummaryContent() {
     return (
       <div className="space-y-4">
         {heading}
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       </div>
@@ -107,7 +107,7 @@ function SummaryContent() {
       <div className="space-y-4">
         {heading}
         {notices}
-        <p className="text-sm text-slate-600">{t(locale, "raceDay.summary.noEvent")}</p>
+        <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.summary.noEvent")}</p>
         <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
           {t(locale, "raceDay.schedule.goSetup")}
         </Link>
@@ -159,12 +159,12 @@ function SummaryContent() {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{activeEvent.name}</span>
+        <span className="text-base font-semibold text-brand-navy min-w-0 break-words">{activeEvent.name}</span>
         <VerificationBadge verification={activeEvent.verification} />
       </div>
 
       {loading ? (
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       ) : failed ? (
@@ -180,7 +180,7 @@ function SummaryContent() {
             </>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-slate-600">{t(locale, "raceDay.summary.noSelf")}</p>
+              <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.summary.noSelf")}</p>
               <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
                 {t(locale, "raceDay.schedule.goSetup")}
               </Link>

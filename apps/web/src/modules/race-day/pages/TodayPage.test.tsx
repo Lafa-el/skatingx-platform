@@ -3,6 +3,7 @@ import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skating
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, within } from "@/test/dom";
 
 import type { ListState } from "../hooks/useRaceDayData";
@@ -366,5 +367,39 @@ describe("TodayPage in English", () => {
     h.now = "2026-10-16T12:00:00.000Z";
     renderPage();
     expect(screen.getByText(/8 day\(s\) until the event/)).toBeTruthy();
+  });
+});
+
+describe("TodayPage look", () => {
+  const clean = () => expect(legacyColourClasses(document.body)).toEqual([]);
+
+  it("the full board (own race, pending banner, two events) has no old colour classes", () => {
+    h.events = ready([buffalo, { ...buffalo, eventId: "cup-2", name: "Second Cup" }]);
+    h.results = ready([result("r1", "me")]);
+    renderPage();
+    expect(screen.getByTestId("pending-banner")).toBeTruthy();
+    clean();
+  });
+
+  it("the own-athlete tag is a words-and-icon tag, and the pending marker is not the success tone", () => {
+    renderPage();
+    const mine = screen.getAllByText("我的比赛")[0];
+    expect(mine.getAttribute("data-tone")).toBe("brand");
+    expect(mine.querySelector("svg")).not.toBeNull();
+    for (const marker of document.querySelectorAll("[data-verification='pending']")) {
+      expect(marker.getAttribute("data-tone")).toBe("pending");
+    }
+  });
+
+  it.each([
+    ["loading events", () => (h.events = loadingList)],
+    ["no event", () => (h.events = ready([]))],
+    ["event error", () => (h.events = errorList("unavailable"))],
+    ["race error", () => (h.races = errorList("unavailable"))],
+  ])("%s: no old colour classes, and an error has an icon", (_name, apply) => {
+    apply();
+    renderPage();
+    clean();
+    for (const alert of screen.queryAllByRole("alert")) expect(alert.querySelector("svg")).not.toBeNull();
   });
 });

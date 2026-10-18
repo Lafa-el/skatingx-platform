@@ -2,6 +2,7 @@
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
 import { RaceDayRoute } from "./RaceDayRoute";
@@ -45,6 +46,8 @@ describe("RaceDayRoute", () => {
     vi.stubEnv("VITE_FEATURE_RACE_DAY", "true");
     renderAt("/race-day");
     expect(screen.getByRole("status").textContent).toBe("加载中…");
+    // /race-day is on the warm white, so its loading text uses the navy tint, not the old grey.
+    expect(legacyColourClasses(screen.getByRole("status"))).toEqual([]);
     expect(await screen.findByText("race day module")).toBeTruthy();
     expect(screen.queryByText("dashboard page")).toBeNull();
   });

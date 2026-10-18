@@ -4,7 +4,7 @@ import { useLocale } from "@/hooks/useLocale";
 
 import { useProAccess } from "../hooks/useProAccess";
 import { t, type RaceDayMessageKey } from "../i18n/messages";
-import { FormMessage } from "./fields";
+import { FormMessage, SURFACE_CARD } from "./fields";
 
 type ProGateProps = {
   /** Heading of the page behind the gate, so the locked state still names where you are. */
@@ -29,20 +29,20 @@ export function ProGate({ titleKey, children }: ProGateProps) {
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">{t(locale, titleKey)}</h1>
+      <h1 className="text-2xl font-bold text-brand-navy">{t(locale, titleKey)}</h1>
       {access === "loading" ? (
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.pro.preparing")}
         </p>
       ) : (
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-          <h2 className="text-lg font-semibold text-slate-900">{t(locale, "raceDay.pro.title")}</h2>
+        <div className={`space-y-3 ${SURFACE_CARD}`}>
+          <h2 className="text-lg font-semibold text-brand-navy">{t(locale, "raceDay.pro.title")}</h2>
           {access === "error" ? (
             <FormMessage tone="error">{t(locale, "raceDay.pro.error")}</FormMessage>
           ) : (
-            <p className="text-sm text-slate-700">{t(locale, "raceDay.pro.body")}</p>
+            <p className="text-sm text-brand-navy">{t(locale, "raceDay.pro.body")}</p>
           )}
-          <p className="text-sm text-slate-500">{t(locale, "raceDay.pro.provisional")}</p>
+          <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.pro.provisional")}</p>
         </div>
       )}
     </section>
