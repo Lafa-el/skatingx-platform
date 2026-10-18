@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
+import { denied, watchUnhandledRejections } from "@/test/unhandledRejections";
 
 import { TrainingShopPage } from "./TrainingShopPage";
 
@@ -319,5 +320,28 @@ describe("TrainingShopPage: tap targets (44px)", () => {
     const { container } = renderPage();
     expect(container.querySelectorAll("button").length).toBe(2);
     expect(controlsBelowTapTarget(container, { skipLinks: true })).toEqual([]);
+  });
+});
+
+// The hook shows the failure on the page and then rethrows. The click handler must catch it, or it
+// becomes "Uncaught (in promise)".
+describe("TrainingShopPage: a failed redemption", () => {
+  it("no unhandled rejection, the code is logged, and the reward stays redeemable", async () => {
+    setSettings("zh");
+    h.state.shop.catalog = { items: [reward("cheap", 50)] };
+    stubConfirm(true);
+    const watcher = watchUnhandledRejections();
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    h.state.actions.redeem = vi.fn(async () => {
+      throw denied();
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "兑换" }));
+    expect(await watcher.settled()).toEqual([]);
+    watcher.stop();
+    expect(log).toHaveBeenCalledExactlyOnceWith("[training-shop] redeem failed", { code: "permission-denied" });
+    expect((screen.getByRole("button", { name: "兑换" }) as HTMLButtonElement).disabled).toBe(false);
+    log.mockRestore();
   });
 });

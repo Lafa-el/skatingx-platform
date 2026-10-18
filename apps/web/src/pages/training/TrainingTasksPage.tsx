@@ -13,6 +13,7 @@ import {
   type TrainingTasksMessageKey,
   tTrainingTasks,
 } from "@/shared/i18n/training-tasks-messages";
+import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 /**
  * The note after a toggle. It keeps what happened, not the sentence, so it follows the language
@@ -46,7 +47,13 @@ export function TrainingTasksPage() {
       return;
     }
     clearActionError();
-    await addTask(text, target);
+    try {
+      await addTask(text, target);
+    } catch (error) {
+      // The hook already put the reason on the page. Keep what was typed so it can be retried.
+      logActionFailure("training-tasks", "addTask", error);
+      return;
+    }
     setText("");
     setTarget("");
   }
@@ -54,7 +61,13 @@ export function TrainingTasksPage() {
   async function handleToggle(taskId: string) {
     clearActionError();
     setBonusNote(null);
-    const result = await toggleTask(taskId);
+    let result: Awaited<ReturnType<typeof toggleTask>>;
+    try {
+      result = await toggleTask(taskId);
+    } catch (error) {
+      logActionFailure("training-tasks", "toggleTask", error);
+      return;
+    }
     if (result.bonusApplied) {
       setBonusNote({ kind: "applied", points: dailyBonus });
     }
@@ -69,7 +82,11 @@ export function TrainingTasksPage() {
       return;
     }
     clearActionError();
-    await removeTask(taskId);
+    try {
+      await removeTask(taskId);
+    } catch (error) {
+      logActionFailure("training-tasks", "removeTask", error);
+    }
   }
 
   return (

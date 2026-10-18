@@ -17,6 +17,7 @@ import {
   type RecordsMessageKey,
   tRecords,
 } from "@/shared/i18n/records-messages";
+import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 const SOURCES = ["manual", "training", "race"] as const;
 
@@ -96,15 +97,21 @@ export function TrainingRecordsPage() {
       note: note.trim() || undefined,
     };
 
-    if (editingEntryId) {
-      await editEntry(
-        activeDistanceId,
-        activeDistance.label,
-        editingEntryId,
-        payload,
-      );
-    } else {
-      await addEntry(activeDistanceId, activeDistance.label, payload);
+    try {
+      if (editingEntryId) {
+        await editEntry(
+          activeDistanceId,
+          activeDistance.label,
+          editingEntryId,
+          payload,
+        );
+      } else {
+        await addEntry(activeDistanceId, activeDistance.label, payload);
+      }
+    } catch (error) {
+      // The hook already put the reason on the page. The form stays as it was so nothing typed is lost.
+      logActionFailure("training-records", editingEntryId ? "editEntry" : "addEntry", error);
+      return;
     }
     resetForm();
   }
@@ -131,7 +138,11 @@ export function TrainingRecordsPage() {
     if (editingEntryId === entryId) {
       resetForm();
     }
-    await removeEntry(activeDistanceId, activeDistance.label, entryId);
+    try {
+      await removeEntry(activeDistanceId, activeDistance.label, entryId);
+    } catch (error) {
+      logActionFailure("training-records", "removeEntry", error);
+    }
   }
 
   return (

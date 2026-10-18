@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
+import { denied, watchUnhandledRejections } from "@/test/unhandledRejections";
 
 import { TrainingTasksPage } from "./TrainingTasksPage";
 
@@ -265,5 +266,67 @@ describe("TrainingTasksPage: tap targets (44px)", () => {
     expect(container.querySelectorAll('input[type="checkbox"]').length).toBe(2);
     const isDelete = (el: Element) => el.tagName === "BUTTON" && el.closest("li") !== null;
     expect(controlsBelowTapTarget(container, { wide: isDelete })).toEqual([]);
+  });
+});
+
+// The hook shows the failure on the page and then rethrows. A click handler that does not catch
+// turns that into "Uncaught (in promise)", so the page catches, logs the code and carries on.
+describe("TrainingTasksPage: a failed action", () => {
+  const watch = () => watchUnhandledRejections();
+
+  it("adding: no unhandled rejection, what was typed stays, the code is logged", async () => {
+    const watcher = watch();
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    h.state.actions.addTask = vi.fn(async () => {
+      throw denied();
+    });
+    const user = userEvent.setup();
+    render(<TrainingTasksPage />);
+    await user.type(screen.getByLabelText("任务"), "新任务 A");
+    await user.type(screen.getByLabelText("目标（选填）"), "5 组");
+    await user.click(screen.getByRole("button", { name: "添加任务" }));
+    expect(await watcher.settled()).toEqual([]);
+    watcher.stop();
+    expect((screen.getByLabelText("任务") as HTMLInputElement).value).toBe("新任务 A");
+    expect((screen.getByLabelText("目标（选填）") as HTMLInputElement).value).toBe("5 组");
+    expect(log).toHaveBeenCalledExactlyOnceWith("[training-tasks] addTask failed", { code: "permission-denied" });
+    log.mockRestore();
+  });
+
+  it("toggling: no unhandled rejection and no bonus message", async () => {
+    const watcher = watch();
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    h.state.actions.toggleTask = vi.fn(async () => {
+      throw denied();
+    });
+    const user = userEvent.setup();
+    render(<TrainingTasksPage />);
+    await user.click(screen.getByRole("checkbox", { name: "完成：My own 400m task" }));
+    expect(await watcher.settled()).toEqual([]);
+    watcher.stop();
+    expect(log).toHaveBeenCalledExactlyOnceWith("[training-tasks] toggleTask failed", { code: "permission-denied" });
+    log.mockRestore();
+  });
+
+  it("deleting: no unhandled rejection", async () => {
+    const watcher = watch();
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    stubConfirm(true);
+    h.state.actions.removeTask = vi.fn(async () => {
+      throw denied();
+    });
+    const user = userEvent.setup();
+    render(<TrainingTasksPage />);
+    await user.click(screen.getAllByRole("button", { name: "删除" })[0]!);
+    expect(await watcher.settled()).toEqual([]);
+    watcher.stop();
+    expect(log).toHaveBeenCalledExactlyOnceWith("[training-tasks] removeTask failed", { code: "permission-denied" });
+    log.mockRestore();
+  });
+
+  it("the error from the hook is still what the page shows", () => {
+    h.state.actions.actionError = "Missing or insufficient permissions.";
+    render(<TrainingTasksPage />);
+    expect(screen.getByText("Missing or insufficient permissions.")).toBeTruthy();
   });
 });

@@ -13,6 +13,7 @@ import {
   useTrainingState,
   useUserSettings,
 } from "@/app/providers/FirestoreProvider";
+import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 /** Runs cross-day task archive once per user/day when training state is loaded. */
 export function TrainingDayRollover() {
@@ -51,9 +52,15 @@ export function TrainingDayRollover() {
       { db, userId: uid, athleteId },
       state,
       today,
-    ).then(() => {
-      lastRunKey.current = runKey;
-    });
+    )
+      .then(() => {
+        lastRunKey.current = runKey;
+      })
+      .catch((error: unknown) => {
+        // Background work: there is no click to report to. The run is not marked done, so the
+        // next change of the training data tries again.
+        logActionFailure("training-rollover", "runDayRolloverIfNeeded", error);
+      });
   }, [uid, ready, loading, training, athleteId]);
 
   return null;
