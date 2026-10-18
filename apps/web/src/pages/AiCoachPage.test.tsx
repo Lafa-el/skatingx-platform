@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { isIcePage } from "@/layouts/icePages";
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
 import { AiCoachPage } from "./AiCoachPage";
@@ -24,5 +26,15 @@ describe("AiCoachPage", () => {
     render(<AiCoachPage />);
     expect(screen.getByRole("heading", { level: 1, name: "AI Coach" })).toBeTruthy();
     expect(screen.getByText("Coach recommendations and apply-to-tasks flow — Phase 5+.")).toBeTruthy();
+  });
+
+  it("has no old colour classes and is in ICE_PAGES, so its text is checked against the warm white", () => {
+    for (const locale of ["zh", "en"] as const) {
+      state.locale = locale;
+      const view = render(<AiCoachPage />);
+      expect(legacyColourClasses(view.container)).toEqual([]);
+      view.unmount();
+    }
+    expect(isIcePage("/ai-coach")).toBe(true);
   });
 });

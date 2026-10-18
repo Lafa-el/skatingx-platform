@@ -246,7 +246,10 @@ SkatingX 全 app 界面改版 v1.0。设计已定稿（见附件截图：设计�
 
 ### B.14 阶段 3：分析页换皮（本仓库实际范围）
 - 范围：`/analysis` 下的四个页面（首页、动作分析、配速、装备）。它们现在都只渲染 `PagePlaceholder`，所以实际改的是 `PagePlaceholder`：标题改为 `text-brand-navy`，说明文字放进中性的 `Notice`（带图标，不用颜色单独表意），去掉旧的 `slate` 灰字。`/analysis` 登记进 `ICE_PAGES`（含子页面）。
-- 同一个组件还被 AI 教练页使用，所以它跟着换了外观；`/ai-coach` **没有**加入 `ICE_PAGES`，页面底色不变。两种底色上的 `brand-navy` 与 `/70` 文字对比度都在 `tokens.test.ts` 里验证过。
+- 同一个组件还被 AI 教练页使用，所以它跟着换了外观；`/ai-coach` 在 #43 里没有加入 `ICE_PAGES`；owner 随后决定加入（见 B.15）。两种底色上的 `brand-navy` 与 `/70` 文字对比度都在 `tokens.test.ts` 里验证过。
 - 本仓库目前没有 Chart.js、MediaPipe 或 `<canvas>`，也没有对应依赖，所以"保持原样的画布清单"为空。legacy `blaze-skate-analysis/index.html` 里的画布（`#outputCanvas` 姿态叠加层、`#pacingChart`、几处 2D 画布、`poseFrameCanvas`）以及从 jsDelivr 加载 MediaPipe / Chart.js 的做法，属于分析模块迁移范围：到时必须自托管、带版本号、懒加载，图表与叠加层的颜色另行决定，不在本阶段。
 - 不做：播放器、关键帧、图表、任何新文案、日志入口。
 - 测试：四个页面（中英文）断言没有旧颜色类、标题为 navy、说明带图标；`PagePlaceholder` 同样；`ICE_PAGES` 增加 `/analysis`、`/analysis/pacing`、`/analysisx`（不匹配）、`/ai-coach`（不匹配）。
+
+### B.15 AI 教练页加入 `ICE_PAGES`
+- 页面除 `PagePlaceholder` 外没有任何自己的样式（核对过 `AiCoachPage.tsx`），所以加入后没有残留的旧颜色类。`/ai-coach` 登记进 `ICE_PAGES`，`AiCoachPage.test.tsx` 增加"中英文都没有旧颜色类"的断言，并断言 `isIcePage("/ai-coach")` 为真。
