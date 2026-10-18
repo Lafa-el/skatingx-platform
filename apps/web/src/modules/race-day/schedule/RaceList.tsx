@@ -1,5 +1,6 @@
 import type { RaceEntry, RaceRosterEntry } from "@skatingx/schema";
 import { groupRaceEntriesByDay, sortRaceEntries } from "@skatingx/skating-domain";
+import { ErrorNotice } from "@skatingx/ui";
 import { useMemo, useState } from "react";
 
 import { useLocale } from "@/hooks/useLocale";
@@ -39,7 +40,7 @@ export function RaceList({ races, roster, timeZone, busy, onEdit, onSetVerified,
     <div className="space-y-5">
       {groups.map((group) => (
         <section key={group.day ?? "unknown-day"} className="space-y-2">
-          <h3 className="text-base font-semibold text-slate-800">
+          <h3 className="text-base font-semibold text-brand-navy">
             {group.day ? formatRaceDay(group.day, locale) : t(locale, "raceDay.schedule.dayUnknown")}
           </h3>
           <ul className="space-y-3">
@@ -49,28 +50,28 @@ export function RaceList({ races, roster, timeZone, busy, onEdit, onSetVerified,
               const verified = race.verification === "verified";
               const suffix = <span className="sr-only"> {`${race.label} #${number}`}</span>;
               return (
-                <li key={race.raceId} className="rounded-xl border border-slate-200 bg-white p-4">
+                <li key={race.raceId} className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm text-slate-500">#{number}</span>
-                    <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{race.label}</span>
+                    <span className="text-sm text-brand-navy/70">#{number}</span>
+                    <span className="text-base font-semibold text-brand-navy min-w-0 break-words">{race.label}</span>
                     {race.round ? (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                      <span className="rounded-full bg-brand-ice px-2 py-0.5 text-xs text-brand-navy">
                         {t(locale, "raceDay.schedule.round", { round: race.round })}
                       </span>
                     ) : null}
                     {race.heat ? (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                      <span className="rounded-full bg-brand-ice px-2 py-0.5 text-xs text-brand-navy">
                         {t(locale, "raceDay.schedule.heat", { heat: race.heat })}
                       </span>
                     ) : null}
                     <VerificationBadge verification={race.verification} />
                   </div>
-                  <p className="mt-1 text-sm text-slate-700">
+                  <p className="mt-1 text-sm text-brand-navy">
                     {race.scheduledAt
                       ? formatRaceTime(race.scheduledAt, locale, timeZone)
                       : t(locale, "raceDay.schedule.timeUnknown")}
                   </p>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-sm text-brand-navy/70">
                     {race.rosterIds.length === 0
                       ? t(locale, "raceDay.schedule.noAthletes")
                       : race.rosterIds
@@ -81,9 +82,9 @@ export function RaceList({ races, roster, timeZone, busy, onEdit, onSetVerified,
                   <div className="mt-3 flex flex-wrap gap-2">
                     {confirming ? (
                       <>
-                        <p role="alert" className="w-full text-sm font-medium text-red-800">
+                        <ErrorNotice className="w-full">
                           {t(locale, "raceDay.schedule.deleteWarning")}
-                        </p>
+                        </ErrorNotice>
                         <button
                           type="button"
                           disabled={busy}

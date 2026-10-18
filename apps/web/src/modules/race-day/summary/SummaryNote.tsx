@@ -76,7 +76,7 @@ export function SummaryNote({
 
   return (
     <section aria-labelledby="summary-note-heading" className="space-y-3">
-      <h2 id="summary-note-heading" className="text-lg font-semibold text-slate-900">
+      <h2 id="summary-note-heading" className="text-lg font-semibold text-brand-navy">
         {t(locale, "raceDay.summary.note.title")}
       </h2>
 
@@ -104,13 +104,13 @@ export function SummaryNote({
             }}
           />
           {saved?.generatedAt ? (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-brand-navy/70">
               {t(locale, "raceDay.summary.note.savedAt", {
                 time: formatSavedAt(saved.generatedAt, locale, timeZone),
               })}
             </p>
           ) : (
-            <p className="text-sm text-slate-500">{t(locale, "raceDay.summary.note.none")}</p>
+            <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.summary.note.none")}</p>
           )}
           <button type="submit" disabled={busy || unchanged} className={PRIMARY_BUTTON}>
             {saving ? t(locale, "raceDay.common.saving") : t(locale, "raceDay.summary.note.save")}

@@ -52,7 +52,7 @@ export function SchedulePage() {
   const raceSubmit = useSubmitState("saveRace");
   const rowAction = useSubmitState("raceRowAction");
 
-  const heading = <h1 className="text-2xl font-bold text-slate-900">{t(locale, "raceDay.tab.schedule")}</h1>;
+  const heading = <h1 className="text-2xl font-bold text-brand-navy">{t(locale, "raceDay.tab.schedule")}</h1>;
 
   function afterWrite(outcome: WriteOutcome | null): boolean {
     if (outcome === null) {
@@ -66,7 +66,7 @@ export function SchedulePage() {
     return (
       <div className="space-y-4">
         {heading}
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       </div>
@@ -96,7 +96,7 @@ export function SchedulePage() {
       <div className="space-y-4">
         {heading}
         {notices}
-        <p className="text-sm text-slate-600">{t(locale, "raceDay.schedule.noEvent")}</p>
+        <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.schedule.noEvent")}</p>
         <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
           {t(locale, "raceDay.schedule.goSetup")}
         </Link>
@@ -135,7 +135,7 @@ export function SchedulePage() {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{activeEvent.name}</span>
+        <span className="text-base font-semibold text-brand-navy min-w-0 break-words">{activeEvent.name}</span>
         <VerificationBadge verification={activeEvent.verification} />
       </div>
 
@@ -149,13 +149,13 @@ export function SchedulePage() {
       ) : null}
 
       {races.status === "loading" ? (
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       ) : races.status === "error" ? (
         <FormMessage tone="error">{t(locale, loadErrorMessageKey(races.error?.code ?? ""))}</FormMessage>
       ) : races.items.length === 0 ? (
-        <p className="text-sm text-slate-600">{t(locale, "raceDay.schedule.empty")}</p>
+        <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.schedule.empty")}</p>
       ) : (
         <RaceList
           races={races.items}

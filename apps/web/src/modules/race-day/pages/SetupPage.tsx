@@ -80,14 +80,14 @@ export function SetupPage() {
   }
 
   const heading = (
-    <h1 className="text-2xl font-bold text-slate-900">{t(locale, "raceDay.tab.setup")}</h1>
+    <h1 className="text-2xl font-bold text-brand-navy">{t(locale, "raceDay.tab.setup")}</h1>
   );
 
   if (!ctx || !actions || events.status === "loading") {
     return (
       <div className="space-y-4">
         {heading}
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       </div>
@@ -170,12 +170,12 @@ export function SetupPage() {
       ) : null}
 
       <section aria-labelledby="race-day-setup-event" className="space-y-3">
-        <h2 id="race-day-setup-event" className="text-xl font-semibold text-slate-900">
+        <h2 id="race-day-setup-event" className="text-xl font-semibold text-brand-navy">
           {t(locale, "raceDay.setup.event.title")}
         </h2>
 
         {sortedEvents.length === 0 ? (
-          <p className="text-sm text-slate-600">{t(locale, "raceDay.setup.event.empty")}</p>
+          <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.setup.event.empty")}</p>
         ) : null}
 
         <EventPicker
@@ -189,12 +189,12 @@ export function SetupPage() {
         />
 
         {activeEvent && !showEventForm ? (
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="space-y-3 rounded-card border border-brand-navy/10 bg-white p-4 shadow-card">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{activeEvent.name}</span>
+              <span className="text-base font-semibold text-brand-navy min-w-0 break-words">{activeEvent.name}</span>
               <VerificationBadge verification={activeEvent.verification} />
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-brand-navy/70">
               {t(locale, "raceDay.setup.event.dates", { dates: formatRaceDays(activeEvent.dates, locale) })}
             </p>
             {confirmDeleteEvent ? (
@@ -329,7 +329,7 @@ export function SetupPage() {
 
       {activeEvent ? (
         <section aria-labelledby="race-day-setup-roster" className="space-y-3">
-          <h2 id="race-day-setup-roster" className="text-xl font-semibold text-slate-900">
+          <h2 id="race-day-setup-roster" className="text-xl font-semibold text-brand-navy">
             {t(locale, "raceDay.setup.roster.title")}
           </h2>
 
@@ -338,7 +338,7 @@ export function SetupPage() {
               {t(locale, loadErrorMessageKey(roster.error?.code ?? ""))}
             </FormMessage>
           ) : roster.status === "loading" ? (
-            <p role="status" className="text-sm text-slate-600">
+            <p role="status" className="text-sm text-brand-navy/70">
               {t(locale, "raceDay.state.notReady")}
             </p>
           ) : (

@@ -1,4 +1,5 @@
 import { formatResultTime } from "@skatingx/skating-domain";
+import { Notice } from "@skatingx/ui";
 import { useState } from "react";
 
 import { useLocale } from "@/hooks/useLocale";
@@ -35,17 +36,17 @@ export function ResultList({ views, busy, onEdit, onSetVerified, onDelete }: Res
         const suffix = <span className="sr-only"> {`${raceName} ${athleteName}`}</span>;
 
         return (
-          <li key={result.resultId} className="rounded-xl border border-slate-200 bg-white p-4">
+          <li key={result.resultId} className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{athleteName}</span>
-              {athlete ? <span className="text-sm text-slate-500">#{athlete.bib}</span> : null}
+              <span className="text-base font-semibold text-brand-navy min-w-0 break-words">{athleteName}</span>
+              {athlete ? <span className="text-sm text-brand-navy/70">#{athlete.bib}</span> : null}
               <VerificationBadge verification={result.verification} />
             </div>
-            <p className="mt-1 text-sm text-slate-600">{raceName}</p>
+            <p className="mt-1 text-sm text-brand-navy/70">{raceName}</p>
 
-            <p className="mt-2 flex flex-wrap items-baseline gap-x-3 text-slate-900">
+            <p className="mt-2 flex flex-wrap items-baseline gap-x-3 text-brand-navy">
               {result.status === "finished" && result.timeSeconds !== null ? (
-                <span className="text-xl font-bold tabular-nums">{formatResultTime(result.timeSeconds)}</span>
+                <span className="sx-numeric text-xl">{formatResultTime(result.timeSeconds)}</span>
               ) : (
                 <span className="text-base font-semibold">{t(locale, `raceDay.results.status.${result.status}`)}</span>
               )}
@@ -61,9 +62,11 @@ export function ResultList({ views, busy, onEdit, onSetVerified, onDelete }: Res
             </p>
 
             {race && !view.athleteInRace ? (
-              <p className="mt-2 text-sm text-amber-800">{t(locale, "raceDay.results.item.removedFromRace")}</p>
+              <Notice tone="pending" className="mt-2">
+                {t(locale, "raceDay.results.item.removedFromRace")}
+              </Notice>
             ) : null}
-            {result.sourceNote ? <p className="mt-1 text-sm text-slate-500">{result.sourceNote}</p> : null}
+            {result.sourceNote ? <p className="mt-1 text-sm text-brand-navy/70">{result.sourceNote}</p> : null}
 
             <div className="mt-3 flex flex-wrap gap-2">
               {confirming ? (

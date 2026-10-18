@@ -29,7 +29,7 @@ export function VideoList({ groups, busy, onEdit, onDelete }: VideoListProps) {
 
         return (
           <section key={group.race?.raceId ?? "unknown"} aria-labelledby={headingId} className="space-y-2">
-            <h3 id={headingId} className="text-base font-semibold text-slate-900">
+            <h3 id={headingId} className="text-base font-semibold text-brand-navy">
               {raceName}
             </h3>
             <ul className="space-y-3">
@@ -40,9 +40,9 @@ export function VideoList({ groups, busy, onEdit, onDelete }: VideoListProps) {
                 const suffix = <span className="sr-only"> {`${video.label} ${athleteName}`}</span>;
 
                 return (
-                  <li key={video.videoId} className="rounded-xl border border-slate-200 bg-white p-4">
-                    <p className="text-base font-semibold text-slate-900 min-w-0 break-words">{video.label}</p>
-                    <p className="mt-1 text-sm text-slate-600">
+                  <li key={video.videoId} className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card">
+                    <p className="text-base font-semibold text-brand-navy min-w-0 break-words">{video.label}</p>
+                    <p className="mt-1 text-sm text-brand-navy/70">
                       {athleteName}
                       {athlete ? ` · #${athlete.bib}` : ""}
                     </p>
@@ -52,18 +52,18 @@ export function VideoList({ groups, busy, onEdit, onDelete }: VideoListProps) {
                           href={video.externalUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex min-h-11 items-center font-medium text-sky-700 underline"
+                          className="inline-flex min-h-11 items-center font-semibold text-brand-navy underline underline-offset-2"
                         >
                           {t(locale, "raceDay.videos.item.openLink", { host: linkHost })}
                         </a>
                       </p>
                     ) : null}
                     {video.storedWhere ? (
-                      <p className="mt-1 text-sm text-slate-600">
+                      <p className="mt-1 text-sm text-brand-navy/70">
                         {t(locale, "raceDay.videos.item.storedWhere", { where: video.storedWhere })}
                       </p>
                     ) : null}
-                    {video.note ? <p className="mt-1 text-sm text-slate-500">{video.note}</p> : null}
+                    {video.note ? <p className="mt-1 text-sm text-brand-navy/70">{video.note}</p> : null}
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       {confirming ? (

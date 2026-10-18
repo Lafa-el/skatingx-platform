@@ -87,9 +87,9 @@ export function ResultForm({
       noValidate
       aria-label={title}
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-slate-200 bg-white p-4"
+      className="space-y-4 rounded-card border border-brand-navy/10 bg-white p-4 shadow-card"
     >
-      <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+      <h3 className="text-base font-semibold text-brand-navy">{title}</h3>
 
       {updatesExisting ? <FormMessage tone="info">{t(locale, "raceDay.results.form.updatesExisting")}</FormMessage> : null}
       {errors.size > 0 ? <FormMessage tone="error">{t(locale, "raceDay.form.summaryError")}</FormMessage> : null}

@@ -3,6 +3,7 @@ import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry, RaceSummaryDoc 
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, waitFor, within } from "@/test/dom";
 
 import type { ListState, SummaryDocState } from "../hooks/useRaceDayData";
@@ -454,5 +455,40 @@ describe("SummaryPage in English", () => {
     pro.isPro = false;
     renderPage();
     expect(screen.getByText("This page needs PRO")).toBeTruthy();
+  });
+});
+
+describe("SummaryPage look", () => {
+  const clean = () => expect(legacyColourClasses(document.body)).toEqual([]);
+
+  it("every card state (no results, pending, all confirmed) is in the new look, with an icon", () => {
+    renderPage();
+    expect(screen.getByRole("status").querySelector("svg")).not.toBeNull();
+    clean();
+    document.body.innerHTML = "";
+    h.results = ready([result("me", { timeSeconds: 50 })]);
+    renderPage();
+    expect(screen.getByTestId("pending-banner").className).toContain("bg-status-pending-tint");
+    expect(document.querySelectorAll(".sx-numeric").length).toBeGreaterThan(0);
+    clean();
+    document.body.innerHTML = "";
+    h.results = ready([result("me", { timeSeconds: 50, verification: "verified" })]);
+    renderPage();
+    expect(screen.getByRole("status").className).toContain("bg-status-success-tint");
+    expect(screen.getByRole("status").querySelector("svg")).not.toBeNull();
+    clean();
+  });
+
+  it("the note form and its states have no old colour classes", async () => {
+    h.summary = withNote("first");
+    const user = renderPage();
+    await user.type(box(), " more");
+    clean();
+  });
+
+  it("the locked and error states are clean", () => {
+    pro.isPro = false;
+    renderPage();
+    clean();
   });
 });
