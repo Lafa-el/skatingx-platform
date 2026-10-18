@@ -79,16 +79,21 @@ Choose the smallest step that fixes the problem. None of them deletes user data:
 
 Data written by a later build is ignored by an earlier one; leftover documents are harmless and can be deleted from the console.
 
-## Release record (fill in on 2026-10-22)
+## Release record
+
+Pre-filled on 2026-10-17 for commit `2902f8f`. Items marked "owner-reported" were told to the agent and were **not** independently verified by it. If `main` changes before the freeze, repeat the rows that depend on the commit and update the record on 2026-10-22.
 
 | Item | Value |
 |---|---|
-| `main` commit | |
-| CI run | |
-| Vercel Production deployment (URL and time) | |
-| Rules last published (console time) | |
-| Vercel env: feature flag and Firebase project checked by / date | |
-| Smoke test by / date | |
-| Offline rehearsal by / date, device and browser | |
-| Open findings and their decisions | |
-| Approved for the field test by | |
+| `main` commit | `2902f8f` (merge of #34), 2026-10-17 |
+| CI run | [success](https://github.com/Lafa-el/skatingx-platform/actions/runs/39083713866), 2026-10-17 8:41 PM EDT. Includes lint, typecheck, tests, build, rules tests |
+| Vercel Production deployment (URL and time) | GitHub deployment status `success` for `2902f8f`, 2026-10-17 8:42 PM EDT, `https://skatingx-platform-gkuecskyk-lafa-el-s-projects.vercel.app`. The Ready state in the Vercel dashboard was not checked by the agent; owner-reported OK |
+| Rules last published (console time) | _owner to fill in_ (owner-reported: console Rules match `firestore.rules` on `main`) |
+| Vercel env: feature flag and Firebase project checked by / date | Owner-reported OK, 2026-10-17. _owner to confirm name and time_ |
+| Race-day account: `isPro` set, Videos and Summary open | Owner-reported OK, 2026-10-17 |
+| Event, time zone, venue, roster and schedule | Owner-reported OK, 2026-10-17. Entries stay "待确认" until checked against the official source |
+| Phone-width check (agent) | 2026-10-17, 80 combinations at 320 px and 375 px: six Race Day pages, Chinese and English, normal, empty and long-text data, plus the locked Videos and Summary pages. No horizontal overflow, no control under 44 px, no stuck loading state. Also the PRO banner and locked card (Academy, Shop). Test data only; the temporary test page was deleted and nothing was committed |
+| Smoke test by / date | Owner-reported passed, 2026-10-17. _owner to confirm device_ |
+| Offline rehearsal by / date, device and browser | _owner to fill in_ (rehearsal is `race-day-phase0-offline-rehearsal.md`) |
+| Open findings and their decisions | None reported as of 2026-10-17 |
+| Approved for the field test by | _owner_ |
