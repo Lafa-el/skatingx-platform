@@ -163,3 +163,11 @@ The Settings page had a PRO card with a "(开发用)" switch for testing the Aca
 - **Not changed.** The `isPro` read logic (`useIsPro`, `useProAccess`, the strict `=== true` check) and the gates built on it. `isPro` is still client-writable (ADR-001), so this is a UX gate, not an entitlement check, and no Security Rule changed. Texts that say a feature "needs PRO" (Shop custom rewards, Academy routine lock) are unchanged.
 - **Consequence.** Nothing in the app turns PRO on any more. An account that already has `isPro: true` keeps it; an account that needs it must be set in the console.
 - **Rollback.** Revert the PR. No data change.
+
+### A7 (2026-10-17, owner approved): the Shop lock no longer tells the user to turn PRO on
+
+A6 left one text that still read as self-service: the Shop's custom-rewards lock said "开启 PRO 后可创建并管理运动员专属自定义奖励。" / "Unlock PRO to create and manage custom rewards for your athlete.". The card it sits in already says who opens PRO, so the text now only describes the feature: "PRO 可为运动员创建并管理专属自定义奖励。" / "PRO lets you create and manage custom rewards for your athlete." (Chinese drafted by the agent, approved by the owner with the other PRO texts.)
+
+- **Kept by a test.** `messages-consistency.test.ts` fails if a shared text tells the user to turn on, unlock or upgrade to PRO. Race Day's locked card already has the equivalent check in `ProGate.test.tsx`.
+- **Not changed.** Texts that state a fact ("需要 PRO", "高阶计划导入需要 PRO") stay as they are.
+- **Rollback.** Revert the PR. No data change.
