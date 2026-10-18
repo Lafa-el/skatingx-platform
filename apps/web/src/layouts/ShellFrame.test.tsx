@@ -41,7 +41,7 @@ describe("ShellFrame", () => {
     const ice = inFrame("/dashboard");
     expect(frame(ice.container).className).toContain("bg-brand-ice");
     ice.unmount();
-    const legacy = inFrame("/training/tasks");
+    const legacy = inFrame("/analysis");
     expect(frame(legacy.container).className).not.toContain("bg-brand-ice");
   });
 });
@@ -52,7 +52,8 @@ describe("ICE_PAGES", () => {
     expect(isIcePage("/settings")).toBe(true);
     expect(isIcePage("/settings/anything")).toBe(true);
     expect(isIcePage("/settingsx")).toBe(false);
-    expect(isIcePage("/training")).toBe(false);
+    expect(isIcePage("/analysis")).toBe(false);
+    expect(isIcePage("/training/shop")).toBe(true);
   });
 });
 

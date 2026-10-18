@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
 import { denied, watchUnhandledRejections } from "@/test/unhandledRejections";
@@ -467,3 +468,49 @@ describe("TrainingRecordsPage: a failed action", () => {
   });
 });
 
+describe("TrainingRecordsPage: UI v1 look", () => {
+  const seed = (language: "zh" | "en") => {
+    setLanguage(language);
+    h.state.records.byDistance["500m"] = [
+      entry("e1", "2026-09-01", 51.2, { source: "training", note: "after school" }),
+      entry("e2", "2026-10-12", 49.8, { source: "race" }),
+    ];
+  };
+
+  it.each(["zh", "en"] as const)("%s: no old colour class is left, with entries, the PB tag and errors showing", (language) => {
+    seed(language);
+    h.state.records.error = "Some technical reason";
+    h.state.actions.actionError = "Some action failure";
+    const { container } = renderPage();
+    expect(legacyColourClasses(container)).toEqual([]);
+    expect(container.querySelector('[data-tone="brand"]')).not.toBeNull();
+  });
+
+  it("the empty list and the loading state are free of old colour classes too", () => {
+    setLanguage("zh");
+    const empty = renderPage();
+    expect(legacyColourClasses(empty.container)).toEqual([]);
+    empty.unmount();
+    h.state.records.loading = true;
+    expect(legacyColourClasses(renderPage().container)).toEqual([]);
+  });
+
+  it("form errors have an icon as well as words", async () => {
+    setLanguage("en");
+    const user = userEvent.setup();
+    renderPage();
+    // Spaces get past the browser's own required-field check, so the page's message is shown.
+    await user.type(screen.getByLabelText("Time"), "   ");
+    await user.click(screen.getByRole("button", { name: "Add record" }));
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toBe("Time is required.");
+    expect(alert.querySelector("svg")).not.toBeNull();
+  });
+
+  it("exactly one distance button is selected", () => {
+    setLanguage("en");
+    renderPage();
+    const pressed = screen.getAllByRole("button").filter((button) => button.getAttribute("aria-pressed") === "true");
+    expect(pressed).toHaveLength(1);
+  });
+});

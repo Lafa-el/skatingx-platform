@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { getAcademyStages, localizeStageLabel } from "@skatingx/content";
 import { normalizeTrainingState } from "@skatingx/firebase-client";
 import { formatSecondsToTime } from "@skatingx/skating-domain";
-import { Card } from "@skatingx/ui";
+import { Card, ErrorNotice, ProgressBar } from "@skatingx/ui";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import {
@@ -59,30 +59,28 @@ export function TrainingHomePage() {
 
   return (
     <section>
-      <h1 className="text-2xl font-bold text-slate-900">{t("trainingHome.title")}</h1>
-      <p className="mt-1 text-slate-600">{t("trainingHome.subtitle")}</p>
+      <h1 className="text-2xl font-bold text-brand-navy">{t("trainingHome.title")}</h1>
+      <p className="mt-1 text-brand-navy/80">{t("trainingHome.subtitle")}</p>
 
       <FirestoreStatusBanner className="mt-4" />
 
       {error || recordsErr ? (
-        <p className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-          {error ?? recordsErr}
-        </p>
+        <ErrorNotice className="mt-4">{error ?? recordsErr}</ErrorNotice>
       ) : null}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <Card title={t("trainingHome.card.athlete")} className="min-w-0">
-          <p className="break-words text-lg font-semibold text-slate-900">
+        <Card variant="raised" title={t("trainingHome.card.athlete")} className="min-w-0">
+          <p className="break-words text-lg font-semibold text-brand-navy">
             {loading ? "…" : (profile?.displayName ?? "—")}
           </p>
         </Card>
-        <Card title={t("trainingHome.card.points")}>
-          <p className="text-lg font-semibold text-slate-900">
+        <Card variant="raised" title={t("trainingHome.card.points")}>
+          <p className="sx-numeric text-3xl text-brand-navy">
             {loading ? "…" : points}
           </p>
         </Card>
-        <Card title={t("trainingHome.card.streak")}>
-          <p className="text-lg font-semibold text-slate-900">
+        <Card variant="raised" title={t("trainingHome.card.streak")}>
+          <p className="text-lg font-semibold text-brand-navy">
             {loading
               ? "…"
               : t(countKey(streakDays, "trainingHome.streak.one", "trainingHome.streak.other"), {
@@ -90,19 +88,27 @@ export function TrainingHomePage() {
                 })}
           </p>
         </Card>
-        <Card title={t("trainingHome.card.tasks")}>
-          <p className="text-lg font-semibold text-slate-900">
+        <Card variant="hero" title={t("trainingHome.card.tasks")}>
+          <p className="sx-numeric text-4xl text-brand-navy">
             {loading ? "…" : `${completed} / ${tasks.length}`}
           </p>
+          {!loading && tasks.length > 0 ? (
+            <ProgressBar
+              className="mt-3"
+              label={t("trainingHome.card.tasks")}
+              value={completed}
+              max={tasks.length}
+            />
+          ) : null}
           <Link
             to="/training/tasks"
-            className="mt-2 inline-block text-sm font-medium text-sky-700"
+            className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-brand-navy underline underline-offset-2"
           >
             {t("trainingHome.tasks.open")}
           </Link>
         </Card>
-        <Card title={t("trainingHome.card.records")}>
-          <p className="text-lg font-semibold text-slate-900">
+        <Card variant="raised" title={t("trainingHome.card.records")}>
+          <p className="text-lg font-semibold text-brand-navy">
             {loading
               ? "…"
               : t(
@@ -114,7 +120,7 @@ export function TrainingHomePage() {
                   { count: totalEntryCount },
                 )}
           </p>
-          <p className="mt-1 font-mono text-sm text-slate-600">
+          <p className="mt-1 text-sm text-brand-navy/80">
             {loading
               ? "…"
               : pb500
@@ -123,34 +129,34 @@ export function TrainingHomePage() {
           </p>
           <Link
             to="/training/records"
-            className="mt-2 inline-block text-sm font-medium text-sky-700"
+            className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-brand-navy underline underline-offset-2"
           >
             {t("trainingHome.records.open")}
           </Link>
         </Card>
       </div>
 
-      <Card title={t("trainingHome.card.shop")} className="mt-4">
-        <p className="text-lg font-semibold text-slate-900">
+      <Card variant="raised" title={t("trainingHome.card.shop")} className="mt-4">
+        <p className="text-lg font-semibold text-brand-navy">
           {loading
             ? "…"
             : t(countKey(points, "trainingHome.shop.points.one", "trainingHome.shop.points.other"), {
                 count: points,
               })}
         </p>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-brand-navy/80">
           {loading ? "…" : t(isPro ? "trainingHome.shop.pro" : "trainingHome.shop.free")}
         </p>
         <Link
           to="/training/shop"
-          className="mt-2 inline-block text-sm font-medium text-sky-700"
+          className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-brand-navy underline underline-offset-2"
         >
           {t("trainingHome.shop.open")}
         </Link>
       </Card>
 
-      <Card title={t("trainingHome.card.academy")} className="mt-4">
-        <p className="text-sm text-slate-600">
+      <Card variant="raised" title={t("trainingHome.card.academy")} className="mt-4">
+        <p className="text-sm text-brand-navy/80">
           {defaultStage
             ? t("trainingHome.academy.reference", {
                 stage: academyLabel,
@@ -160,32 +166,32 @@ export function TrainingHomePage() {
         </p>
         <Link
           to="/training/academy"
-          className="mt-2 inline-block text-sm font-medium text-sky-700"
+          className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-brand-navy underline underline-offset-2"
         >
           {t("trainingHome.academy.open")}
         </Link>
       </Card>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <Link to="/training/tasks" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
-          <span className="font-medium text-slate-900">{t("trainingHome.shortcut.tasks.title")}</span>
-          <p className="mt-1 text-sm text-slate-600">{t("trainingHome.shortcut.tasks.body")}</p>
+        <Link to="/training/tasks" className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card hover:bg-brand-ice focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy">
+          <span className="font-semibold text-brand-navy">{t("trainingHome.shortcut.tasks.title")}</span>
+          <p className="mt-1 text-sm text-brand-navy/80">{t("trainingHome.shortcut.tasks.body")}</p>
         </Link>
-        <Link to="/training/academy" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
-          <span className="font-medium text-slate-900">{t("trainingHome.shortcut.academy.title")}</span>
-          <p className="mt-1 text-sm text-slate-600">
+        <Link to="/training/academy" className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card hover:bg-brand-ice focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy">
+          <span className="font-semibold text-brand-navy">{t("trainingHome.shortcut.academy.title")}</span>
+          <p className="mt-1 text-sm text-brand-navy/80">
             {defaultStage
               ? t("trainingHome.shortcut.academy.body", { stage: academyLabel })
               : t("trainingHome.shortcut.academy.fallback")}
           </p>
         </Link>
-        <Link to="/training/records" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
-          <span className="font-medium text-slate-900">{t("trainingHome.shortcut.records.title")}</span>
-          <p className="mt-1 text-sm text-slate-600">{t("trainingHome.shortcut.records.body")}</p>
+        <Link to="/training/records" className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card hover:bg-brand-ice focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy">
+          <span className="font-semibold text-brand-navy">{t("trainingHome.shortcut.records.title")}</span>
+          <p className="mt-1 text-sm text-brand-navy/80">{t("trainingHome.shortcut.records.body")}</p>
         </Link>
-        <Link to="/training/shop" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50">
-          <span className="font-medium text-slate-900">{t("trainingHome.shortcut.shop.title")}</span>
-          <p className="mt-1 text-sm text-slate-600">
+        <Link to="/training/shop" className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card hover:bg-brand-ice focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy">
+          <span className="font-semibold text-brand-navy">{t("trainingHome.shortcut.shop.title")}</span>
+          <p className="mt-1 text-sm text-brand-navy/80">
             {loading
               ? "…"
               : t(

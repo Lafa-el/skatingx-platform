@@ -2,6 +2,7 @@
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
 import { denied, watchUnhandledRejections } from "@/test/unhandledRejections";
@@ -185,7 +186,7 @@ describe.each(["zh", "en"] as const)("TrainingShopPage (%s)", (locale) => {
     setLocale();
     h.state.shop.catalog = { items: [cheap] };
     renderPage();
-    const box = within(screen.getByText(name(cheap)).closest("div.rounded-xl") as HTMLElement);
+    const box = within(screen.getByText(name(cheap)).closest("div.rounded-card") as HTMLElement);
     expect(box.getByText(description(cheap))).toBeTruthy();
     expect(box.getByText(`50 ${t.pts}`)).toBeTruthy();
     expect((box.getByRole("button", { name: t.redeem }) as HTMLButtonElement).disabled).toBe(false);
@@ -343,5 +344,47 @@ describe("TrainingShopPage: a failed redemption", () => {
     expect(log).toHaveBeenCalledExactlyOnceWith("[training-shop] redeem failed", { code: "permission-denied" });
     expect((screen.getByRole("button", { name: "兑换" }) as HTMLButtonElement).disabled).toBe(false);
     log.mockRestore();
+  });
+});
+
+describe("TrainingShopPage: UI v1 look", () => {
+  const redemption = { id: "r1", rewardId: "cheap", rewardName: "Old name", cost: 50, redeemedAt: "2026-10-01T10:00:00.000Z", status: "used" };
+
+  it.each([
+    ["Chinese, free", "zh", false],
+    ["English, Pro", "en", true],
+  ] as const)("%s: no old colour class is left, with rewards, history, a success note and errors showing", (_name, language, isPro) => {
+    setSettings(language, isPro);
+    h.state.shop.catalog = { items: [reward("cheap", 50), reward("dear", 500)] };
+    h.state.shop.redemptions = [redemption];
+    h.state.shop.error = "Some shop failure";
+    h.state.actions.actionError = "Some action failure";
+    h.state.actions.lastSuccess = { rewardId: "cheap", rewardName: "Old name" };
+    const { container } = renderPage();
+    expect(legacyColourClasses(container)).toEqual([]);
+    expect(screen.getAllByRole("alert").every((alert) => alert.querySelector("svg") !== null)).toBe(true);
+  });
+
+  it("the success note is announced, the redemption status is a tag with words, and the empty page is clean", () => {
+    setSettings("en");
+    h.state.shop.catalog = { items: [reward("cheap", 50)] };
+    h.state.shop.redemptions = [redemption];
+    h.state.actions.lastSuccess = { rewardId: "cheap", rewardName: "Old name" };
+    const { container } = renderPage();
+    expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
+    expect(container.querySelector('[data-tone="neutral"]')?.textContent).toBe("Used");
+  });
+
+  it("the empty and loading pages are free of old colour classes too", () => {
+    const empty = renderPage();
+    expect(legacyColourClasses(empty.container)).toEqual([]);
+    empty.unmount();
+    h.state.shop.loading = true;
+    expect(legacyColourClasses(renderPage().container)).toEqual([]);
+  });
+
+  it("the points figure uses the numeric style", () => {
+    renderPage();
+    expect(screen.getByText("120").className).toContain("sx-numeric");
   });
 });

@@ -1,6 +1,7 @@
 export { Button } from "./Button";
 export { Card } from "./Card";
 export { ErrorNotice } from "./ErrorNotice";
+export { Notice } from "./Notice";
 export { ProgressBar } from "./ProgressBar";
 export { normalizeProgress } from "./progress";
 export type { NormalizedProgress } from "./progress";

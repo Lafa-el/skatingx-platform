@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
 import { denied, watchUnhandledRejections } from "@/test/unhandledRejections";
@@ -328,5 +329,36 @@ describe("TrainingTasksPage: a failed action", () => {
     h.state.actions.actionError = "Missing or insufficient permissions.";
     render(<TrainingTasksPage />);
     expect(screen.getByText("Missing or insufficient permissions.")).toBeTruthy();
+  });
+});
+
+describe("TrainingTasksPage: UI v1 look", () => {
+  const renderPage = () => render(<TrainingTasksPage />);
+
+  it.each(["zh", "en"] as const)("%s: no old colour class is left, with tasks, a bonus note and errors showing", async (language) => {
+    h.state.settings = h.ready({ language, isPro: false });
+    h.state.actions = { ...h.state.actions, actionError: "Some action failure", toggleTask: vi.fn(async () => ({ bonusApplied: true, bonusRemoved: false })) };
+    h.state.training = { ...h.state.training, error: "Read failed" };
+    const user = userEvent.setup();
+    const { container } = renderPage();
+    await user.click(screen.getAllByRole("checkbox")[0]!);
+    expect(screen.getByRole("status")).toBeTruthy();
+    expect(legacyColourClasses(container)).toEqual([]);
+  });
+
+  it("empty and loading states are free of old colour classes too", () => {
+    h.state.training = h.ready({ todayTasks: [] });
+    const empty = renderPage();
+    expect(legacyColourClasses(empty.container)).toEqual([]);
+    empty.unmount();
+    h.state.training = { data: null, loading: true, error: null };
+    expect(legacyColourClasses(renderPage().container)).toEqual([]);
+  });
+
+  it("the academy badge has words, the notice after a toggle is announced, errors have an icon", () => {
+    h.state.actions = { ...h.state.actions, actionError: "Some action failure" };
+    renderPage();
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
+    expect(screen.getByText("学院").closest("span")?.getAttribute("data-tone")).toBe("neutral");
   });
 });
