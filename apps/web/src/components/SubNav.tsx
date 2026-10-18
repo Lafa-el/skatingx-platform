@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 
 import type { NavItem } from "@/app/navigation";
+import { ScrollRow } from "@/components/ScrollRow";
 
 type SubNavProps = {
   items: NavItem[];
@@ -10,9 +11,13 @@ type SubNavProps = {
 
 export function SubNav({ items, label }: SubNavProps) {
   return (
-    <nav
-      className="flex gap-1 overflow-x-auto border-b border-brand-navy/10 bg-white px-4 py-1"
+    // The tabs do not all fit on a phone (the English labels are longer), so the row scrolls.
+    <ScrollRow
+      as="nav"
       aria-label={label}
+      className="border-b border-brand-navy/10 bg-white"
+      rowClassName="flex gap-1 px-4 py-1"
+      fadeFrom="white"
     >
       {items.map((item) => (
         <NavLink
@@ -32,6 +37,6 @@ export function SubNav({ items, label }: SubNavProps) {
           {item.label}
         </NavLink>
       ))}
-    </nav>
+    </ScrollRow>
   );
 }

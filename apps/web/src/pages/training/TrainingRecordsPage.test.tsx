@@ -513,4 +513,12 @@ describe("TrainingRecordsPage: UI v1 look", () => {
     const pressed = screen.getAllByRole("button").filter((button) => button.getAttribute("aria-pressed") === "true");
     expect(pressed).toHaveLength(1);
   });
+
+  it("every distance button has the same corner radius, selected or not", () => {
+    setLanguage("en");
+    renderPage();
+    const buttons = screen.getAllByRole("button").filter((button) => button.hasAttribute("aria-pressed"));
+    expect(buttons.length).toBeGreaterThan(1);
+    expect(new Set(buttons.map((button) => button.className.match(/rounded-\w+/)?.[0])).size).toBe(1);
+  });
 });

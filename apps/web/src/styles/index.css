@@ -35,6 +35,14 @@
 }
 
 /* Timing-board digits. Wrap only digits and Latin text in it: Chinese stays upright. */
+/* A row that scrolls sideways without a drawn scroll bar; ScrollRow shows edge fades instead. */
+@utility sx-no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility sx-numeric {
   font-style: italic;
   font-weight: 800;

@@ -450,4 +450,22 @@ describe("TrainingAcademyPage: UI v1 look", () => {
       .filter((button) => button.getAttribute("aria-pressed") === "true");
     expect(pressed).toHaveLength(1);
   });
+
+  it("every stage button has the same corner radius, selected or not", () => {
+    renderPage();
+    const buttons = screen.getAllByRole("button").filter((button) => button.hasAttribute("aria-pressed"));
+    expect(buttons.length).toBeGreaterThan(1);
+    expect(new Set(buttons.map((button) => button.className.match(/rounded-\w+/)?.[0])).size).toBe(1);
+  });
+
+  it("the link in the import result is on its own line on a phone and beside the text from sm up", () => {
+    h.state.academy = { ...h.state.academy, lastResult: { imported: 2, skipped: 1 } };
+    renderPage();
+    const link = screen.getAllByRole("link").find((el) => el.getAttribute("href") === "/training/tasks")!;
+    const classes = link.className.split(/\s+/);
+    expect(classes).toContain("flex");
+    expect(classes).toContain("sm:inline-flex");
+    // No margin on the phone layout, so it lines up with the text above it.
+    expect(classes).not.toContain("ml-2");
+  });
 });
