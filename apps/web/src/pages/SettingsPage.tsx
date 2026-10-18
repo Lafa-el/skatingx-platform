@@ -78,7 +78,8 @@ export function SettingsPage() {
       setBindEmail("");
       setBindPassword("");
     } catch {
-      // authError set in provider
+      // Deliberately not handled here: AuthProvider has already shown the reason (authError) and
+      // logged the error code, and rethrows only so this form keeps what was typed.
     } finally {
       setFormBusy(false);
     }
@@ -93,7 +94,8 @@ export function SettingsPage() {
       setSignInEmail("");
       setSignInPassword("");
     } catch {
-      // authError set in provider
+      // Deliberately not handled here: AuthProvider has already shown the reason (authError) and
+      // logged the error code, and rethrows only so this form keeps what was typed.
     } finally {
       setFormBusy(false);
     }
