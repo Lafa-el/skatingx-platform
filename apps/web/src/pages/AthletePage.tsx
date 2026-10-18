@@ -1,4 +1,4 @@
-import { Card } from "@skatingx/ui";
+import { Card, ErrorNotice } from "@skatingx/ui";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { AthleteSelector } from "@/components/AthleteSelector";
@@ -29,10 +29,10 @@ export function AthletePage() {
     <section>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-brand-navy">
             {tAthlete(locale, "athlete.title")}
           </h1>
-          <p className="mt-1 text-slate-600">
+          <p className="mt-1 text-brand-navy/70">
             {tAthlete(locale, "athlete.subtitle")}
           </p>
         </div>
@@ -42,27 +42,22 @@ export function AthletePage() {
       <FirestoreStatusBanner className="mt-4" />
 
       {error ? (
-        <p
-          className="mt-4 break-words rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-          role="alert"
-        >
-          {error}
-        </p>
+        <ErrorNotice className="mt-4">{error}</ErrorNotice>
       ) : null}
 
-      <Card title={tAthlete(locale, "athlete.profile.title")} className="mt-6">
+      <Card title={tAthlete(locale, "athlete.profile.title")} variant="raised" className="mt-6">
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-slate-500">{tAthlete(locale, "athlete.field.name")}</dt>
-            <dd className="font-medium text-slate-900">
+            <dt className="text-brand-navy/70">{tAthlete(locale, "athlete.field.name")}</dt>
+            <dd className="font-medium text-brand-navy">
               {loading ? "…" : (profile?.displayName ?? "—")}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">
+            <dt className="text-brand-navy/70">
               {tAthlete(locale, "athlete.field.birthDate")}
             </dt>
-            <dd className="font-medium text-slate-900">
+            <dd className="font-medium text-brand-navy">
               {loading
                 ? "…"
                 : profile?.birthDate
@@ -71,8 +66,8 @@ export function AthletePage() {
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">{tAthlete(locale, "athlete.field.sport")}</dt>
-            <dd className="font-medium text-slate-900">
+            <dt className="text-brand-navy/70">{tAthlete(locale, "athlete.field.sport")}</dt>
+            <dd className="font-medium text-brand-navy">
               {loading
                 ? "…"
                 : profile?.sport
@@ -81,26 +76,26 @@ export function AthletePage() {
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">
+            <dt className="text-brand-navy/70">
               {tAthlete(locale, "athlete.field.country")}
             </dt>
-            <dd className="font-medium text-slate-900">
+            <dd className="font-medium text-brand-navy">
               {loading ? "…" : (profile?.country ?? "—")}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">
+            <dt className="text-brand-navy/70">
               {tAthlete(locale, "athlete.field.activeId")}
             </dt>
-            <dd className="font-medium text-slate-900">
+            <dd className="font-medium text-brand-navy">
               {loading ? "…" : (settings?.activeAthleteId ?? athleteId)}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">
+            <dt className="text-brand-navy/70">
               {tAthlete(locale, "athlete.field.accountUid")}
             </dt>
-            <dd className="font-mono text-xs text-slate-800 break-all">
+            <dd className="font-mono text-xs text-brand-navy break-all">
               {uid ?? "—"}
             </dd>
           </div>
