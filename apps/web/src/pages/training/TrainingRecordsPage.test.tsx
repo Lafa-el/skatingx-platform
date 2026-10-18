@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
+import { denied, watchUnhandledRejections } from "@/test/unhandledRejections";
 
 import { TrainingRecordsPage } from "./TrainingRecordsPage";
 
@@ -399,3 +400,70 @@ describe("TrainingRecordsPage: tap targets (44px)", () => {
     expect(controlsBelowTapTarget(container)).toEqual([]);
   });
 });
+
+// The hook shows the failure on the page and then rethrows ("the page relies on that to keep the
+// form as it was"). The click handler must catch it, or it becomes "Uncaught (in promise)".
+describe("TrainingRecordsPage: a failed action", () => {
+  const t = TEXT.zh;
+  const seed = () => {
+    setLanguage("zh");
+    h.state.records.byDistance["500m"] = [
+      entry("e1", "2026-09-01", 51.2, { source: "training", note: "after school" }),
+      entry("e2", "2026-10-12", 49.8, { source: "race" }),
+    ];
+  };
+
+  it("adding: no unhandled rejection, the form keeps what was typed, the code is logged", async () => {
+    seed();
+    const watcher = watchUnhandledRejections();
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    h.state.actions.addEntry = vi.fn(async () => {
+      throw denied();
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByLabelText(t.time), "0:49.80");
+    await user.click(screen.getByRole("button", { name: t.add }));
+    expect(await watcher.settled()).toEqual([]);
+    watcher.stop();
+    expect((screen.getByLabelText(t.time) as HTMLInputElement).value).toBe("0:49.80");
+    expect(log).toHaveBeenCalledExactlyOnceWith("[training-records] addEntry failed", { code: "permission-denied" });
+    log.mockRestore();
+  });
+
+  it("editing: no unhandled rejection, the form stays in edit mode", async () => {
+    seed();
+    const watcher = watchUnhandledRejections();
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    h.state.actions.editEntry = vi.fn(async () => {
+      throw denied();
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(within(screen.getAllByRole("listitem")[1]!).getByRole("button", { name: t.edit }));
+    await user.click(screen.getByRole("button", { name: t.save }));
+    expect(await watcher.settled()).toEqual([]);
+    watcher.stop();
+    expect(screen.getByRole("heading", { name: t.editCard })).toBeTruthy();
+    expect(log).toHaveBeenCalledExactlyOnceWith("[training-records] editEntry failed", { code: "permission-denied" });
+    log.mockRestore();
+  });
+
+  it("deleting: no unhandled rejection", async () => {
+    seed();
+    const watcher = watchUnhandledRejections();
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    window.confirm = vi.fn(() => true);
+    h.state.actions.removeEntry = vi.fn(async () => {
+      throw denied();
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(within(screen.getAllByRole("listitem")[0]!).getByRole("button", { name: t.del }));
+    expect(await watcher.settled()).toEqual([]);
+    watcher.stop();
+    expect(log).toHaveBeenCalledExactlyOnceWith("[training-records] removeEntry failed", { code: "permission-denied" });
+    log.mockRestore();
+  });
+});
+

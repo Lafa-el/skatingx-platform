@@ -17,6 +17,7 @@ import { useRewardActions } from "@/hooks/useRewardActions";
 import { useRewardsShop } from "@/hooks/useRewardsShop";
 import { formatCalendarDate } from "@/shared/i18n/format";
 import { tShop } from "@/shared/i18n/shop-messages";
+import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 export function TrainingShopPage() {
   const { isPro, language } = useIsPro();
@@ -50,7 +51,12 @@ export function TrainingShopPage() {
     }
     clearActionError();
     clearLastSuccess();
-    await redeem(reward.id, name, reward.cost);
+    try {
+      await redeem(reward.id, name, reward.cost);
+    } catch (error) {
+      // The hook already put the reason on the page.
+      logActionFailure("training-shop", "redeem", error);
+    }
   }
 
   return (
