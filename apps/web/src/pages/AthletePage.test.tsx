@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
 import { AthletePage } from "./AthletePage";
@@ -127,5 +128,26 @@ describe("AthletePage", () => {
     h.state.active = { athleteId: "athlete-1", loading: false, error: "Some technical reason" };
     render(<AthletePage />);
     expect(screen.getByRole("alert").textContent).toBe("Some technical reason");
+  });
+
+  it("is in the UI v1 look: no old colour classes in any state, navy heading, the error has an icon", () => {
+    const ok = render(<AthletePage />);
+    expect(legacyColourClasses(ok.container)).toEqual([]);
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-brand-navy");
+    ok.unmount();
+    h.state.profile = { data: null, loading: true, error: null };
+    const loading = render(<AthletePage />);
+    expect(legacyColourClasses(loading.container)).toEqual([]);
+    loading.unmount();
+    h.state.active = { athleteId: "athlete-1", loading: false, error: "Some technical reason" };
+    const failed = render(<AthletePage />);
+    expect(legacyColourClasses(failed.container)).toEqual([]);
+    expect(screen.getByRole("alert").querySelector("svg")).not.toBeNull();
+  });
+
+  it("the profile card is the raised card and its small labels are the navy tint", () => {
+    const view = render(<AthletePage />);
+    expect(view.container.querySelector("article")?.className).toContain("rounded-card");
+    expect(view.container.querySelector("dt")?.className).toContain("text-brand-navy/70");
   });
 });
