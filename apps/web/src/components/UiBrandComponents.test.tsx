@@ -28,7 +28,7 @@ describe("Button", () => {
     expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it.each(["primary", "ghost", "brand", "outline", "danger-outline"] as const)(
+  it.each(["brand", "outline", "danger-outline"] as const)(
     "%s has exactly one font weight and one text colour, so no class clash decides the look",
     (variant) => {
       render(<Button variant={variant}>Go</Button>);
@@ -53,19 +53,12 @@ describe("Button", () => {
     expect(danger.className).not.toMatch(/brand-flame/);
   });
 
-  it("primary and ghost keep the look every page has today", () => {
-    render(
-      <>
-        <Button>Primary</Button>
-        <Button variant="ghost">Ghost</Button>
-      </>,
-    );
-    expect(classesOf(screen.getByRole("button", { name: "Primary" }))).toEqual(
-      expect.arrayContaining(["rounded-lg", "bg-sky-600", "text-white", "hover:bg-sky-700"]),
-    );
-    expect(classesOf(screen.getByRole("button", { name: "Ghost" }))).toEqual(
-      expect.arrayContaining(["rounded-lg", "bg-transparent", "text-slate-700", "hover:bg-slate-100"]),
-    );
+  it("without a variant the button is the brand button, and no old blue or grey look is left", () => {
+    render(<Button>Plain</Button>);
+    const classes = classesOf(screen.getByRole("button", { name: "Plain" }));
+    expect(classes).toEqual(expect.arrayContaining(["rounded-control", "bg-brand-flame", "text-brand-navy"]));
+    expect(classes.some((c) => /(sky|slate)-\d/.test(c))).toBe(false);
+    expect(classes).not.toContain("text-white");
   });
 });
 
