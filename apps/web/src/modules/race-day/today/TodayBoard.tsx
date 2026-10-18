@@ -1,10 +1,11 @@
 import type { RaceEvent, RaceRosterEntry } from "@skatingx/schema";
 import type { TodayRace, TodayView } from "@skatingx/skating-domain";
+import { StatusTag } from "@skatingx/ui";
 import { Link } from "react-router-dom";
 
 import { useLocale } from "@/hooks/useLocale";
 
-import { FormMessage, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../components/fields";
+import { FormMessage, PRIMARY_BUTTON, SECONDARY_BUTTON, SURFACE_CARD } from "../components/fields";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { t, type RaceDayMessageKey } from "../i18n/messages";
 import { formatRaceDay, formatRaceDays, formatRaceTime } from "../lib/schedule";
@@ -52,41 +53,39 @@ export function TodayBoard({ event, view, roster, multipleSelfName }: TodayBoard
       <li
         key={race.raceId}
         data-testid={highlight ? "next-race" : undefined}
-        className={`rounded-xl border p-4 ${highlight ? "border-slate-900 bg-white" : "border-slate-200 bg-white"}`}
+        className={`${SURFACE_CARD} ${highlight ? "border-brand-navy" : ""}`.trim()}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-slate-500">#{item.number}</span>
-          <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{race.label}</span>
+          <span className="text-sm text-brand-navy/70">#{item.number}</span>
+          <span className="min-w-0 break-words text-base font-semibold text-brand-navy">{race.label}</span>
           {race.round ? (
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+            <span className="rounded-full bg-brand-ice px-2 py-0.5 text-xs text-brand-navy">
               {t(locale, "raceDay.schedule.round", { round: race.round })}
             </span>
           ) : null}
           {race.heat ? (
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+            <span className="rounded-full bg-brand-ice px-2 py-0.5 text-xs text-brand-navy">
               {t(locale, "raceDay.schedule.heat", { heat: race.heat })}
             </span>
           ) : null}
           <VerificationBadge verification={race.verification} />
           {item.involvesSelf ? (
-            <span className="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white">
-              {t(locale, "raceDay.today.race.mine")}
-            </span>
+            <StatusTag tone="brand">{t(locale, "raceDay.today.race.mine")}</StatusTag>
           ) : null}
         </div>
-        <p className="mt-1 text-sm text-slate-700">
+        <p className="mt-1 text-sm text-brand-navy">
           {race.scheduledAt
             ? formatRaceTime(race.scheduledAt, locale, event.timeZone)
             : t(locale, "raceDay.schedule.timeUnknown")}
         </p>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-brand-navy/70">
           {race.rosterIds.length === 0
             ? t(locale, "raceDay.schedule.noAthletes")
             : race.rosterIds
                 .map((id) => nameById.get(id) ?? t(locale, "raceDay.schedule.unknownAthlete"))
                 .join(", ")}
         </p>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-brand-navy/70">
           {item.hasResult ? t(locale, "raceDay.today.race.hasResult") : t(locale, "raceDay.today.race.noResult")}
         </p>
       </li>
@@ -97,17 +96,17 @@ export function TodayBoard({ event, view, roster, multipleSelfName }: TodayBoard
     <div className="space-y-6">
       <div className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-base font-semibold text-slate-900 min-w-0 break-words">{event.name}</span>
+          <span className="min-w-0 break-words text-base font-semibold text-brand-navy">{event.name}</span>
           <VerificationBadge verification={event.verification} />
         </div>
         {event.dates.length > 0 ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-brand-navy/70">
             {t(locale, "raceDay.today.dates", {
               dates: formatRaceDays(event.dates, locale),
             })}
           </p>
         ) : null}
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-brand-navy/70">
           {event.timeZone
             ? t(locale, "raceDay.today.timeZone", { zone: event.timeZone })
             : t(locale, "raceDay.today.timeZoneUnknown")}
@@ -122,11 +121,11 @@ export function TodayBoard({ event, view, roster, multipleSelfName }: TodayBoard
       ) : null}
 
       {view.pendingResultCount > 0 ? (
-        <div data-testid="pending-banner" role="status" className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
-          <p className="text-lg font-bold text-amber-950">
+        <div data-testid="pending-banner" role="status" className="rounded-card border-2 border-brand-energy bg-status-pending-tint p-4">
+          <p className="text-lg font-bold text-brand-navy">
             {t(locale, "raceDay.today.pending", { count: view.pendingResultCount })}
           </p>
-          <p className="mt-1 text-sm text-amber-900">{t(locale, "raceDay.today.pendingHelp")}</p>
+          <p className="mt-1 text-sm text-brand-navy">{t(locale, "raceDay.today.pendingHelp")}</p>
           <Link to="/race-day/results" className={SECONDARY_BUTTON + " mt-3"}>
             {t(locale, "raceDay.tab.results")}
           </Link>
@@ -136,13 +135,13 @@ export function TodayBoard({ event, view, roster, multipleSelfName }: TodayBoard
       {view.shownDay ? (
         <>
           <section aria-labelledby="today-next-heading" className="space-y-2">
-            <h2 id="today-next-heading" className="text-lg font-semibold text-slate-900">
+            <h2 id="today-next-heading" className="text-lg font-semibold text-brand-navy">
               {t(locale, "raceDay.today.next.title")}
             </h2>
             {next ? (
               <ul className="space-y-3">{raceRow(next, true)}</ul>
             ) : (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-brand-navy/70">
                 {view.next.kind === "allDone"
                   ? t(locale, "raceDay.today.next.allDone")
                   : view.next.kind === "noneForSelf"
@@ -150,12 +149,12 @@ export function TodayBoard({ event, view, roster, multipleSelfName }: TodayBoard
                     : t(locale, "raceDay.today.next.noRaces")}
               </p>
             )}
-            <p className="text-xs text-slate-500">{t(locale, "raceDay.today.next.rule")}</p>
+            <p className="text-xs text-brand-navy/70">{t(locale, "raceDay.today.next.rule")}</p>
           </section>
 
           {view.races.length > 0 ? (
             <section aria-labelledby="today-races-heading" className="space-y-2">
-              <h2 id="today-races-heading" className="text-lg font-semibold text-slate-900">
+              <h2 id="today-races-heading" className="text-lg font-semibold text-brand-navy">
                 {t(locale, "raceDay.today.races.title", { day: formatRaceDay(view.shownDay, locale) })}
               </h2>
               <ul className="space-y-3">{view.races.map((item) => raceRow(item, false))}</ul>

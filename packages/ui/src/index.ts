@@ -5,5 +5,6 @@ export { Notice } from "./Notice";
 export { ProgressBar } from "./ProgressBar";
 export { normalizeProgress } from "./progress";
 export type { NormalizedProgress } from "./progress";
+export { StatusGlyph } from "./StatusGlyph";
 export { StatusTag } from "./StatusTag";
 export type { StatusTone } from "./StatusTag";

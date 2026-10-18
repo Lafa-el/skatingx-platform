@@ -1,7 +1,25 @@
+import { ErrorNotice, Notice, StatusGlyph } from "@skatingx/ui";
 import { useId, type ReactNode } from "react";
 
+// Border at navy/50 keeps the edge of a field at 3:1 or more against white (a form control needs it);
+// the invalid state changes the border to the error red and the message below it has an icon.
 const INPUT_CLASS =
-  "mt-1 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 aria-[invalid=true]:border-red-500";
+  "mt-1 block min-h-11 w-full rounded-control border border-brand-navy/50 bg-white px-3 py-2 text-base text-brand-navy shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy disabled:bg-brand-ice disabled:text-brand-navy/70 aria-[invalid=true]:border-status-danger";
+
+/** The card surface Race Day lists and panels share. */
+export const SURFACE_CARD = "rounded-card border border-brand-navy/10 bg-white p-4 shadow-card";
+
+const LABEL_CLASS = "block text-sm font-medium text-brand-navy";
+
+/** A field's error: the icon and the words together, never colour alone. */
+function FieldError({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <p id={id} className="mt-1 flex items-start gap-1.5 text-sm font-medium text-status-danger">
+      <StatusGlyph tone="danger" className="mt-0.5 size-4 shrink-0" />
+      <span className="min-w-0">{children}</span>
+    </p>
+  );
+}
 
 type SelectFieldProps = {
   label: string;
@@ -17,7 +35,7 @@ export function SelectField({ label, value, options, onChange, disabled = false,
   const errorId = `${id}-error`;
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+      <label htmlFor={id} className={LABEL_CLASS}>
         {label}
       </label>
       <select
@@ -38,9 +56,7 @@ export function SelectField({ label, value, options, onChange, disabled = false,
         ))}
       </select>
       {error ? (
-        <p id={errorId} className="mt-1 text-sm font-medium text-red-700">
-          {error}
-        </p>
+        <FieldError id={errorId}>{error}</FieldError>
       ) : null}
     </div>
   );
@@ -82,7 +98,7 @@ export function TextField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+      <label htmlFor={id} className={LABEL_CLASS}>
         {label}
         {required ? <span aria-hidden="true"> *</span> : null}
       </label>
@@ -103,14 +119,12 @@ export function TextField({
         className={INPUT_CLASS}
       />
       {hint ? (
-        <p id={hintId} className="mt-1 text-sm text-slate-500">
+        <p id={hintId} className="mt-1 text-sm text-brand-navy/70">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} className="mt-1 text-sm font-medium text-red-700">
-          {error}
-        </p>
+        <FieldError id={errorId}>{error}</FieldError>
       ) : null}
     </div>
   );
@@ -143,7 +157,7 @@ export function TextAreaField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+      <label htmlFor={id} className={LABEL_CLASS}>
         {label}
       </label>
       <textarea
@@ -159,14 +173,12 @@ export function TextAreaField({
         className={INPUT_CLASS}
       />
       {hint ? (
-        <p id={hintId} className="mt-1 text-sm text-slate-500">
+        <p id={hintId} className="mt-1 text-sm text-brand-navy/70">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} className="mt-1 text-sm font-medium text-red-700">
-          {error}
-        </p>
+        <FieldError id={errorId}>{error}</FieldError>
       ) : null}
     </div>
   );
@@ -191,9 +203,9 @@ export function CheckboxField({ label, checked, onChange, disabled = false }: Ch
         onChange={(event) => {
           onChange(event.target.checked);
         }}
-        className="h-6 w-6 rounded border-slate-300 text-sky-700 focus:ring-sky-300"
+        className="h-6 w-6 rounded border-brand-navy/50 accent-brand-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy"
       />
-      <label htmlFor={id} className="min-w-0 break-words text-sm text-slate-800">
+      <label htmlFor={id} className="min-w-0 break-words text-sm text-brand-navy">
         {label}
       </label>
     </div>
@@ -201,20 +213,14 @@ export function CheckboxField({ label, checked, onChange, disabled = false }: Ch
 }
 
 export function FormMessage({ children, tone }: { children: ReactNode; tone: "error" | "info" }) {
-  const style =
-    tone === "error"
-      ? "border-red-200 bg-red-50 text-red-800"
-      : "border-sky-200 bg-sky-50 text-sky-900";
-  return (
-    <p role={tone === "error" ? "alert" : "status"} className={`break-words rounded-lg border px-3 py-2 text-sm ${style}`}>
-      {children}
-    </p>
-  );
+  return tone === "error" ? <ErrorNotice>{children}</ErrorNotice> : <Notice tone="info" role="status">{children}</Notice>;
 }
 
-export const PRIMARY_BUTTON =
-  "inline-flex min-h-11 items-center justify-center rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60";
-export const SECONDARY_BUTTON =
-  "inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-60";
-export const DANGER_BUTTON =
-  "inline-flex min-h-11 items-center justify-center rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60";
+// The three button looks match `Button` brand / outline / danger-outline in @skatingx/ui. They stay class
+// strings because Race Day puts them on links as well as buttons.
+const BUTTON_BASE =
+  "inline-flex min-h-11 items-center justify-center rounded-control px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+// Navy text on flame, never white: white on flame is 3.51:1, navy is 4.88:1.
+export const PRIMARY_BUTTON = `${BUTTON_BASE} bg-brand-flame text-brand-navy hover:bg-brand-flame-hover focus-visible:outline-brand-navy disabled:hover:bg-brand-flame`;
+export const SECONDARY_BUTTON = `${BUTTON_BASE} border border-brand-navy/50 bg-transparent text-brand-navy hover:bg-brand-ice focus-visible:outline-brand-navy disabled:hover:bg-transparent`;
+export const DANGER_BUTTON = `${BUTTON_BASE} border border-status-danger/60 bg-transparent text-status-danger hover:bg-status-danger-tint focus-visible:outline-status-danger disabled:hover:bg-transparent`;

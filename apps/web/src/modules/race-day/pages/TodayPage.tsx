@@ -38,13 +38,13 @@ export function TodayPage() {
     [activeEvent, races.items, results.items, self, now],
   );
 
-  const heading = <h1 className="text-2xl font-bold text-slate-900">{t(locale, "raceDay.tab.today")}</h1>;
+  const heading = <h1 className="text-2xl font-bold text-brand-navy">{t(locale, "raceDay.tab.today")}</h1>;
 
   if (!ctx || events.status === "loading") {
     return (
       <div className="space-y-4">
         {heading}
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       </div>
@@ -64,7 +64,7 @@ export function TodayPage() {
     return (
       <div className="space-y-4">
         {heading}
-        <p className="text-sm text-slate-600">{t(locale, "raceDay.today.noEvent")}</p>
+        <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.today.noEvent")}</p>
         <Link to="/race-day/setup" className={PRIMARY_BUTTON}>
           {t(locale, "raceDay.schedule.goSetup")}
         </Link>
@@ -93,7 +93,7 @@ export function TodayPage() {
       />
 
       {loading ? (
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-brand-navy/70">
           {t(locale, "raceDay.state.notReady")}
         </p>
       ) : failed ? (
