@@ -41,7 +41,7 @@ describe("ShellFrame", () => {
     const ice = inFrame("/dashboard");
     expect(frame(ice.container).className).toContain("bg-brand-ice");
     ice.unmount();
-    const legacy = inFrame("/athlete");
+    const legacy = inFrame("/not-on-the-list");
     expect(frame(legacy.container).className).not.toContain("bg-brand-ice");
   });
 });
@@ -58,7 +58,9 @@ describe("ICE_PAGES", () => {
     expect(isIcePage("/race-day")).toBe(true);
     expect(isIcePage("/race-day/results")).toBe(true);
     expect(isIcePage("/race-dayx")).toBe(false);
-    expect(isIcePage("/athlete")).toBe(false);
+    expect(isIcePage("/athlete")).toBe(true);
+    expect(isIcePage("/athletex")).toBe(false);
+    expect(isIcePage("/not-on-the-list")).toBe(false);
     expect(isIcePage("/ai-coach")).toBe(true);
     expect(isIcePage("/ai-coachx")).toBe(false);
     expect(isIcePage("/training/shop")).toBe(true);
@@ -72,16 +74,16 @@ describe("AppShell page colour", () => {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/settings" element={<p>settings</p>} />
-          <Route path="/athlete" element={<p>athlete</p>} />
+          <Route path="/not-on-the-list" element={<p>not listed</p>} />
         </Route>
       </Routes>,
     );
 
-  it("Settings is warm white; a page not yet restyled is not", () => {
+  it("Settings is warm white; a page that is not on the list is not", () => {
     const settings = at("/settings");
     expect(frame(settings.container).className).toContain("bg-brand-ice");
     settings.unmount();
-    const athlete = at("/athlete");
-    expect(frame(athlete.container).className).not.toContain("bg-brand-ice");
+    const unlisted = at("/not-on-the-list");
+    expect(frame(unlisted.container).className).not.toContain("bg-brand-ice");
   });
 });

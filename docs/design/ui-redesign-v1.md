@@ -263,3 +263,9 @@ SkatingX 全 app 界面改版 v1.0。设计已定稿（见附件截图：设计�
 - 小号灰字全部加深为 `brand-navy/70`，旧的 `slate`、`sky`、`red`、`amber`、`emerald` 类在比赛日目录里已清零，每个页面都有测试用 `legacyColourClasses` 断言。
 - 不在本阶段：`/athlete`（运动员页）不属于任何阶段，后来由 owner 决定单独做（见 B.17）；`Button` 的 `primary` / `ghost` 变体已在独立 PR 中清理。
 - 发布风险：比赛日页面是 Buffalo 实测（2026-10-24/25）要用的页面，runbook 规定 2026-10-21 晚上代码冻结，冻结后只收阻塞性修复。合并时间由 owner 决定。
+
+### B.17 运动员页（`/athlete`）换皮
+- 范围：`AthletePage.tsx`。标题和字段值改 navy，字段名和副标题改 `navy/70`，资料卡改 `raised` 卡片，数据层错误改 `ErrorNotice`（图标 + 文字，文字内容原样显示）。`/athlete` 登记进 `ICE_PAGES`。
+- 不动：数据读取、字段、文案、路由、`AthleteSelector` 和 `FirestoreStatusBanner`（它们早已是新外观）。
+- 至此路由里所有页面都在 `ICE_PAGES` 里；`ShellFrame` 测试里"不在名单上的页面"改用虚构路径 `/not-on-the-list`。名单本身保留，新页面仍须在同一次改动里登记并加深灰字。
+- `Card` 的 `default` 外观（旧 `slate` 样式）现在没有页面使用，可在 Button 清理的同一批里评估是否删除。
