@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { contrastRatio, hueDistance } from "@/test/contrast";
+import { blend, contrastRatio, hueDistance } from "@/test/contrast";
 
 // The tokens are read from the stylesheet itself, so the numbers in docs/design/ui-redesign-v1.md
 // (appendix B.1) cannot drift from the values that ship.
@@ -53,6 +53,20 @@ describe("UI v1 colour tokens: brand colours", () => {
 
   it("keeps flame legible as an icon or indicator on the dark sidebar", () => {
     expect(contrastRatio(flame, navy)).toBeGreaterThanOrEqual(GRAPHIC);
+  });
+});
+
+describe("UI v1 colour tokens: small secondary text", () => {
+  // Pages use `text-brand-navy/70` and `/80` for hints and descriptions. The grey they replace,
+  // `text-slate-500` (#64748b), is 4.37:1 on warm white, which is why pages got the new text first.
+  it.each([0.7, 0.8])("navy at %s opacity is readable at small size on warm white, white and the page grey", (alpha) => {
+    for (const bg of [ice, "#ffffff", "#f8fafc"]) {
+      expect(contrastRatio(blend(navy, bg, alpha), bg)).toBeGreaterThanOrEqual(TEXT);
+    }
+  });
+
+  it("the old grey this replaces really is under the line on warm white", () => {
+    expect(contrastRatio("#64748b", ice)).toBeLessThan(TEXT);
   });
 });
 

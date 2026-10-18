@@ -2,7 +2,9 @@
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { isIcePage } from "@/layouts/icePages";
 import { render, screen, within } from "@/test/dom";
+import { legacyColourClasses } from "@/test/legacyLook";
 
 import { DashboardPage } from "./DashboardPage";
 
@@ -330,5 +332,86 @@ describe("DashboardPage: shortcut cards", () => {
       expect(screen.getByText(text), text).toBeTruthy();
     }
     expect(screen.getAllByText("Open →")).toHaveLength(4);
+  });
+});
+
+describe("DashboardPage: UI v1 look", () => {
+  const fullState = () => {
+    h.state.records = {
+      loading: false,
+      error: "Some technical reason",
+      getBestForDistance: (distance: string) =>
+        distance === "500m" ? { timeSeconds: 45.5, date: "2026-10-16" } : null,
+      latestEntryOverall: { timeSeconds: 50, date: "2026-10-15" },
+    };
+    h.state.shop = {
+      ...h.state.shop,
+      latestRedemption: {
+        rewardId: "reward-1",
+        rewardName: "Sample Reward",
+        cost: 50,
+        redeemedAt: "2026-10-14T18:30:00.000Z",
+      },
+    };
+  };
+
+  // The page is on the warm-white colour (ICE_PAGES), where the old grey text is under 4.5:1.
+  it.each([
+    ["Chinese", "zh"],
+    ["English", "en"],
+  ] as const)("%s: no old colour class is left, with every card filled and an error showing", (_name, language) => {
+    setLanguage(language);
+    fullState();
+    const { container } = renderPage();
+    expect(legacyColourClasses(container)).toEqual([]);
+  });
+
+  it("no old colour class while loading, and none on the Pro plan card", () => {
+    h.state.gamification = { data: null, loading: true, error: null };
+    const loading = renderPage();
+    expect(legacyColourClasses(loading.container)).toEqual([]);
+    loading.unmount();
+
+    setLanguage("zh", true);
+    const pro = renderPage();
+    expect(legacyColourClasses(pro.container)).toEqual([]);
+  });
+
+  it("is registered as a warm-white page", () => {
+    expect(isIcePage("/dashboard")).toBe(true);
+  });
+
+  it("the tasks card is the hero card and shows progress as 2 of 3", () => {
+    renderPage();
+    const article = screen.getByRole("heading", { level: 3, name: "今日任务" }).closest("article")!;
+    expect(article.className).toContain("sx-energy-gradient");
+    const bar = within(article).getByRole("progressbar", { name: "今日任务" });
+    expect(bar.getAttribute("aria-valuenow")).toBe("2");
+    expect(bar.getAttribute("aria-valuemax")).toBe("3");
+  });
+
+  it("no progress bar without tasks (0 of 0 is not progress), nor while loading", () => {
+    h.state.training = h.ready({ todayTasks: [] });
+    const none = renderPage();
+    expect(none.container.querySelector('[role="progressbar"]')).toBeNull();
+    none.unmount();
+
+    h.state.training = { data: null, loading: true, error: null };
+    const loading = renderPage();
+    expect(loading.container.querySelector('[role="progressbar"]')).toBeNull();
+  });
+
+  it("an error has an icon as well as words (not colour alone)", () => {
+    h.state.records = { ...h.state.records, error: "Some technical reason" };
+    renderPage();
+    const alert = screen.getByRole("alert");
+    expect(alert.querySelector("svg")).not.toBeNull();
+    expect(alert.textContent).toBe("Some technical reason");
+  });
+
+  it("figures use the numeric style: points and the task count", () => {
+    renderPage();
+    expect(card("积分").getByText("120").className).toContain("sx-numeric");
+    expect(card("今日任务").getByText("2 / 3").className).toContain("sx-numeric");
   });
 });

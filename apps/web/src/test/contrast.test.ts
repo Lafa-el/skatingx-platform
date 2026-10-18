@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { contrastRatio, hue, hueDistance } from "./contrast";
+import { blend, contrastRatio, hue, hueDistance } from "./contrast";
 
 describe("contrastRatio", () => {
   it("matches the WCAG reference values", () => {
@@ -28,5 +28,13 @@ describe("hue", () => {
 
   it("measures the short way round the wheel", () => {
     expect(hueDistance("#ff0020", "#ff2000")).toBeCloseTo(15, 0);
+  });
+});
+
+describe("blend", () => {
+  it("mixes the foreground over the background by the alpha", () => {
+    expect(blend("#000000", "#ffffff", 0.5)).toBe("#808080");
+    expect(blend("#ff0000", "#0000ff", 1)).toBe("#ff0000");
+    expect(blend("#ff0000", "#0000ff", 0)).toBe("#0000ff");
   });
 });

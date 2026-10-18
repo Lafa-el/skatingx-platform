@@ -1,28 +1,33 @@
 import type { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { SideNav } from "@/components/SideNav";
+import { isIcePage } from "@/layouts/icePages";
 
 type ShellFrameProps = {
   /** The section's own tabs (Training, Analysis, Race Day), under the header. */
   subNav?: ReactNode;
-  /**
-   * `ice` is the UI v1 page colour. Pages that have not been moved over yet keep `legacy`, because
-   * their small grey text was set for a white or light-grey page and is under 4.5:1 on ice. A page
-   * moves to `ice` in the same change that restyles it.
-   */
-  pageTone?: "legacy" | "ice";
   /** Extra classes for the content area. */
   mainClassName?: string;
   children: ReactNode;
 };
 
-/** Side bar (desktop), header, section tabs, content and bottom bar (phone): shared by every layout. */
-export function ShellFrame({ subNav, pageTone = "legacy", mainClassName = "", children }: ShellFrameProps) {
+/**
+ * Side bar (desktop), header, section tabs, content and bottom bar (phone): shared by every layout.
+ * The page colour comes from `ICE_PAGES`, so a page's colour is decided in one place.
+ *
+ * The side bar and the bottom bar switch at the same breakpoint, `lg` (1024px): below it only the
+ * bottom bar shows, from it only the side bar. A test pins that they use the same one, so no
+ * width range is left with both or neither.
+ */
+export function ShellFrame({ subNav, mainClassName = "", children }: ShellFrameProps) {
+  const { pathname } = useLocation();
+
   return (
     // lg:pl-64 clears the fixed side bar (w-64 in SideNav).
-    <div className={`flex min-h-dvh flex-col lg:pl-64 ${pageTone === "ice" ? "bg-brand-ice" : ""}`.trim()}>
+    <div className={`flex min-h-dvh flex-col lg:pl-64 ${isIcePage(pathname) ? "bg-brand-ice" : ""}`.trim()}>
       <SideNav />
       <Header />
       {subNav}
