@@ -25,7 +25,7 @@ const zh = {
   "shop.custom.cardTitle": "PRO — 自定义奖励",
   "shop.custom.active": "PRO 已开启",
   "shop.custom.placeholder": "自定义奖励管理为 M6 占位功能，完整增删改将在支付与家长功能上线后提供。",
-  "shop.custom.locked": "开启 PRO 后可创建并管理运动员专属自定义奖励。",
+  "shop.custom.locked": "PRO 可为运动员创建并管理专属自定义奖励。",
   "shop.history.title": "兑换记录",
   "shop.history.empty": "还没有兑换记录。",
   "shop.history.line": "{date} · −{cost} 分",
@@ -58,7 +58,7 @@ const en: Record<ShopKey, string> = {
   "shop.custom.active": "PRO active",
   "shop.custom.placeholder":
     "Custom reward management is a placeholder in M6. Full add/edit UI ships with payment and parent tools later.",
-  "shop.custom.locked": "Unlock PRO to create and manage custom rewards for your athlete.",
+  "shop.custom.locked": "PRO lets you create and manage custom rewards for your athlete.",
   "shop.history.title": "Redemption history",
   "shop.history.empty": "No redemptions yet.",
   "shop.history.line": "{date} · −{cost} pts",

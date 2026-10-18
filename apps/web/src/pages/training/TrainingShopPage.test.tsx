@@ -93,7 +93,7 @@ const TEXT = {
     proCard: "PRO — 自定义奖励",
     proOn: "PRO 已开启",
     proNote: "自定义奖励管理为 M6 占位功能，完整增删改将在支付与家长功能上线后提供。",
-    locked: "开启 PRO 后可创建并管理运动员专属自定义奖励。",
+    locked: "PRO 可为运动员创建并管理专属自定义奖励。",
     history: "兑换记录",
     noHistory: "还没有兑换记录。",
     confirm: (name: string, cost: number) => `使用 ${cost} 积分兑换「${name}」？`,
@@ -117,7 +117,7 @@ const TEXT = {
     proOn: "PRO active",
     proNote:
       "Custom reward management is a placeholder in M6. Full add/edit UI ships with payment and parent tools later.",
-    locked: "Unlock PRO to create and manage custom rewards for your athlete.",
+    locked: "PRO lets you create and manage custom rewards for your athlete.",
     history: "Redemption history",
     noHistory: "No redemptions yet.",
     confirm: (name: string, cost: number) =>

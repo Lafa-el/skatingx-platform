@@ -72,6 +72,20 @@ describe("shared i18n resources", () => {
     expect(found).toEqual([]);
   });
 
+  // Nothing in the app turns PRO on for the user; an administrator does it. A text that tells them
+  // to turn it on or unlock it promises something they cannot do.
+  it("no text tells the user to turn on or unlock PRO themselves", () => {
+    const selfService = /开启 PRO|开通 PRO|解锁 PRO|升级到? PRO|(unlock|turn on|enable|upgrade to|go) PRO/i;
+    const found = resourceSets.flatMap(({ file, resources }) =>
+      (["zh", "en"] as const).flatMap((language) =>
+        Object.entries(resources[language])
+          .filter(([, text]) => selfService.test(text))
+          .map(([key]) => `${file} ${language} ${key}`),
+      ),
+    );
+    expect(found).toEqual([]);
+  });
+
   it("keys are unique across files, so two domains cannot silently share one", () => {
     const seen = new Map<string, string>();
     const clashes: string[] = [];
