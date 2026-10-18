@@ -1,5 +1,51 @@
 @import "tailwindcss";
 
+/* The shared components live outside apps/web, so Tailwind has to be told to read them. */
+@source "../../../../packages/ui/src";
+
+/*
+ * UI v1 design tokens (docs/design/ui-redesign-v1.md, appendix A and B).
+ * Nothing on an existing page uses these yet; pages move over phase by phase.
+ *
+ * Contrast rules the values were chosen for (WCAG 2.x, guarded by styles/tokens.test.ts):
+ * - Text on flame or energy is navy. White on flame is 3.51:1 and white on energy 2.07:1, so
+ *   white never goes on either, large numbers included.
+ * - Flame is for fills, indicators and icons. As text on ice it is 3.18:1, so never as small text.
+ * - Error is its own cooler red and is never shown by colour alone (icon + text).
+ */
+@theme {
+  --color-brand-navy: #081c33;
+  --color-brand-flame: #ff3e2c;
+  --color-brand-flame-hover: #ff5a49;
+  --color-brand-energy: #ff9e1b;
+  --color-brand-ice: #fff1e8;
+  /* Progress track: the lightest tint that still sets flame apart at 3:1. */
+  --color-brand-track: #ffede2;
+
+  --color-status-danger: #c8102e;
+  --color-status-danger-tint: #ffe9ec;
+  --color-status-pending-tint: #ffe3bd;
+  --color-status-success: #0b6b3a;
+  --color-status-success-tint: #c9f0da;
+
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+
+  --shadow-card: 0 1px 2px rgb(8 28 51 / 0.06), 0 4px 16px rgb(8 28 51 / 0.06);
+}
+
+/* Timing-board digits. Wrap only digits and Latin text in it: Chinese stays upright. */
+@utility sx-numeric {
+  font-style: italic;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+@utility sx-energy-gradient {
+  background-image: linear-gradient(135deg, var(--color-brand-flame), var(--color-brand-energy));
+}
+
 :root {
   --sx-header-height: 3.5rem;
   --sx-nav-height: 4rem;
