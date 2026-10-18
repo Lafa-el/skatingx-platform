@@ -120,7 +120,7 @@ export function TrainingAcademyPage() {
             imported: lastResult.imported,
             skipped: lastResult.skipped,
           })}
-          <Link to="/training/tasks" className="ml-2 inline-flex min-h-11 items-center font-semibold underline underline-offset-2">
+          <Link to="/training/tasks" className="flex min-h-11 items-center font-semibold underline underline-offset-2 sm:ml-2 sm:inline-flex">
             {t("academy.import.viewTasks")}
           </Link>
         </Notice>
@@ -139,7 +139,7 @@ export function TrainingAcademyPage() {
             className={
               stageId === s.id
                 ? "min-h-11 rounded-control bg-brand-flame px-4 py-2 text-sm font-semibold text-brand-navy"
-                : "min-h-11 rounded-card border border-brand-navy/10 bg-white px-4 py-2 text-sm font-medium text-brand-navy hover:bg-brand-ice"
+                : "min-h-11 rounded-control border border-brand-navy/10 bg-white px-4 py-2 text-sm font-medium text-brand-navy hover:bg-brand-ice"
             }
           >
             {localized(language, { zh: s.ageRangeZh, en: s.ageRangeEn })}

@@ -6,6 +6,7 @@ import {
 import { Button, Card, ErrorNotice, StatusTag } from "@skatingx/ui";
 import { FormEvent, useMemo, useState } from "react";
 
+import { ScrollRow } from "@/components/ScrollRow";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import { useLocale } from "@/hooks/useLocale";
 import { useTrainingRecordActions } from "@/hooks/useTrainingRecordActions";
@@ -162,7 +163,7 @@ export function TrainingRecordsPage() {
         <ErrorNotice className="mt-4">{actionError}</ErrorNotice>
       ) : null}
 
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+      <ScrollRow className="mt-4" rowClassName="flex gap-2 pb-1" fadeFrom="ice">
         {DEFAULT_TRAINING_DISTANCES.map((distance) => (
           <button
             key={distance.distanceId}
@@ -175,13 +176,13 @@ export function TrainingRecordsPage() {
             className={
               activeDistanceId === distance.distanceId
                 ? "min-h-11 shrink-0 rounded-control bg-brand-flame px-4 py-2 text-sm font-semibold text-brand-navy"
-                : "min-h-11 shrink-0 rounded-card border border-brand-navy/10 bg-white px-4 py-2 text-sm font-medium text-brand-navy hover:bg-brand-ice"
+                : "min-h-11 shrink-0 rounded-control border border-brand-navy/10 bg-white px-4 py-2 text-sm font-medium text-brand-navy hover:bg-brand-ice"
             }
           >
             {formatDistanceLabel(distance.distanceId, distance.label, locale)}
           </button>
         ))}
-      </div>
+      </ScrollRow>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Card variant="raised" title={t("records.card.best")}>
