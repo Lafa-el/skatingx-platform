@@ -2,6 +2,7 @@
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
 import { AnalysisBiomechanicsPage } from "./AnalysisBiomechanicsPage";
@@ -83,5 +84,14 @@ describe("analysis pages: wording that must not overclaim", () => {
       expect(view.container.textContent).not.toContain("生物力学");
       view.unmount();
     }
+  });
+});
+
+describe("analysis pages: UI v1 look", () => {
+  it.each(PAGES)("$name: no old colour classes, navy heading, note with an icon", ({ page }) => {
+    const view = render(page());
+    expect(legacyColourClasses(view.container)).toEqual([]);
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-brand-navy");
+    expect(view.container.querySelector("svg")).not.toBeNull();
   });
 });
