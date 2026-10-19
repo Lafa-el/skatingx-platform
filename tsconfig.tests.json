@@ -1,5 +1,5 @@
 {
-  "$comment": "Type-checks tests/ (Security Rules and repository integration tests). These files sit outside every package tsconfig, so without this they were never type-checked in CI.",
+  "$comment": "Type-checks tests/ plus the analysis M2 contract types. These files sit outside every package tsconfig, so without this they were never type-checked in CI. The contract file is definitions only.",
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
@@ -15,5 +15,5 @@
       "@skatingx/firebase-client": ["packages/firebase-client/src/index.ts"]
     }
   },
-  "include": ["tests/**/*.ts"]
+  "include": ["tests/**/*.ts", "docs/migration/analysis/contract-types.ts"]
 }
