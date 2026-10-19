@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |---|---|
-| 状态 | **提议。等 owner 批准。批准前不写移植代码，不进 M3/M4。** |
+| 状态 | **路径分法已于 2026-10-19 通过。** 契约其余部分仍为提议。整份契约批准前不写移植代码，不进 M3/M4。 |
 | 日期 | 2026-10-19 |
 | 分支 | `migration/analysis-contract` |
 | 依据 | 执行计划 v1.0 的 §1、§2；M1 盘点 `docs/migration/analysis-inventory.md`（`main` `90de45d`）；DR-001 / DR-003 / DR-004 / DR-007 / DR-008 |
@@ -12,19 +12,19 @@
 
 ---
 
-## 1. 要拍板的路径分法
+## 1. 路径分法（2026-10-19 通过）
 
-本 ADR **提议**下面的分法。它和「所有 legacy 文档都塞进一个 `analyses/{analysisId}`」不是同一件事。若要改，停在评审，不要在移植里静默改。
+Owner 通过下面的分法。`analyses/{analysisId}` 放在用户级，6 段。DR-003 的意图用字段保留：分析文档的 `athleteId` 写 `lindsay`，数据归 lindsay，不归 `default`。器材和打卡不写入这份分析文档。
 
-| 数据 | 提议路径 | 段数 | 理由 |
+| 数据 | 路径 | 段数 | 理由 |
 |---|---|---|---|
-| 一次生物力学或配速分析 | `artifacts/skatingx-production/users/{uid}/analyses/{analysisId}` | 6 | 本次任务指定的 DR-001 路径。是文档，不是「一个文档装下全部用户数据」。 |
-| 运动员身份 | `.../users/{uid}/athletes/lindsay/profile/main`，`settings/main.activeAthleteId = "lindsay"` | 8 / 6 | DR-003。`default` 归档、不在界面显示。分析文档上的 `athleteId` 写 `lindsay`，不把 uid 再当成运动员 id。 |
+| 一次生物力学或配速分析 | `artifacts/skatingx-production/users/{uid}/analyses/{analysisId}` | 6 | 用户级文档。`athleteId` 字段写 `lindsay`。不是「一个文档装下全部用户数据」。 |
+| 运动员身份 | `.../users/{uid}/athletes/lindsay/profile/main`，`settings/main.activeAthleteId = "lindsay"` | 8 / 6 | DR-003。`default` 归档、不在界面显示。不把 uid 再当成运动员 id。 |
 | 官方积分 | `.../athletes/lindsay/gamification/main` | 8 | DR-004。训练积分是官方余额。legacy `profile/lindsay.points` 只进迁移备份，不累加。 |
-| 页签三打卡 | `.../athletes/lindsay/planning/main/completedTasks/{taskId}` | 10 | 见下面的段数冲突。新打卡只增加训练积分，不另建分析侧积分。 |
-| 器材历史 | `.../athletes/lindsay/equipment/main/records/{recordId}` | 10 | 见下面的段数冲突。旧站的器材记录是用户级历史，不是某一次视频分析的子文档。 |
+| 页签三打卡 | `.../athletes/lindsay/planning/main/completedTasks/{taskId}` | 10 | 与训练侧 `training/main/records/{id}` 同构。新打卡只增加训练积分，不另建分析侧积分。 |
+| 器材历史 | `.../athletes/lindsay/equipment/main/records/{recordId}` | 10 | 与训练侧同构。旧站的器材记录是用户级历史，不是某一次视频分析的子文档。 |
 
-`paths.planningCompletedTask` 和 `paths.equipmentRecord` 现在各是 9 段。Firestore 文档路径必须是偶数段，9 段写不进去。本 ADR 提议在 `planning` 和 `equipment` 后加一层 `main`，与训练记录已经采用的 `training/main/records/{id}` 同一做法。**本次不改这两个函数。**
+`paths.planningCompletedTask` 和 `paths.equipmentRecord` 现在各是 9 段。Firestore 文档路径必须是偶数段，9 段写不进去。已通过的写法是在 `planning` 和 `equipment` 后加一层 `main`。**本次不改这两个函数。禁止沿用 9 段。脚手架 PR 再改 `paths.ts`。**
 
 `paths.analysisSession` 指向另一条路径：`.../athletes/{athleteId}/analysis/sessions/{sessionId}/summary`（10 段，偶数）。仓库里没有调用方。**本次也不改这个函数。** 批准本 ADR 之后的脚手架 PR 再改路径函数。在那之前，移植不得沿用未使用的 `analysisSession`，也不得沿用现在这两条 9 段路径。
 
