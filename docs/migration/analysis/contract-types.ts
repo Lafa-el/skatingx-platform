@@ -237,6 +237,8 @@ export interface AnalysisRecord {
   readonly id: string;
   readonly ownerUserId: string;
   readonly athleteId: string;
+  /** ISO-8601 string. Not a Firestore Timestamp. */
+  readonly createdAt: string;
   readonly provenance: AnalysisProvenance;
   readonly poseFrames?: readonly PoseFrameOutput[];
   readonly pace?: PaceOutput;

@@ -14,7 +14,7 @@
 
 ## 1. 路径分法（2026-10-19 通过）
 
-Owner 通过下面的分法。`analyses/{analysisId}` 放在用户级，6 段。DR-003 的意图用字段保留：分析文档的 `athleteId` 写 `lindsay`，数据归 lindsay，不归 `default`。器材和打卡不写入这份分析文档。
+Owner 通过下面的分法。`analyses/{analysisId}` 放在用户级，6 段。DR-003 的意图用字段保留：分析文档的 `athleteId` 写 `lindsay`，数据归 lindsay，不归 `default`。器材和打卡不写入这份分析文档。`AnalysisRecord.createdAt` 用 ISO 字符串，不用 `serverTimestamp`。
 
 | 数据 | 路径 | 段数 | 理由 |
 |---|---|---|---|

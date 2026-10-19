@@ -363,9 +363,11 @@ M2 固件必须覆盖这五类（执行计划 M2.4），且 **不得**用 Lindsa
 
 ## 9. 测试污染说明
 
-走查在器材页生成了一条测试记录（10/18 · 本次记录类型「记录未调整」），因 §5.1 未能从 UI 删掉。可能在 `artifacts/blaze-skate-academy/users/{某匿名uid}/equipmentRecords`，并可能镜像在该浏览器的 `blaze-equipment-history-v1`。
+走查在器材页生成了一条测试记录（10/18 · 本次记录类型「记录未调整」），因 §5.1 未能从 UI 删掉。浏览器里的 `blaze-equipment-history-v1` 若还在，只存在那次走查的本机。
 
-**2026-10-18 评审：删。** 它会混进器材 A/B 对比候选。位置：GCP 项目 `blaze-skate-analysis`（不是路径前缀），集合 `artifacts/blaze-skate-academy/users/{匿名 uid}/equipmentRecords`，日期 10/18、记录类型「记录未调整」。本仓库没有 Admin 服务账号，本文合入时没有对生产执行删除；由 owner 在 Firebase 控制台删这一条。浏览器里的 `blaze-equipment-history-v1` 若还在，只存在那次走查的本机。
+**2026-10-18 评审：删。** 它会混进器材 A/B 对比候选。
+
+**2026-10-19：已删除。** 控制台手动删除。文档 ID `aV0IXQwgXf3hb3aglk1s`。路径 `artifacts/blaze-skate-academy/users/B6bqcm2jKfNE4T7ltZq7akP6fc22/equipmentRecords`。删除前集合组查询确认全库唯一，删除后复查为空。仅此一次删除。
 
 ---
 
