@@ -31,21 +31,21 @@
 
 | ID | Topic | Blocking? | Recommended Option | Owner | Status |
 |----|-------|-----------|-------------------|-------|--------|
-| DR-001 | Production Firebase GCP project | Yes | — | TBD | Open |
-| DR-002 | Production domain & URL strategy | Yes | — | TBD | Open |
-| DR-003 | Lindsay vs `default` athlete merge | Yes | — | TBD | Open |
-| DR-004 | Points (`points`) source of truth | Yes | — | TBD | Open |
-| DR-005 | AI Coach LLM vendor & MVP scope | No* | — | TBD | Open |
-| DR-006 | Public product brand (BLAZE vs SkatingX) | Yes | — | TBD | Open |
-| DR-007 | Legacy data migration strategy | Yes | — | TBD | Open |
-| DR-008 | Planning module route placement | No | — | TBD | Open |
-| DR-009 | TypeScript adoption for `apps/web` | No | — | TBD | Open |
-| DR-010 | Monorepo package manager | No | — | TBD | Open |
-| DR-011 | `parentPin` security model | Yes | — | TBD | Open |
+| DR-001 | Production Firebase GCP project | Yes | — | TBD | Approved |
+| DR-002 | Production domain & URL strategy | Yes | — | TBD | Approved |
+| DR-003 | Lindsay vs `default` athlete merge | Yes | — | TBD | Approved |
+| DR-004 | Points (`points`) source of truth | Yes | — | TBD | Approved |
+| DR-005 | AI Coach LLM vendor & MVP scope | No* | — | TBD | Approved |
+| DR-006 | Public product brand (BLAZE vs SkatingX) | Yes | — | TBD | Approved |
+| DR-007 | Legacy data migration strategy | Yes | — | TBD | Approved |
+| DR-008 | Planning module route placement | No | — | TBD | Approved |
+| DR-009 | TypeScript adoption for `apps/web` | No | — | TBD | Approved |
+| DR-010 | Monorepo package manager | No | — | TBD | Approved |
+| DR-011 | `parentPin` security model | Yes | — | TBD | Approved |
 | DR-012 | PRO monetization model (MVP) | No | — | TBD | Open |
-| DR-013 | Pacing PB sync to training records | No | — | TBD | Open |
-| DR-014 | Default `activeAthleteId` after migrate | Yes** | — | TBD | Open |
-| DR-015 | Staging / dev Firebase topology | No | — | TBD | Open |
+| DR-013 | Pacing PB sync to training records | No | — | TBD | Approved |
+| DR-014 | Default `activeAthleteId` after migrate | Yes** | — | TBD | Approved |
+| DR-015 | Staging / dev Firebase topology | No | — | TBD | Approved |
 
 \* Blocks Phase 6 (AI Coach L2) only, not initial shell or Training/Analysis port.  
 \*\* Blocks migration cutover for households with both legacy apps on same uid.
@@ -526,7 +526,7 @@ After Phase 6 (AI Coach)
 
 **Status:** Approved  
 
-**Approved Option:** A — pnpm workspaces  
+**Approved Option:** B — npm workspaces  
 
 **Notes**
 
@@ -535,6 +535,7 @@ After Phase 6 (AI Coach)
 - Legacy repos use npm, but they will remain source/reference projects and will not determine the new platform package manager.
 - Commit `pnpm-lock.yaml` as the single lockfile for `skatingx-platform`.
 - Do not commit `package-lock.json` or `yarn.lock` inside `skatingx-platform`.
+- 按仓库现实纠正 6 月记录——仓库自始使用 npm workspaces（有 package-lock.json，无 pnpm-lock.yaml / pnpm-workspace.yaml，CI 用 cache: npm + npm ci），无迁移至 pnpm 的计划。
 
 ---
 
@@ -596,9 +597,9 @@ After Phase 6 (AI Coach)
 
 **Decision Owner:** Stephen Lin
 
-**Status:** Approved
+**Status:** Open
 
-**Approved Option:** C  
+**Approved Option:** C — voided / 作废 (2026-10-18; not in force)
 
 **Notes**
 
@@ -791,6 +792,18 @@ flowchart LR
 | Date | ID | Change | By |
 |------|-----|--------|-----|
 | 2026-06-03 | — | Initial decision log created. All items **Open**. No approvals recorded. | — |
+| 2026-10-18 | DR-001–DR-005 | Summary tracker Status set from Open to Approved so it matches the existing body records. Owner column, options, notes, and DR-006–DR-015 unchanged. | owner |
+| 2026-10-18 | DR-006 | Tracker Status Open → Approved, matching body option C. Owner unchanged. | owner |
+| 2026-10-18 | DR-007 | Tracker Status Open → Approved, matching body option C. Owner unchanged. | owner |
+| 2026-10-18 | DR-008 | Tracker Status Open → Approved, matching body option A. Owner unchanged. | owner |
+| 2026-10-18 | DR-009 | Tracker Status Open → Approved, matching body option A. Owner unchanged. | owner |
+| 2026-10-18 | DR-010 | Tracker Status Open → Approved, matching body option A. Owner unchanged. Body still says pnpm; not edited. | owner |
+| 2026-10-18 | DR-011 | Tracker Status Open → Approved, matching body option A. Owner unchanged. | owner |
+| 2026-10-18 | DR-012 | Body Status returned to Open. Approved Option C kept and marked void: the June "Approved C" (no paid PRO in the MVP) was not an owner decision and conflicts with the PRO gate already shipped. Tracker stays Open. Notes 段同步作废. | owner |
+| 2026-10-18 | DR-013 | Tracker Status Open → Approved, matching body option C. Owner unchanged. | owner |
+| 2026-10-18 | DR-014 | Tracker Status Open → Approved, matching body option D. Owner unchanged. | owner |
+| 2026-10-18 | DR-015 | Tracker Status Open → Approved, matching body option C. Owner unchanged. | owner |
+| 2026-10-18 | DR-010 | Approved Option corrected from A (pnpm workspaces) to B (npm workspaces). Status stays Approved. One Notes line added: the repo has used npm workspaces from the start and there is no plan to migrate to pnpm. Recommended Option line unchanged. | owner |
 
 ---
 
