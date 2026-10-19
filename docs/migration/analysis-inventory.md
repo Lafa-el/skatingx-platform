@@ -1,7 +1,7 @@
 # M1 盘点报告 — 旧分析站 analysis.blazeskate.com
 
 日期：2026-10-18
-状态：待评审（停止条件：本文未经批准，不进入 M2）
+状态：评审通过（2026-10-18，有条件；条件已写入「评审结论」）。可以进入 M2。
 本文件路径：`docs/migration/analysis-inventory.md`（按开工包单文件输出。AGENTS.md 还要求 `docs/migration/<module>/inventory.md` 等四件套；其余三件在 M2 契约阶段补，不在本次静默改口径。）
 
 对照来源：
@@ -21,6 +21,25 @@
 | 上传视频触发 Pose | **未做。** 中途取消 / 无人 / 多人 / 低帧率只做代码级结论（§8.7）。 |
 
 未写入本文的内容：Firebase `apiKey` / `appId` / `messagingSenderId`、任何用户数据、任何视频。
+
+## 评审结论（2026-10-18，owner）
+
+方法成立：线上构建与 `blaze-skate-analysis` HEAD `1242226` 逐字节相同，源码可以当行为依据。下列四条是合并条件，覆盖走查稿和 2026-10-12 评审里写错或作废的说法。
+
+| # | 纠正 | 以什么为准 |
+|---|---|---|
+| 1 | `/` 四页签之外，`/analysis` 还有一套 TypeScript 表面（手动 finding 表单；Videos、Settings 是空页）。不是「只有一份 vanilla SPA」。 | §0.1 |
+| 2 | Firebase GCP 项目是 **`blaze-skate-analysis`**。`blaze-skate-academy` 只是 Firestore 路径前缀 `artifacts/{appId}`。10/12 评审把项目 ID 写成 academy，是错的。 | §8.5 |
+| 3 | `modelComplexity: 1` 用的是 **full** 模型 `pose_landmark_full.tflite`（约 6.4 MB），不是 lite，也不是 heavy。 | §8.3 |
+| 4 | idle 文案「正在预热模型...」**作废，不算缺陷**。走查约 8 分钟未就绪，是因为没上传视频、warmup 根本没开始。`initPoseModel()` 只在点击「启动 Edge 视觉引擎分析」之后运行。 | §5.2 |
+
+不挡 M2 的 unverified：加载期控制台（§8.6）、线上已部署的 Security Rules 是否等于仓库 `firestore.rules`（§8.5）。
+
+M2 ADR 按这次评审写死：
+
+- 移植基准是 **`/` 四页签 vanilla 应用**。
+- `/analysis` 那套（手动 finding、空 Videos/Settings）**倾向搁置**。ADR 写清搁置理由，不把两套表面合成一个产品。
+- Vanilla 三路 `onSnapshot`（`profile/lindsay`、`completedTasks`、`equipmentRecords`）没有 unsubscribe。M2 移植时补上，不原样留下。
 
 ---
 
@@ -64,7 +83,7 @@ Vanilla 四页签才是执行计划 §0「四个页签平移」的对象。TS �
 
 - 左侧 Console 三行：模型状态 / 标定纠错：3D Normal Projection Active / 物理同步。
 - 右侧主面板 idle 态：「AI 动作实验室休眠中」，关键帧诊断区无可见 canvas。
-- 内嵌控制台显示「模型状态：正在预热模型...」，走查约 8 分钟始终未变为就绪。代码级原因见 §5.2 / §8.3：`initPoseModel()` **只在用户点击「启动 Edge 视觉引擎分析」之后才调用**；未上传视频时这行只是 HTML 默认文案，并不是一次卡住的 WASM 下载。
+- 内嵌控制台显示「模型状态：正在预热模型...」，走查约 8 分钟始终未变为就绪。代码级原因见 §5.2 / §8.3：`initPoseModel()` **只在用户点击「启动 Edge 视觉引擎分析」之后才调用**；未上传视频时这行只是 HTML 默认文案，并不是一次卡住的 WASM 下载。**2026-10-18 评审：这条现象作废。**
 
 ---
 
@@ -118,7 +137,7 @@ Vanilla 四页签才是执行计划 §0「四个页签平移」的对象。TS �
 ## 5. Quirks 与缺陷（基线行为，移植时保留或修，须经评审决定）
 
 1. **「删除记录」按钮走查失效**：点击两次均无确认框、记录仍在。源码里函数和委托监听是存在的（`deleteEquipmentRecord` + `#equipHistoryList` 上 `event.target.closest('[data-delete-equipment-id]')`，确认文案「确定删除这条器材历史记录吗？」）。走查看不到确认框，更像点击目标不是 Element（例如点到按钮内文本节点时 `closest` 抛错）或云端重绘后未点到按钮，而不是功能被删掉。M4 不得在无决定的情况下「顺便修好」。走查留下的 10/18 测试记录见 §9。
-2. **模型预热长时间停滞**：默认文案就是「正在预热模型...」。`initPoseModel()` 只在分析按钮点击后运行。走查未上传视频，因此 **WASM/tflite 下载从未开始**。这不能当作「模型坏了」的证据，只能当作 idle 文案误导。模型是否真能跑完一次分析，仍 **unverified**（未上传视频）。
+2. **idle 文案「正在预热模型...」作废（2026-10-18 评审）**：这不是缺陷。默认 HTML 就是这句；`initPoseModel()` 只在分析按钮点击后运行。走查未上传视频，WASM/tflite **从未开始下载**。模型能否跑完一次分析仍 **unverified**（未上传视频），但「预热停滞 8 分钟」不再进入 quirks 基线。
 3. 数字输入框 DOM 值为 float32 精度伪影（如 7.050000190734863），显示层四舍五入为 7.05。
 4. 无视频时分析按钮禁用、右侧保持休眠提示，无报错。中途取消 / 无人 / 多人 / 低帧率的代码级处理见 §8.7。
 5. 头像依赖第三方 `placehold.co`（运行时外部图片，迁移时去掉）。
@@ -346,20 +365,21 @@ M2 固件必须覆盖这五类（执行计划 M2.4），且 **不得**用 Lindsa
 
 走查在器材页生成了一条测试记录（10/18 · 本次记录类型「记录未调整」），因 §5.1 未能从 UI 删掉。可能在 `artifacts/blaze-skate-academy/users/{某匿名uid}/equipmentRecords`，并可能镜像在该浏览器的 `blaze-equipment-history-v1`。
 
-**本任务未清理、未打开 Firebase 控制台、未对生产做写操作。** 是否删除，由用户决定。
+**2026-10-18 评审：删。** 它会混进器材 A/B 对比候选。位置：GCP 项目 `blaze-skate-analysis`（不是路径前缀），集合 `artifacts/blaze-skate-academy/users/{匿名 uid}/equipmentRecords`，日期 10/18、记录类型「记录未调整」。本仓库没有 Admin 服务账号，本文合入时没有对生产执行删除；由 owner 在 Firebase 控制台删这一条。浏览器里的 `blaze-equipment-history-v1` 若还在，只存在那次走查的本机。
 
 ---
 
 ## 10. 给 M2 的输入
 
-- 四个页签输入/输出/状态基线：§1–§4（Vanilla `/`）。这是移植对象。
-- 平行的 `/analysis` TS 工作流：类型、i18n、六个集合已存在，但 **不是** 四页签产品。复用或搁置必须在 ADR 里写明。
-- 数据模型：至少两套 legacy 路径（Vanilla 三集合 + TS 六集合），都在 `artifacts/blaze-skate-academy/users/{uid}/` 下，GCP 项目是 `blaze-skate-analysis`。映射到 DR-001 的 `artifacts/skatingx-production/users/{uid}/analyses/{analysisId}`（以及训练侧计划/打卡）写进 ADR。DR-007 仍未定，M6 前必须定。
+- 移植基准：`/` 四页签 vanilla（§1–§4）。这是评审写死的。
+- `/analysis` TS 工作流倾向搁置（手动 finding、空 Videos/Settings）。ADR 写理由。六个集合不要默默并进四页签模型。
+- Vanilla 三路 `onSnapshot` 在 M2 补 unsubscribe。
+- 数据模型：Vanilla 三集合 + TS 六集合都在 `artifacts/blaze-skate-academy/users/{uid}/` 下，GCP 项目是 `blaze-skate-analysis`。映射到 DR-001 的 `artifacts/skatingx-production/users/{uid}/analyses/{analysisId}`（以及训练侧计划/打卡）写进 ADR。执行计划仍把 DR-007 标成 M6 前未定；决定记录正文已是 Approved（选项 C），tracker 在另开的文档 PR 里只先对齐 DR-001～005。M2 不要把「未定」写成已定。
 - MediaPipe：Pose **0.5.1675469404**，`modelComplexity: 1`（full tflite），jsDelivr `locateFile`，懒加载仅在点击分析之后。自托管 pin 该版本，不升级 Landmarker。
 - Chart.js：**在用**，当前 CDN 解析为 4.5.1，仅配速页。
 - 运行时 CDN：§8.2 全表。Tailwind Play 必须换成仓库内 Tailwind v4。
 - 英文：四页签需新建；TS 字典可参考但不是同一套 UI。
-- Quirks 处置（保留/修复）须评审：删除按钮、idle「正在预热模型...」文案、float32 伪影、Pose 不 `close()`。
+- Quirks 仍待评审（保留或修）：删除按钮、float32 伪影、Pose 不 `close()`。idle「正在预热模型...」已作废，不在此列。
 - 页签三宿主 = 训练模块；打卡积分走训练体系（DR-004）。
 - 分析→训练反馈环 = Phase 1.5；M2 只预留 finding 编码类型。
 - 固件：去标识化；禁止 Lindsay 真实视频。
@@ -371,7 +391,7 @@ M2 固件必须覆盖这五类（执行计划 M2.4），且 **不得**用 Lindsa
 | 文档 | 现状 | 本盘点 |
 |---|---|---|
 | `blaze-skate-analysis/docs/architecture-audit.md`（2026-06-03） | 单文件、无 `src/`、无 Vite、无 TS | 过期。线上是 HTML Vanilla + Vite TS 混合 |
-| `docs/SKATINGX_OPEN_DECISIONS.md` | DR-001/003/004/005 仍写 Open | 执行计划 v1.0 记为 Approved。以用户批准的执行计划为准；是否回写该文件等用户决定 |
+| `docs/SKATINGX_OPEN_DECISIONS.md` | tracker 表 DR-001～005 仍写 Open，正文已是 Approved | 2026-10-18 owner 决定另开文档 PR，只改 tracker 状态并加 change history。不在本文件改 |
 
 ---
 
