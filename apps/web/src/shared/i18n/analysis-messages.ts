@@ -1,8 +1,8 @@
 import { createTranslator, type Resources } from "./translator";
 
 /**
- * Text of the four Analysis pages. They are placeholders: the analysis tools are not built yet, so
- * the text names the sections and says no more. Biomechanics is 动作分析 in Chinese (owner
+ * Titles of the Analysis section. The hub, biomechanics, and equipment pages are still
+ * placeholders. Pacing is the first ported tab and keeps this title. Biomechanics is 动作分析 in Chinese (owner
  * decision 2026-10-16, ADR-004 glossary): "生物力学" would claim more than a placeholder does.
  * The note under the section pages is the shared placeholder text, not repeated here.
  */

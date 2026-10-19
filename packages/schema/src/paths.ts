@@ -36,6 +36,12 @@ export const paths = {
     `${prefix(userId)}/athletes/${athleteId}/training/main/redemptions`,
   equipmentRecord: (userId: string, athleteId: string, recordId: string) =>
     `${prefix(userId)}/athletes/${athleteId}/equipment/records/${recordId}`,
+  /**
+   * ADR-005 §1. One pace or biomechanics run, user-level, 6 segments.
+   * `analysisSession` below is a different unused path and must not be used for this.
+   */
+  analysisRecord: (userId: string, analysisId: string) =>
+    `${prefix(userId)}/analyses/${analysisId}`,
   analysisSession: (userId: string, athleteId: string, sessionId: string) =>
     `${prefix(userId)}/athletes/${athleteId}/analysis/sessions/${sessionId}/summary`,
   planningCompletedTask: (userId: string, athleteId: string, taskId: string) =>

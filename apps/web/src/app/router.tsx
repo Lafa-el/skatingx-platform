@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { RaceDayRoute } from "@/app/RaceDayRoute";
@@ -8,7 +9,9 @@ import { AiCoachPage } from "@/pages/AiCoachPage";
 import { AnalysisBiomechanicsPage } from "@/pages/analysis/AnalysisBiomechanicsPage";
 import { AnalysisEquipmentPage } from "@/pages/analysis/AnalysisEquipmentPage";
 import { AnalysisHubPage } from "@/pages/analysis/AnalysisHubPage";
-import { AnalysisPacingPage } from "@/pages/analysis/AnalysisPacingPage";
+const AnalysisPacingPage = lazy(() =>
+  import("@/pages/analysis/AnalysisPacingPage").then((module) => ({ default: module.AnalysisPacingPage })),
+);
 import { AthletePage } from "@/pages/AthletePage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -41,7 +44,14 @@ export function AppRouter() {
       <Route path="/analysis" element={<AnalysisLayout />}>
         <Route index element={<AnalysisHubPage />} />
         <Route path="biomechanics" element={<AnalysisBiomechanicsPage />} />
-        <Route path="pacing" element={<AnalysisPacingPage />} />
+        <Route
+          path="pacing"
+          element={
+            <Suspense fallback={<div className="min-h-11" />}>
+              <AnalysisPacingPage />
+            </Suspense>
+          }
+        />
         <Route path="equipment" element={<AnalysisEquipmentPage />} />
       </Route>
 

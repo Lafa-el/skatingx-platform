@@ -20,6 +20,7 @@ export {
   raceDaySummaryRef,
   raceDayVideoRef,
   raceDayVideosCollectionRef,
+  analysisRecordRef,
   settingsRef,
   taskHistoryRef,
   trainingRecordRef,
@@ -66,6 +67,7 @@ export {
   type RaceDayListError,
   type RaceSummaryState,
 } from "./firestore/race-day";
+export { savePaceAnalysisRecord } from "./firestore/pace-analysis";
 export { updateUserSettings } from "./firestore/settings";
 export {
   ensureDefaultRewardsCatalog,

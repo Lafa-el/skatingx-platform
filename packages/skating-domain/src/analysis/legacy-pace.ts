@@ -26,6 +26,8 @@ export const pacingDistanceConfigs = {
 
 export type PaceDistance = keyof typeof pacingDistanceConfigs;
 
+export const PACE_ALGORITHM_VERSION = "legacy-pace-port-1" as const;
+
 export interface PaceAnalysis {
   readonly ratingLabel: "优秀" | "需强化" | "稳定中等";
   readonly levelSub: string;
@@ -35,6 +37,8 @@ export interface PaceAnalysis {
   readonly benchmarkTotalSeconds: number;
   readonly decayPercent: number;
   readonly benchmarkDecayPercent: number;
+  readonly earlyAverageSeconds: number;
+  readonly lateAverageSeconds: number;
   readonly maxSegmentJump: number;
   readonly benchmarkMaxJump: number;
   readonly finishGapSeconds: number;
@@ -119,6 +123,8 @@ export function calculatePacingAnalysis(
       benchmarkTotalSeconds,
       decayPercent,
       benchmarkDecayPercent,
+      earlyAverageSeconds: earlyAvg,
+      lateAverageSeconds: lateAvg,
       maxSegmentJump,
       benchmarkMaxJump,
       finishGapSeconds,
