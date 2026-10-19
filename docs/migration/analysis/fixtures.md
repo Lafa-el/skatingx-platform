@@ -18,5 +18,5 @@
 
 - 五条都有独立文件名，且文件里没有可识别的真人影像。
 - 同一条固件在旧行为测试和新实现上使用同一输入。
-- 关键指标差异的允许范围不在本清单里定。那是 M5，由 owner 批准。
+- 关键指标差异的允许范围由 owner 在 2026-10-19 批准，记在 `m5-parity-report.md`。测试仍按精确相等。
 - 固件和锁定指标在 `packages/skating-domain/src/analysis/fixtures/`。`*.expected.json` 是回归快照。
