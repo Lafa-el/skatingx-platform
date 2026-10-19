@@ -1,6 +1,6 @@
 # 分析模块 M6 切换
 
-状态：脚本已写好。验证只在 emulator 上跑过。staging 还没有执行。生产（`skatingx-prod`）等 Buffalo 另行批准，本脚本会直接拒绝。
+状态：脚本已写好。验证只在 emulator 上跑过。staging 还没有写入。生产（`skatingx-prod`）等 Buffalo 另行批准，本脚本会直接拒绝。2026-10-19 决定：托管 Firestore 导出因计费要求改为针对性备份。
 
 依据：DR-004（分析积分只进备份）、DR-007 选项 C（一次迁移，不双写）、ADR-005 的 10 段路径。源盘点见 `docs/migration/analysis-inventory.md`。
 
@@ -14,7 +14,8 @@
 | 源路径 | `artifacts/blaze-skate-academy/users/{uid}/` 下的 `equipmentRecords`、`completedTasks`、`profile/lindsay` |
 | 只读账号 | `migration-reader@blaze-skate-analysis.iam.gserviceaccount.com` |
 | 源钥匙 | 只认 `GOOGLE_APPLICATION_CREDENTIALS`。约定放在 `~/.config/gcp/migration-reader.json`。脚本不会在变量未设置时自己去读这个路径。 |
-| 目标钥匙 | 写入 emulator 以外的目标时认 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。约定放在 `~/.config/gcp/migration-writer.json`，这是 `skatingx-platform` 的写权限。emulator 不需要。dry-run 不需要。只读 key 不能写 staging。两把钥匙都不进仓库、不进代码、不进日志。 |
+| 目标钥匙 | 写入 emulator 以外的目标，以及 `--backup-target` 读取 staging 时，认 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。约定放在 `~/.config/gcp/migration-writer.json`。emulator 不需要。dry-run 不需要。只读 key 不能写 staging。两把钥匙都不进仓库、不进代码、不进日志。 |
+| 目标备份 | `--backup-target <file>`。先做 plan，再只读 `skatingx-platform` 上这些路径的当前文档，存成 `{path, exists, data}` 的 JSON。不写。文件路径在仓库里就停。 |
 | 默认目标 | Firestore emulator，项目 `demo-skatingx-migration` |
 | staging | `--write --target staging --project skatingx-platform --confirm-staging` |
 | 生产 | `--target production` 或项目 `skatingx-prod` / `skatingx-production` 一律退出。 |
@@ -33,7 +34,14 @@
 
 ## 顺序
 
-1. 导出。对源项目 `blaze-skate-analysis` 和目标项目各做一次 Firestore export。导出保留至少 90 天。导出文件不进仓库。
+1. 目标备份。2026-10-19 决定：托管 Firestore 导出因计费要求改为针对性备份，不再做全库托管导出。staging 写入前先跑 `--backup-target`。这一步只读，把 plan 里每条路径在 `skatingx-platform` 上的当前文档存到仓库外。把备份文件路径记在当次记录里。
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcp/migration-reader.json"
+export TARGET_GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcp/migration-writer.json"
+node scripts/migrate-analysis.mjs --backup-target "$HOME/.config/gcp/m6-staging-backup.json"
+```
+
 2. dry-run。钥匙只通过环境变量给只读账号。
 
 ```bash
@@ -51,7 +59,7 @@ npm run test:migration
 
 这一步用合成数据，不连旧库，也不连 `skatingx-prod`。它核对源和目标条数、字段映射、重跑 ID，并把写出的文档交给正在使用的 `firestore.rules`。
 
-4. staging 验证。先 dry-run，再写 `skatingx-platform`。写之前目标库已经有导出。写入之前两个环境变量都要就位，路径都在仓库外。缺源钥匙、缺目标钥匙、路径在仓库里，或文件不是 service account key，整批停下，不写。
+4. staging 验证。先 dry-run，确认计数和抽查，再写 `skatingx-platform`。写入前必须已经跑过 `--backup-target`，并且把备份文件路径记下来。写入之前两个环境变量都要就位，路径都在仓库外。缺源钥匙、缺目标钥匙、路径在仓库里，或文件不是 service account key，整批停下，不写。
 
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcp/migration-reader.json"
@@ -68,7 +76,7 @@ node scripts/migrate-analysis.mjs --write --target staging --project skatingx-pl
 
 ## 回滚
 
-DR-007 选项 C：把 Firestore 导出恢复回去，并把用户暂时切回旧站。不做双写。旧站在切过之后保持只读 30 天。恢复之后再跑一次 dry-run，确认没有新的写入计划被自动执行。
+回滚按 `--backup-target` 的 JSON 把那些路径恢复成备份时的内容。`exists` 为 false 的路径，删除本次写入的文档。2026-10-19 起不用托管 Firestore 导出。DR-007 选项 C 的其余部分不变：不做双写，需要时把用户暂时切回旧站。旧站在切过之后保持只读 30 天。恢复之后再跑一次 dry-run，确认没有新的写入计划被自动执行。
 
 ## 停止
 
