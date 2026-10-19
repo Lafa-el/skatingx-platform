@@ -1,0 +1,10 @@
+{
+  "returnedPersonCount": 1,
+  "comMaxJump": 0.18,
+  "poseJumpRejectCount": 1,
+  "readable": false,
+  "unreadableReason": "occlusion-or-jump",
+  "liveHoldText": "检测结果突然跳离当前运动员，已暂时忽略这一帧。",
+  "keyframeText": "遮挡、多人重叠或目标跳变，当前帧不可判读。",
+  "kneeDisplay": "--°"
+}

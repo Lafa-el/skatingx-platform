@@ -101,3 +101,14 @@ export {
   parseTimeToSeconds,
   sortRecordsByDate,
 } from "./records";
+export {
+  assessVideoInput,
+  calculateAngle,
+  classifyPoseIssue,
+  interpretPoseFrame,
+  LEGACY_POSE_LIMITS,
+  resetAnalysisSession,
+  shouldSendPoseFrame,
+} from "./analysis/legacy-pose";
+export { calculatePacingAnalysis, pacingDistanceConfigs } from "./analysis/legacy-pace";
+export { buildEquipmentChecklist, buildEquipmentRuleHints, parseGaugeNumber } from "./analysis/legacy-equipment";

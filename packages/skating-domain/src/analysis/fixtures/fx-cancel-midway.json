@@ -1,0 +1,17 @@
+{
+  "id": "fx-cancel-midway",
+  "deidentified": true,
+  "containsRealVideo": false,
+  "containsProductionRecord": false,
+  "note": "Session state before reset. The object URL is a placeholder, not a video file.",
+  "input": {
+    "started": true,
+    "objectUrl": "blob:fixture",
+    "keyframes": [{ "id": "synthetic-keyframe" }],
+    "kneeDisplay": "102°",
+    "leanDisplay": "12°",
+    "pelvisDisplay": "48.0%",
+    "recoveryDisplay": "4",
+    "poseInstanceOpen": true
+  }
+}

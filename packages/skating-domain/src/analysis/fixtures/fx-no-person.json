@@ -1,0 +1,12 @@
+{
+  "id": "fx-no-person",
+  "deidentified": true,
+  "containsRealVideo": false,
+  "containsProductionRecord": false,
+  "note": "A decodable frame with no pose landmarks. No image and no person.",
+  "input": {
+    "decodable": true,
+    "keyframePending": true,
+    "landmarks": null
+  }
+}

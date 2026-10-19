@@ -1,0 +1,11 @@
+{
+  "id": "fx-input-failure",
+  "deidentified": true,
+  "containsRealVideo": false,
+  "containsProductionRecord": false,
+  "note": "Empty bytes stand in for a failed file. No image and no person.",
+  "input": {
+    "byteLength": 0,
+    "decodable": false
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "readable": false,
+  "unreadableReason": "no-pose",
+  "kneeDisplay": "--°",
+  "leanDisplay": "--°",
+  "pelvisDisplay": "--%",
+  "recoveryDisplay": "--",
+  "keyframeText": "当前帧没有稳定骨架，目标不可判读。",
+  "liveHoldText": null,
+  "issue": null,
+  "kneeAngle": null,
+  "leanAngle": null,
+  "supportSide": null,
+  "supportConfidence": null
+}
