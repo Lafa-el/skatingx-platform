@@ -21,6 +21,8 @@ export {
   raceDayVideoRef,
   raceDayVideosCollectionRef,
   analysisRecordRef,
+  equipmentHistoryCollectionRef,
+  equipmentHistoryRecordRef,
   settingsRef,
   taskHistoryRef,
   trainingRecordRef,
@@ -68,6 +70,11 @@ export {
   type RaceSummaryState,
 } from "./firestore/race-day";
 export { savePaceAnalysisRecord } from "./firestore/pace-analysis";
+export {
+  deleteEquipmentHistoryRecord,
+  saveEquipmentHistoryRecord,
+  subscribeToEquipmentHistory,
+} from "./firestore/equipment-history";
 export { updateUserSettings } from "./firestore/settings";
 export {
   ensureDefaultRewardsCatalog,

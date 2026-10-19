@@ -12,11 +12,48 @@ service cloud.firestore {
       // The user document itself, as before (rules_version 2: `**` matches zero segments).
       allow read, write: if isOwner();
 
-      // Every collection EXCEPT raceDay and analyses: same owner-only access as the previous
-      // `{document=**}` rule. Those two are excluded here because Firestore ORs matching
-      // `allow` rules, so a broad rule would make their validation ineffective.
+      // Every collection EXCEPT raceDay, analyses, and athletes: same owner-only access as
+      // the previous `{document=**}` rule. Those are excluded here because Firestore ORs
+      // matching `allow` rules, so a broad rule would make their validation ineffective.
       match /{collection}/{path=**} {
-        allow read, write: if isOwner() && collection != 'raceDay' && collection != 'analyses';
+        allow read, write: if isOwner()
+          && collection != 'raceDay'
+          && collection != 'analyses'
+          && collection != 'athletes';
+      }
+
+      // Athlete documents stay owner-writable. equipment/main/records/{id} is not included:
+      // only the lindsay path below may write that document, and only in the contract shape.
+      match /athletes/{athleteId} {
+        allow read, write: if isOwner();
+      }
+
+      // Fixed depths, not a recursive wildcard: a path value has no matches() or size().
+      // Four segments under the athlete is where equipment/main/records/{id} lives, so that
+      // one shape is left to the validated match. Every other current athlete path stays
+      // owner-writable (profile, gamification, training, the unused 9-segment equipment helper).
+      match /athletes/{athleteId}/{a} {
+        allow read, write: if isOwner();
+      }
+
+      match /athletes/{athleteId}/{a}/{b} {
+        allow read, write: if isOwner();
+      }
+
+      match /athletes/{athleteId}/{a}/{b}/{c} {
+        allow read, write: if isOwner();
+      }
+
+      match /athletes/{athleteId}/{a}/{b}/{c}/{d} {
+        allow read, write: if isOwner() && !(a == 'equipment' && b == 'main' && c == 'records');
+      }
+
+      match /athletes/{athleteId}/{a}/{b}/{c}/{d}/{e} {
+        allow read, write: if isOwner();
+      }
+
+      match /athletes/{athleteId}/{a}/{b}/{c}/{d}/{e}/{f} {
+        allow read, write: if isOwner();
       }
 
       // --- raceDay: owner-only AND validated (ADR-001 D6, D8) -------------------------
@@ -280,6 +317,78 @@ service cloud.firestore {
         allow read, delete: if isOwner();
         allow create: if isOwner() && validAnalysisRecord(analysisId, request.resource.data);
         allow update: if isOwner() && validAnalysisRecord(analysisId, request.resource.data)
+                      && createdAtUnchanged()
+                      && request.resource.data.athleteId == resource.data.athleteId
+                      && request.resource.data.ownerUserId == resource.data.ownerUserId;
+      }
+
+      // athletes/lindsay/equipment/main/records/{recordId}: 10 segments (ADR-005 §1, §9).
+      // Same idea as analyses/{id}: exact keys, ISO createdAt, lindsay, contract provenance.
+      // Pose does not run here; the model block is still required by AnalysisProvenance.
+      // Gauge points and rule hints are lists with a size cap only. Unrolling every
+      // point and every hint exceeds the rules engine's 1000-expression evaluation cap.
+      // exactKeys on the document is what rejects a video field or a missing contract key.
+      function validGaugeList(items) {
+        return items is list && items.size() <= 21;
+      }
+
+      function validHintList(items) {
+        return items is list && items.size() <= 96;
+      }
+
+      function validEquipmentText(value, max) {
+        return value is string && value.size() <= max;
+      }
+
+      function validEquipmentHistory(id, d) {
+        return validId(id)
+          && exactKeys(d, ['id', 'ownerUserId', 'athleteId', 'createdAt', 'updatedAt',
+                           'provenance', 'symptomKey', 'symptomText', 'height', 'weight',
+                           'bladeLength', 'leftRocker', 'rightRocker', 'offsets', 'bend',
+                           'adjustmentType', 'feedbackRating', 'adjustmentNotes',
+                           'missingCore', 'ruleHints', 'findings'])
+          && d.id == id
+          && d.ownerUserId == userId
+          && d.athleteId == 'lindsay'
+          && validIsoCreatedAt(d.createdAt)
+          && validIsoCreatedAt(d.updatedAt)
+          && validAnalysisProvenance(d.provenance)
+          && d.provenance.algorithmVersion == 'legacy-equipment-port-1'
+          && d.symptomKey in ['slide', 'boot-out', 'unstable', 'ankle', 'release', 'asymmetry']
+          && validEquipmentText(d.symptomText, 500)
+          && validEquipmentText(d.height, 40)
+          && validEquipmentText(d.weight, 40)
+          && validEquipmentText(d.bladeLength, 40)
+          && validGaugeList(d.leftRocker)
+          && validGaugeList(d.rightRocker)
+          && d.offsets is map
+          && exactKeys(d.offsets, ['leftFront', 'leftRear', 'rightFront', 'rightRear'])
+          && validEquipmentText(d.offsets.leftFront, 80)
+          && validEquipmentText(d.offsets.leftRear, 80)
+          && validEquipmentText(d.offsets.rightFront, 80)
+          && validEquipmentText(d.offsets.rightRear, 80)
+          && d.bend is map
+          && exactKeys(d.bend, ['front', 'middle', 'rear'])
+          && validEquipmentText(d.bend.front, 40)
+          && validEquipmentText(d.bend.middle, 40)
+          && validEquipmentText(d.bend.rear, 40)
+          && d.adjustmentType in ['unchanged', 'radius-rocker', 'offset', 'bend',
+                                  'blade-change', 'boot-change', 'combined']
+          && d.feedbackRating in ['not-skated', 'clear-improvement', 'slight-improvement',
+                                  'no-change', 'worse-revert']
+          && validEquipmentText(d.adjustmentNotes, 500)
+          && d.missingCore is bool
+          && validHintList(d.ruleHints)
+          && d.findings is list
+          && d.findings.size() == 1
+          && validFinding(d.findings[0], id)
+          && d.findings[0].code == 'equipment.symptom.' + d.symptomKey;
+      }
+
+      match /athletes/lindsay/equipment/main/records/{recordId} {
+        allow read, delete: if isOwner();
+        allow create: if isOwner() && validEquipmentHistory(recordId, request.resource.data);
+        allow update: if isOwner() && validEquipmentHistory(recordId, request.resource.data)
                       && createdAtUnchanged()
                       && request.resource.data.athleteId == resource.data.athleteId
                       && request.resource.data.ownerUserId == resource.data.ownerUserId;

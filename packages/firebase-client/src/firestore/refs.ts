@@ -12,6 +12,24 @@ function docFromPath(db: Firestore, path: string): DocumentReference {
   return doc(db, ...(segments as [string, ...string[]]));
 }
 
+export function equipmentHistoryRecordRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+  recordId: string,
+): DocumentReference {
+  return docFromPath(db, paths.equipmentHistoryRecord(userId, athleteId, recordId));
+}
+
+export function equipmentHistoryCollectionRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+): CollectionReference {
+  const segments = pathToSegments(paths.equipmentHistoryCollection(userId, athleteId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
 export function analysisRecordRef(
   db: Firestore,
   userId: string,

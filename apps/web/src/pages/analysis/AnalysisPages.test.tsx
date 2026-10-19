@@ -6,7 +6,6 @@ import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
 import { AnalysisBiomechanicsPage } from "./AnalysisBiomechanicsPage";
-import { AnalysisEquipmentPage } from "./AnalysisEquipmentPage";
 import { AnalysisHubPage } from "./AnalysisHubPage";
 
 const state = vi.hoisted(() => ({ locale: "zh" as "zh" | "en" }));
@@ -44,12 +43,6 @@ const PAGES: {
     name: "biomechanics",
     page: () => <AnalysisBiomechanicsPage />,
     title: { zh: "分析 · 动作分析", en: "Analysis · Biomechanics" },
-    note: PLACEHOLDER,
-  },
-  {
-    name: "equipment",
-    page: () => <AnalysisEquipmentPage />,
-    title: { zh: "分析 · 装备", en: "Analysis · Equipment" },
     note: PLACEHOLDER,
   },
 ];
