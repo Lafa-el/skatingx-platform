@@ -10,6 +10,8 @@
  * ~/.config/gcp/migration-writer.json for the skatingx-platform writer.
  * This file does not open either path unless that variable is set.
  * The emulator does not need the writer key. A dry run does not either.
+ * --backup-target reads the planned skatingx-platform documents with the writer
+ * key and stores {path, exists, data} outside this repository. It does not write.
  * Both paths must be outside this repository. The keys are not in the repo.
  *
  * firebase-admin is a root devDependency (Apache-2.0, Google-maintained). It is
@@ -18,7 +20,7 @@
  * the same documents through the client SDK on the emulator.
  */
 
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -350,6 +352,7 @@ export function parseArgs(argv) {
     confirmStaging: false,
     pauseMs: 0,
     uid: null,
+    backupTarget: null,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -371,6 +374,10 @@ export function parseArgs(argv) {
       index += 1;
     } else if (token === "--uid") {
       args.uid = next;
+      index += 1;
+    } else if (token === "--backup-target") {
+      if (!next || next.startsWith("--")) stop("--backup-target needs a file path");
+      args.backupTarget = next;
       index += 1;
     } else stop(`unknown argument ${token}`);
   }
@@ -427,7 +434,7 @@ function credentialMaterialFailure(env, name) {
   return null;
 }
 
-function credentialGate(args, env) {
+function credentialGate(args, env, options = {}) {
   const failures = [];
   if (!args.fixture) {
     const location = credentialLocationFailure(env, SOURCE_CREDENTIAL_ENV, SOURCE_CREDENTIAL_HINT);
@@ -437,7 +444,9 @@ function credentialGate(args, env) {
       if (material) failures.push(material);
     }
   }
-  if (args.write && args.target !== "emulator") {
+  const needsTargetCredential =
+    (args.write && args.target !== "emulator" && !args.backupTarget) || options.requireTargetCredential;
+  if (needsTargetCredential) {
     const location = credentialLocationFailure(env, TARGET_CREDENTIAL_ENV, TARGET_CREDENTIAL_HINT);
     if (location) failures.push(location);
     else {
@@ -446,6 +455,85 @@ function credentialGate(args, env) {
     }
   }
   if (failures.length > 0) stop(failures.join("\n"));
+}
+
+function backupPathFailure(file) {
+  if (isInsideRepo(file)) {
+    return "--backup-target path is inside the repository. Choose a file outside the repo.";
+  }
+  return null;
+}
+
+function jsonSafe(value) {
+  if (value == null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value.toDate === "function" && typeof value.toMillis === "function") {
+    return { type: "timestamp", iso: value.toDate().toISOString() };
+  }
+  if (Array.isArray(value)) return value.map((item) => jsonSafe(item));
+  if (typeof value === "object") {
+    const name = value.constructor?.name;
+    if (name === "GeoPoint") return { type: "geopoint", latitude: value.latitude, longitude: value.longitude };
+    if (name && name !== "Object") stop(`backup cannot store ${name}`);
+    const out = {};
+    for (const [key, item] of Object.entries(value)) out[key] = jsonSafe(item);
+    return out;
+  }
+  stop("backup cannot store an unsupported value");
+}
+
+function writeBackupFile(file, records) {
+  const inside = backupPathFailure(file);
+  if (inside) stop(inside);
+  const resolved = path.resolve(file);
+  let parent;
+  try {
+    parent = statSync(path.dirname(resolved));
+  } catch {
+    stop("--backup-target parent directory does not exist.");
+  }
+  if (!parent.isDirectory()) stop("--backup-target parent is not a directory.");
+  writeFileSync(resolved, `${JSON.stringify(records, null, 2)}\n`);
+}
+
+async function collectBackup(plan, env, deps) {
+  if (deps.readTargetDoc) {
+    const records = [];
+    for (const item of plan.actions) {
+      const row = await deps.readTargetDoc(item.path);
+      records.push({
+        path: item.path,
+        exists: Boolean(row.exists),
+        data: row.exists ? jsonSafe(row.data) : null,
+      });
+    }
+    return records;
+  }
+  if (env.FIRESTORE_EMULATOR_HOST) {
+    stop("FIRESTORE_EMULATOR_HOST is set. --backup-target reads skatingx-platform and does not use the emulator.");
+  }
+  const failure =
+    credentialLocationFailure(env, TARGET_CREDENTIAL_ENV, TARGET_CREDENTIAL_HINT) ??
+    credentialMaterialFailure(env, TARGET_CREDENTIAL_ENV);
+  if (failure) stop(failure);
+  const { cert, initializeApp } = await import("firebase-admin/app");
+  const { getFirestore } = await import("firebase-admin/firestore");
+  const app = initializeApp(
+    { credential: cert(path.resolve(env[TARGET_CREDENTIAL_ENV])), projectId: STAGING_PROJECT },
+    "backup-target",
+  );
+  const db = getFirestore(app);
+  const records = [];
+  for (const item of plan.actions) {
+    const snap = await db.doc(item.path).get();
+    records.push({
+      path: item.path,
+      exists: snap.exists,
+      data: snap.exists ? jsonSafe(snap.data()) : null,
+    });
+  }
+  return records;
 }
 
 export function loadFixture(file) {
@@ -512,7 +600,8 @@ async function writePlan(plan, args, env) {
 }
 
 function printPlan(plan, args) {
-  console.log(`mode: ${args.write ? "write" : "dry-run"}`);
+  const mode = args.backupTarget ? "backup-target" : args.write ? "write" : "dry-run";
+  console.log(`mode: ${mode}`);
   console.log(`target: ${args.target} project ${args.project}`);
   console.log(
     `counts: users ${plan.counts.users}, equipment ${plan.counts.equipment}, check-ins ${plan.counts.checkIns}, profile backups ${plan.counts.profileBackups}, gamification writes ${plan.counts.gamificationWrites}`,
@@ -536,18 +625,28 @@ function printPlan(plan, args) {
   }
 }
 
-export async function run(argv, env = process.env) {
+export async function run(argv, env = process.env, deps = {}) {
   const args = parseArgs(argv);
-  credentialGate(args, env);
+  if (args.backupTarget) {
+    const inside = backupPathFailure(args.backupTarget);
+    if (inside) stop(inside);
+  }
+  credentialGate(args, env, { requireTargetCredential: Boolean(args.backupTarget) && !deps.readTargetDoc });
   const source = args.fixture ? selectUid(loadFixture(args.fixture), args.uid) : await readLiveSource(env);
   const filtered = args.fixture ? source : selectUid(source, args.uid);
   const plan = planMigration(filtered);
   printPlan(plan, args);
+  if (args.backupTarget) {
+    const records = await collectBackup(plan, env, deps);
+    writeBackupFile(args.backupTarget, records);
+    console.log(`backup-target: ${records.length} documents read, no documents written`);
+    return plan;
+  }
   if (!args.write) {
     console.log("dry-run: no documents written");
     return plan;
   }
-  const written = await writePlan(plan, args, env);
+  const written = await (deps.writePlan ?? writePlan)(plan, args, env);
   if (
     written.equipment !== plan.counts.equipment ||
     written.checkIns !== plan.counts.checkIns ||

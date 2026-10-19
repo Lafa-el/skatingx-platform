@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,7 @@ import {
   mapEquipment,
   parseArgs,
   planMigration,
+  run,
 } from "./migrate-analysis.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -215,6 +216,49 @@ const writerInRepo = cli(stagingWrite, { TARGET_GOOGLE_APPLICATION_CREDENTIALS: 
 assert(writerInRepo.status === 1, "a target key inside the repo was accepted");
 assert(writerInRepo.stderr.includes("TARGET_GOOGLE_APPLICATION_CREDENTIALS"), "inside-repo target key was not named");
 assert(writerInRepo.stderr.includes("repository"), "inside-repo target key was not explained");
+
+const backupInRepo = path.join(root, "m6-staging-backup.json");
+const refusedBackup = cli(["--fixture", fixtureFile, "--backup-target", backupInRepo], {
+  TARGET_GOOGLE_APPLICATION_CREDENTIALS: "",
+  GOOGLE_APPLICATION_CREDENTIALS: "",
+});
+assert(refusedBackup.status === 1, "a backup path inside the repo was accepted");
+assert(refusedBackup.stderr.includes("--backup-target"), "inside-repo backup path was not named");
+assert(refusedBackup.stderr.includes("repository"), "inside-repo backup path was not explained");
+assert(!existsSync(backupInRepo), "an in-repo backup file was written");
+
+const backupProd = cli(["--backup-target", path.join(fixtureDir, "unused.json"), "--target", "production"]);
+assert(backupProd.status === 1, "production backup was not refused");
+assert(backupProd.stderr.includes("Buffalo"), "production backup refusal did not name Buffalo");
+
+const backupFile = path.join(fixtureDir, "staging-backup.json");
+let writeCalls = 0;
+const lines = [];
+const originalLog = console.log;
+console.log = (...items) => lines.push(items.join(" "));
+try {
+  await run(
+    ["--fixture", fixtureFile, "--backup-target", backupFile, "--write"],
+    { TARGET_GOOGLE_APPLICATION_CREDENTIALS: "", GOOGLE_APPLICATION_CREDENTIALS: "" },
+    {
+      readTargetDoc: async (docPath) => ({ path: docPath, exists: docPath.endsWith("analysis-profile"), data: { points: 3 } }),
+      writePlan: () => {
+        writeCalls += 1;
+      },
+    },
+  );
+} finally {
+  console.log = originalLog;
+}
+assert(writeCalls === 0, "backup-target wrote documents");
+assert(lines.some((line) => line.includes("no documents written")), "backup-target did not report that it wrote nothing");
+assert(!lines.some((line) => line.includes("recount matches")), "backup-target reported a write recount");
+const saved = JSON.parse(readFileSync(backupFile, "utf8"));
+assert(Array.isArray(saved) && saved.length === plan.actions.length, "backup record count");
+assert(saved.every((row) => row.path && Object.hasOwn(row, "exists") && Object.hasOwn(row, "data")), "backup record shape");
+const profileRow = saved.find((row) => row.path.endsWith("/migrationBackups/analysis-profile"));
+assert(profileRow.exists === true && profileRow.data.points === 3, "existing staging document was not stored");
+assert(saved.some((row) => row.exists === false && row.data === null), "missing staging document was not stored");
 
 await rulesAcceptThePlan(plan);
 console.log("[test:migration] dry-run, idempotency, field mapping, and emulator rules passed");
