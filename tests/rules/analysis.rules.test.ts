@@ -4,9 +4,15 @@ import {
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import {
+  buildBiomechAnalysisRecord,
   buildPaceAnalysisRecord,
   calculatePacingAnalysis,
+  emptySupportTracker,
+  emptyTrackingState,
+  landmarksFromPoints,
   pacingDistanceConfigs,
+  samplePoseFrame,
+  type BiomechAnalysisRecord,
   type PaceAnalysisRecord,
 } from "@skatingx/skating-domain";
 import { deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
@@ -103,5 +109,60 @@ describe("analyses/{analysisId}", () => {
     await assertSucceeds(setDoc(doc(db, path), paceDoc()));
     await assertFails(setDoc(doc(db, path), paceDoc({ createdAt: "2026-10-20T00:00:00.000Z" })));
     await assertFails(setDoc(doc(db, path), paceDoc({ athleteId: "other" })));
+  });
+
+  it("lets the owner save a biomechanics record and rejects an 11th frame", async () => {
+    const sample = samplePoseFrame({
+      tracking: emptyTrackingState(),
+      support: emptySupportTracker(),
+      landmarks: landmarksFromPoints({
+        11: { x: 0.42, y: 0.2, visibility: 0.9 },
+        12: { x: 0.58, y: 0.2, visibility: 0.9 },
+        23: { x: 0.44, y: 0.5, visibility: 0.9 },
+        24: { x: 0.56, y: 0.5, visibility: 0.9 },
+        25: { x: 0.46, y: 0.7, visibility: 0.9 },
+        26: { x: 0.6, y: 0.72, visibility: 0.9 },
+        27: { x: 0.48, y: 0.9, visibility: 0.9 },
+        28: { x: 0.62, y: 0.92, visibility: 0.9 },
+      }),
+      timeSeconds: 1.5,
+      supportMode: "auto",
+    }).sample;
+    const record: BiomechAnalysisRecord = buildBiomechAnalysisRecord({
+      id: "biomech-abc",
+      ownerUserId: "alice",
+      createdAt: "2026-10-19T07:00:00.000Z",
+      samples: [sample],
+    });
+    const biomechPath = `${USERS}/alice/analyses/biomech-abc`;
+    const db = env.authenticatedContext("alice").firestore();
+    const withLandmarks = {
+      ...record,
+      poseFrames: record.poseFrames.map((frame) => ({
+        ...frame,
+        landmarks: [{ index: 0, x: 0.1, y: 0.2, ignored: true }],
+      })),
+    };
+    await assertSucceeds(setDoc(doc(db, biomechPath), withLandmarks));
+    await assertFails(
+      setDoc(doc(db, biomechPath), {
+        ...record,
+        poseFrames: Array.from({ length: 11 }, () => record.poseFrames[0]),
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, biomechPath), {
+        ...record,
+        poseFrames: [{ timeSeconds: 1 }],
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, biomechPath), {
+        ...record,
+        provenance: { ...record.provenance, algorithmVersion: "other" },
+      }),
+    );
+    const bob = env.authenticatedContext("bob").firestore();
+    await assertFails(setDoc(doc(bob, biomechPath), { ...record, ownerUserId: "bob" }));
   });
 });

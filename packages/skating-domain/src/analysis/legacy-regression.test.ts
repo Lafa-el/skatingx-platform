@@ -134,7 +134,7 @@ describe("de-identified analysis fixtures", () => {
     }).toEqual(loadJson("fx-low-frame-rate.expected.json"));
   });
 
-  it("locks cancel-midway without closing Pose", () => {
+  it("locks cancel-midway and closes Pose on reset", () => {
     const fixture = assertDeidentified("fx-cancel-midway.json");
     const input = fixture.input as {
       started: boolean;

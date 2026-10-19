@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { buildEquipmentHistoryRecord } from "@skatingx/skating-domain";
+import { fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AnalysisEquipmentPage } from "@/pages/analysis/AnalysisEquipmentPage";
@@ -157,17 +158,18 @@ describe("equipment page", () => {
     expect(state.unsubscribe).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps 44px controls, the number inputs unrounded, and both languages free of the banned lab wording", () => {
+  it("formats float32 artifacts out of weight and height, and keeps both languages free of the banned lab wording", () => {
     const view = render(<AnalysisEquipmentPage />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("分析 · 装备");
     expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-brand-navy");
     expect(screen.getByRole("button", { name: "生成清单" }).className).toContain("min-h-11");
-    const weight = screen.getByLabelText("运动员体重 (kg)");
-    const height = screen.getByLabelText("运动员身高 (cm)");
-    expect(weight.getAttribute("type")).toBe("number");
-    expect(height.getAttribute("type")).toBe("number");
-    expect(weight.hasAttribute("step")).toBe(false);
-    expect(height.hasAttribute("step")).toBe(false);
+    const weight = screen.getByLabelText("运动员体重 (kg)") as HTMLInputElement;
+    const height = screen.getByLabelText("运动员身高 (cm)") as HTMLInputElement;
+    expect(weight.getAttribute("inputmode")).toBe("decimal");
+    expect(height.getAttribute("inputmode")).toBe("decimal");
+    expect(weight.getAttribute("type")).not.toBe("number");
+    fireEvent.change(weight, { target: { value: "7.050000190734863" } });
+    expect(weight.value).toBe("7.05");
     expect(view.container.textContent).not.toContain("生物力学");
     expect(view.container.textContent).not.toContain("实验室");
     expect(legacyColourClasses(view.container)).toEqual([]);

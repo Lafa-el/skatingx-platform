@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "predev": "node ../../scripts/copy-pose-assets.mjs",
     "build": "tsc --noEmit && vite build",
+    "prebuild": "node ../../scripts/copy-pose-assets.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mediapipe/pose": "0.5.1675469404",
     "@skatingx/content": "*",
     "@skatingx/firebase-client": "*",
     "@skatingx/schema": "*",

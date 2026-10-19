@@ -9,6 +9,6 @@
   "supportHint": "评分制识别支撑腿",
   "analyzeEnabled": false,
   "buttonLabel": "请先上传视频",
-  "poseClosed": false,
-  "poseInstanceOpen": true
+  "poseClosed": true,
+  "poseInstanceOpen": false
 }

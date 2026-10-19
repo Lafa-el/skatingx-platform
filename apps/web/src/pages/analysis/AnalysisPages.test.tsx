@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
-import { AnalysisBiomechanicsPage } from "./AnalysisBiomechanicsPage";
 import { AnalysisHubPage } from "./AnalysisHubPage";
 
 const state = vi.hoisted(() => ({ locale: "zh" as "zh" | "en" }));
@@ -15,15 +14,9 @@ afterEach(() => {
   state.locale = "zh";
 });
 
-// These pages are placeholders: the text must say no more than that. "Biomechanics" is "动作分析"
-// in Chinese (owner decision 2026-10-16, ADR-004 glossary): "生物力学" would claim more than a
-// placeholder does. English is the wording the pages had before they were translated, except the hub note, which no
-// longer says "Biomechanics lab" (a placeholder has no lab; owner approved 2026-10-17).
-const PLACEHOLDER = {
-  zh: "占位页面：原有功能将在后续阶段迁移。",
-  en: "Placeholder page — legacy logic will be migrated in a later phase.",
-};
-
+// The hub is still a placeholder. Biomechanics, pacing, and equipment are ported.
+// "生物力学" stays off the hub (owner decision 2026-10-16). The hub English note no longer
+// says "Biomechanics lab" (owner approved 2026-10-17).
 const PAGES: {
   name: string;
   page: () => ReactElement;
@@ -38,12 +31,6 @@ const PAGES: {
       zh: "动作分析、配速图表和装备追踪。",
       en: "Biomechanics, pacing charts, and equipment tracking.",
     },
-  },
-  {
-    name: "biomechanics",
-    page: () => <AnalysisBiomechanicsPage />,
-    title: { zh: "分析 · 动作分析", en: "Analysis · Biomechanics" },
-    note: PLACEHOLDER,
   },
 ];
 

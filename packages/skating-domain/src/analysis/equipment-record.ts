@@ -58,8 +58,8 @@ export interface EquipmentHistoryRecord {
   };
   readonly symptomKey: EquipmentSymptomKey;
   readonly symptomText: string;
-  /** Raw number-input text. Not rounded: the float32 display quirk stays in the field. */
   readonly height: string;
+  /** Display text. The page collapses float32 noise, such as 7.050000190734863, before save. */
   readonly weight: string;
   readonly bladeLength: string;
   readonly leftRocker: readonly EquipmentGaugePoint[];

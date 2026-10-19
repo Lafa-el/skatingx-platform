@@ -6,8 +6,12 @@ import { AppShell } from "@/layouts/AppShell";
 import { AnalysisLayout } from "@/layouts/AnalysisLayout";
 import { TrainingLayout } from "@/layouts/TrainingLayout";
 import { AiCoachPage } from "@/pages/AiCoachPage";
-import { AnalysisBiomechanicsPage } from "@/pages/analysis/AnalysisBiomechanicsPage";
 import { AnalysisHubPage } from "@/pages/analysis/AnalysisHubPage";
+const AnalysisBiomechanicsPage = lazy(() =>
+  import("@/pages/analysis/AnalysisBiomechanicsPage").then((module) => ({
+    default: module.AnalysisBiomechanicsPage,
+  })),
+);
 const AnalysisPacingPage = lazy(() =>
   import("@/pages/analysis/AnalysisPacingPage").then((module) => ({ default: module.AnalysisPacingPage })),
 );
@@ -45,7 +49,14 @@ export function AppRouter() {
 
       <Route path="/analysis" element={<AnalysisLayout />}>
         <Route index element={<AnalysisHubPage />} />
-        <Route path="biomechanics" element={<AnalysisBiomechanicsPage />} />
+        <Route
+          path="biomechanics"
+          element={
+            <Suspense fallback={<div className="min-h-11" />}>
+              <AnalysisBiomechanicsPage />
+            </Suspense>
+          }
+        />
         <Route
           path="pacing"
           element={

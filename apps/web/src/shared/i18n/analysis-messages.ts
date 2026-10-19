@@ -1,10 +1,9 @@
 import { createTranslator, type Resources } from "./translator";
 
 /**
- * Titles of the Analysis section. The hub and biomechanics pages are still placeholders.
- * Pacing and equipment are ported and keep these titles. Biomechanics is 动作分析 in Chinese (owner
- * decision 2026-10-16, ADR-004 glossary): "生物力学" would claim more than the page does.
- * The note under the section pages is the shared placeholder text, not repeated here.
+ * Titles of the Analysis section. The hub is still a placeholder. Pacing, equipment, and
+ * biomechanics are ported and keep these titles. Biomechanics is 动作分析 in Chinese (owner
+ * decision 2026-10-16, ADR-004 glossary): the shell does not say "生物力学".
  */
 const zh = {
   "analysis.hub.title": "分析",

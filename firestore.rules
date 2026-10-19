@@ -220,8 +220,11 @@ service cloud.firestore {
       // analyses/{analysisId}: user-level, 6 segments (ADR-005 §1).
       // Field checks follow AnalysisRecord in docs/migration/analysis/contract-types.ts.
       // createdAt is an ISO-8601 string from Date.toISOString(), not a Timestamp.
-      // athleteId is lindsay for this port. poseFrames stays off the document until the
-      // biomechanics slice can check that list; an unchecked list would not match the type.
+      // athleteId is lindsay for this port.
+      // A pace document and a biomechanics document are two exact key sets. Pose frames
+      // are a list of at most 10 (the on-page sample cap). Each item is checked for
+      // timeSeconds and readable only. Landmark maps are not unrolled: 10 frames times
+      // 33 points exceeds the rules engine's 1000-expression cap.
       function validPoseModel(m) {
         return m is map
           && exactKeys(m, ['modelVersion', 'modelVariant', 'modelComplexity',
@@ -300,7 +303,7 @@ service cloud.firestore {
           && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$');
       }
 
-      function validAnalysisRecord(id, d) {
+      function validPaceAnalysisRecord(id, d) {
         return validId(id)
           && exactKeys(d, ['id', 'ownerUserId', 'athleteId', 'createdAt',
                            'provenance', 'findings', 'pace'])
@@ -311,6 +314,48 @@ service cloud.firestore {
           && validAnalysisProvenance(d.provenance)
           && validFindings(d.findings, id)
           && validPaceOutput(d.pace, id);
+      }
+
+      // 10 is MAX_POSE_KEYFRAMES. One predicate per index, not per landmark.
+      function validPoseFrame(item) {
+        return item is map
+          && item.timeSeconds is number
+          && item.timeSeconds >= 0
+          && item.timeSeconds <= 86400
+          && item.readable is bool;
+      }
+
+      function validPoseFrames(items) {
+        return items is list
+          && items.size() <= 10
+          && (items.size() < 1 || validPoseFrame(items[0]))
+          && (items.size() < 2 || validPoseFrame(items[1]))
+          && (items.size() < 3 || validPoseFrame(items[2]))
+          && (items.size() < 4 || validPoseFrame(items[3]))
+          && (items.size() < 5 || validPoseFrame(items[4]))
+          && (items.size() < 6 || validPoseFrame(items[5]))
+          && (items.size() < 7 || validPoseFrame(items[6]))
+          && (items.size() < 8 || validPoseFrame(items[7]))
+          && (items.size() < 9 || validPoseFrame(items[8]))
+          && (items.size() < 10 || validPoseFrame(items[9]));
+      }
+
+      function validBiomechAnalysisRecord(id, d) {
+        return validId(id)
+          && exactKeys(d, ['id', 'ownerUserId', 'athleteId', 'createdAt',
+                           'provenance', 'findings', 'poseFrames'])
+          && d.id == id
+          && d.ownerUserId == userId
+          && d.athleteId == 'lindsay'
+          && validIsoCreatedAt(d.createdAt)
+          && validAnalysisProvenance(d.provenance)
+          && d.provenance.algorithmVersion == 'legacy-biomech-port-1'
+          && validFindings(d.findings, id)
+          && validPoseFrames(d.poseFrames);
+      }
+
+      function validAnalysisRecord(id, d) {
+        return validPaceAnalysisRecord(id, d) || validBiomechAnalysisRecord(id, d);
       }
 
       match /analyses/{analysisId} {

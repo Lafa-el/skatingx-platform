@@ -69,6 +69,7 @@ export {
   type RaceDayListError,
   type RaceSummaryState,
 } from "./firestore/race-day";
+export { saveBiomechAnalysisRecord } from "./firestore/biomech-analysis";
 export { savePaceAnalysisRecord } from "./firestore/pace-analysis";
 export {
   deleteEquipmentHistoryRecord,
