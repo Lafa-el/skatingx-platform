@@ -2,6 +2,7 @@ import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import {
   buildEquipmentChecklist,
   buildEquipmentHistoryRecord,
+  formatDecimalDisplay,
   type EquipmentAdjustmentCode,
   type EquipmentFeedbackCode,
   type EquipmentGaugePoint,
@@ -422,12 +423,11 @@ export function EquipmentPage() {
             <label htmlFor="equip-weight" className="mb-1 block text-sm font-semibold text-brand-navy">
               {tEquipment(locale, "equipment.field.weight")}
             </label>
-            {/* type=number with no step: the browser may show a float32 artifact. Store that text; do not round it. */}
             <input
               id="equip-weight"
-              type="number"
-              value={weight}
-              onChange={(event) => setWeight(event.target.value)}
+              inputMode="decimal"
+              value={formatDecimalDisplay(weight)}
+              onChange={(event) => setWeight(formatDecimalDisplay(event.target.value))}
               className={INPUT_CLASS}
             />
           </div>
@@ -437,9 +437,9 @@ export function EquipmentPage() {
             </label>
             <input
               id="equip-height"
-              type="number"
-              value={height}
-              onChange={(event) => setHeight(event.target.value)}
+              inputMode="decimal"
+              value={formatDecimalDisplay(height)}
+              onChange={(event) => setHeight(formatDecimalDisplay(event.target.value))}
               className={INPUT_CLASS}
             />
           </div>
@@ -628,7 +628,7 @@ export function EquipmentPage() {
                 discipline: tEquipment(locale, "equipment.discipline.value"),
                 symptom: draft.symptomText || tEquipment(locale, "equipment.symptom.empty"),
                 height: draft.height ? `${draft.height}cm` : unrecorded,
-                weight: draft.weight ? `${draft.weight}kg` : unrecorded,
+                weight: draft.weight ? `${formatDecimalDisplay(draft.weight)}kg` : unrecorded,
                 blade: draft.bladeLength || unrecorded,
                 adjustment: labelFor(locale, draft.adjustmentType, ADJUSTMENTS),
                 feedback: labelFor(locale, draft.feedbackRating, FEEDBACK),
@@ -713,7 +713,7 @@ export function EquipmentPage() {
                   <p className="mt-1">{labelFor(locale, record.adjustmentType, ADJUSTMENTS)}</p>
                   <p>{record.symptomText || tEquipment(locale, "equipment.symptom.empty")}</p>
                   <p className="mt-2">{tEquipment(locale, "equipment.history.blade", { value: record.bladeLength || unrecorded })}</p>
-                  <p>{tEquipment(locale, "equipment.history.weight", { value: record.weight || unrecorded })}</p>
+                  <p>{tEquipment(locale, "equipment.history.weight", { value: formatDecimalDisplay(record.weight) || unrecorded })}</p>
                   <p>{labelFor(locale, record.feedbackRating, FEEDBACK)}</p>
                   <Button variant="danger-outline" className="mt-3" onClick={() => void remove(record.id)}>
                     {tEquipment(locale, "equipment.action.delete")}

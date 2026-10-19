@@ -13,6 +13,7 @@ export default defineConfig([
     // Generated or vendored from legacy sources; not maintainable source (AGENTS.md).
     "packages/content/src/academy-legacy-raw.cjs",
     "packages/content/src/academy-stages.generated.ts",
+    "apps/web/public/mediapipe/**",
   ]),
 
   js.configs.recommended,

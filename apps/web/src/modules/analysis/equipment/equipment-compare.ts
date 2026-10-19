@@ -1,4 +1,4 @@
-import { parseGaugeNumber, type EquipmentHistoryRecord } from "@skatingx/skating-domain";
+import { formatFixed, parseGaugeNumber, type EquipmentHistoryRecord } from "@skatingx/skating-domain";
 
 import type { Locale } from "@/shared/i18n/translator";
 import { tEquipment, type EquipmentMessageKey } from "@/shared/i18n/equipment-messages";
@@ -33,8 +33,8 @@ function compareNumber(
   }
   return tEquipment(locale, "equipment.compare.number", {
     label,
-    older: String(older),
-    newer: String(newer),
+    older: formatFixed(older, 2),
+    newer: formatFixed(newer, 2),
     unit,
     delta: signedDelta(older, newer),
   });

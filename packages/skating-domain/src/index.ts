@@ -105,10 +105,16 @@ export {
   assessVideoInput,
   calculateAngle,
   classifyPoseIssue,
+  emptySupportTracker,
+  emptyTrackingState,
   interpretPoseFrame,
+  landmarksFromPoints,
   LEGACY_POSE_LIMITS,
   resetAnalysisSession,
   shouldSendPoseFrame,
+  type PoseFrameMetrics,
+  type SupportTracker,
+  type TrackingState,
 } from "./analysis/legacy-pose";
 export {
   calculatePacingAnalysis,
@@ -121,6 +127,31 @@ export {
   paceProvenanceModel,
   type PaceAnalysisRecord,
 } from "./analysis/pace-record";
+export {
+  aggregateKeyframes,
+  analysisCrop,
+  appendKeyframe,
+  lockTarget,
+  mapLandmarksFromCrop,
+  MAX_POSE_KEYFRAMES,
+  POSE_ASSET_DIRECTORY,
+  POSE_ASSET_VERSION,
+  poseSendSize,
+  rotatePoint,
+  samplePoseFrame,
+  videoPointer,
+  type AnalysisCrop,
+  type KeyframeAggregate,
+  type PoseKeyframeSample,
+  type SupportOverride,
+} from "./analysis/biomech-session";
+export {
+  BIOMECH_ALGORITHM_VERSION,
+  buildBiomechAnalysisRecord,
+  type BiomechAnalysisRecord,
+  type BiomechPoseFrame,
+} from "./analysis/biomech-record";
+export { formatDecimalDisplay, formatFixed } from "./analysis/decimal-display";
 export { buildEquipmentChecklist, buildEquipmentRuleHints, parseGaugeNumber } from "./analysis/legacy-equipment";
 export {
   buildEquipmentHistoryRecord,

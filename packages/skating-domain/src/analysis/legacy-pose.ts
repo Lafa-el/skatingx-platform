@@ -486,8 +486,8 @@ export function resetAnalysisSession(state: AnalysisSessionState): {
   readonly supportHint: "评分制识别支撑腿";
   readonly analyzeEnabled: false;
   readonly buttonLabel: "请先上传视频";
-  readonly poseClosed: false;
-  readonly poseInstanceOpen: boolean;
+  readonly poseClosed: boolean;
+  readonly poseInstanceOpen: false;
 } {
   return {
     playbackStopped: true,
@@ -500,7 +500,9 @@ export function resetAnalysisSession(state: AnalysisSessionState): {
     supportHint: "评分制识别支撑腿",
     analyzeEnabled: false,
     buttonLabel: "请先上传视频",
-    poseClosed: false,
-    poseInstanceOpen: state.poseInstanceOpen,
+    // Owner decision 2026-10-19: reset closes the Pose instance. M5 still
+    // confirms the other locked metrics did not move before this is final.
+    poseClosed: state.poseInstanceOpen,
+    poseInstanceOpen: false,
   };
 }
