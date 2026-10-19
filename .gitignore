@@ -21,3 +21,7 @@ coverage
 
 # Generated from the pinned @mediapipe/pose package by scripts/copy-pose-assets.mjs.
 apps/web/public/mediapipe/
+
+# Migration service-account keys stay in ~/.config/gcp/, never in this repo.
+**/*migration-reader*.json
+**/*service-account*.json
