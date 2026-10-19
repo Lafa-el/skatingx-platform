@@ -1,0 +1,239 @@
+import { createTranslator, type Resources } from "./translator";
+
+/**
+ * Planning tab copy. Chinese follows docs/migration/analysis/copy-zh.md (tab 3).
+ * A half-width colon that touched a Chinese character is written full-width so it
+ * matches the rest of the app. English values are drafts and are 待评审.
+ */
+const zh = {
+  "plan.title": "Junior D 阶段训练模板",
+  "plan.intro": "按赛季冰龄与长期发展原则生成周计划：技术质量优先，控制训练量，保留恢复与多样化身体发展。",
+  "plan.focus.label": "本周训练侧重",
+  "plan.focus.lean.title": "技术基础与弯道控制",
+  "plan.focus.lean.detail": "Junior D 推荐：姿态、压刃、交叉步节奏",
+  "plan.focus.lean.summary":
+    "4次上冰技术周：每次冰前30分钟陆地热身，另配3次陆地专项/恢复，优先提高姿态、压刃和交叉步质量。",
+  "plan.focus.bounce.title": "速度窗口与500m配速",
+  "plan.focus.bounce.detail": "短距离神经速度、起跑、不过量乳酸",
+  "plan.focus.bounce.summary":
+    "4次上冰速度周：每次冰前30分钟陆地热身，另配3次陆地专项/恢复；保留短高质量速度刺激，避免连续高乳酸日。",
+  "plan.focus.endurance.title": "比赛周与恢复管理",
+  "plan.focus.endurance.detail": "赛前唤醒、轻量技术、赛后复盘恢复",
+  "plan.focus.endurance.summary":
+    "4次上冰比赛周：每次冰前30分钟陆地热身，另配3次陆地专项/恢复；减少总量，保留速度感觉，强化赛前准备和赛后复盘。",
+  "plan.basis":
+    "设计依据：USOPC ADM、加拿大 LTPAD/NCCP、中韩公开青少年速滑训练资料与集训报道。当前模板按每周4次上冰、每次含30分钟冰前陆地热身，另配3-4次陆地专项/恢复。实际执行请由教练按冰时、比赛日和身体状态调整。",
+  "plan.week": "第 {week} 周周期微循环：{title}",
+  "plan.week.choose": "请选择训练侧重",
+  "plan.week.disclaimer": "模板用于训练记录与教练沟通，不替代现场教练安排。",
+  "plan.empty": "请在左侧选择本周训练侧重，系统将生成适合 Junior D 阶段的微循环模板。",
+  "plan.check.note": "打卡仅记录完成度；训练量和强度应以教练当天安排为准。",
+  "plan.week.points": "本周已打卡积分：",
+  "plan.balance": "积分",
+  "plan.intensity": "强度：",
+  "plan.pointsBadge": "+{points}",
+  "plan.check.in": "打卡同步",
+  "plan.check.pending": "云端写入中...",
+  "plan.check.done": "完美打卡（已同步）",
+  "plan.check.retry": "同步失败，点击重试",
+  "plan.check.offline": "Firebase 未连接，打卡没有写入。",
+  "plan.intensity.mid": "中",
+  "plan.intensity.low": "低",
+  "plan.intensity.midHigh": "中-高",
+  "plan.intensity.lowMid": "低-中",
+  "plan.intensity.variable": "可变",
+
+  "plan.lean.mon.when": "周一（冰前30min + 上冰60min）",
+  "plan.lean.mon.kind": "技术冰",
+  "plan.lean.mon.body":
+    "冰前：动态热身、髋踝激活、干地滑行姿势 6组20秒。冰上：低姿势滑行、外刃压刃、弯道入口路线；6-8组轻中速交叉步，组间充分恢复。",
+  "plan.lean.tue.when": "周二（陆地专项40min）",
+  "plan.lean.tue.kind": "陆地专项",
+  "plan.lean.tue.body": "单腿平衡、侧弓步、臀桥、核心抗旋转、弹力带髋外展；动作质量优先，不做大重量。",
+  "plan.lean.wed.when": "周三（冰前30min + 上冰60min）",
+  "plan.lean.wed.kind": "技能巩固",
+  "plan.lean.wed.body": "冰前：灵敏梯 + 脚踝稳定。冰上：直道到弯道衔接、出弯加速 4组、技术圈 4组；每组只追求动作完整。",
+  "plan.lean.thu.when": "周四（陆地恢复35min）",
+  "plan.lean.thu.kind": "恢复",
+  "plan.lean.thu.body": "轻松骑车/慢跑 20分钟 + 髋屈肌、腘绳肌、小腿拉伸；不做高强度间歇。",
+  "plan.lean.fri.when": "周五（冰前30min + 上冰60min）",
+  "plan.lean.fri.kind": "弯道控制",
+  "plan.lean.fri.body": "冰前：侧向移动和核心激活。冰上：弯道路线、肩髋对齐、交叉步节奏；最后做2组轻快技术圈。",
+  "plan.lean.sat.when": "周六（冰前30min + 上冰70min）",
+  "plan.lean.sat.kind": "综合技术",
+  "plan.lean.sat.body": "冰前：动态热身。冰上：把本周姿态、压刃、弯道节奏串成完整圈；可做轻量计时但不追求极限。",
+  "plan.lean.sun.when": "周日（陆地可选/休息30min）",
+  "plan.lean.sun.kind": "恢复休息",
+  "plan.lean.sun.body": "优先休息；如身体状态好，做散步、泡沫轴、轻柔拉伸和训练日志复盘。",
+
+  "plan.bounce.mon.when": "周一（冰前30min + 上冰60min）",
+  "plan.bounce.mon.kind": "起跑速度",
+  "plan.bounce.mon.body": "冰前：动态热身 + 6组8秒短冲刺。冰上：起跑 6-8次 + 100m 技术加速 4-6组；每组完全恢复。",
+  "plan.bounce.tue.when": "周二（陆地专项40min）",
+  "plan.bounce.tue.kind": "神经速度",
+  "plan.bounce.tue.body": "弹力带启动、跳绳、灵敏梯、侧向移动；快而轻，不做疲劳堆积。",
+  "plan.bounce.wed.when": "周三（冰前30min + 上冰65min）",
+  "plan.bounce.wed.kind": "配速练习",
+  "plan.bounce.wed.body": "冰前：髋踝激活。冰上：2-3组 300m-500m 分段配速，观察最后100m姿态是否散掉；组间休息足够。",
+  "plan.bounce.thu.when": "周四（陆地恢复30-40min）",
+  "plan.bounce.thu.kind": "恢复",
+  "plan.bounce.thu.body": "低强度有氧 + 拉伸；如果腿沉或睡眠不足，改为完全休息。",
+  "plan.bounce.fri.when": "周五（冰前30min + 上冰60min）",
+  "plan.bounce.fri.kind": "短距离质量",
+  "plan.bounce.fri.body": "冰前：核心和脚踝稳定。冰上：4-6组 150m-200m 技术速度，记录最稳的2组，不用每组拼最大。",
+  "plan.bounce.sat.when": "周六（冰前30min + 上冰70min）",
+  "plan.bounce.sat.kind": "500m模拟",
+  "plan.bounce.sat.body": "冰前：常规热身。冰上：1-2组 500m 分段或计时，重点看Lap 3-Lap 4衰减；总量控制。",
+  "plan.bounce.sun.when": "周日（陆地可选/休息30min）",
+  "plan.bounce.sun.kind": "恢复休息",
+  "plan.bounce.sun.body": "散步、泡沫轴、拉伸、训练日志；若周六强度高，周日只休息。",
+
+  "plan.endurance.mon.when": "周一（冰前30min + 上冰55min）",
+  "plan.endurance.mon.kind": "技术校准",
+  "plan.endurance.mon.body": "冰前：动态活动度和核心激活。冰上：轻中速技术圈 + 2-3组短距离加速；确认刀、鞋、弯道路线。",
+  "plan.endurance.tue.when": "周二（陆地专项30min）",
+  "plan.endurance.tue.kind": "灵活性",
+  "plan.endurance.tue.body": "动态活动度、脚踝稳定、轻松拉伸；补水和睡眠记录。",
+  "plan.endurance.wed.when": "周三（冰前30min + 上冰50min）",
+  "plan.endurance.wed.kind": "赛前唤醒",
+  "plan.endurance.wed.body": "冰前：低量热身。冰上：起跑 3-4次 + 1-2组比赛节奏滑；结束时身体应感觉轻。",
+  "plan.endurance.thu.when": "周四（陆地恢复30min）",
+  "plan.endurance.thu.kind": "恢复",
+  "plan.endurance.thu.body": "散步或轻松骑车 20分钟 + 拉伸；检查装备、比赛流程、热身清单。",
+  "plan.endurance.fri.when": "周五（冰前30min + 上冰45-55min）",
+  "plan.endurance.fri.kind": "赛前速度感",
+  "plan.endurance.fri.body": "冰前：常规热身。冰上：少量技术圈和2组短加速；避免疲劳，把速度感留到比赛日。",
+  "plan.endurance.sat.when": "周六（冰前30min + 比赛/计时）",
+  "plan.endurance.sat.kind": "比赛日",
+  "plan.endurance.sat.body": "冰前按固定流程热身。比赛/计时后记录起跑、弯道、末圈感受；10分钟轻松放松。",
+  "plan.endurance.sun.when": "周日（陆地可选/休息30min）",
+  "plan.endurance.sun.kind": "复盘恢复",
+  "plan.endurance.sun.body": "优先休息；可做轻柔拉伸和泡沫轴。整理比赛数据，用结果决定下周模板。",
+} as const;
+
+type PlanKey = keyof typeof zh;
+
+const en: Record<PlanKey, string> = {
+  "plan.title": "Junior D training template",
+  "plan.intro":
+    "A week built from the season and long-term development: technique first, volume kept in check, with recovery and other movement left in.",
+  "plan.focus.label": "This week's focus",
+  "plan.focus.lean.title": "Technique and corner control",
+  "plan.focus.lean.detail": "Junior D: posture, edges, and crossover rhythm",
+  "plan.focus.lean.summary":
+    "Four ice sessions for technique. Each one starts with 30 minutes on land. Three more land or recovery sessions. Posture, edges, and crossovers come first.",
+  "plan.focus.bounce.title": "Speed window and 500m pace",
+  "plan.focus.bounce.detail": "Short speed, starts, and not too much lactate",
+  "plan.focus.bounce.summary":
+    "Four ice sessions for speed, each with 30 minutes on land first, plus three land or recovery sessions. Short fast work stays. Back-to-back hard lactate days do not.",
+  "plan.focus.endurance.title": "Race week and recovery",
+  "plan.focus.endurance.detail": "A light opener, easy technique, and a review after racing",
+  "plan.focus.endurance.summary":
+    "Four ice sessions in a race week, each with 30 minutes on land first, plus three land or recovery sessions. Less volume, the feeling of speed kept, and time to prepare and review.",
+  "plan.basis":
+    "Drawn from USOPC ADM, Canada LTPAD/NCCP, and published junior speed-skating notes from China and Korea. The template assumes four ice sessions a week, each with 30 minutes of land warm-up, plus three or four land or recovery sessions. A coach should change it for ice time, race days, and how the skater feels.",
+  "plan.week": "Week {week} microcycle: {title}",
+  "plan.week.choose": "Choose a focus",
+  "plan.week.disclaimer": "The template is for the training log and for talking with a coach. It does not replace the plan at the rink.",
+  "plan.empty": "Choose this week's focus. The page will lay out a Junior D microcycle.",
+  "plan.check.note": "A check-in only records that the day was done. Volume and intensity follow the coach that day.",
+  "plan.week.points": "Points checked in this week:",
+  "plan.balance": "Points",
+  "plan.intensity": "Intensity:",
+  "plan.pointsBadge": "+{points}",
+  "plan.check.in": "Check in",
+  "plan.check.pending": "Saving to the cloud...",
+  "plan.check.done": "Checked in",
+  "plan.check.retry": "Sync failed. Tap to retry",
+  "plan.check.offline": "Firebase is not connected, so the check-in was not saved.",
+  "plan.intensity.mid": "Medium",
+  "plan.intensity.low": "Low",
+  "plan.intensity.midHigh": "Medium-high",
+  "plan.intensity.lowMid": "Low-medium",
+  "plan.intensity.variable": "Varies",
+
+  "plan.lean.mon.when": "Monday (30 min land + 60 min ice)",
+  "plan.lean.mon.kind": "Technique ice",
+  "plan.lean.mon.body":
+    "Land: dynamic warm-up, hip and ankle activation, dry-land skating posture, 6 sets of 20 seconds. Ice: low posture, outside edges, corner entry. 6–8 easy-to-moderate crossover sets, with full rest between them.",
+  "plan.lean.tue.when": "Tuesday (40 min land)",
+  "plan.lean.tue.kind": "Land session",
+  "plan.lean.tue.body":
+    "Single-leg balance, lateral lunges, glute bridge, anti-rotation core, band hip abduction. Quality over load. No heavy lifting.",
+  "plan.lean.wed.when": "Wednesday (30 min land + 60 min ice)",
+  "plan.lean.wed.kind": "Skill review",
+  "plan.lean.wed.body":
+    "Land: agility ladder and ankle stability. Ice: straight into corner, 4 exit-acceleration sets, 4 technical laps. Finish each set cleanly.",
+  "plan.lean.thu.when": "Thursday (35 min recovery)",
+  "plan.lean.thu.kind": "Recovery",
+  "plan.lean.thu.body": "Easy bike or jog for 20 minutes, then hip flexor, hamstring, and calf stretches. No hard intervals.",
+  "plan.lean.fri.when": "Friday (30 min land + 60 min ice)",
+  "plan.lean.fri.kind": "Corner control",
+  "plan.lean.fri.body":
+    "Land: lateral movement and core activation. Ice: corner line, shoulder-hip alignment, crossover rhythm. Finish with 2 light technical laps.",
+  "plan.lean.sat.when": "Saturday (30 min land + 70 min ice)",
+  "plan.lean.sat.kind": "Combined technique",
+  "plan.lean.sat.body":
+    "Land: dynamic warm-up. Ice: put this week's posture, edges, and corner rhythm into full laps. A light time trial is fine. Do not chase a maximum.",
+  "plan.lean.sun.when": "Sunday (optional land or rest, 30 min)",
+  "plan.lean.sun.kind": "Rest",
+  "plan.lean.sun.body": "Rest first. If the body feels good: a walk, foam rolling, easy stretching, and a look back at the log.",
+
+  "plan.bounce.mon.when": "Monday (30 min land + 60 min ice)",
+  "plan.bounce.mon.kind": "Start speed",
+  "plan.bounce.mon.body":
+    "Land: dynamic warm-up plus 6 sets of 8-second sprints. Ice: 6–8 starts and 4–6 sets of 100 m technical acceleration. Full rest between sets.",
+  "plan.bounce.tue.when": "Tuesday (40 min land)",
+  "plan.bounce.tue.kind": "Neural speed",
+  "plan.bounce.tue.body": "Band starts, jump rope, agility ladder, lateral movement. Fast and light. Do not pile on fatigue.",
+  "plan.bounce.wed.when": "Wednesday (30 min land + 65 min ice)",
+  "plan.bounce.wed.kind": "Pace practice",
+  "plan.bounce.wed.body":
+    "Land: hip and ankle activation. Ice: 2–3 sets of 300–500 m pace. Watch whether the last 100 m falls apart. Rest enough between sets.",
+  "plan.bounce.thu.when": "Thursday (30–40 min recovery)",
+  "plan.bounce.thu.kind": "Recovery",
+  "plan.bounce.thu.body": "Easy aerobic work and stretching. If the legs are heavy or sleep was short, take the day off.",
+  "plan.bounce.fri.when": "Friday (30 min land + 60 min ice)",
+  "plan.bounce.fri.kind": "Short quality",
+  "plan.bounce.fri.body":
+    "Land: core and ankle stability. Ice: 4–6 sets of 150–200 m technical speed. Keep the two steadiest sets. Do not sprint every one.",
+  "plan.bounce.sat.when": "Saturday (30 min land + 70 min ice)",
+  "plan.bounce.sat.kind": "500 m rehearsal",
+  "plan.bounce.sat.body":
+    "Land: the usual warm-up. Ice: 1–2 sets of 500 m, split or timed. Watch the fade from lap 3 to lap 4. Keep the volume down.",
+  "plan.bounce.sun.when": "Sunday (optional land or rest, 30 min)",
+  "plan.bounce.sun.kind": "Rest",
+  "plan.bounce.sun.body": "Walk, foam roll, stretch, and write the log. If Saturday was hard, only rest.",
+
+  "plan.endurance.mon.when": "Monday (30 min land + 55 min ice)",
+  "plan.endurance.mon.kind": "Technique check",
+  "plan.endurance.mon.body":
+    "Land: mobility and core activation. Ice: easy-to-moderate technical laps plus 2–3 short accelerations. Check blades, boots, and the corner line.",
+  "plan.endurance.tue.when": "Tuesday (30 min land)",
+  "plan.endurance.tue.kind": "Mobility",
+  "plan.endurance.tue.body": "Dynamic mobility, ankle stability, easy stretching. Note water and sleep.",
+  "plan.endurance.wed.when": "Wednesday (30 min land + 50 min ice)",
+  "plan.endurance.wed.kind": "Race-week opener",
+  "plan.endurance.wed.body":
+    "Land: a short warm-up. Ice: 3–4 starts and 1–2 race-rhythm efforts. Finish feeling light.",
+  "plan.endurance.thu.when": "Thursday (30 min recovery)",
+  "plan.endurance.thu.kind": "Recovery",
+  "plan.endurance.thu.body": "A 20-minute walk or easy bike, then stretching. Check equipment, the race plan, and the warm-up list.",
+  "plan.endurance.fri.when": "Friday (30 min land + 45–55 min ice)",
+  "plan.endurance.fri.kind": "Pre-race speed",
+  "plan.endurance.fri.body":
+    "Land: the usual warm-up. Ice: a few technical laps and 2 short accelerations. Stay fresh for race day.",
+  "plan.endurance.sat.when": "Saturday (30 min land + race or time trial)",
+  "plan.endurance.sat.kind": "Race day",
+  "plan.endurance.sat.body":
+    "Land warm-up on the usual routine. After the race or time trial, note the start, the corners, and the last lap. Ten easy minutes to cool down.",
+  "plan.endurance.sun.when": "Sunday (optional land or rest, 30 min)",
+  "plan.endurance.sun.kind": "Review",
+  "plan.endurance.sun.body": "Rest first. Easy stretching and foam rolling are enough. Sort the race notes and pick next week's template from them.",
+};
+
+export type PlanMessageKey = PlanKey;
+
+export const planResources: Resources<PlanKey> = { zh, en };
+
+export const tPlan = createTranslator(planResources);

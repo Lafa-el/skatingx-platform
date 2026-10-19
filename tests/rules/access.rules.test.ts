@@ -35,6 +35,7 @@ const EXISTING_PATHS = [
   "athletes/lindsay/training/state",
   "athletes/lindsay/training/main/records/500m",
   "athletes/lindsay/training/main/rewards/catalog",
+  "athletes/lindsay/planning/main/completedTasks/jd_tech_mon",
   "athletes/lindsay/analysis/sessions/s1/summary",
   "unusedCollection/anything",
 ];

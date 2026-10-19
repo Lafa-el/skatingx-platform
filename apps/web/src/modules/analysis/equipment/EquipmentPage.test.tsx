@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { buildEquipmentHistoryRecord } from "@skatingx/skating-domain";
+import { MemoryRouter } from "react-router-dom";
 import { fireEvent } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -77,13 +78,23 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <AnalysisEquipmentPage />
+    </MemoryRouter>,
+  );
+
 describe("equipment page", () => {
   it("builds an incomplete checklist from an empty form, and a reviewable one once weight and a centre reading exist", async () => {
     const user = userEvent.setup();
-    render(<AnalysisEquipmentPage />);
+    renderPage();
 
     await user.click(screen.getByRole("button", { name: "生成清单" }));
     expect(screen.getByText("记录不完整")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "前往生物力学实验室复查姿态" }).getAttribute("href")).toBe(
+      "/analysis/biomechanics",
+    );
 
     await user.type(screen.getByLabelText("运动员体重 (kg)"), "40");
     await user.type(screen.getAllByLabelText("0")[0]!, "12");
@@ -95,7 +106,7 @@ describe("equipment page", () => {
     state.uid = "user-1";
     state.db = {};
     const user = userEvent.setup();
-    render(<AnalysisEquipmentPage />);
+    renderPage();
 
     await user.click(screen.getByRole("button", { name: "生成清单" }));
     await user.click(screen.getByRole("button", { name: "保存记录" }));
@@ -142,7 +153,7 @@ describe("equipment page", () => {
       }),
     ];
     const user = userEvent.setup();
-    const view = render(<AnalysisEquipmentPage />);
+    const view = renderPage();
 
     await user.click(screen.getByRole("button", { name: "删除记录" }));
     expect(confirmSpy).toHaveBeenCalledWith("确定删除这条器材历史记录吗？删除后无法在本页面恢复。");
@@ -159,7 +170,7 @@ describe("equipment page", () => {
   });
 
   it("formats float32 artifacts out of weight and height, and keeps both languages free of the banned lab wording", () => {
-    const view = render(<AnalysisEquipmentPage />);
+    const view = renderPage();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("分析 · 装备");
     expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-brand-navy");
     expect(screen.getByRole("button", { name: "生成清单" }).className).toContain("min-h-11");
@@ -176,7 +187,7 @@ describe("equipment page", () => {
 
     view.unmount();
     state.locale = "en";
-    const english = render(<AnalysisEquipmentPage />);
+    const english = renderPage();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Analysis · Equipment");
     expect(english.container.textContent).not.toContain("生物力学");
     expect(english.container.textContent).not.toMatch(/\blab\b/i);
@@ -187,7 +198,7 @@ describe("equipment page", () => {
     state.db = {};
     state.save.mockRejectedValue(new Error("cloud down"));
     const user = userEvent.setup();
-    render(<AnalysisEquipmentPage />);
+    renderPage();
 
     await user.click(screen.getByRole("button", { name: "生成清单" }));
     await user.click(screen.getByRole("button", { name: "保存记录" }));
@@ -207,7 +218,7 @@ describe("equipment page", () => {
     state.uid = "user-1";
     state.db = null;
     const user = userEvent.setup();
-    render(<AnalysisEquipmentPage />);
+    renderPage();
 
     await user.click(screen.getByRole("button", { name: "生成清单" }));
     await user.click(screen.getByRole("button", { name: "保存记录" }));

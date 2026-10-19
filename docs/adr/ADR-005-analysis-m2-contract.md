@@ -24,7 +24,7 @@ Owner 通过下面的分法。`analyses/{analysisId}` 放在用户级，6 段。
 | 页签三打卡 | `.../athletes/lindsay/planning/main/completedTasks/{taskId}` | 10 | 与训练侧 `training/main/records/{id}` 同构。新打卡只增加训练积分，不另建分析侧积分。 |
 | 器材历史 | `.../athletes/lindsay/equipment/main/records/{recordId}` | 10 | 与训练侧同构。旧站的器材记录是用户级历史，不是某一次视频分析的子文档。 |
 
-`paths.planningCompletedTask` 和 `paths.equipmentRecord` 现在各是 9 段。Firestore 文档路径必须是偶数段，9 段写不进去。已通过的写法是在 `planning` 和 `equipment` 后加一层 `main`。**本次不改这两个函数。禁止沿用 9 段。脚手架 PR 再改 `paths.ts`。**
+`paths.planningCompletedTask` 和 `paths.equipmentRecord` 各是 9 段。Firestore 文档路径必须是偶数段，9 段写不进去。已通过的写法是在 `planning` 和 `equipment` 后加一层 `main`。**这两个 9 段函数保持不动，禁止沿用。** 器材历史用 `paths.equipmentHistoryRecord`。页签三打卡用 `paths.planningCheckIn`（10 段）。
 
 `paths.analysisSession` 指向另一条路径：`.../athletes/{athleteId}/analysis/sessions/{sessionId}/summary`（10 段，偶数）。仓库里没有调用方。**本次也不改这个函数。** 批准本 ADR 之后的脚手架 PR 再改路径函数。在那之前，移植不得沿用未使用的 `analysisSession`，也不得沿用现在这两条 9 段路径。
 
@@ -46,12 +46,9 @@ PWA `start_url` 现为 `/analysis`。那是旧站的启动路径，不是新平�
 
 位置已经由 DR-008 定为 `/training/plan`。不设 `/analysis/planning`，不重开「放训练还是放分析」。
 
-仓库里还没有 `/training/plan` 路由。实现细节（批准后才做）：
+路由挂在训练模块，页面在 `apps/web/src/modules/training/plan/`。三个侧重、七天微循环、打卡按钮的文案按 `copy-zh.md` 的页签三。打卡写入 §1 的 `planning/main/completedTasks/{taskId}`，路径函数是 `paths.planningCheckIn`。积分只增加训练 `gamification/main.points`，不另建分析积分，也不改连续天数。21 条日课是客户端模板，不存 Firestore。
 
-- 路由挂在训练模块，代码落在 `apps/web/src/modules/training/`，具体文件等脚手架分支。
-- 三个侧重、七天微循环、打卡按钮的行为与文案按 `copy-zh.md` 的页签三，不在契约里改文案。
-- 打卡写入 §1 的 `planning/main/completedTasks/{taskId}`。积分写入训练 `gamification/main`，不写入分析文档。
-- 周计划正文仍是客户端模板。本契约不把 21 条日课存进 Firestore。
+规则不新增形状校验。这条路径是运动员下的四段（`planning/main/completedTasks/{taskId}`），已经落在现有的固定层数属主规则里。那条规则只把 `equipment/main/records` 排除出去做形状校验，打卡文档不在排除之列。字段展开会再碰到规则引擎 1000 表达式上限，而这张文档的安全边界就是属主本人。
 
 ---
 

@@ -15,6 +15,7 @@ const LEGACY_NAV = [
 
 const LEGACY_TRAINING = [
   { to: "/training", label: "Home" },
+  { to: "/training/plan", label: "Plan" },
   { to: "/training/tasks", label: "Tasks" },
   { to: "/training/academy", label: "Academy" },
   { to: "/training/records", label: "Records" },
@@ -83,7 +84,7 @@ describe("sub navigation", () => {
   });
 
   it("Chinese labels", () => {
-    expect(getTrainingSubNav("zh").map((item) => item.label)).toEqual(["首页", "任务", "学院", "纪录", "商店"]);
+    expect(getTrainingSubNav("zh").map((item) => item.label)).toEqual(["首页", "计划", "任务", "学院", "纪录", "商店"]);
     expect(getAnalysisSubNav("zh").map((item) => item.label)).toEqual(["首页", "动作分析", "配速", "装备"]);
   });
 });

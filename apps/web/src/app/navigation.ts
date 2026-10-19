@@ -54,6 +54,7 @@ export function getPrimaryNav({ raceDay, raceDayLabel, locale }: PrimaryNavOptio
 
 const TRAINING_SUB_NAV: readonly NavSpec[] = [
   { to: "/training", labelKey: "nav.training.home" },
+  { to: "/training/plan", labelKey: "nav.training.plan" },
   { to: "/training/tasks", labelKey: "nav.training.tasks" },
   { to: "/training/academy", labelKey: "nav.training.academy" },
   { to: "/training/records", labelKey: "nav.training.records" },
