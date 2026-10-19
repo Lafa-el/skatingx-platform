@@ -122,3 +122,15 @@ export {
   type PaceAnalysisRecord,
 } from "./analysis/pace-record";
 export { buildEquipmentChecklist, buildEquipmentRuleHints, parseGaugeNumber } from "./analysis/legacy-equipment";
+export {
+  buildEquipmentHistoryRecord,
+  EQUIPMENT_ALGORITHM_VERSION,
+  equipmentAdjustmentCodes,
+  equipmentFeedbackCodes,
+  equipmentSymptomKeys,
+  type EquipmentAdjustmentCode,
+  type EquipmentFeedbackCode,
+  type EquipmentGaugePoint,
+  type EquipmentHistoryRecord,
+  type EquipmentSymptomKey,
+} from "./analysis/equipment-record";

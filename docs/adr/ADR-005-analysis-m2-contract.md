@@ -94,7 +94,7 @@ PWA `start_url` 现为 `/analysis`。那是旧站的启动路径，不是新平�
 
 下列 quirks 保持原样，直到另一次评审决定保留或修复：
 
-- 「删除记录」按钮在走查中点了没出现确认框。
+- 「删除记录」在 2026-10-19 评审中改为点击后确认。文案是「确定删除这条器材历史记录吗？删除后无法在本页面恢复。」取消则不删除。
 - 数字框的 float32 显示伪影。
 - Pose 实例没有 `close()`。
 
@@ -107,3 +107,11 @@ PWA `start_url` 现为 `/analysis`。那是旧站的启动路径，不是新平�
 ## 8. 回滚
 
 本 PR 只有文档和一个仅供 typecheck 的类型文件。Revert 即可。没有数据、没有规则、没有路由变化。
+
+## 9. 器材历史规则（M4 第 2 片，2026-10-19）
+
+Owner 要求给 `athletes/lindsay/equipment/main/records/{recordId}` 加形状校验，做法与配速 `analyses/{id}` 相同。宽规则会和更严的 `allow` 做 OR，所以 `athletes` 从宽规则里分开：除这条记录文档外，运动员子树仍是属主可读写。记录文档只接受契约字段（`athleteId` 为 `lindsay`，`createdAt` / `updatedAt` 为带毫秒的 ISO 字符串，`algorithmVersion` 为 `legacy-equipment-port-1`，Pose 参数块与契约一致）。左右脚读数和规则提示只限制列表长度（21 和 96）：逐项展开会超过规则引擎单次 1000 个表达式的上限。其他运动员 id 下的同形路径没有放开的写规则。运动员子树按固定层数放开，不用递归通配，因为路径值没有 `matches()`。
+
+风险：宽规则拆分如果写错，会拒绝 profile、积分或训练记录。访问测试仍钉住这些路径。云端写失败时，页面把同一条记录放进本机 `localStorage` 并写明「本机浏览器档案」；那不是安全边界。
+
+回滚：恢复宽规则对 `athletes` 的覆盖，并删掉器材 `match`。已发布的控制台规则要等本片合并后再走备份、发布、与 main 的 `firestore.rules` 做 diff。合入前不发布。

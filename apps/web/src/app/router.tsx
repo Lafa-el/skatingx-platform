@@ -7,10 +7,12 @@ import { AnalysisLayout } from "@/layouts/AnalysisLayout";
 import { TrainingLayout } from "@/layouts/TrainingLayout";
 import { AiCoachPage } from "@/pages/AiCoachPage";
 import { AnalysisBiomechanicsPage } from "@/pages/analysis/AnalysisBiomechanicsPage";
-import { AnalysisEquipmentPage } from "@/pages/analysis/AnalysisEquipmentPage";
 import { AnalysisHubPage } from "@/pages/analysis/AnalysisHubPage";
 const AnalysisPacingPage = lazy(() =>
   import("@/pages/analysis/AnalysisPacingPage").then((module) => ({ default: module.AnalysisPacingPage })),
+);
+const AnalysisEquipmentPage = lazy(() =>
+  import("@/pages/analysis/AnalysisEquipmentPage").then((module) => ({ default: module.AnalysisEquipmentPage })),
 );
 import { AthletePage } from "@/pages/AthletePage";
 import { DashboardPage } from "@/pages/DashboardPage";
@@ -52,7 +54,14 @@ export function AppRouter() {
             </Suspense>
           }
         />
-        <Route path="equipment" element={<AnalysisEquipmentPage />} />
+        <Route
+          path="equipment"
+          element={
+            <Suspense fallback={<div className="min-h-11" />}>
+              <AnalysisEquipmentPage />
+            </Suspense>
+          }
+        />
       </Route>
 
       <Route path="/race-day/*" element={<RaceDayRoute />} />
