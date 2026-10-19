@@ -36,6 +36,7 @@ describe("TrainingLayout", () => {
     const nav = screen.getByRole("navigation", { name: "训练分区" });
     expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual([
       "首页",
+      "计划",
       "任务",
       "学院",
       "纪录",
@@ -49,6 +50,7 @@ describe("TrainingLayout", () => {
     const nav = screen.getByRole("navigation", { name: "Training sections" });
     expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual([
       "Home",
+      "Plan",
       "Tasks",
       "Academy",
       "Records",
@@ -71,6 +73,7 @@ describe("TrainingLayout", () => {
       const nav = screen.getByRole("navigation");
       expect(within(nav).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
         "/training",
+        "/training/plan",
         "/training/tasks",
         "/training/academy",
         "/training/records",

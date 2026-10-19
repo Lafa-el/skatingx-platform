@@ -23,6 +23,8 @@ export {
   analysisRecordRef,
   equipmentHistoryCollectionRef,
   equipmentHistoryRecordRef,
+  planningCheckInRef,
+  planningCheckInsCollectionRef,
   settingsRef,
   taskHistoryRef,
   trainingRecordRef,
@@ -76,6 +78,11 @@ export {
   saveEquipmentHistoryRecord,
   subscribeToEquipmentHistory,
 } from "./firestore/equipment-history";
+export {
+  completePlanningCheckIn,
+  subscribeToPlanningCheckIns,
+  type PlanningCheckIn,
+} from "./firestore/planning-check-in";
 export { updateUserSettings } from "./firestore/settings";
 export {
   ensureDefaultRewardsCatalog,

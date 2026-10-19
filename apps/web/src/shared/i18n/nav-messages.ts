@@ -18,6 +18,7 @@ const zh = {
 
   "nav.training.section": "训练分区",
   "nav.training.home": "首页",
+  "nav.training.plan": "计划",
   "nav.training.tasks": "任务",
   "nav.training.academy": "学院",
   "nav.training.records": "纪录",
@@ -42,6 +43,7 @@ const en: Record<NavKey, string> = {
 
   "nav.training.section": "Training sections",
   "nav.training.home": "Home",
+  "nav.training.plan": "Plan",
   "nav.training.tasks": "Tasks",
   "nav.training.academy": "Academy",
   "nav.training.records": "Records",

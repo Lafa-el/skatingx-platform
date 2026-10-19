@@ -17,6 +17,7 @@ import {
 } from "@skatingx/firebase-client";
 import { Button, Card, ErrorNotice, Notice } from "@skatingx/ui";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useLocale } from "@/hooks/useLocale";
@@ -679,6 +680,12 @@ export function EquipmentPage() {
                 </p>
               </Card>
             </div>
+            <Link
+              to="/analysis/biomechanics"
+              className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-brand-navy underline underline-offset-2"
+            >
+              {tEquipment(locale, "equipment.action.biomech")}
+            </Link>
             <Notice tone="pending" title={tEquipment(locale, "equipment.warning.label")} className="mt-4">
               {tEquipment(locale, "equipment.warning")}
             </Notice>
