@@ -24,4 +24,5 @@ apps/web/public/mediapipe/
 
 # Migration service-account keys stay in ~/.config/gcp/, never in this repo.
 **/*migration-reader*.json
+**/*migration-writer*.json
 **/*service-account*.json

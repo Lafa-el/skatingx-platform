@@ -13,7 +13,8 @@
 | 源项目 | `blaze-skate-analysis` |
 | 源路径 | `artifacts/blaze-skate-academy/users/{uid}/` 下的 `equipmentRecords`、`completedTasks`、`profile/lindsay` |
 | 只读账号 | `migration-reader@blaze-skate-analysis.iam.gserviceaccount.com` |
-| 钥匙 | 只认环境变量 `GOOGLE_APPLICATION_CREDENTIALS`。约定放在 `~/.config/gcp/migration-reader.json`。脚本不会自己去读这个路径。钥匙不进仓库、不进代码、不进日志。 |
+| 源钥匙 | 只认 `GOOGLE_APPLICATION_CREDENTIALS`。约定放在 `~/.config/gcp/migration-reader.json`。脚本不会在变量未设置时自己去读这个路径。 |
+| 目标钥匙 | 写入 emulator 以外的目标时认 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。约定放在 `~/.config/gcp/migration-writer.json`，这是 `skatingx-platform` 的写权限。emulator 不需要。dry-run 不需要。只读 key 不能写 staging。两把钥匙都不进仓库、不进代码、不进日志。 |
 | 默认目标 | Firestore emulator，项目 `demo-skatingx-migration` |
 | staging | `--write --target staging --project skatingx-platform --confirm-staging` |
 | 生产 | `--target production` 或项目 `skatingx-prod` / `skatingx-production` 一律退出。 |
@@ -50,9 +51,11 @@ npm run test:migration
 
 这一步用合成数据，不连旧库，也不连 `skatingx-prod`。它核对源和目标条数、字段映射、重跑 ID，并把写出的文档交给正在使用的 `firestore.rules`。
 
-4. staging 验证。先 dry-run，再写 `skatingx-platform`。写之前目标库已经有导出。
+4. staging 验证。先 dry-run，再写 `skatingx-platform`。写之前目标库已经有导出。写入之前两个环境变量都要就位，路径都在仓库外。缺源钥匙、缺目标钥匙、路径在仓库里，或文件不是 service account key，整批停下，不写。
 
 ```bash
+export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcp/migration-reader.json"
+export TARGET_GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcp/migration-writer.json"
 node scripts/migrate-analysis.mjs --dry-run
 node scripts/migrate-analysis.mjs --write --target staging --project skatingx-platform --confirm-staging --pause-ms 200
 ```

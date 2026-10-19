@@ -1,11 +1,16 @@
 /**
  * One-shot analysis migration. Default is a dry run against the Firestore emulator.
  *
- * Auth: a live source read uses Application Default Credentials, which means the
- * process environment GOOGLE_APPLICATION_CREDENTIALS. The agreed key path is
+ * Auth uses two keys. A live source read uses Application Default Credentials,
+ * which means GOOGLE_APPLICATION_CREDENTIALS. The agreed path is
  * ~/.config/gcp/migration-reader.json for
  * migration-reader@blaze-skate-analysis.iam.gserviceaccount.com.
- * This file does not read that path on its own, and the key is not in the repo.
+ * A write to anything other than the emulator uses
+ * TARGET_GOOGLE_APPLICATION_CREDENTIALS. The agreed path is
+ * ~/.config/gcp/migration-writer.json for the skatingx-platform writer.
+ * This file does not open either path unless that variable is set.
+ * The emulator does not need the writer key. A dry run does not either.
+ * Both paths must be outside this repository. The keys are not in the repo.
  *
  * firebase-admin is a root devDependency (Apache-2.0, Google-maintained). It is
  * the Admin SDK this script was asked to use. The rules gate does not use it:
@@ -13,7 +18,7 @@
  * the same documents through the client SDK on the emulator.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,6 +33,12 @@ export const STAGING_PROJECT = "skatingx-platform";
 export const BLOCKED_PROJECTS = new Set(["skatingx-prod", "skatingx-production"]);
 
 const READER_ACCOUNT = "migration-reader@blaze-skate-analysis.iam.gserviceaccount.com";
+const SOURCE_CREDENTIAL_ENV = "GOOGLE_APPLICATION_CREDENTIALS";
+const TARGET_CREDENTIAL_ENV = "TARGET_GOOGLE_APPLICATION_CREDENTIALS";
+const SOURCE_CREDENTIAL_HINT =
+  `Point it at the ${READER_ACCOUNT} key (agreed path: ~/.config/gcp/migration-reader.json).`;
+const TARGET_CREDENTIAL_HINT =
+  "Point it at the skatingx-platform writer key (agreed path: ~/.config/gcp/migration-writer.json).";
 
 const SYMPTOM_KEYS = {
   slide: "slide",
@@ -379,19 +390,62 @@ export function parseArgs(argv) {
   return args;
 }
 
-function credentialPath() {
-  const configured = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+function isInsideRepo(filePath) {
+  const resolved = path.resolve(filePath);
+  return resolved === ROOT || resolved.startsWith(`${ROOT}${path.sep}`);
+}
+
+function credentialLocationFailure(env, name, hint) {
+  const configured = env[name];
   if (!configured) {
-    stop(
-      `GOOGLE_APPLICATION_CREDENTIALS is unset. Point it at the ${READER_ACCOUNT} key ` +
-        "(agreed path: ~/.config/gcp/migration-reader.json). The script will not look there by itself.",
-    );
+    return `${name} is unset. ${hint} The script will not look there by itself.`;
   }
-  const resolved = path.resolve(configured);
-  if (resolved === ROOT || resolved.startsWith(`${ROOT}${path.sep}`)) {
-    stop("the credential path is inside the repository. Move the key outside the repo.");
+  if (isInsideRepo(configured)) {
+    return `${name} is inside the repository. Move the key outside the repo.`;
   }
-  return resolved;
+  return null;
+}
+
+function credentialMaterialFailure(env, name) {
+  const resolved = path.resolve(env[name]);
+  let info;
+  try {
+    info = statSync(resolved);
+  } catch {
+    return `${name} does not point at a key file.`;
+  }
+  if (!info.isFile()) return `${name} does not point at a key file.`;
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(resolved, "utf8"));
+  } catch {
+    return `${name} is not a readable service account key.`;
+  }
+  if (typeof parsed?.client_email !== "string" || typeof parsed?.private_key !== "string") {
+    return `${name} is not a service account key.`;
+  }
+  return null;
+}
+
+function credentialGate(args, env) {
+  const failures = [];
+  if (!args.fixture) {
+    const location = credentialLocationFailure(env, SOURCE_CREDENTIAL_ENV, SOURCE_CREDENTIAL_HINT);
+    if (location) failures.push(location);
+    else if (args.write) {
+      const material = credentialMaterialFailure(env, SOURCE_CREDENTIAL_ENV);
+      if (material) failures.push(material);
+    }
+  }
+  if (args.write && args.target !== "emulator") {
+    const location = credentialLocationFailure(env, TARGET_CREDENTIAL_ENV, TARGET_CREDENTIAL_HINT);
+    if (location) failures.push(location);
+    else {
+      const material = credentialMaterialFailure(env, TARGET_CREDENTIAL_ENV);
+      if (material) failures.push(material);
+    }
+  }
+  if (failures.length > 0) stop(failures.join("\n"));
 }
 
 export function loadFixture(file) {
@@ -404,8 +458,9 @@ function selectUid(source, uid) {
   return { users: source.users.filter((user) => user.uid === uid) };
 }
 
-async function readLiveSource() {
-  credentialPath();
+async function readLiveSource(env) {
+  const failure = credentialLocationFailure(env, SOURCE_CREDENTIAL_ENV, SOURCE_CREDENTIAL_HINT);
+  if (failure) stop(failure);
   const { applicationDefault, initializeApp } = await import("firebase-admin/app");
   const { getFirestore } = await import("firebase-admin/firestore");
   const app = initializeApp({ credential: applicationDefault(), projectId: SOURCE_PROJECT }, "source");
@@ -428,13 +483,20 @@ async function readLiveSource() {
   return { users };
 }
 
-async function writePlan(plan, args) {
+async function writePlan(plan, args, env) {
+  const { cert, initializeApp } = await import("firebase-admin/app");
+  const { getFirestore } = await import("firebase-admin/firestore");
+  const options = { projectId: args.project };
   if (args.target === "emulator") {
     process.env.FIRESTORE_EMULATOR_HOST ||= "127.0.0.1:8080";
+  } else {
+    const failure =
+      credentialLocationFailure(env, TARGET_CREDENTIAL_ENV, TARGET_CREDENTIAL_HINT) ??
+      credentialMaterialFailure(env, TARGET_CREDENTIAL_ENV);
+    if (failure) stop(failure);
+    options.credential = cert(path.resolve(env[TARGET_CREDENTIAL_ENV]));
   }
-  const { initializeApp } = await import("firebase-admin/app");
-  const { getFirestore } = await import("firebase-admin/firestore");
-  const app = initializeApp({ projectId: args.project }, "target");
+  const app = initializeApp(options, "target");
   const db = getFirestore(app);
   for (const item of plan.actions) {
     await db.doc(item.path).set(item.data);
@@ -476,10 +538,8 @@ function printPlan(plan, args) {
 
 export async function run(argv, env = process.env) {
   const args = parseArgs(argv);
-  if (!args.fixture) {
-    if (!env.GOOGLE_APPLICATION_CREDENTIALS) credentialPath();
-  }
-  const source = args.fixture ? selectUid(loadFixture(args.fixture), args.uid) : await readLiveSource();
+  credentialGate(args, env);
+  const source = args.fixture ? selectUid(loadFixture(args.fixture), args.uid) : await readLiveSource(env);
   const filtered = args.fixture ? source : selectUid(source, args.uid);
   const plan = planMigration(filtered);
   printPlan(plan, args);
@@ -487,7 +547,7 @@ export async function run(argv, env = process.env) {
     console.log("dry-run: no documents written");
     return plan;
   }
-  const written = await writePlan(plan, args);
+  const written = await writePlan(plan, args, env);
   if (
     written.equipment !== plan.counts.equipment ||
     written.checkIns !== plan.counts.checkIns ||

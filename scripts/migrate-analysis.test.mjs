@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -184,6 +185,36 @@ assert(refused.stderr.includes("Buffalo"), "production refusal did not name Buff
 const missingKey = cli(["--dry-run"], { GOOGLE_APPLICATION_CREDENTIALS: "" });
 assert(missingKey.status === 1, "live read without a key was allowed");
 assert(missingKey.stderr.includes("GOOGLE_APPLICATION_CREDENTIALS"), "missing key was not explained");
+
+const fixtureDir = mkdtempSync(path.join(tmpdir(), "m6-target-credential-"));
+const fixtureFile = path.join(fixtureDir, "source.json");
+writeFileSync(fixtureFile, JSON.stringify(source()));
+const stagingWrite = [
+  "--write",
+  "--target",
+  "staging",
+  "--project",
+  "skatingx-platform",
+  "--confirm-staging",
+  "--fixture",
+  fixtureFile,
+];
+
+const dryWithoutWriter = cli(["--dry-run", "--fixture", fixtureFile], {
+  TARGET_GOOGLE_APPLICATION_CREDENTIALS: "",
+});
+assert(dryWithoutWriter.status === 0, `dry-run required a target key: ${dryWithoutWriter.stderr}`);
+assert(dryWithoutWriter.stdout.includes("dry-run: no documents written"), "dry-run did not finish without writing");
+
+const missingTarget = cli(stagingWrite, { TARGET_GOOGLE_APPLICATION_CREDENTIALS: "" });
+assert(missingTarget.status === 1, "write without a target key was allowed");
+assert(missingTarget.stderr.includes("TARGET_GOOGLE_APPLICATION_CREDENTIALS"), "missing target key was not explained");
+assert(!missingTarget.stdout.includes("recount matches"), "missing target key still wrote");
+
+const writerInRepo = cli(stagingWrite, { TARGET_GOOGLE_APPLICATION_CREDENTIALS: script });
+assert(writerInRepo.status === 1, "a target key inside the repo was accepted");
+assert(writerInRepo.stderr.includes("TARGET_GOOGLE_APPLICATION_CREDENTIALS"), "inside-repo target key was not named");
+assert(writerInRepo.stderr.includes("repository"), "inside-repo target key was not explained");
 
 await rulesAcceptThePlan(plan);
 console.log("[test:migration] dry-run, idempotency, field mapping, and emulator rules passed");
