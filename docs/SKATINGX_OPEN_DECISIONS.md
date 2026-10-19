@@ -31,11 +31,11 @@
 
 | ID | Topic | Blocking? | Recommended Option | Owner | Status |
 |----|-------|-----------|-------------------|-------|--------|
-| DR-001 | Production Firebase GCP project | Yes | — | TBD | Open |
-| DR-002 | Production domain & URL strategy | Yes | — | TBD | Open |
-| DR-003 | Lindsay vs `default` athlete merge | Yes | — | TBD | Open |
-| DR-004 | Points (`points`) source of truth | Yes | — | TBD | Open |
-| DR-005 | AI Coach LLM vendor & MVP scope | No* | — | TBD | Open |
+| DR-001 | Production Firebase GCP project | Yes | — | TBD | Approved |
+| DR-002 | Production domain & URL strategy | Yes | — | TBD | Approved |
+| DR-003 | Lindsay vs `default` athlete merge | Yes | — | TBD | Approved |
+| DR-004 | Points (`points`) source of truth | Yes | — | TBD | Approved |
+| DR-005 | AI Coach LLM vendor & MVP scope | No* | — | TBD | Approved |
 | DR-006 | Public product brand (BLAZE vs SkatingX) | Yes | — | TBD | Open |
 | DR-007 | Legacy data migration strategy | Yes | — | TBD | Open |
 | DR-008 | Planning module route placement | No | — | TBD | Open |
@@ -791,6 +791,7 @@ flowchart LR
 | Date | ID | Change | By |
 |------|-----|--------|-----|
 | 2026-06-03 | — | Initial decision log created. All items **Open**. No approvals recorded. | — |
+| 2026-10-18 | DR-001–DR-005 | Summary tracker Status set from Open to Approved so it matches the existing body records. Owner column, options, notes, and DR-006–DR-015 unchanged. | owner |
 
 ---
 
