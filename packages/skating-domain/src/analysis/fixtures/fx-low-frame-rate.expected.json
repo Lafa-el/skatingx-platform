@@ -1,0 +1,20 @@
+{
+  "sends": [true, false, true],
+  "analysisEnded": false,
+  "lowFrameRateCopy": null,
+  "metrics": {
+    "readable": true,
+    "unreadableReason": null,
+    "kneeDisplay": "156°",
+    "leanDisplay": "0°",
+    "pelvisDisplay": "40.0%",
+    "recoveryDisplay": "0",
+    "keyframeText": null,
+    "liveHoldText": null,
+    "issue": "支撑膝角度偏大",
+    "kneeAngle": 156,
+    "leanAngle": 0,
+    "supportSide": "运动员左腿",
+    "supportConfidence": 99
+  }
+}

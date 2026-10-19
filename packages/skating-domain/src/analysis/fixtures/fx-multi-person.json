@@ -1,0 +1,38 @@
+{
+  "id": "fx-multi-person",
+  "deidentified": true,
+  "containsRealVideo": false,
+  "containsProductionRecord": false,
+  "note": "Two synthetic skeletons. Pose 0.5 still returns one person per frame. The second frame jumps.",
+  "input": {
+    "returnedPersonCount": 1,
+    "frames": [
+      {
+        "keyframePending": false,
+        "points": {
+          "11": { "x": 0.3, "y": 0.3 },
+          "12": { "x": 0.3, "y": 0.3 },
+          "23": { "x": 0.3, "y": 0.5 },
+          "24": { "x": 0.3, "y": 0.5 },
+          "25": { "x": 0.3, "y": 0.7 },
+          "26": { "x": 0.3, "y": 0.7 },
+          "27": { "x": 0.3, "y": 0.9 },
+          "28": { "x": 0.3, "y": 0.9 }
+        }
+      },
+      {
+        "keyframePending": true,
+        "points": {
+          "11": { "x": 0.72, "y": 0.3 },
+          "12": { "x": 0.72, "y": 0.3 },
+          "23": { "x": 0.72, "y": 0.5 },
+          "24": { "x": 0.72, "y": 0.5 },
+          "25": { "x": 0.72, "y": 0.7 },
+          "26": { "x": 0.72, "y": 0.7 },
+          "27": { "x": 0.72, "y": 0.9 },
+          "28": { "x": 0.72, "y": 0.9 }
+        }
+      }
+    ]
+  }
+}
