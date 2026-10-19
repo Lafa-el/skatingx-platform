@@ -173,15 +173,37 @@ stops("id collision", () =>
   }),
 );
 stops("production target", () => parseArgs(["--target", "production", "--write"]));
+stops("production without confirm", () =>
+  parseArgs(["--target", "production", "--write", "--project", "skatingx-prod"]),
+);
+stops("production fixture", () =>
+  parseArgs([
+    "--target",
+    "production",
+    "--write",
+    "--project",
+    "skatingx-prod",
+    "--confirm-production",
+    "--fixture",
+    "source.json",
+  ]),
+);
 stops("prod project", () => parseArgs(["--target", "staging", "--project", "skatingx-prod", "--write", "--confirm-staging"]));
-assert(BLOCKED_PROJECTS.has("skatingx-prod"), "block list");
+stops("path prefix project", () =>
+  parseArgs(["--target", "production", "--write", "--project", "skatingx-production", "--confirm-production"]),
+);
+const opened = parseArgs(["--target", "production", "--write", "--project", "skatingx-prod", "--confirm-production"]);
+assert(opened.write && opened.confirmProduction, "production gate did not open");
+assert(opened.target === "production" && opened.project === "skatingx-prod", "production project was not accepted");
+assert(!BLOCKED_PROJECTS.has("skatingx-prod"), "skatingx-prod is still blocked");
+assert(BLOCKED_PROJECTS.has("skatingx-production"), "path prefix is no longer blocked");
 
 const dry = cli(["--dry-run", "--fixture", path.join(root, "scripts", "migrate-analysis.test.mjs")]);
 assert(dry.status !== 0, "a non-fixture file was accepted");
 
-const refused = cli(["--target", "production"]);
-assert(refused.status === 1, "production was not refused");
-assert(refused.stderr.includes("Buffalo"), "production refusal did not name Buffalo");
+const refused = cli(["--target", "production", "--write", "--project", "skatingx-prod"]);
+assert(refused.status === 1, "production without confirmation was allowed");
+assert(refused.stderr.includes("--confirm-production"), "missing production confirmation was not named");
 
 const missingKey = cli(["--dry-run"], { GOOGLE_APPLICATION_CREDENTIALS: "" });
 assert(missingKey.status === 1, "live read without a key was allowed");
@@ -228,8 +250,8 @@ assert(refusedBackup.stderr.includes("repository"), "inside-repo backup path was
 assert(!existsSync(backupInRepo), "an in-repo backup file was written");
 
 const backupProd = cli(["--backup-target", path.join(fixtureDir, "unused.json"), "--target", "production"]);
-assert(backupProd.status === 1, "production backup was not refused");
-assert(backupProd.stderr.includes("Buffalo"), "production backup refusal did not name Buffalo");
+assert(backupProd.status === 1, "production without confirmation was allowed");
+assert(backupProd.stderr.includes("--confirm-production"), "production backup skipped the confirmation");
 
 const backupFile = path.join(fixtureDir, "staging-backup.json");
 let writeCalls = 0;
