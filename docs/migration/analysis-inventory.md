@@ -374,11 +374,12 @@ M2 固件必须覆盖这五类（执行计划 M2.4），且 **不得**用 Lindsa
 - 移植基准：`/` 四页签 vanilla（§1–§4）。这是评审写死的。
 - `/analysis` TS 工作流倾向搁置（手动 finding、空 Videos/Settings）。ADR 写理由。六个集合不要默默并进四页签模型。
 - Vanilla 三路 `onSnapshot` 在 M2 补 unsubscribe。
-- 数据模型：Vanilla 三集合 + TS 六集合都在 `artifacts/blaze-skate-academy/users/{uid}/` 下，GCP 项目是 `blaze-skate-analysis`。映射到 DR-001 的 `artifacts/skatingx-production/users/{uid}/analyses/{analysisId}`（以及训练侧计划/打卡）写进 ADR。执行计划仍把 DR-007 标成 M6 前未定；决定记录正文已是 Approved（选项 C），tracker 在另开的文档 PR 里只先对齐 DR-001～005。M2 不要把「未定」写成已定。
+- 数据模型：Vanilla 三集合 + TS 六集合都在 `artifacts/blaze-skate-academy/users/{uid}/` 下，GCP 项目是 `blaze-skate-analysis`。映射到 DR-001 的 `artifacts/skatingx-production/users/{uid}/analyses/{analysisId}`（以及训练侧计划/打卡）写进 ADR。DR-007 正文是 Approved 选项 C；tracker 随 #51 对齐。M2 按正文，不把执行计划里的「未定」写成另一套口径。
 - MediaPipe：Pose **0.5.1675469404**，`modelComplexity: 1`（full tflite），jsDelivr `locateFile`，懒加载仅在点击分析之后。自托管 pin 该版本，不升级 Landmarker。
 - Chart.js：**在用**，当前 CDN 解析为 4.5.1，仅配速页。
 - 运行时 CDN：§8.2 全表。Tailwind Play 必须换成仓库内 Tailwind v4。
-- 英文：四页签需新建；TS 字典可参考但不是同一套 UI。
+- 用户可见文案逐条清单（CN/EN）是 **M2 契约输入**，英文起草之前必须完成。本阶段不写这张清单。四页签英文要新建；TS 字典可参考但不是同一套 UI。见附录 A.7。
+- 截图/录屏索引：2026-10-18 正式关闭，不补。
 - Quirks 仍待评审（保留或修）：删除按钮、float32 伪影、Pose 不 `close()`。idle「正在预热模型...」已作废，不在此列。
 - 页签三宿主 = 训练模块；打卡积分走训练体系（DR-004）。
 - 分析→训练反馈环 = Phase 1.5；M2 只预留 finding 编码类型。
@@ -391,7 +392,7 @@ M2 固件必须覆盖这五类（执行计划 M2.4），且 **不得**用 Lindsa
 | 文档 | 现状 | 本盘点 |
 |---|---|---|
 | `blaze-skate-analysis/docs/architecture-audit.md`（2026-06-03） | 单文件、无 `src/`、无 Vite、无 TS | 过期。线上是 HTML Vanilla + Vite TS 混合 |
-| `docs/SKATINGX_OPEN_DECISIONS.md` | tracker 表 DR-001～005 仍写 Open，正文已是 Approved | 2026-10-18 owner 决定另开文档 PR，只改 tracker 状态并加 change history。不在本文件改 |
+| `docs/SKATINGX_OPEN_DECISIONS.md` | tracker 曾与正文不一致 | #51：DR-001～011 与 DR-013～015 的 tracker 对齐正文。DR-012 正文改回 Open，选项 C 作废。DR-010 正文仍写 pnpm，盘点不改它。 |
 
 ---
 
@@ -406,8 +407,37 @@ M2 固件必须覆盖这五类（执行计划 M2.4），且 **不得**用 Lindsa
 | Firebase 项目、Auth、路径、监听 | §8.5 | 源码 + 线上 config verified；部署中的 rules/indexes unverified |
 | 第一方 bundle | §8.1 | verified |
 | 视频不上传 | §6 | verified-by-source |
-| 用户可见文案 CN/EN | §7：`/` 仅 CN；`/analysis` 已有双语字典 | verified |
+| 用户可见文案 CN/EN | §7 只确认 `/` 中文单语；逐条清单未做 | M2 契约输入（附录 A.7）；英文起草前必须完成 |
+| 截图/录屏索引 | 执行计划曾列为 M1 审计证据 | 2026-10-18 正式关闭，不补 |
 | quirks：低帧率、无人/多人、中途取消 | §8.7 | 代码 verified；运行时 unverified |
 | 加载期控制台 | §8.6 | unverified |
 
 回滚：不适用（只读文档）。
+
+# 附录：M1 盘点 — 10/12 评审与 kickoff checklist 8 项逐条对照
+
+（收进 `docs/migration/analysis-inventory.md` 附录）
+
+## A. kickoff checklist 8 项
+
+| # | 项 | M1 覆盖情况 |
+|---|---|---|
+| 1 | 四页签输入/输出/状态 | ✓ 覆盖（走查稿 §1–§4；PR #49 补齐网络层后完整） |
+| 2 | MediaPipe 版本/模型/WASM URL、加载路径、失败模式 | ✓ 覆盖（@mediapipe/pose 0.5.1675469404；modelComplexity: 1 → pose_landmark_full.tflite；locateFile → jsDelivr；WASM/tflite 只在点击"启动分析"后下载；真机推理 unverified 已标注） |
+| 3 | Chart.js 用法（图表/数据/渲染触发） | ✓ 覆盖（页签二 `new Chart` 折线；CDN 未 pin，当前解析 4.5.1；无 Chart 时走 canvas 手绘回退） |
+| 4 | 运行时 CDN 全清单 | ✓ 覆盖（Tailwind Play 现 3.4.17、Chart.js、三份 MediaPipe、FA 6.4.0、Google Fonts Inter、placehold.co、gstatic Firebase 11.6.1） |
+| 5 | Firebase 项目/读写路径/监听 | ✓ 覆盖（GCP 项目 `blaze-skate-analysis`；路径前缀 `blaze-skate-academy`；`/` 加载即匿名登录；vanilla 三路 onSnapshot 无 unsubscribe；TS 应用六个 `analysis*` 集合一次性 get） |
+| 6 | 视频不上传确认 | ✓ 覆盖（createObjectURL 本地播放；bundle 无 Storage SDK；页面明文声明） |
+| 7 | 用户可见文案逐条清单 CN/EN | ✗ 缺失 → 转为 M2 契约输入项，英文起草前必须完成 |
+| 8 | quirks 基线 | ✓ 覆盖（删除记录按钮疑似失效；float32 显示伪影；三路监听无 unsubscribe；页面加载即匿名写入生产；"正在预热模型..."为 idle 默认文案，"停滞 8 分钟"误读已作废） |
+
+## B. 10/12 评审结论对照
+
+| 10/12 结论 | M1 验证结果 |
+|---|---|
+| 分析 app：Vite + 原生 JS + Tailwind Play CDN + Chart.js + MediaPipe Pose 0.5（jsDelivr 加载，本地推理，视频不上传）+ Firebase 匿名 + Firestore 实时同步 + Vercel | 全部命中 |
+| MediaPipe Pose 0.5 是 legacy，先平移再升级 | 命中（版本 0.5.1675469404） |
+| jsDelivr 国内不稳定，新平台须自托管模型/WASM | 命中（locateFile → jsDelivr；Chart.js CDN 未 pin） |
+| Chart.js 4.5.1 | 命中（CDN 未 pin，当前解析为 4.5.1） |
+| Firebase 项目（旧述为 blaze-skate-academy） | 纠正：GCP 项目为 `blaze-skate-analysis`，`blaze-skate-academy` 仅为 Firestore 路径前缀 |
+| — | 新增：同一构建含第二表面 `/analysis`（TS "Analysis V1"：生物力学为手动 finding 表单不跑 Pose，Videos/Settings 为空页；PWA start_url 指向它）；M2 ADR 决定复用或搁置（倾向搁置，需写理由） |
