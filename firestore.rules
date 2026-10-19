@@ -12,11 +12,11 @@ service cloud.firestore {
       // The user document itself, as before (rules_version 2: `**` matches zero segments).
       allow read, write: if isOwner();
 
-      // Every collection EXCEPT raceDay: same owner-only access as the previous
-      // `{document=**}` rule. raceDay is excluded here because Firestore ORs matching
-      // `allow` rules, so a broad rule would make any raceDay validation ineffective.
+      // Every collection EXCEPT raceDay and analyses: same owner-only access as the previous
+      // `{document=**}` rule. Those two are excluded here because Firestore ORs matching
+      // `allow` rules, so a broad rule would make their validation ineffective.
       match /{collection}/{path=**} {
-        allow read, write: if isOwner() && collection != 'raceDay';
+        allow read, write: if isOwner() && collection != 'raceDay' && collection != 'analyses';
       }
 
       // --- raceDay: owner-only AND validated (ADR-001 D6, D8) -------------------------
@@ -178,6 +178,111 @@ service cloud.firestore {
           allow update: if isOwner() && summaryId == 'main' && validSummary(request.resource.data)
                         && createdAtUnchanged();
         }
+      }
+
+      // analyses/{analysisId}: user-level, 6 segments (ADR-005 §1).
+      // Field checks follow AnalysisRecord in docs/migration/analysis/contract-types.ts.
+      // createdAt is an ISO-8601 string from Date.toISOString(), not a Timestamp.
+      // athleteId is lindsay for this port. poseFrames stays off the document until the
+      // biomechanics slice can check that list; an unchecked list would not match the type.
+      function validPoseModel(m) {
+        return m is map
+          && exactKeys(m, ['modelVersion', 'modelVariant', 'modelComplexity',
+                           'smoothLandmarks', 'enableSegmentation',
+                           'minDetectionConfidence', 'minTrackingConfidence',
+                           'poseFrameIntervalMs', 'maxAnalysisEdgePx'])
+          && m.modelVersion == 'mediapipe-pose@0.5.1675469404'
+          && m.modelVariant == 'pose_landmark_full'
+          && m.modelComplexity == 1
+          && m.smoothLandmarks == true
+          && m.enableSegmentation == false
+          && m.minDetectionConfidence == 0.5
+          && m.minTrackingConfidence == 0.5
+          && m.poseFrameIntervalMs == 180
+          && m.maxAnalysisEdgePx == 640;
+      }
+
+      function validAnalysisProvenance(p) {
+        return p is map
+          && exactKeys(p, ['schemaVersion', 'algorithmVersion', 'model'])
+          && p.schemaVersion == 'skatingx-analysis-contract-v1'
+          && p.algorithmVersion is string
+          && p.algorithmVersion.size() > 0
+          && p.algorithmVersion.size() <= 80
+          && validPoseModel(p.model);
+      }
+
+      function validFinding(item, id) {
+        return item is map
+          && exactKeys(item, ['code', 'analysisId'])
+          && item.analysisId == id
+          && item.code in [
+            'pace.decay.back-half', 'pace.total.versus-benchmark',
+            'biomech.knee.high', 'biomech.lean.high', 'biomech.pelvis.high',
+            'biomech.frame.unreadable',
+            'equipment.symptom.slide', 'equipment.symptom.boot-out',
+            'equipment.symptom.unstable', 'equipment.symptom.ankle',
+            'equipment.symptom.release', 'equipment.symptom.asymmetry'
+          ];
+      }
+
+      // Rules have no loop. Eight is above the two findings this slice writes.
+      function validFindings(items, id) {
+        return items is list
+          && items.size() <= 8
+          && (items.size() < 1 || validFinding(items[0], id))
+          && (items.size() < 2 || validFinding(items[1], id))
+          && (items.size() < 3 || validFinding(items[2], id))
+          && (items.size() < 4 || validFinding(items[3], id))
+          && (items.size() < 5 || validFinding(items[4], id))
+          && (items.size() < 6 || validFinding(items[5], id))
+          && (items.size() < 7 || validFinding(items[6], id))
+          && (items.size() < 8 || validFinding(items[7], id));
+      }
+
+      function validPaceOutput(pace, id) {
+        return pace is map
+          && exactKeys(pace, ['provenance', 'totalSeconds', 'benchmarkTotalSeconds',
+                              'stabilityIndexPercent', 'rating', 'trainingEmphasisRatio',
+                              'findings'])
+          && validAnalysisProvenance(pace.provenance)
+          && pace.totalSeconds is number
+          && pace.benchmarkTotalSeconds is number
+          && pace.stabilityIndexPercent is int
+          && pace.stabilityIndexPercent >= 0
+          && pace.stabilityIndexPercent <= 100
+          && pace.rating in ['excellent', 'needs-work', 'moderate']
+          && pace.trainingEmphasisRatio is string
+          && pace.trainingEmphasisRatio.size() > 0
+          && pace.trainingEmphasisRatio.size() <= 16
+          && validFindings(pace.findings, id);
+      }
+
+      function validIsoCreatedAt(value) {
+        return value is string
+          && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$');
+      }
+
+      function validAnalysisRecord(id, d) {
+        return validId(id)
+          && exactKeys(d, ['id', 'ownerUserId', 'athleteId', 'createdAt',
+                           'provenance', 'findings', 'pace'])
+          && d.id == id
+          && d.ownerUserId == userId
+          && d.athleteId == 'lindsay'
+          && validIsoCreatedAt(d.createdAt)
+          && validAnalysisProvenance(d.provenance)
+          && validFindings(d.findings, id)
+          && validPaceOutput(d.pace, id);
+      }
+
+      match /analyses/{analysisId} {
+        allow read, delete: if isOwner();
+        allow create: if isOwner() && validAnalysisRecord(analysisId, request.resource.data);
+        allow update: if isOwner() && validAnalysisRecord(analysisId, request.resource.data)
+                      && createdAtUnchanged()
+                      && request.resource.data.athleteId == resource.data.athleteId
+                      && request.resource.data.ownerUserId == resource.data.ownerUserId;
       }
     }
   }

@@ -12,6 +12,14 @@ function docFromPath(db: Firestore, path: string): DocumentReference {
   return doc(db, ...(segments as [string, ...string[]]));
 }
 
+export function analysisRecordRef(
+  db: Firestore,
+  userId: string,
+  analysisId: string,
+): DocumentReference {
+  return docFromPath(db, paths.analysisRecord(userId, analysisId));
+}
+
 export function settingsRef(
   db: Firestore,
   userId: string,

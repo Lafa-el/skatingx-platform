@@ -8,7 +8,6 @@ import { render, screen } from "@/test/dom";
 import { AnalysisBiomechanicsPage } from "./AnalysisBiomechanicsPage";
 import { AnalysisEquipmentPage } from "./AnalysisEquipmentPage";
 import { AnalysisHubPage } from "./AnalysisHubPage";
-import { AnalysisPacingPage } from "./AnalysisPacingPage";
 
 const state = vi.hoisted(() => ({ locale: "zh" as "zh" | "en" }));
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
@@ -45,12 +44,6 @@ const PAGES: {
     name: "biomechanics",
     page: () => <AnalysisBiomechanicsPage />,
     title: { zh: "分析 · 动作分析", en: "Analysis · Biomechanics" },
-    note: PLACEHOLDER,
-  },
-  {
-    name: "pacing",
-    page: () => <AnalysisPacingPage />,
-    title: { zh: "分析 · 配速", en: "Analysis · Pacing" },
     note: PLACEHOLDER,
   },
   {

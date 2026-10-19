@@ -110,5 +110,15 @@ export {
   resetAnalysisSession,
   shouldSendPoseFrame,
 } from "./analysis/legacy-pose";
-export { calculatePacingAnalysis, pacingDistanceConfigs } from "./analysis/legacy-pace";
+export {
+  calculatePacingAnalysis,
+  PACE_ALGORITHM_VERSION,
+  pacingDistanceConfigs,
+} from "./analysis/legacy-pace";
+export type { PaceAnalysis, PaceDistance, PaceResult } from "./analysis/legacy-pace";
+export {
+  buildPaceAnalysisRecord,
+  paceProvenanceModel,
+  type PaceAnalysisRecord,
+} from "./analysis/pace-record";
 export { buildEquipmentChecklist, buildEquipmentRuleHints, parseGaugeNumber } from "./analysis/legacy-equipment";
