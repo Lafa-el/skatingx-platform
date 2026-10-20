@@ -16,5 +16,6 @@ describe("analysis record path", () => {
     ]);
     expect(record.split("/")).toHaveLength(6);
     expect(paths.analysisSession("alice", "lindsay", "s1")).not.toBe(record);
+    expect(paths.analysesCollection("alice")).toBe(record.slice(0, record.lastIndexOf("/")));
   });
 });

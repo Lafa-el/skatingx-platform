@@ -20,6 +20,7 @@ export {
   raceDaySummaryRef,
   raceDayVideoRef,
   raceDayVideosCollectionRef,
+  analysesCollectionRef,
   analysisRecordRef,
   equipmentHistoryCollectionRef,
   equipmentHistoryRecordRef,
@@ -73,6 +74,7 @@ export {
 } from "./firestore/race-day";
 export { saveBiomechAnalysisRecord } from "./firestore/biomech-analysis";
 export { savePaceAnalysisRecord } from "./firestore/pace-analysis";
+export { subscribeToSavedAnalyses, type SavedAnalysisSource } from "./firestore/saved-analyses";
 export {
   deleteEquipmentHistoryRecord,
   saveEquipmentHistoryRecord,

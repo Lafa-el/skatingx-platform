@@ -30,6 +30,11 @@ export function equipmentHistoryCollectionRef(
   return collection(db, ...(segments as [string, ...string[]]));
 }
 
+export function analysesCollectionRef(db: Firestore, userId: string): CollectionReference {
+  const segments = pathToSegments(paths.analysesCollection(userId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
 export function analysisRecordRef(
   db: Firestore,
   userId: string,

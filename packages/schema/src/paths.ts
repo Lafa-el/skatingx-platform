@@ -50,6 +50,8 @@ export const paths = {
    */
   analysisRecord: (userId: string, analysisId: string) =>
     `${prefix(userId)}/analyses/${analysisId}`,
+  /** Parent of `analysisRecord`. The collection already exists; this is not a new store. */
+  analysesCollection: (userId: string) => `${prefix(userId)}/analyses`,
   analysisSession: (userId: string, athleteId: string, sessionId: string) =>
     `${prefix(userId)}/athletes/${athleteId}/analysis/sessions/${sessionId}/summary`,
   planningCompletedTask: (userId: string, athleteId: string, taskId: string) =>

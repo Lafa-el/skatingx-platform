@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import { PLAN_DAYS } from "@skatingx/skating-domain";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 
 import { TrainingPlanPage } from "@/pages/training/TrainingPlanPage";
-import { render, screen, userEvent } from "@/test/dom";
+import { act, render, screen, userEvent } from "@/test/dom";
 import { legacyColourClasses } from "@/test/legacyLook";
 
 import { PLAN_DAY_COPY } from "./plan-day-copy";
@@ -15,7 +16,12 @@ const state = vi.hoisted(() => ({
   points: 120,
   checkIns: [] as { taskId: string; points: number }[],
   onData: null as ((rows: { taskId: string; points: number }[]) => void) | null,
+  onAnalyses: null as
+    | ((rows: { kind: "pace" | "biomech"; id: string; createdAt: string; findings: { code: string }[] }[]) => void)
+    | null,
+  onEquipment: null as ((rows: { id: string; createdAt: string; findings?: { code: string }[] }[]) => void) | null,
   unsubscribe: vi.fn(),
+  stopFeedback: vi.fn(),
   complete: vi.fn(
     (_db: unknown, _uid: unknown, _athlete: unknown, _taskId: string) => Promise.resolve("saved" as const),
   ),
@@ -46,6 +52,25 @@ vi.mock("@skatingx/firebase-client", () => ({
   },
   completePlanningCheckIn: (db: unknown, uid: unknown, athlete: unknown, taskId: string) =>
     state.complete(db, uid, athlete, taskId),
+  subscribeToSavedAnalyses: (
+    _db: unknown,
+    _uid: unknown,
+    onData: (rows: { kind: "pace" | "biomech"; id: string; createdAt: string; findings: { code: string }[] }[]) => void,
+  ) => {
+    state.onAnalyses = onData;
+    onData([]);
+    return state.stopFeedback;
+  },
+  subscribeToEquipmentHistory: (
+    _db: unknown,
+    _uid: unknown,
+    _athlete: unknown,
+    onData: (rows: { id: string; createdAt: string; findings?: { code: string }[] }[]) => void,
+  ) => {
+    state.onEquipment = onData;
+    onData([]);
+    return state.stopFeedback;
+  },
 }));
 
 afterEach(() => {
@@ -55,8 +80,12 @@ afterEach(() => {
   state.points = 120;
   state.checkIns = [];
   state.onData = null;
+  state.onAnalyses = null;
+  state.onEquipment = null;
   state.unsubscribe.mockClear();
+  state.stopFeedback.mockClear();
   state.complete.mockClear();
+  sessionStorage.clear();
 });
 
 describe("training plan page", () => {
@@ -110,8 +139,88 @@ describe("training plan page", () => {
     render(<TrainingPlanPage />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Junior D training template");
     await user.click(screen.getByRole("button", { name: /Technique and corner control/ }));
+    expect(screen.queryByRole("region", { name: "Suggestions from analysis" })).toBeNull();
     expect(screen.getAllByRole("button", { name: "Check in" })).toHaveLength(7);
     expect(screen.queryByText(/Warming the model/)).toBeNull();
     expect(screen.getByText(/Points checked in this week:/).textContent).toContain("0");
+  });
+
+  it("adopts a pace suggestion by selecting that focus, and does not write", async () => {
+    const user = userEvent.setup();
+    render(<TrainingPlanPage />);
+    act(() => {
+      state.onAnalyses?.([
+        {
+          kind: "pace",
+          id: "pace-1",
+          createdAt: "2026-10-20T12:00:00.000Z",
+          findings: [{ code: "pace.decay.back-half" }],
+        },
+      ]);
+    });
+    expect(screen.getByText("将本周侧重设为『速度窗口与500m配速』")).toBeTruthy();
+    expect(screen.getByText(/来自配速分析 pace-1/)).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "采纳" }));
+
+    expect(screen.getByRole("button", { name: /速度窗口与500m配速/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("heading", { name: /第 1 周周期微循环：速度窗口与500m配速/ })).toBeTruthy();
+    expect(state.complete).not.toHaveBeenCalled();
+  });
+
+  it("hides an ignored suggestion for this session and does not write", async () => {
+    const user = userEvent.setup();
+    render(<TrainingPlanPage />);
+    act(() => {
+      state.onAnalyses?.([
+        {
+          kind: "biomech",
+          id: "bio-1",
+          createdAt: "2026-10-18T12:00:00.000Z",
+          findings: [{ code: "biomech.knee.high" }],
+        },
+      ]);
+    });
+    await user.click(screen.getByRole("button", { name: "忽略" }));
+
+    expect(screen.queryByText("将本周侧重设为『技术基础与弯道控制』")).toBeNull();
+    expect(state.complete).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("skatingx.plan.feedback.hidden")).toContain("bio-1");
+
+    act(() => {
+      state.onAnalyses?.([
+        {
+          kind: "biomech",
+          id: "bio-2",
+          createdAt: "2026-10-20T12:00:00.000Z",
+          findings: [{ code: "biomech.lean.high" }],
+        },
+      ]);
+    });
+    expect(screen.getByText("将本周侧重设为『技术基础与弯道控制』")).toBeTruthy();
+    expect(screen.getByText(/来自生物力学分析 bio-2/)).toBeTruthy();
+  });
+
+  it("links an equipment symptom to the equipment page and does not change the plan", () => {
+    render(
+      <MemoryRouter>
+        <TrainingPlanPage />
+      </MemoryRouter>,
+    );
+    act(() => {
+      state.onEquipment?.([
+        {
+          id: "equip-1",
+          createdAt: "2026-10-20T12:00:00.000Z",
+          findings: [{ code: "equipment.symptom.slide" }],
+        },
+      ]);
+    });
+
+    const link = screen.getByRole("link", { name: "打开器材页" });
+    expect(link.getAttribute("href")).toBe("/analysis/equipment");
+    expect(screen.queryByRole("button", { name: "采纳" })).toBeNull();
+    expect(screen.getByRole("button", { name: /技术基础与弯道控制/ }).getAttribute("aria-pressed")).toBe("false");
+    expect(state.complete).not.toHaveBeenCalled();
   });
 });

@@ -80,6 +80,8 @@ export interface EquipmentHistoryRecord {
   readonly adjustmentNotes: string;
   readonly missingCore: boolean;
   readonly ruleHints: readonly string[];
+  /** Present on records saved by this app. Older documents may omit it. */
+  readonly findings?: readonly { readonly code: string; readonly analysisId: string }[];
 }
 
 const findingCode = {
