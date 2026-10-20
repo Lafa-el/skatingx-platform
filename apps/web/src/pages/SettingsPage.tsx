@@ -1,16 +1,36 @@
-import { Button, Card, ErrorNotice } from "@skatingx/ui";
+import { getFirebaseAuth, requestPasswordResetEmail } from "@skatingx/firebase-client";
+import { Button, Card, ErrorNotice, StatusTag } from "@skatingx/ui";
 import { FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useReloadUserSettings } from "@/app/providers/FirestoreProvider";
+import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import { LanguageSetting } from "@/components/LanguageSetting";
+import { useAthleteProfile } from "@/hooks/firestore";
+import { useIsPro } from "@/hooks/useIsPro";
 import { useLanguageSetting } from "@/hooks/useLanguageSetting";
 import { useLocale } from "@/hooks/useLocale";
-import { formatAuthError } from "@/shared/i18n/auth-messages";
+import { APP_VERSION } from "@/shared/appVersion";
+import {
+  authErrorCode,
+  formatAuthError,
+  toAuthErrorNote,
+  type AuthErrorNote,
+} from "@/shared/i18n/auth-messages";
 import { type SettingsPageMessageKey, tSettingsPage } from "@/shared/i18n/settings-page-messages";
 import type { Locale } from "@/shared/i18n/translator";
 
 /** A document path shown as it is written. An identifier, not copy. */
 const SETTINGS_DOC_PATH = "settings/main";
+
+const PLAN_BENEFITS = [
+  "settings.plan.benefit.videos",
+  "settings.plan.benefit.analysis",
+  "settings.plan.benefit.feedback",
+] as const satisfies readonly SettingsPageMessageKey[];
+
+type ResetFailure = { kind: "auth"; note: AuthErrorNote } | { kind: "copy"; key: SettingsPageMessageKey };
 
 function AuthField({
   id,
@@ -42,6 +62,30 @@ function AuthField({
   );
 }
 
+function PlanBenefits({
+  locale,
+  locked,
+}: {
+  locale: Locale;
+  locked: boolean;
+}) {
+  return (
+    <ul
+      aria-label={tSettingsPage(locale, "settings.plan.benefits")}
+      data-locked={locked ? "true" : "false"}
+      className={
+        locked
+          ? "mt-3 grid list-disc gap-1 pl-5 text-brand-navy/70"
+          : "mt-3 grid list-disc gap-1 pl-5 font-medium text-brand-navy"
+      }
+    >
+      {PLAN_BENEFITS.map((key) => (
+        <li key={key}>{tSettingsPage(locale, key)}</li>
+      ))}
+    </ul>
+  );
+}
+
 export function SettingsPage() {
   const {
     user,
@@ -61,10 +105,22 @@ export function SettingsPage() {
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
   const [formBusy, setFormBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetFailure, setResetFailure] = useState<ResetFailure | null>(null);
   const languageSetting = useLanguageSetting();
   const locale: Locale = useLocale();
   const t = (key: SettingsPageMessageKey, params?: Record<string, string | number>) =>
     tSettingsPage(locale, key, params);
+  const { isPro, loading: planLoading, error: planError, settings } = useIsPro();
+  const { data: profile, loading: profileLoading } = useAthleteProfile();
+  const reloadSettings = useReloadUserSettings();
+
+  const registered = firebaseReady && Boolean(user) && !isAnonymous && !loading;
+  const activeAthleteId =
+    typeof settings?.activeAthleteId === "string" && settings.activeAthleteId.length > 0
+      ? settings.activeAthleteId
+      : null;
 
   async function handleBindSubmit(event: FormEvent) {
     event.preventDefault();
@@ -112,6 +168,32 @@ export function SettingsPage() {
     }
   }
 
+  async function handlePasswordReset() {
+    const email = user?.email?.trim() ?? "";
+    setResetSent(false);
+    setResetFailure(null);
+    clearAuthError();
+    if (!email) {
+      setResetFailure({ kind: "copy", key: "settings.passwordReset.noEmail" });
+      return;
+    }
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      setResetFailure({ kind: "auth", note: { key: "auth.error.notConfigured" } });
+      return;
+    }
+    setResetBusy(true);
+    try {
+      await requestPasswordResetEmail(auth, email);
+      setResetSent(true);
+    } catch (error) {
+      console.error("[settings] sending the password reset failed", { code: authErrorCode(error) });
+      setResetFailure({ kind: "auth", note: toAuthErrorNote(error) });
+    } finally {
+      setResetBusy(false);
+    }
+  }
+
   const accountLabel = loading
     ? t("settings.account.loading")
     : !firebaseReady
@@ -121,30 +203,23 @@ export function SettingsPage() {
         : t("settings.account.registered");
 
   const emailDisplay = user?.email ?? "—";
+  const resetFailureText =
+    resetFailure?.kind === "auth"
+      ? formatAuthError(resetFailure.note, locale)
+      : resetFailure
+        ? t(resetFailure.key)
+        : null;
 
   return (
-    <section className="max-w-lg">
-      <h1 className="text-2xl font-bold text-brand-navy">
-        {t("settings.page.title")}
-      </h1>
-      <p className="mt-1 text-brand-navy/80">{t("settings.page.intro")}</p>
+    <section className="grid max-w-lg gap-4">
+      <header className="grid gap-1">
+        <h1 className="text-2xl font-bold text-brand-navy">{t("settings.page.title")}</h1>
+        <p className="text-brand-navy/80">{t("settings.page.intro")}</p>
+      </header>
 
-      <LanguageSetting
-        language={languageSetting.language}
-        disabled={languageSetting.disabled}
-        failed={languageSetting.failed}
-        onChange={languageSetting.setLanguage}
-      />
+      <FirestoreStatusBanner />
 
-      <Card variant="raised" title={t("settings.parent.title")} className="mt-4">
-        <p className="text-sm text-brand-navy/80">
-          {t("settings.parent.noteBefore")}
-          <code className="text-xs">{SETTINGS_DOC_PATH}</code>
-          {t("settings.parent.noteAfter")}
-        </p>
-      </Card>
-
-      <Card variant="raised" title={t("settings.account.title")} className="mt-4">
+      <Card variant="raised" title={t("settings.group.account")}>
         <dl className="grid gap-2 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-brand-navy/70">{t("settings.account.status")}</dt>
@@ -152,16 +227,12 @@ export function SettingsPage() {
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-brand-navy/70">{t("settings.account.uid")}</dt>
-            <dd className="font-mono text-xs text-brand-navy break-all">
-              {loading ? "…" : (uid ?? "—")}
-            </dd>
+            <dd className="break-all font-mono text-xs text-brand-navy">{loading ? "…" : (uid ?? "—")}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-brand-navy/70">{t("settings.account.anonymous")}</dt>
             <dd className="font-medium text-brand-navy">
-              {loading
-                ? "…"
-                : t(isAnonymous ? "settings.account.yes" : "settings.account.no")}
+              {loading ? "…" : t(isAnonymous ? "settings.account.yes" : "settings.account.no")}
             </dd>
           </div>
           <div className="flex justify-between gap-4">
@@ -169,18 +240,27 @@ export function SettingsPage() {
             <dd className="font-medium text-brand-navy">{emailDisplay}</dd>
           </div>
         </dl>
-      </Card>
 
-      {authError ? (
-        <ErrorNotice className="mt-4">{formatAuthError(authError, locale)}</ErrorNotice>
-      ) : null}
+        {authError ? <ErrorNotice className="mt-4">{formatAuthError(authError, locale)}</ErrorNotice> : null}
 
-      {firebaseReady && isAnonymous && !loading ? (
-        <Card variant="raised" title={t("settings.link.title")} className="mt-4">
-          <p className="mb-4 text-sm text-brand-navy/80">
-            {t("settings.link.help")}
-          </p>
-          <form className="grid gap-3" onSubmit={handleBindSubmit}>
+        {registered ? (
+          <div className="mt-4 grid gap-2">
+            <Button type="button" variant="outline" disabled={resetBusy || formBusy} onClick={handlePasswordReset}>
+              {resetBusy ? t("settings.passwordReset.busy") : t("settings.passwordReset.button")}
+            </Button>
+            {resetSent ? (
+              <p role="status" className="text-sm font-medium text-brand-navy">
+                {t("settings.passwordReset.sent")}
+              </p>
+            ) : null}
+            {resetFailureText ? <ErrorNotice>{resetFailureText}</ErrorNotice> : null}
+          </div>
+        ) : null}
+
+        {firebaseReady && isAnonymous && !loading ? (
+          <form className="mt-4 grid gap-3" onSubmit={handleBindSubmit}>
+            <h4 className="text-sm font-semibold text-brand-navy">{t("settings.link.title")}</h4>
+            <p className="text-sm text-brand-navy/80">{t("settings.link.help")}</p>
             <AuthField
               id="bind-email"
               label={t("settings.field.email")}
@@ -197,23 +277,16 @@ export function SettingsPage() {
               onChange={setBindPassword}
               autoComplete="new-password"
             />
-            <Button
-              type="submit"
-              variant="brand"
-              disabled={formBusy || !bindEmail || bindPassword.length < 6}
-            >
+            <Button type="submit" variant="brand" disabled={formBusy || !bindEmail || bindPassword.length < 6}>
               {formBusy ? t("settings.link.busy") : t("settings.link.submit")}
             </Button>
           </form>
-        </Card>
-      ) : null}
+        ) : null}
 
-      {firebaseReady && !loading ? (
-        <Card variant="raised" title={t("settings.signIn.title")} className="mt-4">
-          <p className="mb-4 text-sm text-brand-navy/80">
-            {t("settings.signIn.help")}
-          </p>
-          <form className="grid gap-3" onSubmit={handleSignInSubmit}>
+        {firebaseReady && !loading ? (
+          <form className="mt-4 grid gap-3" onSubmit={handleSignInSubmit}>
+            <h4 className="text-sm font-semibold text-brand-navy">{t("settings.signIn.title")}</h4>
+            <p className="text-sm text-brand-navy/80">{t("settings.signIn.help")}</p>
             <AuthField
               id="signin-email"
               label={t("settings.field.email")}
@@ -230,34 +303,92 @@ export function SettingsPage() {
               onChange={setSignInPassword}
               autoComplete="current-password"
             />
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={formBusy || !signInEmail || !signInPassword}
-            >
+            <Button type="submit" variant="outline" disabled={formBusy || !signInEmail || !signInPassword}>
               {formBusy ? t("settings.signIn.busy") : t("settings.signIn.submit")}
             </Button>
           </form>
-        </Card>
-      ) : null}
+        ) : null}
 
-      {firebaseReady && user && !isAnonymous && !loading ? (
-        <div className="mt-4">
-          <Button
-            variant="danger-outline"
-            disabled={formBusy}
-            onClick={handleLogout}
-          >
-            {t("settings.signOut.button")}
-          </Button>
+        {registered ? (
+          <div className="mt-4">
+            <Button variant="danger-outline" disabled={formBusy} onClick={handleLogout}>
+              {t("settings.signOut.button")}
+            </Button>
+          </div>
+        ) : null}
+
+        {firebaseReady && user && isAnonymous && !loading ? (
+          <p className="mt-4 text-xs text-brand-navy/70">{t("settings.account.guestUid", { uid: uid?.slice(0, 8) ?? "—" })}</p>
+        ) : null}
+      </Card>
+
+      <Card variant="raised" title={t("settings.group.athlete")}>
+        <dl className="grid gap-2 text-sm">
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-brand-navy/70">{t("settings.athlete.name")}</dt>
+            <dd className="font-medium text-brand-navy">{profileLoading ? "…" : (profile?.displayName ?? "—")}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-brand-navy/70">{t("settings.athlete.id")}</dt>
+            <dd className="font-mono text-xs text-brand-navy">{planLoading ? "…" : (activeAthleteId ?? "—")}</dd>
+          </div>
+        </dl>
+        <div className="mt-3">
+          <StatusTag tone="brand">{t("settings.athlete.current")}</StatusTag>
         </div>
-      ) : null}
+        <Link
+          to="/athlete"
+          className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand-navy underline underline-offset-2"
+        >
+          {t("settings.athlete.open")}
+        </Link>
+      </Card>
 
-      {firebaseReady && user && isAnonymous && !loading ? (
-        <p className="mt-6 text-xs text-brand-navy/70">
-          {t("settings.account.guestUid", { uid: uid?.slice(0, 8) ?? "—" })}
+      <Card variant="raised" title={t("settings.group.plan")}>
+        {planError ? (
+          <div className="grid gap-3">
+            <ErrorNotice>{t("settings.plan.error")}</ErrorNotice>
+            <Button type="button" variant="outline" onClick={reloadSettings}>
+              {t("settings.plan.retry")}
+            </Button>
+          </div>
+        ) : planLoading ? (
+          <p role="status" className="text-sm text-brand-navy/80">
+            {t("settings.plan.preparing")}
+          </p>
+        ) : isPro ? (
+          <div>
+            <StatusTag tone="brand">{t("settings.plan.proTag")}</StatusTag>
+            <p className="mt-3 text-lg font-semibold text-brand-navy">{t("settings.plan.proTitle")}</p>
+            <PlanBenefits locale={locale} locked={false} />
+          </div>
+        ) : (
+          <div>
+            <StatusTag tone="neutral">{t("settings.plan.freeTag")}</StatusTag>
+            <PlanBenefits locale={locale} locked />
+            <p className="mt-3 text-lg font-semibold text-brand-navy">{t("settings.plan.price")}</p>
+            <p className="mt-1 text-sm text-brand-navy/80">{t("settings.plan.manual")}</p>
+          </div>
+        )}
+      </Card>
+
+      <Card variant="raised" title={t("settings.group.preferences")}>
+        <LanguageSetting
+          embedded
+          language={languageSetting.language}
+          disabled={languageSetting.disabled}
+          failed={languageSetting.failed}
+          onChange={languageSetting.setLanguage}
+        />
+        <h4 className="mt-4 text-sm font-semibold text-brand-navy">{t("settings.parent.title")}</h4>
+        <p className="mt-1 text-sm text-brand-navy/80">
+          {t("settings.parent.noteBefore")}
+          <code className="text-xs">{SETTINGS_DOC_PATH}</code>
+          {t("settings.parent.noteAfter")}
         </p>
-      ) : null}
+      </Card>
+
+      <p className="text-xs text-brand-navy/70">{t("settings.footer.version", { version: APP_VERSION })}</p>
     </section>
   );
 }

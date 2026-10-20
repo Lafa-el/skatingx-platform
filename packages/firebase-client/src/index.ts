@@ -122,6 +122,7 @@ export {
   getFirebaseAuth,
   linkAnonymousWithEmailPassword,
   refreshAuthUser,
+  requestPasswordResetEmail,
   signInAnonymouslyIfNeeded,
   signInWithEmailPassword,
   signOutUser,

@@ -4,6 +4,7 @@ import {
   linkWithCredential,
   onAuthStateChanged,
   reload,
+  sendPasswordResetEmail,
   signInAnonymously,
   signInWithEmailAndPassword,
   signOut,
@@ -81,6 +82,15 @@ export async function signInWithEmailPassword(
 
 export async function signOutUser(auth: Auth): Promise<void> {
   await signOut(auth);
+}
+
+/**
+ * Ask Firebase Auth to email a password-reset link to an existing account.
+ * No continue URL: the settings page must not invent a link, and the message
+ * uses Firebase's own template. This does not change the password itself.
+ */
+export async function requestPasswordResetEmail(auth: Auth, email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
 
 export function getAuthErrorMessage(error: unknown): string {

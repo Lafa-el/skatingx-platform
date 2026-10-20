@@ -17,15 +17,21 @@ type LanguageSettingProps = {
   disabled: boolean;
   failed: boolean;
   onChange: (next: Locale) => void;
+  /**
+   * The settings page draws this inside the preferences card. Standalone use keeps its own card.
+   * The radios and the save callback do not change.
+   */
+  embedded?: boolean;
 };
 
 /** Chinese / English choice as native radio buttons, so arrow keys and screen readers just work. */
-export function LanguageSetting({ language, disabled, failed, onChange }: LanguageSettingProps) {
+export function LanguageSetting({ language, disabled, failed, onChange, embedded = false }: LanguageSettingProps) {
   const name = useId();
   const descriptionId = `${name}-description`;
+  const title = tSettings(language, "settings.language.title");
 
-  return (
-    <Card variant="raised" title={tSettings(language, "settings.language.title")} className="mt-6">
+  const controls = (
+    <>
       <fieldset disabled={disabled} aria-describedby={descriptionId}>
         <legend className="sr-only">{tSettings(language, "settings.language.title")}</legend>
         <p id={descriptionId} className="text-sm text-brand-navy/80">
@@ -60,6 +66,21 @@ export function LanguageSetting({ language, disabled, failed, onChange }: Langua
       {failed ? (
         <ErrorNotice className="mt-3">{tSettings(language, "settings.language.error")}</ErrorNotice>
       ) : null}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div>
+        <h4 className="text-sm font-semibold text-brand-navy">{title}</h4>
+        {controls}
+      </div>
+    );
+  }
+
+  return (
+    <Card variant="raised" title={title} className="mt-6">
+      {controls}
     </Card>
   );
 }

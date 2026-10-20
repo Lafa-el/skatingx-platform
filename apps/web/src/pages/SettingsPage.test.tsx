@@ -1,6 +1,10 @@
 // @vitest-environment happy-dom
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 
+import { APP_VERSION } from "@/shared/appVersion";
 import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
 import { watchUnhandledRejections } from "@/test/unhandledRejections";
@@ -25,21 +29,48 @@ const h = vi.hoisted(() => {
     auth: baseAuth(),
     settings: { language: "zh", isPro: false, parentPinEnabled: false } as Record<string, unknown>,
     update: vi.fn(),
+    planLoading: false,
+    planError: null as string | null,
+    profile: { data: { displayName: "Sample Skater" } as { displayName: string } | null, loading: false },
+    reload: vi.fn(),
+    reset: vi.fn(),
+    authClient: {} as object | null,
   };
 });
 
 vi.mock("@/app/providers/AuthProvider", () => ({ useAuth: () => h.auth }));
 vi.mock("@/app/providers/FirestoreProvider", () => ({
-  useUserSettings: () => ({ data: h.settings, loading: false, error: null }),
+  useUserSettings: () => ({ data: h.settings, loading: h.planLoading, error: h.planError }),
+  useAthleteProfile: () => h.profile,
+  useReloadUserSettings: () => h.reload,
+}));
+vi.mock("@/components/FirestoreStatusBanner", () => ({
+  FirestoreStatusBanner: () => <div data-testid="firestore-status-banner" />,
 }));
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => ({}),
+  getFirebaseAuth: () => h.authClient,
   updateUserSettings: (...args: unknown[]) => h.update(...args),
+  requestPasswordResetEmail: (...args: unknown[]) => h.reset(...args),
 }));
+
+function renderSettings() {
+  return render(
+    <MemoryRouter>
+      <SettingsPage />
+    </MemoryRouter>,
+  );
+}
 
 beforeEach(() => {
   h.auth = h.baseAuth();
-  h.settings = { language: "zh", isPro: false, parentPinEnabled: false };
+  h.settings = { language: "zh", isPro: false, parentPinEnabled: false, activeAthleteId: "lindsay" };
+  h.planLoading = false;
+  h.planError = null;
+  h.profile = { data: { displayName: "Sample Skater" }, loading: false };
+  h.reload = vi.fn();
+  h.reset = vi.fn().mockResolvedValue(undefined);
+  h.authClient = {};
   h.update = vi.fn().mockResolvedValue(undefined);
 });
 
@@ -67,79 +98,81 @@ const registered = () => {
 const dd = (label: string) => screen.getByText(label, { selector: "dt" }).parentElement?.querySelector("dd")?.textContent;
 
 describe("SettingsPage language", () => {
-  it("shows the language choice with the saved language selected, as the first card, above the parent settings", () => {
-    render(<SettingsPage />);
+  it("shows the language choice with the saved language selected, above the parent note inside preferences", () => {
+    renderSettings();
     expect((screen.getByLabelText("中文") as HTMLInputElement).checked).toBe(true);
+    const preferences = screen.getByRole("heading", { name: "偏好" });
     const language = screen.getByRole("heading", { name: "语言 / Language" });
     const parent = screen.getByRole("heading", { name: "家长设置" });
+    expect(preferences.compareDocumentPosition(language) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(language.compareDocumentPosition(parent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("choosing English saves language 'en' for the user and nothing else", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    renderSettings();
     await user.click(screen.getByLabelText("English"));
     expect(h.update).toHaveBeenCalledExactlyOnceWith(expect.anything(), "u1234567890", { language: "en" });
   });
 
   it("shows English when the saved language is English", () => {
     setEnglish();
-    render(<SettingsPage />);
+    renderSettings();
     expect((screen.getByLabelText("English") as HTMLInputElement).checked).toBe(true);
     expect(screen.getByRole("heading", { name: "Language / 语言" })).toBeTruthy();
   });
 
-  it("has no PRO switch: nothing here can write isPro", async () => {
+  it("still saves only the language: the subscription group does not write isPro", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    h.settings = { ...h.settings, isPro: true };
+    renderSettings();
     await user.click(screen.getByLabelText("English"));
     expect(h.update).toHaveBeenCalledExactlyOnceWith(expect.anything(), "u1234567890", { language: "en" });
-    expect(screen.queryByRole("button", { name: /\bPRO\b/ })).toBeNull();
+    expect(screen.queryByRole("switch")).toBeNull();
   });
 });
 
 describe("SettingsPage text", () => {
   it("Chinese: title, intro and every card title", () => {
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.getByRole("heading", { level: 1, name: "设置" })).toBeTruthy();
     expect(screen.getByText("账户与登录。个人资料和运动员数据同步将在后续阶段提供。")).toBeTruthy();
-    for (const title of ["家长设置", "当前用户", "绑定邮箱和密码", "登录已有账户"]) {
+    for (const title of ["账号", "运动员", "订阅", "偏好"]) {
       expect(screen.getByRole("heading", { level: 3, name: title }), title).toBeTruthy();
+    }
+    for (const title of ["绑定邮箱和密码", "登录已有账户", "家长设置"]) {
+      expect(screen.getByRole("heading", { name: title }), title).toBeTruthy();
     }
   });
 
   it("English: the previous wording", () => {
     setEnglish();
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeTruthy();
     expect(
       screen.getByText("Account and authentication. Profile and athlete data sync come in a later phase."),
     ).toBeTruthy();
-    for (const title of [
-      "Parent settings",
-      "Current user",
-      "Link email & password",
-      "Sign in to existing account",
-    ]) {
+    for (const title of ["Account", "Athlete", "Subscription", "Preferences"]) {
       expect(screen.getByRole("heading", { level: 3, name: title }), title).toBeTruthy();
+    }
+    for (const title of ["Parent settings", "Link email & password", "Sign in to existing account"]) {
+      expect(screen.getByRole("heading", { name: title }), title).toBeTruthy();
     }
   });
 
-  // The PRO switch was a development tool. Whoever opens PRO for a user does it in the Firebase
-  // console, and nothing in Settings may suggest otherwise or show a plan the app cannot verify.
-  it.each([
-    ["zh", false],
-    ["en", true],
-  ])("no PRO card, plan status or development wording (%s)", (_language, english) => {
-    if (english) setEnglish();
+  // The old assertion required the page to hide the word PRO even when isPro was true.
+  // That was when Settings had no plan display. The subscription group is now supposed to say
+  // PRO is on, and it still must not write the flag.
+  it("shows PRO when the flag is on, and does not write it", () => {
     h.settings = { ...h.settings, isPro: true };
-    const { container } = render(<SettingsPage />);
-    expect(container.textContent).not.toMatch(/\bPRO\b|开发|\bdev(elopment)?\b|免费版|Free plan/i);
-    expect(screen.queryByRole("heading", { name: /\bPRO\b/ })).toBeNull();
+    renderSettings();
+    expect(screen.getByText("PRO 已开通")).toBeTruthy();
+    expect(h.update).not.toHaveBeenCalled();
+    expect(screen.queryByRole("switch")).toBeNull();
   });
 
   it("parent card: the sentence is built around the field name, which is not translated", () => {
-    const { container } = render(<SettingsPage />);
+    const { container } = renderSettings();
     const note = container.querySelector("code")?.parentElement;
     expect(note?.textContent).toBe(
       "家长 PIN 锁在 M6 中尚未实现。PIN 不会以明文保存。PIN 安全功能上线后，只会把哈希值保存在 settings/main 中。",
@@ -149,7 +182,7 @@ describe("SettingsPage text", () => {
 
   it("parent card, English: the previous sentence", () => {
     setEnglish();
-    const { container } = render(<SettingsPage />);
+    const { container } = renderSettings();
     expect(container.querySelector("code")?.parentElement?.textContent).toBe(
       "Parent PIN lock is not implemented in M6. PINs are not stored in plaintext. When PIN security ships, only a hash will be saved on settings/main.",
     );
@@ -162,12 +195,12 @@ describe("SettingsPage details", () => {
     "never shows the internal parentPinEnabled field, whatever is stored (%s), in either language",
     (stored) => {
       h.settings = { ...h.settings, parentPinEnabled: stored };
-      const zh = render(<SettingsPage />);
+      const zh = renderSettings();
       expect(zh.container.textContent).not.toMatch(/parentPinEnabled/);
       zh.unmount();
 
       setEnglish();
-      const en = render(<SettingsPage />);
+      const en = renderSettings();
       expect(en.container.textContent).not.toMatch(/parentPinEnabled/);
     },
   );
@@ -187,7 +220,7 @@ describe("SettingsPage forms: a failed sign-in or link", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     h.auth[method] = vi.fn().mockRejectedValue(fail());
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    renderSettings();
     const submit = screen.getByRole("button", { name: button }) as HTMLButtonElement;
     const form = submit.closest("form") as HTMLElement;
     await user.type(within(form).getByLabelText("邮箱"), "a@example.com");
@@ -214,8 +247,8 @@ describe("SettingsPage account", () => {
     for (const [setup, expected] of states) {
       h.auth = h.baseAuth();
       setup();
-      const view = render(<SettingsPage />);
-      expect(within(screen.getByRole("heading", { level: 3, name: "当前用户" }).closest("article") as HTMLElement).getByText(expected)).toBeTruthy();
+      const view = renderSettings();
+      expect(within(screen.getByRole("heading", { level: 3, name: "账号" }).closest("article") as HTMLElement).getByText(expected)).toBeTruthy();
       view.unmount();
     }
   });
@@ -231,73 +264,77 @@ describe("SettingsPage account", () => {
     for (const [setup, expected] of states) {
       h.auth = h.baseAuth();
       setup();
-      const view = render(<SettingsPage />);
-      expect(within(screen.getByRole("heading", { level: 3, name: "Current user" }).closest("article") as HTMLElement).getByText(expected)).toBeTruthy();
+      const view = renderSettings();
+      expect(within(screen.getByRole("heading", { level: 3, name: "Account" }).closest("article") as HTMLElement).getByText(expected)).toBeTruthy();
       view.unmount();
     }
   });
 
   it("current user card: labels, yes/no and the email as stored", () => {
     registered();
-    render(<SettingsPage />);
+    renderSettings();
     expect(dd("UID")).toBe("u1234567890");
     expect(dd("匿名")).toBe("否");
     expect(dd("邮箱")).toBe("person@example.com");
   });
 
   it("current user card: anonymous, no email", () => {
-    render(<SettingsPage />);
+    renderSettings();
     expect(dd("匿名")).toBe("是");
     expect(dd("邮箱")).toBe("—");
   });
 
   it("English yes/no", () => {
     setEnglish();
-    render(<SettingsPage />);
+    renderSettings();
     expect(dd("Anonymous")).toBe("Yes");
     expect(dd("Email")).toBe("—");
   });
 
   it("an authentication error is shown as an alert in the language of the page", () => {
     h.auth.authError = { key: "auth.error.wrongCredential" };
-    const zh = render(<SettingsPage />);
+    const zh = renderSettings();
     expect(screen.getByRole("alert").textContent).toBe("邮箱或密码不正确。");
     zh.unmount();
 
     setEnglish();
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.getByRole("alert").textContent).toBe("Incorrect email or password.");
   });
 
   it("an authentication error follows a change of language while it is shown", () => {
     h.auth.authError = { key: "auth.error.wrongCredential" };
-    const view = render(<SettingsPage />);
+    const view = renderSettings();
     setEnglish();
-    view.rerender(<SettingsPage />);
+    view.rerender(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>,
+    );
     expect(screen.getByRole("alert").textContent).toBe("Incorrect email or password.");
   });
 
   it("a message that did not come from a known error is shown as received, in either language", () => {
     h.auth.authError = { received: "No signed-in user to link." };
-    const zh = render(<SettingsPage />);
+    const zh = renderSettings();
     expect(screen.getByRole("alert").textContent).toBe("No signed-in user to link.");
     zh.unmount();
 
     setEnglish();
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.getByRole("alert").textContent).toBe("No signed-in user to link.");
   });
 
   it("a guest sees the first eight characters of the guest id", () => {
     h.auth.user = { email: null };
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.getByText("访客 UID（前 8 位）：u1234567")).toBeTruthy();
   });
 
   it("guest id line in English", () => {
     setEnglish();
     h.auth.user = { email: null };
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.getByText("Guest UID (first 8 chars): u1234567")).toBeTruthy();
   });
 });
@@ -305,7 +342,7 @@ describe("SettingsPage account", () => {
 describe("SettingsPage forms", () => {
   it("link form, Chinese: labelled fields, help text and a submit button that waits for valid input", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.getByText("把当前访客会话变成永久账户。密码至少 6 个字符。")).toBeTruthy();
     const submit = screen.getByRole("button", { name: "绑定账户" }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
@@ -320,7 +357,7 @@ describe("SettingsPage forms", () => {
   it("link form says it is busy while the account is being linked", async () => {
     h.auth.linkEmailPassword = vi.fn().mockReturnValue(new Promise(() => undefined));
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    renderSettings();
     const submit = screen.getByRole("button", { name: "绑定账户" });
     const form = submit.closest("form") as HTMLElement;
     await user.type(within(form).getByLabelText("邮箱"), "a@example.com");
@@ -331,7 +368,7 @@ describe("SettingsPage forms", () => {
 
   it("link form, English: the previous wording", () => {
     setEnglish();
-    render(<SettingsPage />);
+    renderSettings();
     expect(
       screen.getByText("Turn this guest session into a permanent account. Password must be at least 6 characters."),
     ).toBeTruthy();
@@ -341,7 +378,7 @@ describe("SettingsPage forms", () => {
   it("sign-in form, Chinese: help text, labelled fields and a busy state", async () => {
     h.auth.signInEmailPassword = vi.fn().mockReturnValue(new Promise(() => undefined));
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    renderSettings();
     expect(
       screen.getByText("使用已注册的邮箱和密码登录。登录会替换当前会话（访客数据不会自动合并）。"),
     ).toBeTruthy();
@@ -355,7 +392,7 @@ describe("SettingsPage forms", () => {
 
   it("sign-in form, English: the previous wording", () => {
     setEnglish();
-    render(<SettingsPage />);
+    renderSettings();
     expect(
       screen.getByText(
         "Use a registered email and password. Signing in replaces the current session (guest data is not merged automatically).",
@@ -366,7 +403,7 @@ describe("SettingsPage forms", () => {
 
   it("the link and sign-in forms are hidden when the service is not configured", () => {
     h.auth.firebaseReady = false;
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.queryByRole("button", { name: "绑定账户" })).toBeNull();
     expect(screen.queryByRole("button", { name: "登录" })).toBeNull();
   });
@@ -382,7 +419,7 @@ describe("SettingsPage sign out", () => {
     registered();
     const confirm = stubConfirm(false);
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    renderSettings();
     await user.click(screen.getByRole("button", { name: "退出登录" }));
     expect(confirm).toHaveBeenCalledExactlyOnceWith(ZH_CONFIRM);
     expect(h.auth.logout).not.toHaveBeenCalled();
@@ -397,44 +434,153 @@ describe("SettingsPage sign out", () => {
     registered();
     const confirm = stubConfirm(false);
     const user = userEvent.setup();
-    render(<SettingsPage />);
+    renderSettings();
     await user.click(screen.getByRole("button", { name: "Sign out" }));
     expect(confirm).toHaveBeenCalledExactlyOnceWith(EN_CONFIRM);
   });
 
   it("a guest has no sign-out button", () => {
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.queryByRole("button", { name: "退出登录" })).toBeNull();
   });
 });
 
 describe("SettingsPage: tap targets (44px)", () => {
   it("a guest sees inputs and the form buttons at 44px", () => {
-    const { container } = render(<SettingsPage />);
+    const { container } = renderSettings();
     expect(container.querySelectorAll("input").length).toBeGreaterThan(4);
     expect(controlsBelowTapTarget(container)).toEqual([]);
   });
 
   it("a signed-in person sees the sign-out button at 44px too", () => {
     registered();
-    const { container } = render(<SettingsPage />);
+    const { container } = renderSettings();
     expect(screen.getByRole("button", { name: "退出登录" })).toBeTruthy();
     expect(controlsBelowTapTarget(container)).toEqual([]);
   });
 
   it("an error message with no spaces wraps instead of widening the page", () => {
     h.auth.authError = { received: "Error-auth/some-very-long-unbroken-token-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" };
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.getByRole("alert").className).toContain("break-words");
   });
 });
 
 // UI v1, phase 1: the page was restyled only. These pin the look, because a class that is off
 // here is invisible to every behaviour test above.
+describe("SettingsPage subscription", () => {
+  it("loading does not show the free plan", () => {
+    h.planLoading = true;
+    h.settings = { ...h.settings, isPro: false };
+    renderSettings();
+    expect(screen.getByRole("status").textContent).toBe("正在准备");
+    expect(screen.queryByText("免费版")).toBeNull();
+    expect(screen.queryByText("PRO 已开通")).toBeNull();
+  });
+
+  it("a failed read shows the plan error and a retry, not the free plan", async () => {
+    h.planError = "permission-denied";
+    h.settings = { ...h.settings, isPro: false };
+    const user = userEvent.setup();
+    renderSettings();
+    expect(screen.getByRole("alert").textContent).toContain("暂时无法确认你的套餐状态");
+    expect(screen.queryByText("免费版")).toBeNull();
+    expect(screen.queryByText("$19.99 / 月")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "重试" }));
+    expect(h.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("PRO shows the sticker, the title and the benefit list, and not the price", () => {
+    h.settings = { ...h.settings, isPro: true };
+    renderSettings();
+    expect(screen.getByText("PRO")).toBeTruthy();
+    expect(screen.getByText("PRO 已开通")).toBeTruthy();
+    for (const benefit of ["比赛日视频记录与总结卡", "完整分析能力", "分析生成训练建议"]) {
+      expect(screen.getByText(benefit)).toBeTruthy();
+    }
+    expect(screen.getByRole("list", { name: "权益" }).getAttribute("data-locked")).toBe("false");
+    expect(screen.queryByText("$19.99 / 月")).toBeNull();
+    expect(screen.queryByText("目前由管理员人工开通；在线订阅即将推出")).toBeNull();
+    expect(h.update).not.toHaveBeenCalled();
+  });
+
+  it("the free plan shows the same benefits locked, plus the price anchor", () => {
+    renderSettings();
+    expect(screen.getByText("免费版")).toBeTruthy();
+    expect(screen.getByText("$19.99 / 月")).toBeTruthy();
+    expect(screen.getByText("目前由管理员人工开通；在线订阅即将推出")).toBeTruthy();
+    expect(screen.getByRole("list", { name: "权益" }).getAttribute("data-locked")).toBe("true");
+    expect(screen.queryByText("PRO 已开通")).toBeNull();
+    expect(screen.queryByText("正在准备")).toBeNull();
+  });
+});
+
+describe("SettingsPage password reset", () => {
+  it("a registered user can send a reset email, and sees the success note", async () => {
+    registered();
+    const user = userEvent.setup();
+    renderSettings();
+    await user.click(screen.getByRole("button", { name: "修改密码" }));
+    expect(h.reset).toHaveBeenCalledExactlyOnceWith(h.authClient, "person@example.com");
+    expect(screen.getByRole("status").textContent).toBe("重置邮件已发送");
+  });
+
+  it("a guest does not see the password reset", () => {
+    renderSettings();
+    expect(screen.queryByRole("button", { name: "修改密码" })).toBeNull();
+  });
+
+  it("a failed reset uses the existing auth error wording", async () => {
+    registered();
+    h.reset.mockRejectedValue(Object.assign(new Error("auth/network-request-failed"), { code: "auth/network-request-failed" }));
+    const user = userEvent.setup();
+    renderSettings();
+    await user.click(screen.getByRole("button", { name: "修改密码" }));
+    expect(screen.getByRole("alert").textContent).toContain("网络错误，请检查网络连接。");
+    expect(screen.queryByText("重置邮件已发送")).toBeNull();
+  });
+
+  it("does not call Auth when the registered account has no email", async () => {
+    registered();
+    h.auth.user = { email: null };
+    const user = userEvent.setup();
+    renderSettings();
+    await user.click(screen.getByRole("button", { name: "修改密码" }));
+    expect(h.reset).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toBe("这个账户没有邮箱，发不了重置邮件。");
+  });
+});
+
+describe("SettingsPage athlete", () => {
+  it("shows the current athlete name and id, and links to the read-only profile", () => {
+    h.profile = { data: { displayName: "Sample Skater" }, loading: false };
+    h.settings = { ...h.settings, activeAthleteId: "athlete-9" };
+    renderSettings();
+    expect(dd("姓名")).toBe("Sample Skater");
+    expect(dd("运动员 ID")).toBe("athlete-9");
+    expect(screen.getByText("当前")).toBeTruthy();
+    const link = screen.getByRole("link", { name: "运动员资料 ›" });
+    expect(link.getAttribute("href")).toBe("/athlete");
+    expect(link.textContent).not.toMatch(/编辑/);
+  });
+});
+
+describe("SettingsPage footer", () => {
+  it("shows only the app version, with no website link", () => {
+    const pkg = JSON.parse(readFileSync(path.resolve("apps/web/package.json"), "utf8")) as { version: string };
+    renderSettings();
+    expect(APP_VERSION).toBe(pkg.version);
+    const footer = screen.getByText(`版本 ${APP_VERSION}`);
+    expect(footer.closest("a")).toBeNull();
+    expect(screen.queryByRole("link", { name: /skatingx\.com/i })).toBeNull();
+    expect(screen.getByTestId("firestore-status-banner")).toBeTruthy();
+  });
+});
+
 describe("SettingsPage look (UI v1)", () => {
   it("uses the brand tokens and none of the old blue, grey or red classes, in any state", () => {
     h.auth.authError = { key: "auth.error.wrongCredential" };
-    const { container } = render(<SettingsPage />);
+    const { container } = renderSettings();
     const classes = Array.from(container.querySelectorAll("[class]")).flatMap((el) => (el.getAttribute("class") ?? "").split(/\s+/));
     const legacy = classes.filter((c) => /(^|:)(text|bg|border|ring|accent|outline)-(sky|slate|red)-\d/.test(c) || c === "text-white");
     expect(legacy).toEqual([]);
@@ -442,7 +588,7 @@ describe("SettingsPage look (UI v1)", () => {
 
   it("a sign-in error is shown with an icon and the words, not colour alone", () => {
     h.auth.authError = { key: "auth.error.wrongCredential" };
-    render(<SettingsPage />);
+    renderSettings();
     const alert = screen.getByRole("alert");
     expect(alert.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     expect(alert.textContent?.length).toBeGreaterThan(0);
@@ -450,7 +596,7 @@ describe("SettingsPage look (UI v1)", () => {
   });
 
   it("the link button is the brand button, the sign-in button an outline, sign-out the red outline", () => {
-    render(<SettingsPage />);
+    renderSettings();
     expect(screen.getByRole("button", { name: "绑定账户" }).className).toContain("bg-brand-flame");
     expect(screen.getByRole("button", { name: "绑定账户" }).className).toContain("text-brand-navy");
     expect(screen.getByRole("button", { name: "登录" }).className).toContain("border-brand-navy/50");
@@ -458,7 +604,7 @@ describe("SettingsPage look (UI v1)", () => {
 
   it("sign-out uses the error red, never the brand flame", () => {
     registered();
-    render(<SettingsPage />);
+    renderSettings();
     const signOut = screen.getByRole("button", { name: "退出登录" });
     expect(signOut.className).toContain("text-status-danger");
     expect(signOut.className).not.toContain("brand-flame");

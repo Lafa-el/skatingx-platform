@@ -18,8 +18,10 @@ import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import {
   createContext,
   useContext,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -66,6 +68,8 @@ type FirestoreContextValue = {
   gamification: FirestoreHookState<Gamification>;
   trainingState: FirestoreHookState<TrainingState>;
   activeAthleteId: string;
+  /** Re-subscribe to `settings/main` only. Does not run bootstrap, so it cannot create documents. */
+  reloadSettings: () => void;
 };
 
 const initialSlice = <T,>(): FirestoreHookState<T> => ({
@@ -88,9 +92,31 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
     useState<FirestoreHookState<Gamification>>(initialSlice);
   const [trainingState, setTrainingState] =
     useState<FirestoreHookState<TrainingState>>(initialSlice);
+  const settingsUnsubRef = useRef<(() => void) | null>(null);
 
   const activeAthleteId =
     settings.data?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+
+  const listenToSettings = useCallback((userId: string) => {
+    const db = getFirestoreDb();
+    if (!db) {
+      return;
+    }
+    settingsUnsubRef.current?.();
+    setSettings({ data: null, loading: true, error: null });
+    settingsUnsubRef.current = subscribeToDocument<UserSettings>(
+      settingsRef(db, userId),
+      (data) => setSettings({ data, loading: false, error: null }),
+      (message) => setSettings({ data: null, loading: false, error: message }),
+    ).unsubscribe;
+  }, []);
+
+  const reloadSettings = useCallback(() => {
+    if (!uid) {
+      return;
+    }
+    listenToSettings(uid);
+  }, [listenToSettings, uid]);
 
   useEffect(() => {
     if (authLoading) {
@@ -147,15 +173,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
 
       if (cancelled) return;
 
-      const settingsDocumentRef = settingsRef(db, uid);
-      unsubs.push(
-        subscribeToDocument<UserSettings>(
-          settingsDocumentRef,
-          (data) => setSettings({ data, loading: false, error: null }),
-          (message) =>
-            setSettings({ data: null, loading: false, error: message }),
-        ).unsubscribe,
-      );
+      listenToSettings(uid);
 
       const athleteId = DEFAULT_ATHLETE_ID;
 
@@ -193,9 +211,11 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      settingsUnsubRef.current?.();
+      settingsUnsubRef.current = null;
       unsubs.forEach((fn) => fn());
     };
-  }, [uid, authLoading, firebaseReady]);
+  }, [uid, authLoading, firebaseReady, listenToSettings]);
 
   const value = useMemo(
     (): FirestoreContextValue => ({
@@ -206,6 +226,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
       gamification,
       trainingState,
       activeAthleteId,
+      reloadSettings,
     }),
     [
       ready,
@@ -215,6 +236,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
       gamification,
       trainingState,
       activeAthleteId,
+      reloadSettings,
     ],
   );
 
@@ -235,6 +257,10 @@ function useFirestoreContext(): FirestoreContextValue {
 
 export function useUserSettings(): FirestoreHookState<UserSettings> {
   return useFirestoreContext().settings;
+}
+
+export function useReloadUserSettings(): () => void {
+  return useFirestoreContext().reloadSettings;
 }
 
 export function useAthleteProfile(): FirestoreHookState<AthleteProfile> {
