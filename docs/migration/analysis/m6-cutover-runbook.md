@@ -124,24 +124,57 @@ node scripts/migrate-current-data.mjs --write --target production --project skat
 
 回滚按这份备份 JSON 恢复。`exists` 为 false 的路径，删除本次写入的文档。跳过的三类不在这份备份里，因为本脚本不写它们。
 
+## Auth 用户迁移
+
+脚本 `scripts/migrate-auth-users.mjs`。源是 Firebase 项目 `skatingx-platform` 的全部 Auth 用户。写入目标只认 `skatingx-prod`。默认 dry-run，只打 provider 计数：`provider anonymous`、`provider password`，以及其他 provider。dry-run 不读目标，也不建号。
+
+复制这些字段，UID 原样保留：`email`、`emailVerified`、`disabled`、`displayName`、`providerData`、创建时间。已有 UID 不重复建号。
+
+密码哈希的项目级 scrypt 参数不在用户记录上。它来自 Identity Platform `projects.getConfig` 的 `signIn.hashConfig`：`algorithm`、`signerKey`、`saltSeparator`、`rounds`、`memoryCost`。每个用户自己的 `passwordHash` 和 `passwordSalt` 来自 `listUsers`。这两类字段 Google 只返回给 Auth Admin。2026-10-20 用 Auth viewer 做的正式 dry-run 看到的就是被抹掉的结果：用户 166，匿名 163，邮箱 3，没有其他 provider；`getConfig` 返回 200 但 `signIn.hashConfig` 是空对象；3 个邮箱账号没有 `passwordHash` 或 `passwordSalt`。没有写任何账号。源 key 升到 Auth Admin 之后重跑 dry-run。哈希和 signerKey 都在，就带哈希导入，原密码可以继续用。
+
+拿得到完整 scrypt 配置，并且用户带了 hash 和 salt，就带哈希导入。拿不到配置、算法不是 `SCRYPT`、或某个密码账号没有 hash，仍然导入这个 UID，并打出 `password-reset` 和邮箱。不许静默丢掉。没有邮箱的密码账号整批停止。
+
+双 key：源读 `GOOGLE_APPLICATION_CREDENTIALS`，目标写 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。两把钥匙都要在仓库外。dry-run 不要求目标 key。`FIREBASE_AUTH_EMULATOR_HOST` 和 `FIRESTORE_EMULATOR_HOST` 在 live 读或生产写时必须未设置。
+
+生产写入必须同时带 `--write --project skatingx-prod --confirm-production`。缺确认就停。`--fixture` 不能用于生产写入。`skatingx-platform` 和路径前缀 `skatingx-production` 不能当写入目标。
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/skatingx-platform-auth-reader.json"
+node scripts/migrate-auth-users.mjs --dry-run
+```
+
+生产写入另把 `TARGET_GOOGLE_APPLICATION_CREDENTIALS` 指到 `skatingx-prod` 的写 key。先看 dry-run 的匿名数、邮箱数，以及 `password-reset` 名单。
+
+```bash
+export TARGET_GOOGLE_APPLICATION_CREDENTIALS="/path/to/skatingx-prod-writer.json"
+node scripts/migrate-auth-users.mjs --write --project skatingx-prod --confirm-production --pause-ms 200
+```
+
+2026-10-20 已导入，见下面的切换记录。带哈希导入的邮箱账号用原密码登录。出现在 `password-reset` 里的账号要走重设密码。
+
+## 切换完成
+
+2026-10-20：分析迁移（56 用户 / 54 备份 / 1 打卡）和现网数据（1363 复制 / 源侧 54 跳过）已写入 `skatingx-prod`，源库没有被这支写入改过。Auth 导入 166 个账号（create 166，existing 0，password-reset 0，hash available，recount 166）。Vercel 已拆成 Production 和 Preview，并重新部署。用户冒烟通过。
+
 ## 生产迁移验证
 
-脚本 `scripts/verify-prod-migration.mjs`。只读 `skatingx-prod` 的 `artifacts/skatingx-production/...`，不写任何库，也不读 `skatingx-platform`（源库配额打满了）。credential 只用 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。钥匙在仓库外。`FIRESTORE_EMULATOR_HOST` 必须未设置。
+脚本 `scripts/verify-prod-migration.mjs`。只读 `skatingx-prod` 的 `artifacts/skatingx-production/...`，不写任何库，也不读 `skatingx-platform`。credential 只用 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。钥匙在仓库外。`FIRESTORE_EMULATOR_HOST` 必须未设置。
 
-对数用这两份报告：
+prod 计数：
 
-- 分析迁移写到 prod 的：56 个有分析文档的用户、54 份 `migrationBackups/analysis-profile`、1 条打卡、装备历史 0、现网复制 1363
-- 现网源 `skatingx-platform` 跳过记录：54 条（装备历史 0、打卡 1、分析备份 53）。这 53 份是 staging 那次写进源库的。prod 上多出来的 1 份备份是后来在旧站新出现的用户，不在现网源里。53 只记在这里，脚本不对 prod 断言 53
+- 分析迁移：56 个有分析文档的用户、54 份 `migrationBackups/analysis-profile`、1 条打卡、装备历史 0
+- 现网复制：1363
 
-prod 上的 `migrationBackups/analysis-profile` 只对 54。
+现网源 `skatingx-platform` 的跳过记录是 54 条（装备历史 0、打卡 1、分析备份 53）。这 53 份是 staging 那次写进源库的。prod 上多出来的 1 份备份是后来在旧站新出现的用户，不在现网源里。53 只打在 `note` 里，不对 prod 断言。
 
-Lindsay 抽查账号是 2026-10-20 现网盘点里唯一的打卡属主，运动员 id 是 `lindsay`。要有 `settings/main`、`athletes/lindsay/training/state`、至少一条 `raceDay` 事件，以及 `gamification/main`。积分必须等于源侧 `gamification/main` 的余额。`LINDSAY_GAMIFICATION_POINTS` 先空着。3 点配额重置后读一次 Lindsay 的这份文档再填，不要凭空写一个数。空着的时候积分检查会 FAIL。
+主抽查 UID `baWEw6SZKcQItvcDdpF64ZNe5W12` 是 Lindsay 的平台账号，Auth 邮箱是 lafaellin。查 `settings/main`、`athletes/lindsay/training/state`、至少一条 `raceDay` 事件，以及 `gamification/main`。源侧积分是 0，`LINDSAY_GAMIFICATION_POINTS` 填 0。`lefwGmZ9KyW3d4NswdwF4T2VvEH3` 只查分析备份和打卡这两份文档，不查 gamification。按 DR-004，迁移不会给这个账号写积分，没有那份文档是正常的。
 
-另外检查路径之外的孤儿文档，以及重复的文档路径。输出每一项 PASS 或 FAIL，FAIL 的整批列在后面。`--fail-on-diff` 在有 FAIL 时让进程退出码为 1，给 CI 用。
+另外检查路径之外的孤儿文档，以及重复的文档路径。输出每一项 PASS 或 FAIL，FAIL 的整批列在后面。`--fail-on-diff` 在有 FAIL 时让进程退出码为 1。
 
-现网写入还没执行。写入完成并评审之前不要跑这个脚本，现在跑计数对不上。
+这版验证脚本还没有对 prod 跑。评审通过之前不要跑。
 
 ```bash
 export TARGET_GOOGLE_APPLICATION_CREDENTIALS="/path/to/skatingx-prod-writer.json"
 node scripts/verify-prod-migration.mjs --fail-on-diff
 ```
+

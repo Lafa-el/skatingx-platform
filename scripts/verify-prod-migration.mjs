@@ -29,12 +29,12 @@ const READ_BATCH = 20;
 const USER_COLLECTIONS = new Set(["settings", "raceDay", "athletes", "migrationBackups", "analyses"]);
 const ATHLETE_MODULES = new Set(["profile", "gamification", "training", "trainingState", "equipment", "planning", "analysis"]);
 
-// The only current-data check-in owner in the 2026-10-20 inventory. Athlete id is lindsay.
-export const LINDSAY_UID = "lefwGmZ9KyW3d4NswdwF4T2VvEH3";
-// Source points were not readable when this was written. Leave this null until
-// the skatingx-platform quota resets, then read Lindsay's gamification/main
-// once and put that balance here. Do not invent it.
-export const LINDSAY_GAMIFICATION_POINTS = null;
+// Lindsay's platform account. The Auth record for this uid is lafaellin, and
+// that account's source gamification/main.points is 0.
+export const LINDSAY_UID = "baWEw6SZKcQItvcDdpF64ZNe5W12";
+export const LINDSAY_GAMIFICATION_POINTS = 0;
+// Analysis check-in owner. DR-004 never writes gamification for this uid.
+export const CHECKIN_UID = "lefwGmZ9KyW3d4NswdwF4T2VvEH3";
 
 // Source-side current-data skip on skatingx-platform. Not a prod count.
 export const SOURCE_CURRENT_SKIP = { total: 54, equipment: 0, checkIns: 1, backups: 53 };
@@ -43,6 +43,7 @@ export const PROD_EXPECTED = {
   analysis: { users: 56, backups: 54, checkIns: 1 },
   current: { copy: 1363, equipment: 0, checkIns: 1 },
   lindsay: { uid: LINDSAY_UID, gamificationPoints: LINDSAY_GAMIFICATION_POINTS },
+  checkInOwner: { uid: CHECKIN_UID },
 };
 
 const SKIP_KIND = {
@@ -168,6 +169,35 @@ function fieldCheck(name, data, names, extra = []) {
   return { name, ok: items.length === 0, actual: items.length === 0 ? "complete" : "incomplete", expected: "complete", items };
 }
 
+function gamificationCheck(documents, lindsay) {
+  const gamification = findDoc(documents, `${SOURCE_ROOT}/users/${lindsay.uid}/athletes/lindsay/gamification/main`);
+  if (lindsay.gamificationDocument === "absent") {
+    const items = gamification ? ["document exists"] : [];
+    return {
+      name: "lindsay gamification points",
+      ok: items.length === 0,
+      actual: gamification ? "present" : "absent",
+      expected: "absent",
+      items,
+    };
+  }
+  const pointsItems = missingFields(gamification?.data, ["points", "streakDays", "completedDays"]);
+  if (gamification?.data && (typeof gamification.data.points !== "number" || !Number.isFinite(gamification.data.points))) {
+    pointsItems.push("points is not a number");
+  } else if (gamification?.data && typeof lindsay.gamificationPoints !== "number") {
+    pointsItems.push("expected source value is not set");
+  } else if (gamification?.data && gamification.data.points !== lindsay.gamificationPoints) {
+    pointsItems.push(`points ${gamification.data.points} expected ${lindsay.gamificationPoints}`);
+  }
+  return {
+    name: "lindsay gamification points",
+    ok: pointsItems.length === 0,
+    actual: gamification?.data?.points ?? "missing",
+    expected: lindsay.gamificationPoints ?? "source",
+    items: pointsItems,
+  };
+}
+
 function lindsayChecks(documents, lindsay) {
   const base = `${SOURCE_ROOT}/users/${lindsay.uid}`;
   const athlete = `${base}/athletes/lindsay`;
@@ -187,20 +217,33 @@ function lindsayChecks(documents, lindsay) {
     }
     if (event.data && !Array.isArray(event.data.dates)) eventItems.push(`${event.path} dates is not a list`);
   }
-  const gamification = findDoc(documents, `${athlete}/gamification/main`);
-  const pointsItems = missingFields(gamification?.data, ["points", "streakDays", "completedDays"]);
-  if (gamification?.data && (typeof gamification.data.points !== "number" || !Number.isFinite(gamification.data.points))) {
-    pointsItems.push("points is not a number");
-  } else if (gamification?.data && lindsay.gamificationPoints == null) {
-    pointsItems.push("expected source value is not set");
-  } else if (gamification?.data && gamification.data.points !== lindsay.gamificationPoints) {
-    pointsItems.push(`points ${gamification.data.points} expected ${lindsay.gamificationPoints}`);
-  }
   return [
     fieldCheck("lindsay settings", settings?.data, ["activeAthleteId", "language", "theme"], settingsExtra),
     fieldCheck("lindsay training", training?.data, ["todayTasks", "weeklyTemplate", "lastLoginDate", "pointsPerTask", "dailyBonusPoints"]),
     { name: "lindsay raceDay", ok: eventItems.length === 0, actual: events.length, expected: "complete", items: eventItems },
-    { name: "lindsay gamification points", ok: pointsItems.length === 0, actual: gamification?.data?.points ?? "missing", expected: lindsay.gamificationPoints ?? "source", items: pointsItems },
+    gamificationCheck(documents, lindsay),
+  ];
+}
+
+function checkInOwnerChecks(documents, owner) {
+  const base = `${SOURCE_ROOT}/users/${owner.uid}`;
+  const backup = findDoc(documents, `${base}/migrationBackups/analysis-profile`);
+  const checkIns = documents.filter((document) => document.path.startsWith(`${base}/athletes/lindsay/planning/main/completedTasks/`));
+  return [
+    {
+      name: "check-in owner backup",
+      ok: Boolean(backup),
+      actual: backup ? "present" : "missing",
+      expected: "present",
+      items: backup ? [] : ["missing document"],
+    },
+    {
+      name: "check-in owner check-in",
+      ok: checkIns.length > 0,
+      actual: checkIns.length,
+      expected: "present",
+      items: checkIns.length > 0 ? [] : ["missing document"],
+    },
   ];
 }
 
@@ -252,6 +295,7 @@ export function verifyMigration(documents, expected = PROD_EXPECTED) {
       items: duplicates,
     },
     ...lindsayChecks(unique, expected.lindsay),
+    ...checkInOwnerChecks(unique, expected.checkInOwner),
   ];
   return { checks, ok: checks.every((check) => check.ok) };
 }

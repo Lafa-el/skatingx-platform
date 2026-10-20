@@ -4,12 +4,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-import { PROD_EXPECTED, SOURCE_CURRENT_SKIP, reportLines, verifyMigration } from "./verify-prod-migration.mjs";
+import { LINDSAY_GAMIFICATION_POINTS, LINDSAY_UID, PROD_EXPECTED, SOURCE_CURRENT_SKIP, reportLines, verifyMigration } from "./verify-prod-migration.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const script = path.join(root, "scripts", "verify-prod-migration.mjs");
 const uid = "lindsay-user";
+const checkInUid = "check-in-owner";
 const base = `artifacts/skatingx-production/users/${uid}`;
+const checkInBase = `artifacts/skatingx-production/users/${checkInUid}`;
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -20,6 +22,7 @@ function expected() {
     analysis: { users: 1, backups: 1, checkIns: 1 },
     current: { copy: 4, equipment: 0, checkIns: 1 },
     lindsay: { uid, gamificationPoints: 12 },
+    checkInOwner: { uid: checkInUid },
   };
 }
 
@@ -45,8 +48,8 @@ function documents() {
       },
     },
     { path: `${base}/athletes/lindsay/gamification/main`, data: { points: 12, streakDays: 1, completedDays: [] } },
-    { path: `${base}/migrationBackups/analysis-profile`, data: { points: 0, mergedIntoTrainingPoints: false } },
-    { path: `${base}/athletes/lindsay/planning/main/completedTasks/jd_tech_thu`, data: { points: 15, focus: "lean" } },
+    { path: `${checkInBase}/migrationBackups/analysis-profile`, data: { points: 0, mergedIntoTrainingPoints: false } },
+    { path: `${checkInBase}/athletes/lindsay/planning/main/completedTasks/jd_tech_thu`, data: { points: 15, focus: "lean" } },
   ];
 }
 
@@ -59,10 +62,16 @@ function check(result, name) {
 const match = verifyMigration(documents(), expected());
 assert(match.ok, "matching counts did not pass");
 assert(reportLines(match).at(-1) === "result PASS", "match report");
+assert(check(match, "check-in owner backup").ok, "check-in owner backup was not found");
+assert(check(match, "check-in owner check-in").ok, "check-in owner check-in was not found");
+assert(!match.checks.some((item) => item.name.includes("check-in owner gamification")), "check-in owner gamification was checked");
 assert(match.checks.every((item) => item.expected !== SOURCE_CURRENT_SKIP.backups), "source skip backups were asserted");
 const prodChecks = verifyMigration([], PROD_EXPECTED);
 assert(prodChecks.checks.every((item) => item.expected !== 53), "53 was asserted against prod");
 assert(prodChecks.checks.some((item) => item.name === "analysis backups" && item.expected === 54), "prod backups are not 54");
+assert(LINDSAY_UID === "baWEw6SZKcQItvcDdpF64ZNe5W12", "lindsay uid");
+assert(LINDSAY_GAMIFICATION_POINTS === 0, "lindsay points were not the source zero");
+assert(PROD_EXPECTED.checkInOwner.uid === "lefwGmZ9KyW3d4NswdwF4T2VvEH3", "check-in owner uid");
 
 const mismatchExpected = expected();
 mismatchExpected.current = { ...mismatchExpected.current, copy: 5 };
@@ -88,6 +97,11 @@ const unpinned = verifyMigration(documents(), { ...expected(), lindsay: { uid, g
 assert(check(unpinned, "lindsay gamification points").items.includes("expected source value is not set"), "unpinned points passed");
 const wrongPoints = verifyMigration(documents(), { ...expected(), lindsay: { uid, gamificationPoints: 99 } });
 assert(check(wrongPoints, "lindsay gamification points").ok === false, "points mismatch passed");
+const withoutPoints = documents().filter((document) => !document.path.endsWith("/gamification/main"));
+const absent = verifyMigration(withoutPoints, { ...expected(), lindsay: { uid, gamificationDocument: "absent" } });
+assert(check(absent, "lindsay gamification points").ok, "missing gamification document was rejected");
+const presentWhenAbsent = verifyMigration(documents(), { ...expected(), lindsay: { uid, gamificationDocument: "absent" } });
+assert(check(presentWhenAbsent, "lindsay gamification points").items.includes("document exists"), "a present gamification document passed an absent assertion");
 
 const source = readFileSync(script, "utf8");
 assert(!source.includes(".set(") && !source.includes(".delete(") && !source.includes(".update("), "verify script writes");
