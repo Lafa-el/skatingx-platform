@@ -81,3 +81,36 @@ node scripts/migrate-analysis.mjs --write --target staging --project skatingx-pl
 ## 停止
 
 出现未知字段值、ID 撞车、条数对不上、权限被拒，立即停写。不要跳过错误把剩下的写完。
+
+## 现网数据迁移
+
+脚本 `scripts/migrate-current-data.mjs`。源是 Firebase 项目 `skatingx-platform` 下的 `artifacts/skatingx-production/...`，同路径复制，不改字段。默认 dry-run，目标是 emulator `demo-skatingx-current`。
+
+2026-10-20 live dry-run 重新数过：用户 211，文档 1391。`settings` 158，`raceDay` 9，`athletes/training` 909，另有 `athletes/trainingState` 1。没有读重试。dry-run 会按集合打出 `inventory`。和这次计数对不上就停下来人工看，不要直接写生产。
+
+跳过分析迁移已经负责的三类路径，不复制：
+
+- `equipment/main/records`
+- `planning/main/completedTasks`
+- `migrationBackups/analysis-profile`
+
+跳过条数总会打出来。这三类里只要有数据，再打 `human-review` 路径，留给人工看。其余路径照常进入复制计划。
+
+双 key：`GOOGLE_APPLICATION_CREDENTIALS` 只读源项目 `skatingx-platform`。`TARGET_GOOGLE_APPLICATION_CREDENTIALS` 只用于目标写入，以及 `--backup-target` 读取目标上的当前文档。emulator 和 dry-run 不要求目标 key。两把钥匙都要在仓库外。脚本不会自己去找钥匙文件。
+
+生产写入必须同时带 `--write --target production --project skatingx-prod --confirm-production`。缺 `--confirm-production` 就停。`skatingx-production` 仍是路径前缀，不能当项目 id。`skatingx-platform` 不能当写入目标。写入前先做 live 源 dry-run，两把 key 都就位，并且先跑 `--backup-target` 把备份文件路径记下来。备份文件在仓库里就停。`--backup-target` 即使带了 `--write` 也不写文档。
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/skatingx-platform-reader.json"
+node scripts/migrate-current-data.mjs --dry-run
+```
+
+生产备份和写入另把 `TARGET_GOOGLE_APPLICATION_CREDENTIALS` 指到 `skatingx-prod` 的写 key，不要复用源 key。这一章还没有对生产执行。评审通过之前不合，也不写 `skatingx-prod`。
+
+```bash
+export TARGET_GOOGLE_APPLICATION_CREDENTIALS="/path/to/skatingx-prod-writer.json"
+node scripts/migrate-current-data.mjs --backup-target "$HOME/.config/gcp/m6-current-backup.json" --target production --project skatingx-prod --confirm-production
+node scripts/migrate-current-data.mjs --write --target production --project skatingx-prod --confirm-production --pause-ms 200
+```
+
+回滚按这份备份 JSON 恢复。`exists` 为 false 的路径，删除本次写入的文档。跳过的三类不在这份备份里，因为本脚本不写它们。
