@@ -16,7 +16,7 @@ const result = spawnSync(
     "firestore",
     "--project",
     "demo-skatingx-migration",
-    "node scripts/migrate-analysis.test.mjs && node scripts/migrate-current-data.test.mjs",
+    "node scripts/migrate-analysis.test.mjs && node scripts/migrate-current-data.test.mjs && node scripts/migrate-auth-users.test.mjs",
   ],
   { cwd: rootDir, stdio: "inherit" },
 );

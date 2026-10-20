@@ -123,3 +123,31 @@ node scripts/migrate-current-data.mjs --write --target production --project skat
 ```
 
 回滚按这份备份 JSON 恢复。`exists` 为 false 的路径，删除本次写入的文档。跳过的三类不在这份备份里，因为本脚本不写它们。
+
+## Auth 用户迁移
+
+脚本 `scripts/migrate-auth-users.mjs`。源是 Firebase 项目 `skatingx-platform` 的全部 Auth 用户。写入目标只认 `skatingx-prod`。默认 dry-run，只打 provider 计数：`provider anonymous`、`provider password`，以及其他 provider。dry-run 不读目标，也不建号。
+
+复制这些字段，UID 原样保留：`email`、`emailVerified`、`disabled`、`displayName`、`providerData`、创建时间。已有 UID 不重复建号。
+
+密码哈希的项目级 scrypt 参数不在用户记录上。它来自 Identity Platform `projects.getConfig` 的 `signIn.hashConfig`：`algorithm`、`signerKey`、`saltSeparator`、`rounds`、`memoryCost`。每个用户自己的 `passwordHash` 和 `passwordSalt` 来自 `listUsers`。这两类字段 Google 只返回给 Auth Admin。2026-10-20 用 Auth viewer 做的正式 dry-run 看到的就是被抹掉的结果：用户 166，匿名 163，邮箱 3，没有其他 provider；`getConfig` 返回 200 但 `signIn.hashConfig` 是空对象；3 个邮箱账号没有 `passwordHash` 或 `passwordSalt`。没有写任何账号。源 key 升到 Auth Admin 之后重跑 dry-run。哈希和 signerKey 都在，就带哈希导入，原密码可以继续用。升完仍然是空，也不要停：这 3 个邮箱是本人的账号，prod 上各重设一次密码；163 个匿名账号本来就没有密码。
+
+拿得到完整 scrypt 配置，并且用户带了 hash 和 salt，就带哈希导入。拿不到配置、算法不是 `SCRYPT`、或某个密码账号没有 hash，仍然导入这个 UID，并打出 `password-reset` 和邮箱。不许静默丢掉。没有邮箱的密码账号整批停止。
+
+双 key：源读 `GOOGLE_APPLICATION_CREDENTIALS`，目标写 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。两把钥匙都要在仓库外。dry-run 不要求目标 key。`FIREBASE_AUTH_EMULATOR_HOST` 和 `FIRESTORE_EMULATOR_HOST` 在 live 读或生产写时必须未设置。
+
+生产写入必须同时带 `--write --project skatingx-prod --confirm-production`。缺确认就停。`--fixture` 不能用于生产写入。`skatingx-platform` 和路径前缀 `skatingx-production` 不能当写入目标。
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/skatingx-platform-auth-reader.json"
+node scripts/migrate-auth-users.mjs --dry-run
+```
+
+生产写入另把 `TARGET_GOOGLE_APPLICATION_CREDENTIALS` 指到 `skatingx-prod` 的写 key。先看 dry-run 的匿名数、邮箱数，以及 `password-reset` 名单。评审通过之前不写。
+
+```bash
+export TARGET_GOOGLE_APPLICATION_CREDENTIALS="/path/to/skatingx-prod-writer.json"
+node scripts/migrate-auth-users.mjs --write --project skatingx-prod --confirm-production --pause-ms 200
+```
+
+写完的验收：Lindsay 的账号在 prod 上是同一个 UID、同一个 email，并且能登录。带哈希导入的邮箱账号用原密码登录。出现在 `password-reset` 里的账号要走重设密码，不能当成已经能用原密码登录。这一章还没有对 prod 执行。
