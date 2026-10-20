@@ -42,7 +42,7 @@
 | DR-009 | TypeScript adoption for `apps/web` | No | — | TBD | Approved |
 | DR-010 | Monorepo package manager | No | — | TBD | Approved |
 | DR-011 | `parentPin` security model | Yes | — | TBD | Approved |
-| DR-012 | PRO monetization model (MVP) | No | — | TBD | Open |
+| DR-012 | PRO monetization model (MVP) | No | — | TBD | Approved / Closed (2026-10-20) |
 | DR-013 | Pacing PB sync to training records | No | — | TBD | Approved |
 | DR-014 | Default `activeAthleteId` after migrate | Yes** | — | TBD | Approved |
 | DR-015 | Staging / dev Firebase topology | No | — | TBD | Approved |
@@ -597,18 +597,17 @@ After Phase 6 (AI Coach)
 
 **Decision Owner:** Stephen Lin
 
-**Status:** Open
+**Status:** Approved / Closed (2026-10-20)
 
-**Approved Option:** C — voided / 作废 (2026-10-18; not in force)
+**Approved Option:** Owner decision (2026-10-20). Option C remains void.
 
 **Notes**
 
-- MVP will not include a paid PRO tier.
-- All MVP features will be available to beta users.
-- Monetization is deferred until Coach Portal / Club Portal phases.
-- Existing Blaze Training PRO features will be migrated as normal features.
-- Stripe integration is postponed until post-MVP validation.
-- Firestore should still reserve an `isPro` field for future compatibility.
+- One product, one subscription.
+- PRO includes race-day video records and the summary card, plus the full analysis capability. The price rises after the AI weekly report / coach loop is mature.
+- Price anchor is $19.99/month. The later tier at $29.99 stays aligned with the pricing one-pager.
+- During the MVP, `isPro` stays a manual grant. Stripe is connected only after there are real paying users, and is out of scope for this phase.
+- Consequence: race-day video records and the summary card stay in the PRO tier. ADR-001's provisional Buffalo placement is now this formal decision.
 
 ---
 
@@ -800,6 +799,7 @@ flowchart LR
 | 2026-10-18 | DR-010 | Tracker Status Open → Approved, matching body option A. Owner unchanged. Body still says pnpm; not edited. | owner |
 | 2026-10-18 | DR-011 | Tracker Status Open → Approved, matching body option A. Owner unchanged. | owner |
 | 2026-10-18 | DR-012 | Body Status returned to Open. Approved Option C kept and marked void: the June "Approved C" (no paid PRO in the MVP) was not an owner decision and conflicts with the PRO gate already shipped. Tracker stays Open. Notes 段同步作废. | owner |
+| 2026-10-20 | DR-012 | Status Open → Approved / Closed. One product and one subscription. PRO includes race-day video records, the summary card, and full analysis; the price rises after the AI weekly report / coach loop is mature. Price anchor $19.99/month; the later tier $29.99 stays aligned with the pricing one-pager. MVP keeps manual `isPro`; Stripe waits for real paying users and is out of scope. Video records and the summary card stay in PRO; ADR-001's provisional Buffalo placement is now this formal decision. Tracker matches the body. | owner |
 | 2026-10-18 | DR-013 | Tracker Status Open → Approved, matching body option C. Owner unchanged. | owner |
 | 2026-10-18 | DR-014 | Tracker Status Open → Approved, matching body option D. Owner unchanged. | owner |
 | 2026-10-18 | DR-015 | Tracker Status Open → Approved, matching body option C. Owner unchanged. | owner |
