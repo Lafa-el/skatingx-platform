@@ -1,6 +1,6 @@
 # 分析模块 M6 切换
 
-状态：脚本已写好。验证只在 emulator 上跑过。staging 还没有写入。生产（`skatingx-prod`）等 Buffalo 另行批准，本脚本会直接拒绝。2026-10-19 决定：托管 Firestore 导出因计费要求改为针对性备份。
+状态：staging 写入已在 2026-10-19 完成。生产开闸在本分支：允许 `--write --project skatingx-prod --confirm-production`，但还没有执行，合并和执行都等评审。2026-10-19 决定：托管 Firestore 导出因计费要求改为针对性备份。
 
 依据：DR-004（分析积分只进备份）、DR-007 选项 C（一次迁移，不双写）、ADR-005 的 10 段路径。源盘点见 `docs/migration/analysis-inventory.md`。
 
@@ -14,11 +14,11 @@
 | 源路径 | `artifacts/blaze-skate-academy/users/{uid}/` 下的 `equipmentRecords`、`completedTasks`、`profile/lindsay` |
 | 只读账号 | `migration-reader@blaze-skate-analysis.iam.gserviceaccount.com` |
 | 源钥匙 | 只认 `GOOGLE_APPLICATION_CREDENTIALS`。约定放在 `~/.config/gcp/migration-reader.json`。脚本不会在变量未设置时自己去读这个路径。 |
-| 目标钥匙 | 写入 emulator 以外的目标，以及 `--backup-target` 读取 staging 时，认 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。约定放在 `~/.config/gcp/migration-writer.json`。emulator 不需要。dry-run 不需要。只读 key 不能写 staging。两把钥匙都不进仓库、不进代码、不进日志。 |
+| 目标钥匙 | 写入 emulator 以外的目标，以及 `--backup-target` 读取 staging 时，认 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。staging 约定放在 `~/.config/gcp/migration-writer.json`。生产跑时把同一个变量指到 `skatingx-prod` 的写 key。emulator 不需要。dry-run 不需要。只读 key 不能写目标库。两把钥匙都不进仓库、不进代码、不进日志。 |
 | 目标备份 | `--backup-target <file>`。先做 plan，再只读 `skatingx-platform` 上这些路径的当前文档，存成 `{path, exists, data}` 的 JSON。不写。文件路径在仓库里就停。 |
 | 默认目标 | Firestore emulator，项目 `demo-skatingx-migration` |
 | staging | `--write --target staging --project skatingx-platform --confirm-staging` |
-| 生产 | `--target production` 或项目 `skatingx-prod` / `skatingx-production` 一律退出。 |
+| 生产 | `--write --target production --project skatingx-prod --confirm-production`。缺一项就停。`--fixture` 不能用于生产写入。项目 `skatingx-production` 仍拒绝。 |
 
 `firebase-admin` 是根目录 devDependency。用途是这一次读旧库、写 emulator 或 staging。许可证 Apache-2.0，由 Google 维护。体积大，因为带了 gRPC。替代方案是 Firestore REST，这次按任务用 Admin SDK。Admin 写入不经过 Security Rules。规则是否放行，由 `npm run test:migration` 用客户端 SDK 在 emulator 上重放同一批文档。
 
@@ -70,7 +70,16 @@ node scripts/migrate-analysis.mjs --write --target staging --project skatingx-pl
 
 写完再对一下条数：器材、打卡、备份各与 dry-run 相同。抽一张器材的症状代码，抽一条打卡的 taskId 和积分，确认训练积分文档没有被这次写入改过。
 
-5. 生产。现在不做。Buffalo 批准之前，脚本拒绝 `skatingx-prod`。批准之后要另改脚本并另开一次评审，这次的拒绝不能靠加参数绕过。
+5. 生产。写入前必须先对 live 源做 dry-run，不要用 `--fixture`。两把钥匙都要就位：`GOOGLE_APPLICATION_CREDENTIALS` 仍是只读 key；`TARGET_GOOGLE_APPLICATION_CREDENTIALS` 沿用同一个变量，这一跑指向 `skatingx-prod` 的写 key。缺确认、缺项目、缺 `--write`、缺钥匙，整批停下，不写。`skatingx-production` 是路径前缀，不是项目 id，继续拒绝。
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcp/migration-reader.json"
+export TARGET_GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/the-prod-write-key.json"
+node scripts/migrate-analysis.mjs --dry-run
+node scripts/migrate-analysis.mjs --write --target production --project skatingx-prod --confirm-production --pause-ms 200
+```
+
+这一步还没有执行。合并和执行都等评审。写完再对一下条数，并确认训练积分文档没有被这次写入改过。
 
 6. 核对。源集合条数等于目标条数。备份里的分析积分不等于把它加进训练余额。抽查至少一条器材、一条打卡、一份 profile。
 

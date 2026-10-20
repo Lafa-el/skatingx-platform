@@ -12,6 +12,9 @@
  * The emulator does not need the writer key. A dry run does not either.
  * --backup-target reads the planned skatingx-platform documents with the writer
  * key and stores {path, exists, data} outside this repository. It does not write.
+ * A production write uses the same TARGET_GOOGLE_APPLICATION_CREDENTIALS variable,
+ * pointed at the skatingx-prod write key for that run. It requires
+ * --write --project skatingx-prod --confirm-production, a live source, and both keys.
  * Both paths must be outside this repository. The keys are not in the repo.
  *
  * firebase-admin is a root devDependency (Apache-2.0, Google-maintained). It is
@@ -32,7 +35,8 @@ export const TARGET_APP = "skatingx-production";
 export const ATHLETE_ID = "lindsay";
 export const EMULATOR_PROJECT = "demo-skatingx-migration";
 export const STAGING_PROJECT = "skatingx-platform";
-export const BLOCKED_PROJECTS = new Set(["skatingx-prod", "skatingx-production"]);
+export const PRODUCTION_PROJECT = "skatingx-prod";
+export const BLOCKED_PROJECTS = new Set(["skatingx-production"]);
 
 const READER_ACCOUNT = "migration-reader@blaze-skate-analysis.iam.gserviceaccount.com";
 const SOURCE_CREDENTIAL_ENV = "GOOGLE_APPLICATION_CREDENTIALS";
@@ -350,6 +354,7 @@ export function parseArgs(argv) {
     project: EMULATOR_PROJECT,
     fixture: null,
     confirmStaging: false,
+    confirmProduction: false,
     pauseMs: 0,
     uid: null,
     backupTarget: null,
@@ -360,6 +365,7 @@ export function parseArgs(argv) {
     if (token === "--dry-run") args.write = false;
     else if (token === "--write") args.write = true;
     else if (token === "--confirm-staging") args.confirmStaging = true;
+    else if (token === "--confirm-production") args.confirmProduction = true;
     else if (token === "--target") {
       args.target = next;
       index += 1;
@@ -381,15 +387,23 @@ export function parseArgs(argv) {
       index += 1;
     } else stop(`unknown argument ${token}`);
   }
-  if (!["emulator", "staging"].includes(args.target)) {
-    stop(`target "${args.target}" is refused. Production waits for a separate Buffalo approval.`);
+  if (!["emulator", "staging", "production"].includes(args.target)) {
+    stop(`target "${args.target}" is refused.`);
   }
   if (BLOCKED_PROJECTS.has(args.project)) {
-    stop(`project "${args.project}" is refused. This script does not write skatingx-prod.`);
+    stop(`project "${args.project}" is refused. skatingx-production is the path prefix, not a project id.`);
   }
   if (args.target === "staging") {
     if (args.project !== STAGING_PROJECT || !args.confirmStaging || !args.write) {
       stop("staging needs --write --project skatingx-platform --confirm-staging");
+    }
+  }
+  if (args.target === "production") {
+    if (args.project !== PRODUCTION_PROJECT || !args.confirmProduction || !args.write) {
+      stop("production needs --write --project skatingx-prod --confirm-production");
+    }
+    if (args.fixture) {
+      stop("production write requires a live source dry-run, not --fixture");
     }
   }
   if (args.target === "emulator") args.project = EMULATOR_PROJECT;
@@ -434,6 +448,13 @@ function credentialMaterialFailure(env, name) {
   return null;
 }
 
+function targetCredentialHint(target) {
+  if (target === "production") {
+    return "Point it at the skatingx-prod write key. The script will not look up that path by itself.";
+  }
+  return TARGET_CREDENTIAL_HINT;
+}
+
 function credentialGate(args, env, options = {}) {
   const failures = [];
   if (!args.fixture) {
@@ -447,7 +468,7 @@ function credentialGate(args, env, options = {}) {
   const needsTargetCredential =
     (args.write && args.target !== "emulator" && !args.backupTarget) || options.requireTargetCredential;
   if (needsTargetCredential) {
-    const location = credentialLocationFailure(env, TARGET_CREDENTIAL_ENV, TARGET_CREDENTIAL_HINT);
+    const location = credentialLocationFailure(env, TARGET_CREDENTIAL_ENV, targetCredentialHint(args.target));
     if (location) failures.push(location);
     else {
       const material = credentialMaterialFailure(env, TARGET_CREDENTIAL_ENV);
@@ -575,11 +596,14 @@ async function writePlan(plan, args, env) {
   const { cert, initializeApp } = await import("firebase-admin/app");
   const { getFirestore } = await import("firebase-admin/firestore");
   const options = { projectId: args.project };
+  if (args.target === "production" && (env.FIRESTORE_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST)) {
+    stop("FIRESTORE_EMULATOR_HOST is set. Production write does not use the emulator.");
+  }
   if (args.target === "emulator") {
     process.env.FIRESTORE_EMULATOR_HOST ||= "127.0.0.1:8080";
   } else {
     const failure =
-      credentialLocationFailure(env, TARGET_CREDENTIAL_ENV, TARGET_CREDENTIAL_HINT) ??
+      credentialLocationFailure(env, TARGET_CREDENTIAL_ENV, targetCredentialHint(args.target)) ??
       credentialMaterialFailure(env, TARGET_CREDENTIAL_ENV);
     if (failure) stop(failure);
     options.credential = cert(path.resolve(env[TARGET_CREDENTIAL_ENV]));
