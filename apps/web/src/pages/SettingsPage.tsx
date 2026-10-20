@@ -108,6 +108,9 @@ export function SettingsPage() {
   const [resetBusy, setResetBusy] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetFailure, setResetFailure] = useState<ResetFailure | null>(null);
+  const [forgotBusy, setForgotBusy] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotFailure, setForgotFailure] = useState<ResetFailure | null>(null);
   const languageSetting = useLanguageSetting();
   const locale: Locale = useLocale();
   const t = (key: SettingsPageMessageKey, params?: Record<string, string | number>) =>
@@ -168,6 +171,31 @@ export function SettingsPage() {
     }
   }
 
+  async function handleForgotPassword() {
+    const email = signInEmail.trim();
+    setForgotSent(false);
+    setForgotFailure(null);
+    if (!email) {
+      setForgotFailure({ kind: "copy", key: "settings.signIn.forgotNeedEmail" });
+      return;
+    }
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      setForgotFailure({ kind: "auth", note: { key: "auth.error.notConfigured" } });
+      return;
+    }
+    setForgotBusy(true);
+    try {
+      await requestPasswordResetEmail(auth, email);
+      setForgotSent(true);
+    } catch (error) {
+      console.error("[settings] sending the password reset failed", { code: authErrorCode(error) });
+      setForgotFailure({ kind: "auth", note: toAuthErrorNote(error) });
+    } finally {
+      setForgotBusy(false);
+    }
+  }
+
   async function handlePasswordReset() {
     const email = user?.email?.trim() ?? "";
     setResetSent(false);
@@ -203,12 +231,10 @@ export function SettingsPage() {
         : t("settings.account.registered");
 
   const emailDisplay = user?.email ?? "—";
-  const resetFailureText =
-    resetFailure?.kind === "auth"
-      ? formatAuthError(resetFailure.note, locale)
-      : resetFailure
-        ? t(resetFailure.key)
-        : null;
+  const failureText = (failure: ResetFailure | null) =>
+    failure?.kind === "auth" ? formatAuthError(failure.note, locale) : failure ? t(failure.key) : null;
+  const resetFailureText = failureText(resetFailure);
+  const forgotFailureText = failureText(forgotFailure);
 
   return (
     <section className="grid max-w-lg gap-4">
@@ -303,9 +329,23 @@ export function SettingsPage() {
               onChange={setSignInPassword}
               autoComplete="current-password"
             />
-            <Button type="submit" variant="outline" disabled={formBusy || !signInEmail || !signInPassword}>
+            <Button type="submit" variant="outline" disabled={formBusy || forgotBusy || !signInEmail || !signInPassword}>
               {formBusy ? t("settings.signIn.busy") : t("settings.signIn.submit")}
             </Button>
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center justify-start text-sm font-semibold text-brand-navy underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={forgotBusy || formBusy}
+              onClick={handleForgotPassword}
+            >
+              {forgotBusy ? t("settings.passwordReset.busy") : t("settings.signIn.forgot")}
+            </button>
+            {forgotSent ? (
+              <p role="status" className="text-sm font-medium text-brand-navy">
+                {t("settings.passwordReset.sent")}
+              </p>
+            ) : null}
+            {forgotFailureText ? <ErrorNotice>{forgotFailureText}</ErrorNotice> : null}
           </form>
         ) : null}
 

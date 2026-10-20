@@ -551,6 +551,63 @@ describe("SettingsPage password reset", () => {
   });
 });
 
+const signInForm = () => {
+  const form = screen.getByRole("heading", { name: "登录已有账户" }).closest("form");
+  if (!form) {
+    throw new Error("sign-in form missing");
+  }
+  return within(form);
+};
+
+describe("SettingsPage forgot password", () => {
+  it("does not call Auth when the sign-in email is empty, and says to fill it in", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+    await user.click(signInForm().getByRole("button", { name: "忘记密码？" }));
+    expect(h.reset).not.toHaveBeenCalled();
+    expect(signInForm().getByText("请先填写邮箱，再点忘记密码")).toBeTruthy();
+  });
+
+  it("sends a reset for the email typed in the sign-in form, and reuses the sent note", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+    await user.type(signInForm().getByLabelText("邮箱"), "person@example.com");
+    await user.click(signInForm().getByRole("button", { name: "忘记密码？" }));
+    expect(h.reset).toHaveBeenCalledExactlyOnceWith(h.authClient, "person@example.com");
+    expect(signInForm().getByRole("status").textContent).toBe("重置邮件已发送");
+  });
+
+  it("a registered user sees the same control under the sign-in form", () => {
+    registered();
+    renderSettings();
+    expect(signInForm().getByRole("button", { name: "忘记密码？" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "修改密码" })).toBeTruthy();
+  });
+
+  it("a failed reset uses the existing auth error wording inside the sign-in form", async () => {
+    h.reset.mockRejectedValue(Object.assign(new Error("auth/network-request-failed"), { code: "auth/network-request-failed" }));
+    const user = userEvent.setup();
+    renderSettings();
+    await user.type(signInForm().getByLabelText("邮箱"), "person@example.com");
+    await user.click(signInForm().getByRole("button", { name: "忘记密码？" }));
+    expect(signInForm().getByRole("alert").textContent).toContain("网络错误，请检查网络连接。");
+    expect(signInForm().queryByText("重置邮件已发送")).toBeNull();
+  });
+
+  it("is not rendered while Firebase is unconfigured or auth is still loading", () => {
+    h.auth.firebaseReady = false;
+    const unconfigured = renderSettings();
+    expect(screen.queryByRole("button", { name: "忘记密码？" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "登录已有账户" })).toBeNull();
+    unconfigured.unmount();
+
+    h.auth.firebaseReady = true;
+    h.auth.loading = true;
+    renderSettings();
+    expect(screen.queryByRole("button", { name: "忘记密码？" })).toBeNull();
+  });
+});
+
 describe("SettingsPage athlete", () => {
   it("shows the current athlete name and id, and links to the read-only profile", () => {
     h.profile = { data: { displayName: "Sample Skater" }, loading: false };
