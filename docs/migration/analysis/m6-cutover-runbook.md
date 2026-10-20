@@ -154,7 +154,7 @@ node scripts/migrate-auth-users.mjs --write --project skatingx-prod --confirm-pr
 
 ## 切换完成
 
-2026-10-20：分析迁移（56 用户 / 54 备份 / 1 打卡）和现网数据（1363 复制 / 源侧 54 跳过）已写入 `skatingx-prod`，源库没有被这支写入改过。Auth 导入 166 个账号（create 166，existing 0，password-reset 0，hash available，recount 166）。Vercel 已拆成 Production 和 Preview，并重新部署。用户冒烟通过。
+2026-10-20：分析迁移（源侧读到 56 人，其中 2 人无 profile、零文档，prod 上可见的分析文档属主是 54；54 备份 / 1 打卡）和现网数据（1363 复制 / 源侧 54 跳过）已写入 `skatingx-prod`，源库没有被这支写入改过。Auth 导入 166 个账号（create 166，existing 0，password-reset 0，hash available，recount 166）。Vercel 已拆成 Production 和 Preview，并重新部署。用户冒烟通过。
 
 ## 生产迁移验证
 
@@ -162,7 +162,7 @@ node scripts/migrate-auth-users.mjs --write --project skatingx-prod --confirm-pr
 
 prod 计数：
 
-- 分析迁移：56 个有分析文档的用户、54 份 `migrationBackups/analysis-profile`、1 条打卡、装备历史 0
+- 分析迁移：源侧 56 人，其中 2 人无 profile、零文档。属主按 prod 上的分析文档计，是 54，不按源人数。另有 54 份 `migrationBackups/analysis-profile`、1 条打卡、装备历史 0
 - 现网复制：1363
 
 现网源 `skatingx-platform` 的跳过记录是 54 条（装备历史 0、打卡 1、分析备份 53）。这 53 份是 staging 那次写进源库的。prod 上多出来的 1 份备份是后来在旧站新出现的用户，不在现网源里。53 只打在 `note` 里，不对 prod 断言。

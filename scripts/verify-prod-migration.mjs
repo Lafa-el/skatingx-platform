@@ -39,8 +39,11 @@ export const CHECKIN_UID = "lefwGmZ9KyW3d4NswdwF4T2VvEH3";
 // Source-side current-data skip on skatingx-platform. Not a prod count.
 export const SOURCE_CURRENT_SKIP = { total: 54, equipment: 0, checkIns: 1, backups: 53 };
 
+// The analysis source listed 56 people. Two of them have no profile and no
+// documents, so prod never shows them. Count owners from the documents that
+// are on prod, which is 54, not from the source headcount.
 export const PROD_EXPECTED = {
-  analysis: { users: 56, backups: 54, checkIns: 1 },
+  analysis: { users: 54, backups: 54, checkIns: 1 },
   current: { copy: 1363, equipment: 0, checkIns: 1 },
   lindsay: { uid: LINDSAY_UID, gamificationPoints: LINDSAY_GAMIFICATION_POINTS },
   checkInOwner: { uid: CHECKIN_UID },

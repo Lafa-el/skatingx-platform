@@ -69,6 +69,15 @@ assert(match.checks.every((item) => item.expected !== SOURCE_CURRENT_SKIP.backup
 const prodChecks = verifyMigration([], PROD_EXPECTED);
 assert(prodChecks.checks.every((item) => item.expected !== 53), "53 was asserted against prod");
 assert(prodChecks.checks.some((item) => item.name === "analysis backups" && item.expected === 54), "prod backups are not 54");
+assert(PROD_EXPECTED.analysis.users === 54, "prod analysis owners are not 54");
+const emptySourceUid = "source-user-without-documents";
+const sourceHeadcount = [uid, checkInUid, emptySourceUid];
+const documented = documents();
+assert(!documented.some((document) => document.path.includes(emptySourceUid)), "a source user with no documents still has a path");
+const ownersByDocument = verifyMigration(documented, expected());
+assert(check(ownersByDocument, "analysis users").ok, "document owners did not match");
+assert(check(ownersByDocument, "analysis users").actual === 1, "owner count did not follow the documents");
+assert(check(ownersByDocument, "analysis users").actual !== sourceHeadcount.length, "owner count followed the source headcount");
 assert(LINDSAY_UID === "baWEw6SZKcQItvcDdpF64ZNe5W12", "lindsay uid");
 assert(LINDSAY_GAMIFICATION_POINTS === 0, "lindsay points were not the source zero");
 assert(PROD_EXPECTED.checkInOwner.uid === "lefwGmZ9KyW3d4NswdwF4T2VvEH3", "check-in owner uid");
