@@ -48,7 +48,6 @@ const zh = {
   "academy.pro.import": "高阶计划导入（已开启）",
   "academy.pro.custom": "自定义训练方案（即将推出）",
   "academy.pro.coach": "AI 教练联动（即将推出）",
-  "academy.pro.note": "支付尚未接入；PRO 目前只对试用账号开放。",
 
   "academy.error.importFailed": "导入学院内容失败。",
   "academy.error.proRequired": "高阶计划导入需要 PRO。",
@@ -103,7 +102,6 @@ const en: Record<AcademyKey, string> = {
   "academy.pro.import": "Advanced routine import (enabled)",
   "academy.pro.custom": "Custom training plans (coming)",
   "academy.pro.coach": "AI Coach integration (coming)",
-  "academy.pro.note": "Payment is not integrated; PRO is only available to trial accounts for now.",
 
   "academy.error.importFailed": "Academy import failed.",
   "academy.error.proRequired": "PRO is required for advanced routine import.",

@@ -12,7 +12,7 @@ const inRouter = (node: React.ReactNode) => render(<MemoryRouter>{node}</MemoryR
 describe("ProPlanBanner", () => {
   it("Chinese, PRO on: no link, and no mention of a development switch", () => {
     inRouter(<ProPlanBanner isPro locale="zh" />);
-    expect(screen.getByText("PRO 已开启")).toBeTruthy();
+    expect(screen.getByText("PRO 已开通")).toBeTruthy();
     expect(screen.getByText("高阶计划导入与 PRO 专区已解锁。")).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
   });
@@ -20,9 +20,8 @@ describe("ProPlanBanner", () => {
   it("Chinese, free plan: says what is available and who opens the rest, with no link", () => {
     inRouter(<ProPlanBanner isPro={false} locale="zh" />);
     expect(screen.getByText("免费版")).toBeTruthy();
-    expect(
-      screen.getByText("可浏览学院内容与兑换默认奖励。高阶导入目前只对试用账号开放。如需使用，请联系管理员开通。"),
-    ).toBeTruthy();
+    expect(screen.getByText("可浏览学院内容与兑换默认奖励。")).toBeTruthy();
+    expect(screen.getByText("目前由管理员人工开通；在线订阅即将推出")).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
   });
 
@@ -34,10 +33,9 @@ describe("ProPlanBanner", () => {
 
     inRouter(<ProPlanBanner isPro={false} locale="en" />);
     expect(screen.getByText("Free plan")).toBeTruthy();
+    expect(screen.getByText("Browse Academy content and redeem catalog rewards.")).toBeTruthy();
     expect(
-      screen.getByText(
-        "Browse Academy content and redeem catalog rewards. Advanced imports are only available to trial accounts for now. Contact your team admin to get access.",
-      ),
+      screen.getByText("An administrator turns this on for now. Online subscription is coming."),
     ).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
   });
@@ -56,7 +54,7 @@ describe("ProLockedCard", () => {
     inRouter(<ProLockedCard locale="zh" message="开启 PRO 后可使用。" />);
     expect(screen.getByRole("status").textContent).toContain("需要 PRO");
     expect(screen.getByText("开启 PRO 后可使用。")).toBeTruthy();
-    expect(screen.getByText("目前只对试用账号开放。如需使用，请联系管理员开通。")).toBeTruthy();
+    expect(screen.getByText("目前由管理员人工开通；在线订阅即将推出")).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
   });
 
@@ -67,7 +65,7 @@ describe("ProLockedCard", () => {
     expect(card.className).toContain("mt-3");
     expect(screen.getByText("Unlock PRO to use this.")).toBeTruthy();
     expect(
-      screen.getByText("Only available to trial accounts for now. Contact your team admin to get access."),
+      screen.getByText("An administrator turns this on for now. Online subscription is coming."),
     ).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
   });

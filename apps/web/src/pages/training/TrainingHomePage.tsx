@@ -14,6 +14,7 @@ import { useIsPro } from "@/hooks/useIsPro";
 import { useLocale } from "@/hooks/useLocale";
 import { useTrainingRecords } from "@/hooks/useTrainingRecords";
 import { localized } from "@/shared/i18n/localized";
+import { tSettingsPage } from "@/shared/i18n/settings-page-messages";
 import {
   type TrainingHomeMessageKey,
   tTrainingHome,
@@ -145,7 +146,11 @@ export function TrainingHomePage() {
               })}
         </p>
         <p className="mt-1 text-sm text-brand-navy/80">
-          {loading ? "…" : t(isPro ? "trainingHome.shop.pro" : "trainingHome.shop.free")}
+          {loading
+            ? "…"
+            : `${tSettingsPage(locale, isPro ? "settings.plan.proTitle" : "settings.plan.freeTag")} · ${t(
+                isPro ? "trainingHome.shop.proDetail" : "trainingHome.shop.freeDetail",
+              )}`}
         </p>
         <Link
           to="/training/shop"

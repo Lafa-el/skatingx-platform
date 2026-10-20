@@ -21,6 +21,7 @@ import {
   tAcademy,
 } from "@/shared/i18n/academy-messages";
 import { localized } from "@/shared/i18n/localized";
+import { tSettingsPage } from "@/shared/i18n/settings-page-messages";
 
 /** Weekdays in the order of the week; the label of each is looked up by its key. */
 const WEEKDAYS: { key: WeekdayKey; labelKey: AcademyMessageKey }[] = [
@@ -336,7 +337,7 @@ export function TrainingAcademyPage() {
             <li>{t("academy.pro.custom")}</li>
             <li>{t("academy.pro.coach")}</li>
           </ul>
-          <p className="mt-3 text-xs text-brand-navy/70">{t("academy.pro.note")}</p>
+          <p className="mt-3 text-xs text-brand-navy/70">{tSettingsPage(language, "settings.plan.manual")}</p>
         </Card>
       ) : null}
     </section>
