@@ -99,6 +99,7 @@ This is a hard boundary for Phase 0:
 
 - Schedule and results: free.
 - Video metadata and summary card: placed in the paid tier **provisionally for Phase 0**. This is a placement for the field test, not a final pricing or packaging decision, and may change. It must be revisited with DR-012 (PRO monetization model).
+- DR-012 was approved and closed on 2026-10-20. The PRO placement of video records and the summary card is now the formal decision (`docs/SKATINGX_OPEN_DECISIONS.md`).
 - The only gate available today is `settings/main.isPro`, which is **client-writable and not a security boundary** (known, documented in `docs/implementation-audit-m6-shop-pro.md`). Phase 0 uses it as a UX gate only. No Security Rule enforces payment. The Lindsay test account will have it enabled manually. Nothing in the UI or docs may claim server-side entitlement.
 
 ### D5. Data accuracy: "待确认" is a data field, not a style
