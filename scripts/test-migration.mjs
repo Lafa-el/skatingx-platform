@@ -1,4 +1,4 @@
-// Runs the analysis migration checks inside the Firestore emulator.
+// Runs the migration checks inside the Firestore emulator.
 // A demo- project id cannot resolve to skatingx-prod or any other real project.
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -16,7 +16,7 @@ const result = spawnSync(
     "firestore",
     "--project",
     "demo-skatingx-migration",
-    "node scripts/migrate-analysis.test.mjs",
+    "node scripts/migrate-analysis.test.mjs && node scripts/migrate-current-data.test.mjs",
   ],
   { cwd: rootDir, stdio: "inherit" },
 );
