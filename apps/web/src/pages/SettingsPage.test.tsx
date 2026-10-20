@@ -577,11 +577,15 @@ describe("SettingsPage forgot password", () => {
     expect(signInForm().getByRole("status").textContent).toBe("重置邮件已发送");
   });
 
-  it("a registered user sees the same control under the sign-in form", () => {
+  it("a registered user does not see the sign-in form or forgot password, and still has change-password and sign-out", () => {
     registered();
     renderSettings();
-    expect(signInForm().getByRole("button", { name: "忘记密码？" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "登录已有账户" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "登录" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "忘记密码？" })).toBeNull();
     expect(screen.getByRole("button", { name: "修改密码" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "退出登录" })).toBeTruthy();
+    expect(dd("邮箱")).toBe("person@example.com");
   });
 
   it("a failed reset uses the existing auth error wording inside the sign-in form", async () => {
@@ -594,9 +598,17 @@ describe("SettingsPage forgot password", () => {
     expect(signInForm().queryByText("重置邮件已发送")).toBeNull();
   });
 
+  it("a guest sees the sign-in form and forgot password", () => {
+    renderSettings();
+    expect(signInForm().getByRole("button", { name: "登录" })).toBeTruthy();
+    expect(signInForm().getByRole("button", { name: "忘记密码？" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "绑定邮箱和密码" })).toBeTruthy();
+  });
+
   it("is not rendered while Firebase is unconfigured or auth is still loading", () => {
     h.auth.firebaseReady = false;
     const unconfigured = renderSettings();
+    expect(screen.queryByRole("button", { name: "登录" })).toBeNull();
     expect(screen.queryByRole("button", { name: "忘记密码？" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "登录已有账户" })).toBeNull();
     unconfigured.unmount();
@@ -604,6 +616,7 @@ describe("SettingsPage forgot password", () => {
     h.auth.firebaseReady = true;
     h.auth.loading = true;
     renderSettings();
+    expect(screen.queryByRole("button", { name: "登录" })).toBeNull();
     expect(screen.queryByRole("button", { name: "忘记密码？" })).toBeNull();
   });
 });
