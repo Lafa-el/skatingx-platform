@@ -4,6 +4,8 @@ import { createTranslator, type Resources } from "./translator";
  * Planning tab copy. Chinese follows docs/migration/analysis/copy-zh.md (tab 3).
  * A half-width colon that touched a Chinese character is written full-width so it
  * matches the rest of the app. English values are drafts and are 待评审.
+ * The feedback-loop strings added for Phase 1.5 are the same: Chinese is the copy in use,
+ * and the English lines are a draft pending review.
  */
 const zh = {
   "plan.title": "Junior D 阶段训练模板",
@@ -109,6 +111,18 @@ const zh = {
   "plan.endurance.sun.when": "周日（陆地可选/休息30min）",
   "plan.endurance.sun.kind": "复盘恢复",
   "plan.endurance.sun.body": "优先休息；可做轻柔拉伸和泡沫轴。整理比赛数据，用结果决定下周模板。",
+
+  "plan.feedback.title": "来自分析的建议",
+  "plan.feedback.pace": "将本周侧重设为『速度窗口与500m配速』",
+  "plan.feedback.biomech": "将本周侧重设为『技术基础与弯道控制』",
+  "plan.feedback.source.pace": "来自配速分析 {id}，{date}",
+  "plan.feedback.source.biomech": "来自生物力学分析 {id}，{date}",
+  "plan.feedback.equipment": "复查器材。这不会改本周计划。",
+  "plan.feedback.source.equipment": "来自器材记录 {id}，{date}",
+  "plan.feedback.equipment.link": "打开器材页",
+  "plan.feedback.accept": "采纳",
+  "plan.feedback.ignore": "忽略",
+  "plan.feedback.unavailable": "分析建议暂时读不出来。计划本身没有被改动。",
 } as const;
 
 type PlanKey = keyof typeof zh;
@@ -230,6 +244,18 @@ const en: Record<PlanKey, string> = {
   "plan.endurance.sun.when": "Sunday (optional land or rest, 30 min)",
   "plan.endurance.sun.kind": "Review",
   "plan.endurance.sun.body": "Rest first. Easy stretching and foam rolling are enough. Sort the race notes and pick next week's template from them.",
+
+  "plan.feedback.title": "Suggestions from analysis",
+  "plan.feedback.pace": "Set this week's focus to \"Speed window and 500m pace\"",
+  "plan.feedback.biomech": "Set this week's focus to \"Technique and corner control\"",
+  "plan.feedback.source.pace": "From pace analysis {id}, {date}",
+  "plan.feedback.source.biomech": "From the biomechanics analysis {id}, {date}",
+  "plan.feedback.equipment": "Review the equipment. This does not change the week's plan.",
+  "plan.feedback.source.equipment": "From equipment record {id}, {date}",
+  "plan.feedback.equipment.link": "Open the equipment page",
+  "plan.feedback.accept": "Use this",
+  "plan.feedback.ignore": "Hide for now",
+  "plan.feedback.unavailable": "Analysis suggestions could not be read. The plan itself was not changed.",
 };
 
 export type PlanMessageKey = PlanKey;

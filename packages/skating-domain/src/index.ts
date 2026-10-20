@@ -1,6 +1,15 @@
 export { compareDateStrings, previousDateString, todayDateString } from "./dates";
 export { calculateStreakDays } from "./streak";
 export {
+  deriveTrainingFeedback,
+  latestFeedbackSourceByKind,
+  trainingFeedbackKey,
+  FEEDBACK_SOURCE_KINDS,
+  type FeedbackSource,
+  type FeedbackSourceKind,
+  type TrainingFeedback,
+} from "./training/analysis-feedback";
+export {
   PLAN_DAYS,
   PLAN_FOCUSES,
   PLAN_WEEK_NUMBER,
