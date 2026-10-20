@@ -123,3 +123,25 @@ node scripts/migrate-current-data.mjs --write --target production --project skat
 ```
 
 回滚按这份备份 JSON 恢复。`exists` 为 false 的路径，删除本次写入的文档。跳过的三类不在这份备份里，因为本脚本不写它们。
+
+## 生产迁移验证
+
+脚本 `scripts/verify-prod-migration.mjs`。只读 `skatingx-prod` 的 `artifacts/skatingx-production/...`，不写任何库，也不读 `skatingx-platform`（源库配额打满了）。credential 只用 `TARGET_GOOGLE_APPLICATION_CREDENTIALS`。钥匙在仓库外。`FIRESTORE_EMULATOR_HOST` 必须未设置。
+
+对数用这两份报告：
+
+- 分析迁移写到 prod 的：56 个有分析文档的用户、54 份 `migrationBackups/analysis-profile`、1 条打卡、装备历史 0、现网复制 1363
+- 现网源 `skatingx-platform` 跳过记录：54 条（装备历史 0、打卡 1、分析备份 53）。这 53 份是 staging 那次写进源库的。prod 上多出来的 1 份备份是后来在旧站新出现的用户，不在现网源里。53 只记在这里，脚本不对 prod 断言 53
+
+prod 上的 `migrationBackups/analysis-profile` 只对 54。
+
+Lindsay 抽查账号是 2026-10-20 现网盘点里唯一的打卡属主，运动员 id 是 `lindsay`。要有 `settings/main`、`athletes/lindsay/training/state`、至少一条 `raceDay` 事件，以及 `gamification/main`。积分必须等于源侧 `gamification/main` 的余额。`LINDSAY_GAMIFICATION_POINTS` 先空着。3 点配额重置后读一次 Lindsay 的这份文档再填，不要凭空写一个数。空着的时候积分检查会 FAIL。
+
+另外检查路径之外的孤儿文档，以及重复的文档路径。输出每一项 PASS 或 FAIL，FAIL 的整批列在后面。`--fail-on-diff` 在有 FAIL 时让进程退出码为 1，给 CI 用。
+
+现网写入还没执行。写入完成并评审之前不要跑这个脚本，现在跑计数对不上。
+
+```bash
+export TARGET_GOOGLE_APPLICATION_CREDENTIALS="/path/to/skatingx-prod-writer.json"
+node scripts/verify-prod-migration.mjs --fail-on-diff
+```
