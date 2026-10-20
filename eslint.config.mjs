@@ -49,4 +49,11 @@ export default defineConfig([
     files: ["*.{js,mjs,cjs,ts}", "scripts/**/*.{js,mjs}", "packages/*/scripts/**/*.{js,mjs}"],
     languageOptions: { globals: globals.node },
   },
+
+  {
+    // Browser harness for the Pose Landmarker spike. Node globals still apply
+    // because the file also matches scripts/**/*.mjs.
+    files: ["scripts/spikes/**/*.page.mjs"],
+    languageOptions: { globals: globals.browser },
+  },
 ]);
