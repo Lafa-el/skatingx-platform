@@ -42,6 +42,8 @@ const zh = {
   "settings.signIn.help": "使用已注册的邮箱和密码登录。登录会替换当前会话（访客数据不会自动合并）。",
   "settings.signIn.submit": "登录",
   "settings.signIn.busy": "登录中…",
+  "settings.signIn.forgot": "忘记密码？",
+  "settings.signIn.forgotNeedEmail": "请先填写邮箱，再点忘记密码",
 
   "settings.signOut.button": "退出登录",
   "settings.signOut.confirm":
@@ -115,6 +117,8 @@ const en: Record<SettingsPageKey, string> = {
     "Use a registered email and password. Signing in replaces the current session (guest data is not merged automatically).",
   "settings.signIn.submit": "Sign in",
   "settings.signIn.busy": "Signing in…",
+  "settings.signIn.forgot": "Forgot password?",
+  "settings.signIn.forgotNeedEmail": "Enter an email address first, then tap Forgot password.",
 
   "settings.signOut.button": "Sign out",
   "settings.signOut.confirm":
