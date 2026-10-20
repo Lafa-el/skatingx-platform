@@ -1,6 +1,7 @@
 import { Notice } from "@skatingx/ui";
 
 import { tPro } from "@/shared/i18n/pro-messages";
+import { tSettingsPage } from "@/shared/i18n/settings-page-messages";
 import type { Locale } from "@/shared/i18n/translator";
 
 type ProPlanBannerProps = {
@@ -12,15 +13,16 @@ type ProPlanBannerProps = {
 export function ProPlanBanner({ isPro, locale, className = "" }: ProPlanBannerProps) {
   if (isPro) {
     return (
-      <Notice tone="success" title={tPro(locale, "pro.banner.active.title")} className={className}>
+      <Notice tone="success" title={tSettingsPage(locale, "settings.plan.proTitle")} className={className}>
         <p className="text-xs">{tPro(locale, "pro.banner.active.body")}</p>
       </Notice>
     );
   }
 
   return (
-    <Notice tone="pending" title={tPro(locale, "pro.banner.free.title")} className={className}>
+    <Notice tone="pending" title={tSettingsPage(locale, "settings.plan.freeTag")} className={className}>
       <p className="text-xs">{tPro(locale, "pro.banner.free.body")}</p>
+      <p className="text-xs">{tSettingsPage(locale, "settings.plan.manual")}</p>
     </Notice>
   );
 }
@@ -38,7 +40,7 @@ export function ProLockedCard({
   return (
     <Notice tone="pending" role="status" title={tPro(locale, "pro.locked.title")} className={className}>
       <p className="text-sm">{message}</p>
-      <p className="mt-1 text-xs">{tPro(locale, "pro.locked.contact")}</p>
+      <p className="mt-1 text-xs">{tSettingsPage(locale, "settings.plan.manual")}</p>
     </Notice>
   );
 }

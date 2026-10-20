@@ -92,7 +92,7 @@ const TEXT = {
     cannot: "积分不足",
     custom: "自定义奖励",
     proCard: "PRO — 自定义奖励",
-    proOn: "PRO 已开启",
+    proOn: "PRO 已开通",
     proNote: "自定义奖励管理为 M6 占位功能，完整增删改将在支付与家长功能上线后提供。",
     locked: "PRO 可为运动员创建并管理专属自定义奖励。",
     history: "兑换记录",

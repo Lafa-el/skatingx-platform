@@ -16,6 +16,7 @@ import { useIsPro } from "@/hooks/useIsPro";
 import { useRewardActions } from "@/hooks/useRewardActions";
 import { useRewardsShop } from "@/hooks/useRewardsShop";
 import { formatCalendarDate } from "@/shared/i18n/format";
+import { tSettingsPage } from "@/shared/i18n/settings-page-messages";
 import { tShop } from "@/shared/i18n/shop-messages";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
@@ -152,7 +153,7 @@ export function TrainingShopPage() {
       {isPro ? (
         <Card variant="raised" title={t("shop.custom.cardTitle")} className="mt-3">
           <p className="text-sm font-semibold text-status-success">
-            {t("shop.custom.active")}
+            {tSettingsPage(language, "settings.plan.proTitle")}
           </p>
           <p className="mt-2 text-sm text-brand-navy/80">
             {t("shop.custom.placeholder")}

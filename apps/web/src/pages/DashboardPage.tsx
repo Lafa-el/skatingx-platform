@@ -14,6 +14,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useRewardsShop } from "@/hooks/useRewardsShop";
 import { useTrainingRecords } from "@/hooks/useTrainingRecords";
 import { type DashboardMessageKey, tDashboard } from "@/shared/i18n/dashboard-messages";
+import { tSettingsPage } from "@/shared/i18n/settings-page-messages";
 import { formatCalendarDate } from "@/shared/i18n/format";
 
 /** Destinations do not depend on the language; only the text is looked up. */
@@ -64,7 +65,7 @@ export function DashboardPage() {
     getBestForDistance,
     latestEntryOverall,
   } = useTrainingRecords();
-  const { isPro, loading: proLoading } = useIsPro();
+  const { isPro, loading: proLoading, error: planError } = useIsPro();
   const {
     catalog: shopCatalog,
     latestRedemption,
@@ -178,7 +179,9 @@ export function DashboardPage() {
           <p className="text-lg font-semibold text-brand-navy">
             {loading
               ? "…"
-              : tDashboard(locale, isPro ? "dashboard.plan.pro" : "dashboard.plan.free")}
+              : planError
+                ? tSettingsPage(locale, "settings.plan.error")
+                : tSettingsPage(locale, isPro ? "settings.plan.proTitle" : "settings.plan.freeTag")}
           </p>
         </Card>
         <Card variant="raised" title={tDashboard(locale, "dashboard.card.redemption")}>

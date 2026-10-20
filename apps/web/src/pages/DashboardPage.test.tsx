@@ -165,6 +165,41 @@ describe("DashboardPage: values", () => {
     expect(card("Plan").getByText("Free plan")).toBeTruthy();
   });
 
+  it("a failed plan read says it could not be confirmed, and does not call the plan free", () => {
+    h.state.settings = { data: { language: "zh", isPro: false }, loading: false, error: "settings-down" };
+    renderPage();
+    const plan = card("方案");
+    expect(plan.getByText("暂时无法确认你的套餐状态")).toBeTruthy();
+    expect(plan.queryByText("免费版")).toBeNull();
+    expect(plan.queryByText("PRO 已开通")).toBeNull();
+  });
+
+  it("a failed plan read still wins when the stored flag would have been PRO", () => {
+    h.state.settings = { data: { language: "zh", isPro: true }, loading: false, error: "settings-down" };
+    renderPage();
+    const plan = card("方案");
+    expect(plan.getByText("暂时无法确认你的套餐状态")).toBeTruthy();
+    expect(plan.queryByText("PRO 已开通")).toBeNull();
+    expect(plan.queryByText("免费版")).toBeNull();
+  });
+
+  it("English: a failed plan read uses the shared sentence and does not say free", () => {
+    h.state.settings = { data: { language: "en", isPro: false }, loading: false, error: "settings-down" };
+    renderPage();
+    const plan = card("Plan");
+    expect(plan.getByText("We could not confirm your plan just now")).toBeTruthy();
+    expect(plan.queryByText("Free plan")).toBeNull();
+  });
+
+  it("while the page is still loading, the plan card keeps the placeholder", () => {
+    h.state.settings = { data: null, loading: true, error: null };
+    renderPage();
+    const plan = card("方案");
+    expect(plan.getByText("…")).toBeTruthy();
+    expect(plan.queryByText("免费版")).toBeNull();
+    expect(plan.queryByText("暂时无法确认你的套餐状态")).toBeNull();
+  });
+
   it("the athlete's name is shown as stored", () => {
     renderPage();
     expect(card("运动员").getByText("Sample Skater")).toBeTruthy();

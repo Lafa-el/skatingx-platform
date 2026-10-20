@@ -64,7 +64,8 @@ describe("ProGate", () => {
     renderGate();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("视频");
     expect(screen.getByText("这一页需要 PRO")).toBeTruthy();
-    expect(screen.getByText("这一页目前只对试用账号开放。如需使用，请联系管理员开通。")).toBeTruthy();
+    expect(screen.getByText("比赛日视频记录与总结卡属于 PRO。")).toBeTruthy();
+    expect(screen.getByText("目前由管理员人工开通；在线订阅即将推出")).toBeTruthy();
     expect(screen.queryByText("secret content")).toBeNull();
     expect(mounted.count).toBe(0);
   });
@@ -82,17 +83,20 @@ describe("ProGate", () => {
     expect(screen.queryByRole("link")).toBeNull();
   });
 
-  it("calls the arrangement provisional and makes no claim of protection", () => {
+  it("says this page is part of PRO and makes no claim of protection", () => {
     renderGate();
-    expect(screen.getByText(/临时安排/)).toBeTruthy();
-    expect(document.body.textContent).not.toMatch(/受保护|已验证|订阅|付款|购买/);
+    expect(screen.getByText("比赛日视频记录与总结卡属于 PRO。")).toBeTruthy();
+    expect(screen.queryByText(/临时安排/)).toBeNull();
+    expect(document.body.textContent).not.toMatch(/受保护|已验证|付款|购买/);
   });
 
   it("a read error keeps the page locked and says why", () => {
     pro.error = "boom";
     pro.isPro = true;
     renderGate();
-    expect(screen.getByRole("alert").textContent).toContain("暂时无法确认");
+    expect(screen.getByRole("alert").textContent).toBe(
+      "暂时无法确认你的套餐状态，所以这一页先保持锁定。请检查网络后刷新页面。",
+    );
     expect(screen.queryByText("secret content")).toBeNull();
     expect(mounted.count).toBe(0);
   });
@@ -102,11 +106,12 @@ describe("ProGate", () => {
     renderGate();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Videos");
     expect(screen.getByText("This page needs PRO")).toBeTruthy();
+    expect(screen.getByText("Race-day video records and the summary card are part of PRO.")).toBeTruthy();
     expect(
-      screen.getByText("This page is only available to trial accounts for now. Contact your team admin to get access."),
+      screen.getByText("An administrator turns this on for now. Online subscription is coming."),
     ).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
-    expect(screen.getByText(/temporary arrangement/)).toBeTruthy();
+    expect(screen.queryByText(/temporary arrangement/)).toBeNull();
   });
 });
 
