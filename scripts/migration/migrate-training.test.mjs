@@ -15,7 +15,11 @@ import {
   EMULATOR_PROJECT,
   MigrationStop,
   SOURCE_PROJECT,
+  STAGING_PROJECT,
   TARGET_UID,
+  assertStagingEnvironment,
+  assertWriterCredential,
+  formatTargetState,
   parseArgs,
   run,
 } from "./migrate-training.mjs";
@@ -169,7 +173,9 @@ assert(!/\.(set|update|delete|create)\s*\(/.test(sourceReader), "source reader w
 assert(sourceReader.includes("SOURCE_PROJECT"), "source reader lost its project");
 assert(sourceText.includes(`export const SOURCE_PROJECT = "${SOURCE_PROJECT}"`), "source project id");
 assert(!sourceText.includes('"skatingx-prod"'), "production project id is present");
-assert(!sourceText.includes('"skatingx-platform"'), "staging project id is present");
+assert(STAGING_PROJECT === "skatingx-platform", "staging project");
+assert(sourceText.includes(`export const STAGING_PROJECT = "${STAGING_PROJECT}"`), "staging project is not fixed");
+assert(sourceText.includes("projectId: STAGING_PROJECT"), "staging client does not use the fixed project");
 assert(sourceText.includes("does not read Firebase Auth"), "identity chain comment is missing");
 
 const wrongUid = stops("wrong target uid", () =>
@@ -177,19 +183,44 @@ const wrongUid = stops("wrong target uid", () =>
 );
 assert(!wrongUid.message.includes("someone-else"), "rejected target uid was echoed");
 
-stops("staging", () => parseArgs(["--target", "staging", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]));
+const stagingDryRun = parseArgs(["--target", "staging", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]);
+assert(stagingDryRun.target === "staging" && stagingDryRun.write === false, "staging dry-run did not parse");
+const stagingWrite = stops("staging write", () =>
+  parseArgs(["--target", "staging", "--write", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", "/tmp/m5-snapshot.json"]),
+);
+assert(stagingWrite.message.includes("not authorized"), "staging write refusal was not explained");
 stops("production", () => parseArgs(["--target", "production", "--write", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", "/tmp/m4-snapshot.json"]));
-stops("project flag", () => parseArgs(["--project", "skatingx-prod", "--target", "emulator", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]));
+stops("project flag", () => parseArgs(["--project", "skatingx-prod", "--target", "staging", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]));
+const emulatorHost = stops("emulator host", () => assertStagingEnvironment({ FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" }));
+assert(emulatorHost.message.includes("FIRESTORE_EMULATOR_HOST"), "emulator conflict was not explained");
+const writerInside = stops("writer key", () => assertWriterCredential({ TARGET_GOOGLE_APPLICATION_CREDENTIALS: script }));
+assert(writerInside.message.includes("repository"), "inside-repo writer key was not explained");
+const stateLine = formatTargetState(
+  { points: 5, tasks: [{ text: "secret-task" }] },
+  createEmptyTargetState(TARGET_UID, "lindsay"),
+);
+assert(stateLine === "target-state legacyPoints=5 points=0 records=none weeklyTemplate=empty", "target state summary");
+assert(!stateLine.includes("secret-task"), "target state summary included task text");
 
 const gateDir = mkdtempSync(path.join(tmpdir(), "training-m4-"));
 const gateFixture = path.join(gateDir, "profile.json");
 writeFileSync(gateFixture, JSON.stringify(lindsayDoc));
 const gateSnapshot = path.join(gateDir, "snapshot.json");
 
-const staging = cli(["--target", "staging", "--fixture", gateFixture, "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]);
-assert(staging.status === 1, "staging dry-run was allowed");
-assert(staging.stderr.includes("not authorized"), "staging refusal was not explained");
+const staging = cli(["--target", "staging", "--write", "--fixture", gateFixture, "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", gateSnapshot]);
+assert(staging.status === 1, "staging write was allowed");
+assert(staging.stderr.includes("not authorized"), "staging write refusal was not explained");
+assert(!staging.stdout.includes("wrote"), "staging write still wrote");
+assert(!existsSync(gateSnapshot), "staging write created a snapshot");
 assert(!staging.stderr.includes("cause"), "staging error printed a cause");
+
+const stagingEmulator = cli(["--target", "staging", "--fixture", gateFixture, "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate], {
+  FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+});
+assert(stagingEmulator.status === 1, "staging with the emulator host was allowed");
+assert(stagingEmulator.stderr.includes("FIRESTORE_EMULATOR_HOST"), "emulator conflict was not named");
+assert(!stagingEmulator.stdout.includes("dry-run: no documents written"), "emulator conflict still finished a dry-run");
+assert(!stagingEmulator.stdout.includes("wrote"), "emulator conflict wrote documents");
 
 const production = cli(["--target", "production", "--write", "--fixture", gateFixture, "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", gateSnapshot]);
 assert(production.status === 1, "production write was allowed");

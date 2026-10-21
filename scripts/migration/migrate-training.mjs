@@ -9,8 +9,10 @@
  * A live source read uses GOOGLE_APPLICATION_CREDENTIALS. The agreed path is
  * ~/.config/gcp/training-migration-reader.json. This file does not open that
  * path unless the variable is set, and it refuses a path inside the repository.
- * The emulator target does not use a writer key. Staging is M5 and production
- * is M6; both are refused here, including dry runs.
+ * The emulator target does not use a writer key. A staging dry-run reads
+ * skatingx-platform with TARGET_GOOGLE_APPLICATION_CREDENTIALS, and that
+ * variable must resolve to ~/.config/gcp/migration-writer.json outside the
+ * repository. Staging writes stay closed until M5b. Production stays closed.
  *
  * Source access is one profile/main get. There is no source write.
  * Payloads from buildMigrationPlan omit updatedAt. Each target write adds
@@ -19,6 +21,7 @@
  */
 
 import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -32,9 +35,11 @@ export const SOURCE_PROJECT = "blaze-skate-training-platform";
 export const SOURCE_APP = "blaze-skate-production";
 export const TARGET_UID = "baWEw6SZKcQItvcDdpF64ZNe5W12";
 export const EMULATOR_PROJECT = "demo-skatingx-migration";
+export const STAGING_PROJECT = "skatingx-platform";
 export const DEFAULT_ATHLETE_ID = "lindsay";
 
 const SOURCE_CREDENTIAL_ENV = "GOOGLE_APPLICATION_CREDENTIALS";
+const TARGET_CREDENTIAL_ENV = "TARGET_GOOGLE_APPLICATION_CREDENTIALS";
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const KIND_ORDER = ["state", "gamification", "recordsDoc", "taskHistoryDay", "backupDoc"];
 
@@ -70,17 +75,19 @@ export function parseArgs(argv) {
     else if (token === "--execution-date") args.executionDate = value(token);
     else if (token === "--snapshot-out") args.snapshotOut = value(token);
     else if (token === "--athlete-id") args.athleteId = value(token);
-    else if (token === "--project") stop("--project is not accepted. This step only writes the local emulator.");
+    else if (token === "--project") stop("--project is not accepted. The target project is fixed in the script.");
     else stop(`unknown argument ${token}`);
   }
   if (args.write && args.dryRun) stop("--dry-run and --write cannot be combined");
-  if (args.target === "staging") {
-    stop("--target staging is not authorized in this step. Staging writes stay in M5.");
+  if (args.target === "staging" && args.write) {
+    stop("--write is not authorized for --target staging in this step. Staging writes stay in M5b.");
   }
   if (args.target === "production") {
     stop("--target production is not authorized in this step. Production writes stay in M6.");
   }
-  if (args.target !== "emulator") stop("--target emulator is required. This step does not read or write staging or production.");
+  if (args.target !== "emulator" && args.target !== "staging") {
+    stop("--target must be emulator or staging.");
+  }
   if (!args.sourceUid) stop("--source-uid is required");
   if (args.targetUid !== TARGET_UID) stop("--target-uid does not match the confirmed account");
   if (!DATE_PATTERN.test(args.executionDate)) stop("--execution-date must be YYYY-MM-DD");
@@ -104,28 +111,57 @@ function assertCredentialLocation(env) {
   }
 }
 
-function assertLiveCredential(env) {
-  const configured = env[SOURCE_CREDENTIAL_ENV];
-  if (!configured) {
-    stop(`${SOURCE_CREDENTIAL_ENV} is unset. Point it at the training reader key outside the repository.`);
-  }
+function assertKeyFile(env, name, hint) {
+  const configured = env[name];
+  if (!configured) stop(`${name} is unset. ${hint}`);
+  if (isInsideRepo(configured)) stop(`${name} is inside the repository. Move the key outside the repo.`);
   const resolved = path.resolve(configured);
   let info;
   try {
     info = statSync(resolved);
   } catch {
-    stop(`${SOURCE_CREDENTIAL_ENV} does not point at a key file.`);
+    stop(`${name} does not point at a key file.`);
   }
-  if (!info.isFile()) stop(`${SOURCE_CREDENTIAL_ENV} does not point at a key file.`);
+  if (!info.isFile()) stop(`${name} does not point at a key file.`);
   let parsed;
   try {
     parsed = JSON.parse(readFileSync(resolved, "utf8"));
   } catch {
-    stop(`${SOURCE_CREDENTIAL_ENV} is not a readable service account key.`);
+    stop(`${name} is not a readable service account key.`);
   }
   if (typeof parsed?.client_email !== "string" || typeof parsed?.private_key !== "string") {
-    stop(`${SOURCE_CREDENTIAL_ENV} is not a service account key.`);
+    stop(`${name} is not a service account key.`);
   }
+}
+
+function assertLiveCredential(env) {
+  assertKeyFile(env, SOURCE_CREDENTIAL_ENV, "Point it at the training reader key outside the repository.");
+}
+
+export function agreedWriterKeyPath() {
+  return path.join(homedir(), ".config", "gcp", "migration-writer.json");
+}
+
+export function assertWriterCredential(env) {
+  const configured = env[TARGET_CREDENTIAL_ENV];
+  if (!configured) {
+    stop(`${TARGET_CREDENTIAL_ENV} is unset. Point it at ~/.config/gcp/migration-writer.json.`);
+  }
+  if (isInsideRepo(configured)) {
+    stop(`${TARGET_CREDENTIAL_ENV} is inside the repository. Move the key outside the repo.`);
+  }
+  if (path.resolve(configured) !== path.resolve(agreedWriterKeyPath())) {
+    stop(`${TARGET_CREDENTIAL_ENV} must point at ~/.config/gcp/migration-writer.json.`);
+  }
+  assertKeyFile(env, TARGET_CREDENTIAL_ENV, "Point it at ~/.config/gcp/migration-writer.json.");
+}
+
+export function assertStagingEnvironment(env) {
+  if (STAGING_PROJECT !== "skatingx-platform") stop("staging project must be skatingx-platform");
+  if (env.FIRESTORE_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST) {
+    stop("FIRESTORE_EMULATOR_HOST is set. Staging does not use the emulator.");
+  }
+  assertWriterCredential(env);
 }
 
 function assertSnapshotParent(file) {
@@ -192,7 +228,22 @@ function jsonSafe(value) {
   stop("snapshot cannot store an unsupported value");
 }
 
-export async function openTargetDb(env) {
+async function openStagingDb(env) {
+  if (env.FIRESTORE_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST) {
+    stop("FIRESTORE_EMULATOR_HOST is set. Staging does not use the emulator.");
+  }
+  if (STAGING_PROJECT !== "skatingx-platform") stop("staging project must be skatingx-platform");
+  const { cert, initializeApp } = await import("firebase-admin/app");
+  const { getFirestore } = await import("firebase-admin/firestore");
+  const app = initializeApp(
+    { credential: cert(path.resolve(agreedWriterKeyPath())), projectId: STAGING_PROJECT },
+    `training-staging-${process.pid}-${Date.now()}`,
+  );
+  return getFirestore(app);
+}
+
+export async function openTargetDb(env, args = { target: "emulator" }) {
+  if (args.target === "staging") return openStagingDb(env);
   if (!env.FIRESTORE_EMULATOR_HOST) {
     env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
   }
@@ -287,17 +338,30 @@ export function formatSummary(plan, counts) {
   return `plan-summary kinds=${kinds} tasksAdded=${counts.tasksAdded} historyTasksAdded=${counts.historyTasksAdded} recordsAdded=${counts.recordsAdded} backupKeys=${backupKeys} skips=${skips}`;
 }
 
-function printSummary(args, plan, counts) {
+export function formatTargetState(legacyDoc, targetState) {
+  const legacyPoints = typeof legacyDoc.points === "number" && Number.isFinite(legacyDoc.points)
+    ? String(legacyDoc.points)
+    : "absent";
+  const recordIds = Object.keys(targetState.records).sort();
+  const template = targetState.trainingState.weeklyTemplate ?? {};
+  const filled = Object.values(template).some((value) => typeof value === "string" && value.trim() !== "");
+  const records = recordIds.length === 0 ? "none" : recordIds.join(",");
+  return `target-state legacyPoints=${legacyPoints} points=${targetState.gamification.points} records=${records} weeklyTemplate=${filled ? "filled" : "empty"}`;
+}
+
+function printSummary(args, plan, counts, legacyDoc, targetState) {
   console.log(`mode: ${args.write ? "write" : "dry-run"}`);
-  console.log("target: emulator");
+  console.log(`target: ${args.target}`);
   console.log(`source-uid: ${args.sourceUid}`);
   console.log("username matched");
   console.log(formatSummary(plan, counts));
+  console.log(formatTargetState(legacyDoc, targetState));
 }
 
 export async function run(argv, env = process.env, deps = {}) {
   const args = parseArgs(argv);
   assertCredentialLocation(env);
+  if (args.target === "staging") assertStagingEnvironment(env);
   if (!args.fixture) assertLiveCredential(env);
   if (args.write) assertSnapshotParent(args.snapshotOut);
 
@@ -306,11 +370,11 @@ export async function run(argv, env = process.env, deps = {}) {
     : await (deps.readSourceProfile ?? readSourceProfile)(env, args.sourceUid);
   assertUsername(legacyDoc);
 
-  const db = await (deps.openTargetDb ?? openTargetDb)(env);
+  const db = await (deps.openTargetDb ?? openTargetDb)(env, args);
   const targetState = await (deps.readTargetState ?? readTargetState)(db, args.targetUid, args.athleteId);
   const plan = buildMigrationPlan(legacyDoc, targetState, args.executionDate);
   const counts = appendCounts(plan, targetState);
-  printSummary(args, plan, counts);
+  printSummary(args, plan, counts, legacyDoc, targetState);
 
   if (!args.write) {
     console.log("dry-run: no documents written");
