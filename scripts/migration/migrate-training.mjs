@@ -13,7 +13,11 @@
  * skatingx-platform with TARGET_GOOGLE_APPLICATION_CREDENTIALS, and that
  * variable must resolve to ~/.config/gcp/migration-writer.json outside the
  * repository. Staging writes use that same writer key and still require a
- * snapshot outside the repository. Production stays closed.
+ * snapshot outside the repository. A production dry-run reads skatingx-prod
+ * with the same variable pointed at ~/.config/gcp/prod-writer.json. A
+ * production write also requires --confirm-production and a snapshot outside
+ * the repository, and it stops before any write when the plan misses the
+ * checkpoint. Neither staging nor production uses the emulator.
  *
  * Source access is one profile/main get. There is no source write.
  * Payloads from buildMigrationPlan omit updatedAt. Each target write adds
@@ -37,6 +41,7 @@ export const SOURCE_APP = "blaze-skate-production";
 export const TARGET_UID = "baWEw6SZKcQItvcDdpF64ZNe5W12";
 export const EMULATOR_PROJECT = "demo-skatingx-migration";
 export const STAGING_PROJECT = "skatingx-platform";
+export const PRODUCTION_PROJECT = "skatingx-prod";
 export const DEFAULT_ATHLETE_ID = "lindsay";
 
 const SOURCE_CREDENTIAL_ENV = "GOOGLE_APPLICATION_CREDENTIALS";
@@ -58,6 +63,7 @@ export function parseArgs(argv) {
     executionDate: "",
     snapshotOut: "",
     athleteId: DEFAULT_ATHLETE_ID,
+    confirmProduction: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -76,15 +82,16 @@ export function parseArgs(argv) {
     else if (token === "--execution-date") args.executionDate = value(token);
     else if (token === "--snapshot-out") args.snapshotOut = value(token);
     else if (token === "--athlete-id") args.athleteId = value(token);
+    else if (token === "--confirm-production") args.confirmProduction = true;
     else if (token === "--project") stop("--project is not accepted. The target project is fixed in the script.");
     else stop(`unknown argument ${token}`);
   }
   if (args.write && args.dryRun) stop("--dry-run and --write cannot be combined");
-  if (args.target === "production") {
-    stop("--target production is not authorized in this step. Production writes stay in M6.");
+  if (args.target === "production" && args.write && !args.confirmProduction) {
+    stop("--write production requires --confirm-production");
   }
-  if (args.target !== "emulator" && args.target !== "staging") {
-    stop("--target must be emulator or staging.");
+  if (args.target !== "emulator" && args.target !== "staging" && args.target !== "production") {
+    stop("--target must be emulator, staging, or production.");
   }
   if (!args.sourceUid) stop("--source-uid is required");
   if (args.targetUid !== TARGET_UID) stop("--target-uid does not match the confirmed account");
@@ -136,22 +143,28 @@ function assertLiveCredential(env) {
   assertKeyFile(env, SOURCE_CREDENTIAL_ENV, "Point it at the training reader key outside the repository.");
 }
 
-export function agreedWriterKeyPath() {
-  return path.join(homedir(), ".config", "gcp", "migration-writer.json");
+const WRITER_FILES = {
+  staging: "migration-writer.json",
+  production: "prod-writer.json",
+};
+
+export function agreedWriterKeyPath(target = "staging") {
+  const fileName = WRITER_FILES[target];
+  if (!fileName) stop("writer key target is not staging or production");
+  return path.join(homedir(), ".config", "gcp", fileName);
 }
 
-export function assertWriterCredential(env) {
+export function assertWriterCredential(env, target = "staging") {
+  const hint = `~/.config/gcp/${WRITER_FILES[target]}`;
   const configured = env[TARGET_CREDENTIAL_ENV];
-  if (!configured) {
-    stop(`${TARGET_CREDENTIAL_ENV} is unset. Point it at ~/.config/gcp/migration-writer.json.`);
-  }
+  if (!configured) stop(`${TARGET_CREDENTIAL_ENV} is unset. Point it at ${hint}.`);
   if (isInsideRepo(configured)) {
     stop(`${TARGET_CREDENTIAL_ENV} is inside the repository. Move the key outside the repo.`);
   }
-  if (path.resolve(configured) !== path.resolve(agreedWriterKeyPath())) {
-    stop(`${TARGET_CREDENTIAL_ENV} must point at ~/.config/gcp/migration-writer.json.`);
+  if (path.resolve(configured) !== path.resolve(agreedWriterKeyPath(target))) {
+    stop(`${TARGET_CREDENTIAL_ENV} must point at ${hint}.`);
   }
-  assertKeyFile(env, TARGET_CREDENTIAL_ENV, "Point it at ~/.config/gcp/migration-writer.json.");
+  assertKeyFile(env, TARGET_CREDENTIAL_ENV, `Point it at ${hint}.`);
 }
 
 export function assertStagingEnvironment(env) {
@@ -159,7 +172,15 @@ export function assertStagingEnvironment(env) {
   if (env.FIRESTORE_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST) {
     stop("FIRESTORE_EMULATOR_HOST is set. Staging does not use the emulator.");
   }
-  assertWriterCredential(env);
+  assertWriterCredential(env, "staging");
+}
+
+export function assertProductionEnvironment(env) {
+  if (PRODUCTION_PROJECT !== "skatingx-prod") stop("production project must be skatingx-prod");
+  if (env.FIRESTORE_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST) {
+    stop("FIRESTORE_EMULATOR_HOST is set. Production does not use the emulator.");
+  }
+  assertWriterCredential(env, "production");
 }
 
 function assertSnapshotParent(file) {
@@ -240,8 +261,23 @@ async function openStagingDb(env) {
   return getFirestore(app);
 }
 
+async function openProductionDb(env) {
+  if (env.FIRESTORE_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST) {
+    stop("FIRESTORE_EMULATOR_HOST is set. Production does not use the emulator.");
+  }
+  if (PRODUCTION_PROJECT !== "skatingx-prod") stop("production project must be skatingx-prod");
+  const { cert, initializeApp } = await import("firebase-admin/app");
+  const { getFirestore } = await import("firebase-admin/firestore");
+  const app = initializeApp(
+    { credential: cert(path.resolve(agreedWriterKeyPath("production"))), projectId: PRODUCTION_PROJECT },
+    `training-production-${process.pid}-${Date.now()}`,
+  );
+  return getFirestore(app);
+}
+
 export async function openTargetDb(env, args = { target: "emulator" }) {
   if (args.target === "staging") return openStagingDb(env);
+  if (args.target === "production") return openProductionDb(env);
   if (!env.FIRESTORE_EMULATOR_HOST) {
     env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
   }
@@ -347,6 +383,37 @@ export function formatTargetState(legacyDoc, targetState) {
   return `target-state legacyPoints=${legacyPoints} points=${targetState.gamification.points} records=${records} weeklyTemplate=${filled ? "filled" : "empty"}`;
 }
 
+export function assertProductionWrite(plan, counts, legacyDoc) {
+  const kindCount = (kind) => plan.writes.filter((write) => write.kind === kind).length;
+  if (counts.recordsAdded !== 8 || kindCount("recordsDoc") !== 6) {
+    stop("production checkpoint rejected the record plan");
+  }
+  if (counts.tasksAdded !== 0 || counts.historyTasksAdded !== 0 || kindCount("taskHistoryDay") !== 0) {
+    stop("production checkpoint rejected the task plan");
+  }
+  const backupKeys = plan.backup ? Object.keys(plan.backup).sort() : [];
+  if (backupKeys.length !== 1 || backupKeys[0] !== "races") {
+    stop("production checkpoint rejected the backup keys");
+  }
+  const game = plan.writes.filter((write) => write.kind === "gamification");
+  if (game.length > 1) stop("production checkpoint rejected the gamification plan");
+  for (const write of game) {
+    for (const key of Object.keys(write.payload)) {
+      if (key !== "streakDays") stop(`production checkpoint rejected gamification key ${key}`);
+    }
+  }
+  const states = plan.writes.filter((write) => write.kind === "state");
+  if (states.length > 1) stop("production checkpoint rejected the state plan");
+  for (const write of states) {
+    for (const key of Object.keys(write.payload)) {
+      if (key !== "weeklyTemplate") stop(`production checkpoint rejected state key ${key}`);
+    }
+  }
+  if (typeof legacyDoc?.points !== "number" || legacyDoc.points !== 0) {
+    stop("production checkpoint rejected legacy points");
+  }
+}
+
 function printSummary(args, plan, counts, legacyDoc, targetState) {
   console.log(`mode: ${args.write ? "write" : "dry-run"}`);
   console.log(`target: ${args.target}`);
@@ -360,6 +427,7 @@ export async function run(argv, env = process.env, deps = {}) {
   const args = parseArgs(argv);
   assertCredentialLocation(env);
   if (args.target === "staging") assertStagingEnvironment(env);
+  if (args.target === "production") assertProductionEnvironment(env);
   if (!args.fixture) assertLiveCredential(env);
   if (args.write) assertSnapshotParent(args.snapshotOut);
 
@@ -373,6 +441,7 @@ export async function run(argv, env = process.env, deps = {}) {
   const plan = buildMigrationPlan(legacyDoc, targetState, args.executionDate);
   const counts = appendCounts(plan, targetState);
   printSummary(args, plan, counts, legacyDoc, targetState);
+  if (args.write && args.target === "production") assertProductionWrite(plan, counts, legacyDoc);
 
   if (!args.write) {
     console.log("dry-run: no documents written");
