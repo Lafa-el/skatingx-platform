@@ -185,10 +185,11 @@ assert(!wrongUid.message.includes("someone-else"), "rejected target uid was echo
 
 const stagingDryRun = parseArgs(["--target", "staging", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]);
 assert(stagingDryRun.target === "staging" && stagingDryRun.write === false, "staging dry-run did not parse");
-const stagingWrite = stops("staging write", () =>
-  parseArgs(["--target", "staging", "--write", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", "/tmp/m5-snapshot.json"]),
+const stagingWrite = parseArgs(["--target", "staging", "--write", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", "/tmp/m5-snapshot.json"]);
+assert(stagingWrite.target === "staging" && stagingWrite.write === true, "staging write did not pass validation");
+stops("staging snapshot", () =>
+  parseArgs(["--target", "staging", "--write", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]),
 );
-assert(stagingWrite.message.includes("not authorized"), "staging write refusal was not explained");
 stops("production", () => parseArgs(["--target", "production", "--write", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", "/tmp/m4-snapshot.json"]));
 stops("project flag", () => parseArgs(["--project", "skatingx-prod", "--target", "staging", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]));
 const emulatorHost = stops("emulator host", () => assertStagingEnvironment({ FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" }));
@@ -207,9 +208,11 @@ const gateFixture = path.join(gateDir, "profile.json");
 writeFileSync(gateFixture, JSON.stringify(lindsayDoc));
 const gateSnapshot = path.join(gateDir, "snapshot.json");
 
-const staging = cli(["--target", "staging", "--write", "--fixture", gateFixture, "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", gateSnapshot]);
-assert(staging.status === 1, "staging write was allowed");
-assert(staging.stderr.includes("not authorized"), "staging write refusal was not explained");
+const staging = cli(["--target", "staging", "--write", "--fixture", gateFixture, "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", gateSnapshot], {
+  FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+});
+assert(staging.status === 1, "staging write with the emulator host was allowed");
+assert(staging.stderr.includes("FIRESTORE_EMULATOR_HOST"), "staging write ignored the emulator host");
 assert(!staging.stdout.includes("wrote"), "staging write still wrote");
 assert(!existsSync(gateSnapshot), "staging write created a snapshot");
 assert(!staging.stderr.includes("cause"), "staging error printed a cause");

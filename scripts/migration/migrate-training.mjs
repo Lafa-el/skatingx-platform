@@ -12,7 +12,8 @@
  * The emulator target does not use a writer key. A staging dry-run reads
  * skatingx-platform with TARGET_GOOGLE_APPLICATION_CREDENTIALS, and that
  * variable must resolve to ~/.config/gcp/migration-writer.json outside the
- * repository. Staging writes stay closed until M5b. Production stays closed.
+ * repository. Staging writes use that same writer key and still require a
+ * snapshot outside the repository. Production stays closed.
  *
  * Source access is one profile/main get. There is no source write.
  * Payloads from buildMigrationPlan omit updatedAt. Each target write adds
@@ -79,9 +80,6 @@ export function parseArgs(argv) {
     else stop(`unknown argument ${token}`);
   }
   if (args.write && args.dryRun) stop("--dry-run and --write cannot be combined");
-  if (args.target === "staging" && args.write) {
-    stop("--write is not authorized for --target staging in this step. Staging writes stay in M5b.");
-  }
   if (args.target === "production") {
     stop("--target production is not authorized in this step. Production writes stay in M6.");
   }
