@@ -1,7 +1,7 @@
 # M2 契约 — 旧训练站 profile/main → SkatingX
 
 日期：2026-10-21
-状态：待评审。开口项 a–d 标「待批」，未拍板前不写 M3 映射实现，不写迁移脚本，不写任何环境的数据。
+状态：已评审通过（2026-10-21）。开口项 a–d 已定，见 §3。可以进入 M3 映射纯函数。仍然不写迁移脚本，不写任何环境的数据。
 本文件路径：`docs/migration/training-contract.md`。M1 盘点是 `docs/migration/training-inventory.md`（以 #73 合并后的修正为准）。
 
 本步做了两件事：只读计数脚本 `scripts/migration/training-source-counts.mjs`，以及这份映射契约。源项目只用 `migration-reader@blaze-skate-training-platform` 读了一次。没有写 Firestore，没有改规则，没有改 legacy 仓库。
@@ -21,7 +21,7 @@
 
 执行期身份：用 Admin Auth 读旧 uid 的邮箱，再在新平台 Auth 里找同一邮箱。对上之后，新 uid 还必须等于锚点 `baWEw6SZKcQItvcDdpF64ZNe5W12`，否则停止。日志只记「匹配 / 不匹配」，不把邮箱写进仓库。本步没有读 Auth。
 
-匿名或没有邮箱的旧 uid 默认不迁。开口项 a 若改成「全部真实数据」，没有邮箱的 uid 仍然不迁。
+匿名或没有邮箱的旧 uid 不迁。范围已定（2026-10-21）：只迁确认的 Lindsay 一份，另外 11 份不动。
 
 ## 1. 逐字段映射
 
@@ -37,16 +37,16 @@
 | `taskHistory` | 迁 | `athletes/lindsay/training/main/taskHistory/{dateId}`，一天一文档。见 §1.3 |
 | `lastLoginDate` | 有条件 | 没有写入 `todayTasks` 时，不改目标的 `lastLoginDate`。写入了 `todayTasks` 时，把它设成执行当天的 `todayDateString()`。若抄一个更早的日期，`TrainingDayRollover` 会把刚写入的今日任务再归档一次 |
 | `weeklyTemplate` | 迁 | 同在 `training/state`。键映射见 §1.4。目标某天已是非空字符串则保留，空字符串才用旧值补 |
-| `points` | 待批 | 落点是 `athletes/lindsay/gamification/main.points`。怎么与已有值合并见开口项 b |
+| `points` | 已定（2026-10-21） | 落点是 `athletes/lindsay/gamification/main.points`。与目标现值取较大者。小于或等于现值则不写 |
 | `completedDays` | 迁 | 同一份 `gamification/main.completedDays`，按日期并集、去重、排序。`streakDays` 不抄旧值（源文档没有这个字段）；用 `calculateStreakDays` 按并集和执行日重算。普查里这个数组的最大长度是 0 |
-| `pointsPerTask` / `dailyBonusPoints` | 待批 | 落点是 gamification 上的同名可选字段。见开口项 d。新平台缺省是 20 和 50（`defaults.ts`） |
+| `pointsPerTask` / `dailyBonusPoints` | 已定（2026-10-21） | 落点是 gamification 上的同名可选字段。等于旧默认 10 / 20 不写；偏离才写入该值。新平台缺省仍是 20 和 50 |
 | `records`、`records777`、`records1000`、`records1500`、`recordsStart`、`recordsLap`、`records_*` | 迁 | `athletes/lindsay/training/main/records/{distanceId}`。见 §1.5。目标已有的 entry id 保留，只追加 |
 | `customRewards` | 不迁 | 112 份文档长度都是 4，等于源码 `defaultData` 的 4 条默认商品，没有增删。新平台有自己的默认目录（`defaults-rewards.ts`）。把旧默认盖进去会换掉正在用的商品。兑换历史全部为 0，没有要迁的兑换 |
 | `rewardHistory` | 不迁 | 同上，112 份都是空数组 |
 | `customDistances` | 不迁 | 距离由 `records*` 的键决定。普查没有 `records_*` 自定义键。没有成绩的距离名没有单独落点 |
-| `competitionGoalsV1` | 待批 | 无产品落点。见开口项 c |
-| `trainingPlansV1` / `activeTrainingPlanId` | 待批 | 无产品落点。见开口项 c。不写入 `planning/main/completedTasks`（那是 Junior D 打卡） |
-| `races` / `raceDate` | 待批 | 无同形产品落点。见开口项 c。`raceDate` 在 112 份里出现 0 次，只作为允许键留着 |
+| `competitionGoalsV1` | 已定（2026-10-21） | 无产品落点。原样进入 `users/{新uid}/migrationBackups/training-unmapped`，不进业务路径 |
+| `trainingPlansV1` / `activeTrainingPlanId` | 已定（2026-10-21） | 同上，进同一份备份。不写入 `planning/main/completedTasks` |
+| `races` / `raceDate` | 已定（2026-10-21） | 同上，进同一份备份。确认的 Lindsay 档案实际只有 `races` 6 条。`raceDate` 在 112 份里出现 0 次，只作为允许键留着 |
 | `language` / `theme` | 不迁 | 新平台以 `settings/main` 的现值为准。旧主题是配色名，新字段默认 `system` |
 | `username` | 不迁 | 不写入 `displayName`。运动员档已有显示名，本 Phase 不覆盖 |
 | `isPro` | 不迁 | 红线，见 §2 |
@@ -158,15 +158,15 @@ athletes/{uid}/training/main/records/{distanceId}
 
 ## 2. 红线
 
-不许讨论、不许绕开，也不许放进开口项 c 的备份文档。
+不许讨论、不许绕开，也不许放进 §3.c 的备份文档。
 
 1. `parentPin` 明文不进新平台任何字段。DR-011 将来只存哈希，而且要用户重设。迁移不把旧字符串当成哈希，不写入 `parentPinHash`，不写入 `parentPinEnabled`。
 2. 旧 `isPro` 不抄到 `settings/main.isPro`。两边都是人工布尔、都没有到期日，但价格和权益不是同一个商品（旧站文案 `$14.99` / 年、微信人工开通；新平台是 `$19.99` / 月，已由人工标记）。新平台的值保持现状。
 3. `avatar` 的 data URL 不写入 `avatarStoragePath`，也不另存成文件。该字段留在源项目里。
 
-## 3. 待批开口项
+## 3. 开口项（2026-10-21 已定）
 
-每项都未定。推荐只供拍板。
+下面四项已拍板。选项表留下，作为决定当时的对照，不再改口。
 
 ### a. 迁移范围
 
@@ -177,7 +177,7 @@ athletes/{uid}/training/main/records/{distanceId}
 | 只迁确认的那一份 | 写入锚点 uid 下的 `athletes/lindsay`。另外 11 份不动 |
 | 全部真实数据 | 执行期对 12 份做 Auth 邮箱核对。邮箱能在新平台对上的才迁。没有邮箱的不迁 |
 
-推荐：只迁确认的那一份。依据：只有这一份能在不读 Auth 的情况下对上人；另外 11 份没有显示名，也没有档案内邮箱。全部迁移要等单独的 Auth 核对，不该在本契约里预先当成已经对上。
+决定（2026-10-21）：只迁确认的 Lindsay 一份，另外 11 份不动。依据：只有这一份能在不读 Auth 的情况下对上人；另外 11 份没有显示名，也没有档案内邮箱。
 
 ### b. 积分合并
 
@@ -190,7 +190,7 @@ athletes/{uid}/training/main/records/{distanceId}
 | 取大 | 保留较大的那个数 |
 | 相加 | 两本账相加 |
 
-推荐：取大。覆盖或保留都会丢掉一边；相加会在两边都给过同类打卡时把余额抬高。取大不双计，也不把较高的那本账抹掉。
+决定（2026-10-21）：取大。覆盖或保留都会丢掉一边；相加会在两边都给过同类打卡时把余额抬高。取大不双计，也不把较高的那本账抹掉。小于或等于目标现值时不写 `points`。
 
 ### c. 没有产品落点的数据
 
@@ -201,7 +201,7 @@ athletes/{uid}/training/main/records/{distanceId}
 | 先迁为备份 | 只把这些键写到 `users/{新uid}/migrationBackups/training-unmapped`。应用不读它。文档里不得出现 `parentPin`、`avatar`、`isPro`，也不得是整份 profile |
 | 本 Phase 不迁 | 这些键留在旧项目。确认档案上的 6 条比赛清单不会进新平台 |
 
-推荐：先迁为备份。依据：比赛清单在确认档案上有 6 条，不迁就丢；目标和计划这次虽然不在这份档案上，但全库有 19 份文档带这两个键（最大 4 条目标和 3 条计划）。备份不假装新平台已经有目标页或计划页。
+决定（2026-10-21）：先迁为备份，路径 `users/{新uid}/migrationBackups/training-unmapped`。只含 `competitionGoalsV1`、`trainingPlansV1`、`activeTrainingPlanId`、`races`、`raceDate` 里实际存在的键，原样保留。确认的 Lindsay 档案没有目标和计划键，实际只有 `races` 6 条。备份不假装新平台已经有目标页或计划页。
 
 ### d. 每任务分 / 全勤分
 
@@ -213,7 +213,7 @@ athletes/{uid}/training/main/records/{distanceId}
 | 一律不写 | 即使将来读到其他数字也不写 |
 | 一律按旧值写 | 把 10 和 20 写进新平台，盖过 20 和 50 |
 
-推荐：偏离默认才写入。依据：这次没有人改过；把 10 和 20 写进去会改变新平台的计分，又没有保住任何个人设置。执行时若读到不是 10 或 20 的值，按这个选项写入，不另做一次全库扫描。
+决定（2026-10-21）：偏离旧默认才写入。`pointsPerTask` 等于 10、`dailyBonusPoints` 等于 20 时不写。其他数字写入 gamification 的同名字段。这次普查没有人改过；把 10 和 20 写进去会改变新平台的 20 和 50。
 
 ## 4. 身份
 
@@ -221,7 +221,7 @@ athletes/{uid}/training/main/records/{distanceId}
 |---|---|
 | 确认的那一份 | 执行期用旧 uid 的 Auth 邮箱去新平台找用户。找到的 uid 必须是 `baWEw6SZKcQItvcDdpF64ZNe5W12`，运动员 id 用 `lindsay`。对不上就停止，不改用显示名硬迁 |
 | 匿名、无邮箱 | 默认不迁 |
-| 开口项 a 若选全部真实数据 | 仍然只迁邮箱能对上的 uid。对不上的列入跳过计数，不新建新平台用户 |
+| 另外 11 份有训练数据但没有 username | 不迁（2026-10-21，开口项 a） |
 | 游客在绑定邮箱时换号留下的旧 uid | 与匿名相同：没有可用邮箱就不迁。不把两份旧文档合并 |
 
 本步没有调用 Auth，所以上表的邮箱核对还没发生。
@@ -230,7 +230,7 @@ athletes/{uid}/training/main/records/{distanceId}
 
 | 步 | 做什么 | 停止点 |
 |---|---|---|
-| M3 | 把 §1 的规则写成纯函数，用固件测试锁住 id、日期、距离键、历史日形状、红线字段被丢弃 | 开口项 a–d 未批，或测试未绿，不进 M4 |
+| M3 | 把 §1 的规则写成纯函数，用固件测试锁住 id、日期、距离键、历史日形状、红线字段被丢弃 | 测试未绿不进 M4。开口项 a–d 已于 2026-10-21 定下 |
 | M4 | 迁移脚本。默认 dry-run。写入必须显式参数，并区分 emulator / staging / prod | 未 dry-run、计数对不上、出现未知键、邮箱锚点对不上，都不写 |
 | M5 | staging 演练。目标项目 `skatingx-platform` | 演练账目不齐不进生产 |
 | M6 | 生产执行。目标项目 `skatingx-prod`。要单独授权 | 没有当次授权不写生产 |
