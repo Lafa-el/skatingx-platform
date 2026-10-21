@@ -14,9 +14,12 @@ import { buildMigrationPlan, createEmptyTargetState } from "./training-map.mjs";
 import {
   EMULATOR_PROJECT,
   MigrationStop,
+  PRODUCTION_PROJECT,
   SOURCE_PROJECT,
   STAGING_PROJECT,
   TARGET_UID,
+  assertProductionEnvironment,
+  assertProductionWrite,
   assertStagingEnvironment,
   assertWriterCredential,
   formatTargetState,
@@ -172,11 +175,18 @@ assert(sourceReader.includes(".get("), "source reader does not read");
 assert(!/\.(set|update|delete|create)\s*\(/.test(sourceReader), "source reader writes");
 assert(sourceReader.includes("SOURCE_PROJECT"), "source reader lost its project");
 assert(sourceText.includes(`export const SOURCE_PROJECT = "${SOURCE_PROJECT}"`), "source project id");
-assert(!sourceText.includes('"skatingx-prod"'), "production project id is present");
 assert(STAGING_PROJECT === "skatingx-platform", "staging project");
 assert(sourceText.includes(`export const STAGING_PROJECT = "${STAGING_PROJECT}"`), "staging project is not fixed");
 assert(sourceText.includes("projectId: STAGING_PROJECT"), "staging client does not use the fixed project");
+assert(PRODUCTION_PROJECT === "skatingx-prod", "production project");
+assert(sourceText.includes(`export const PRODUCTION_PROJECT = "${PRODUCTION_PROJECT}"`), "production project is not fixed");
+assert(sourceText.includes("projectId: PRODUCTION_PROJECT"), "production client does not use the fixed project");
 assert(sourceText.includes("does not read Firebase Auth"), "identity chain comment is missing");
+const runBody = sourceText.slice(sourceText.indexOf("export async function run"));
+const checkpointAt = runBody.indexOf("assertProductionWrite");
+const snapshotAt = runBody.indexOf("collectSnapshot");
+const writeAt = runBody.indexOf("writeDocuments");
+assert(checkpointAt >= 0 && checkpointAt < snapshotAt && snapshotAt < writeAt, "production checkpoint does not run before the write");
 
 const wrongUid = stops("wrong target uid", () =>
   parseArgs(["--target", "emulator", "--source-uid", "fixture-source", "--target-uid", "someone-else", "--execution-date", executionDate]),
@@ -190,18 +200,78 @@ assert(stagingWrite.target === "staging" && stagingWrite.write === true, "stagin
 stops("staging snapshot", () =>
   parseArgs(["--target", "staging", "--write", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]),
 );
-stops("production", () => parseArgs(["--target", "production", "--write", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", "/tmp/m4-snapshot.json"]));
-stops("project flag", () => parseArgs(["--project", "skatingx-prod", "--target", "staging", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]));
+const missingConfirm = stops("production confirm", () => parseArgs(["--target", "production", "--write", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", "/tmp/m6-snapshot.json"]));
+assert(missingConfirm.message.includes("--confirm-production"), "missing production confirmation was not named");
+const productionDryRun = parseArgs(["--target", "production", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]);
+assert(productionDryRun.target === "production" && productionDryRun.write === false, "production dry-run did not parse");
+const productionWrite = parseArgs(["--target", "production", "--write", "--confirm-production", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", "/tmp/m6-snapshot.json"]);
+assert(productionWrite.write && productionWrite.confirmProduction && productionWrite.target === "production", "production write did not pass validation");
+stops("project flag", () => parseArgs(["--project", "skatingx-prod", "--target", "production", "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate]));
 const emulatorHost = stops("emulator host", () => assertStagingEnvironment({ FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" }));
 assert(emulatorHost.message.includes("FIRESTORE_EMULATOR_HOST"), "emulator conflict was not explained");
+const productionHost = stops("production emulator", () => assertProductionEnvironment({ FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" }));
+assert(productionHost.message.includes("FIRESTORE_EMULATOR_HOST"), "production emulator conflict was not explained");
 const writerInside = stops("writer key", () => assertWriterCredential({ TARGET_GOOGLE_APPLICATION_CREDENTIALS: script }));
 assert(writerInside.message.includes("repository"), "inside-repo writer key was not explained");
+const productionKey = stops("production key", () => assertWriterCredential({
+  TARGET_GOOGLE_APPLICATION_CREDENTIALS: "/tmp/migration-writer.json",
+}, "production"));
+assert(productionKey.message.includes("prod-writer.json"), "production key path was not required");
+assert(!productionKey.message.includes("/tmp/migration-writer.json"), "rejected writer path was echoed");
 const stateLine = formatTargetState(
   { points: 5, tasks: [{ text: "secret-task" }] },
   createEmptyTargetState(TARGET_UID, "lindsay"),
 );
 assert(stateLine === "target-state legacyPoints=5 points=0 records=none weeklyTemplate=empty", "target state summary");
 assert(!stateLine.includes("secret-task"), "target state summary included task text");
+
+function passingCheckpoint() {
+  return {
+    plan: {
+      writes: [
+        { kind: "state", payload: { weeklyTemplate: { monday: "ice" } } },
+        ...Array.from({ length: 6 }, (_, index) => ({ kind: "recordsDoc", payload: { distanceId: `d${index}` } })),
+        { kind: "backupDoc", payload: { races: [] } },
+      ],
+      backup: { races: [] },
+      skips: [],
+    },
+    counts: { tasksAdded: 0, historyTasksAdded: 0, recordsAdded: 8 },
+    legacy: { points: 0 },
+  };
+}
+
+function checkpointStop(label, change) {
+  const sample = passingCheckpoint();
+  change(sample);
+  return stops(label, () => assertProductionWrite(sample.plan, sample.counts, sample.legacy));
+}
+
+assertProductionWrite(passingCheckpoint().plan, passingCheckpoint().counts, passingCheckpoint().legacy);
+const withStreak = passingCheckpoint();
+withStreak.plan.writes.push({ kind: "gamification", payload: { streakDays: 2 } });
+assertProductionWrite(withStreak.plan, withStreak.counts, withStreak.legacy);
+assert(checkpointStop("records added", (sample) => { sample.counts.recordsAdded = 7; }).message.includes("record plan"), "record count checkpoint");
+assert(checkpointStop("record docs", (sample) => { sample.plan.writes.splice(sample.plan.writes.findIndex((write) => write.kind === "recordsDoc"), 1); }).message.includes("record plan"), "record doc checkpoint");
+assert(checkpointStop("tasks added", (sample) => { sample.counts.tasksAdded = 1; }).message.includes("task plan"), "task checkpoint");
+assert(checkpointStop("history added", (sample) => { sample.counts.historyTasksAdded = 1; }).message.includes("task plan"), "history checkpoint");
+assert(checkpointStop("history doc", (sample) => { sample.plan.writes.push({ kind: "taskHistoryDay", payload: { tasks: [] } }); }).message.includes("task plan"), "history doc checkpoint");
+assert(checkpointStop("backup keys", (sample) => { sample.plan.backup = { races: [], goals: [] }; }).message.includes("backup keys"), "backup checkpoint");
+assert(checkpointStop("gamification count", (sample) => {
+  sample.plan.writes.push({ kind: "gamification", payload: { streakDays: 1 } }, { kind: "gamification", payload: { streakDays: 1 } });
+}).message.includes("gamification plan"), "gamification count checkpoint");
+for (const key of ["points", "pointsPerTask", "dailyBonusPoints", "completedDays"]) {
+  assert(checkpointStop(`gamification ${key}`, (sample) => {
+    sample.plan.writes.push({ kind: "gamification", payload: { streakDays: 1, [key]: 1 } });
+  }).message.includes(`gamification key ${key}`), `${key} checkpoint`);
+}
+assert(checkpointStop("state count", (sample) => {
+  sample.plan.writes.push({ kind: "state", payload: { weeklyTemplate: { monday: "ice" } } });
+}).message.includes("state plan"), "state count checkpoint");
+assert(checkpointStop("state key", (sample) => {
+  sample.plan.writes.find((write) => write.kind === "state").payload.todayTasks = [];
+}).message.includes("state key todayTasks"), "state payload checkpoint");
+assert(checkpointStop("legacy points", (sample) => { sample.legacy.points = 5; }).message.includes("legacy points"), "legacy points checkpoint");
 
 const gateDir = mkdtempSync(path.join(tmpdir(), "training-m4-"));
 const gateFixture = path.join(gateDir, "profile.json");
@@ -226,9 +296,16 @@ assert(!stagingEmulator.stdout.includes("dry-run: no documents written"), "emula
 assert(!stagingEmulator.stdout.includes("wrote"), "emulator conflict wrote documents");
 
 const production = cli(["--target", "production", "--write", "--fixture", gateFixture, "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", gateSnapshot]);
-assert(production.status === 1, "production write was allowed");
-assert(production.stderr.includes("not authorized"), "production refusal was not explained");
+assert(production.status === 1, "production write without confirmation was allowed");
+assert(production.stderr.includes("--confirm-production"), "missing production confirmation was not named");
 assert(!existsSync(gateSnapshot), "production refusal wrote a snapshot");
+const productionEmulator = cli(["--target", "production", "--write", "--confirm-production", "--fixture", gateFixture, "--source-uid", "fixture-source", "--target-uid", TARGET_UID, "--execution-date", executionDate, "--snapshot-out", gateSnapshot], {
+  FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+});
+assert(productionEmulator.status === 1, "production write with the emulator host was allowed");
+assert(productionEmulator.stderr.includes("FIRESTORE_EMULATOR_HOST"), "production emulator conflict was not named");
+assert(!productionEmulator.stdout.includes("wrote"), "production emulator conflict wrote documents");
+assert(!existsSync(gateSnapshot), "production emulator conflict wrote a snapshot");
 
 const insideKey = cli(baseArgs(gateFixture), { GOOGLE_APPLICATION_CREDENTIALS: script });
 assert(insideKey.status === 1, "a key inside the repo was accepted");
