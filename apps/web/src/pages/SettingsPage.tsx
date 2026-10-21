@@ -309,7 +309,7 @@ export function SettingsPage() {
           </form>
         ) : null}
 
-        {firebaseReady && !loading ? (
+        {firebaseReady && !loading && !registered ? (
           <form className="mt-4 grid gap-3" onSubmit={handleSignInSubmit}>
             <h4 className="text-sm font-semibold text-brand-navy">{t("settings.signIn.title")}</h4>
             <p className="text-sm text-brand-navy/80">{t("settings.signIn.help")}</p>
