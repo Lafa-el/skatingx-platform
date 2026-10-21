@@ -375,8 +375,8 @@ HTML 里没有出现 `https://` 资源地址。
 |---|---|---|---|
 | 1 | 概览：进度、连续天数、积分、比赛倒计时 | 部分覆盖 | 新平台有训练首页和仪表盘；没有旧站这套比赛轮播 |
 | 2 | 今日任务的增删改和勾选积分 | 部分覆盖 | 新平台有今日任务和积分；旧任务没有 `createdAt`，删除不退分 |
-| 3 | 任务历史月历 | 缺失 | 新平台页面没有月历。schema 的 `taskHistory` 路径页面未写 |
-| 4 | 跨天把昨日任务推进 `taskHistory` 并清空今日 | 缺失 | 同上，自动归档没有对应页面行为 |
+| 3 | 任务历史月历 | 缺失 | `taskHistory` 数据由跨天归档持续写入（第 4 行）。新平台没有任何页面读取它做月历或历史展示 |
+| 4 | 跨天把昨日任务推进 `taskHistory` 并清空今日 | 部分覆盖 | 新平台有同一行为。`apps/web` 的 `TrainingDayRollover` 在应用里调用 `packages/firebase-client` 的 `runDayRolloverIfNeeded`（`training-tasks.ts`）：跨天时用事务把昨日任务写入 `training/main/taskHistory/{dateId}`，并清空 `todayTasks`。差别只在落点形状（旧站是 `profile` 文档内的 `taskHistory` map，新平台是按日期拆分的文档）和任务形状（旧任务无 `createdAt`，`id` 为 number） |
 | 5 | 学院三档浏览，以及 PRO 才允许导入 | 部分覆盖 | 新平台学院来自 `@skatingx/content`。周导入看 PRO；单条导入不看 PRO。条目是否同一套未验证 |
 | 6 | 比赛目标（优先级、目标秒数、与成绩的差距） | 缺失 | `apps/web` 无 `competitionGoals` 一类页面 |
 | 7 | 用户自建的日期化周计划 | 缺失 | 新平台计划页是 Junior D 模板打卡，不是 `trainingPlansV1` |
@@ -396,8 +396,8 @@ HTML 里没有出现 `https://` 资源地址。
 | 21 | `username` 显示名 | 部分覆盖 | 新平台显示名在运动员档 `displayName`，不是账号上的 `username` |
 | 22 | 概览上的「初始化 Lindsay 默认目标/计划」按钮 | 缺失 | 新平台没有这个写入按钮。它写出的目标和计划仍属于第 6、7 行 |
 
-缺失 13 行：3、4、6、7、8、10、11、14、17、18、19、20、22。
-部分覆盖 8 行：1、2、5、9、12、13、16、21。
+缺失 12 行：3、6、7、8、10、11、14、17、18、19、20、22。
+部分覆盖 9 行：1、2、4、5、9、12、13、16、21。
 已覆盖 1 行：15。
 
 ### 9.2 旧数据 × 新平台落点候选
@@ -414,7 +414,7 @@ HTML 里没有出现 `https://` 资源地址。
 | `parentPin` | 不落入 `parentPinHash` | 明文不能当哈希。新 PIN 尚未实现 |
 | `points`、`completedDays` | `athletes/{athleteId}/gamification/main` | 新模型已经有 `points`、`completedDays`、`streakDays`。连续天数在旧站是算出来的 |
 | `pointsPerTask`、`dailyBonusPoints` | 同一份 `gamification/main` 的可选字段 | schema 已留字段，页面未编辑 |
-| `tasks`、`taskHistory` | `training/state` 的 `todayTasks`，以及 `training/main/taskHistory/{dateId}` | 路径在 `packages/schema/src/paths.ts`。旧任务缺 `createdAt`，`id` 还是 number |
+| `tasks`、`taskHistory` | `training/state` 的 `todayTasks`，以及 `training/main/taskHistory/{dateId}` | 路径在 `packages/schema/src/paths.ts`。新平台已有写入方（跨天归档）与既定文档形状，迁移落点需与 `serializeTaskHistoryDay` 的形状对齐。旧任务缺 `createdAt`，`id` 还是 number |
 | `weeklyTemplate` | `training/state.weeklyTemplate` | 旧键是 `"0"`–`"6"`，新键是 `monday`…`sunday` |
 | `records*` | `training/main/records/{distanceId}` | 新文档按距离拆开。`records` 这个键要映射成 `500m`，不能把键名当距离 |
 | `races` | 无现成同形落点 | 赛日模块是赛事、名单、分组，不是这个列表 |
