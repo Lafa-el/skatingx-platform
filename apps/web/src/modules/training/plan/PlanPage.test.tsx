@@ -101,6 +101,7 @@ describe("training plan page", () => {
     expect(screen.queryByRole("button", { name: "打卡同步" })).toBeNull();
 
     await user.click(screen.getByRole("button", { name: /技术基础与弯道控制/ }));
+    expect(sessionStorage.getItem("skatingx.plan.focus")).toBe("lean");
     expect(screen.getByRole("heading", { level: 2 }).textContent).toContain("第 1 周周期微循环：技术基础与弯道控制");
     expect(screen.getAllByRole("button", { name: "打卡同步" })).toHaveLength(7);
     expect(screen.getByText(/本周已打卡积分：/)).toBeTruthy();
