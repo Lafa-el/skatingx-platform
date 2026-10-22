@@ -10,7 +10,13 @@ export async function updateUserSettings(
   patch: Partial<
     Pick<
       UserSettings,
-      "language" | "theme" | "isPro" | "parentPinEnabled" | "activeAthleteId"
+      | "language"
+      | "theme"
+      | "isPro"
+      | "parentPinEnabled"
+      | "parentPinHash"
+      | "parentPinSalt"
+      | "activeAthleteId"
     >
   >,
 ): Promise<void> {

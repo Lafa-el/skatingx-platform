@@ -10,9 +10,12 @@ export interface UserSettings {
   theme: string;
   /** Manual dev flag — no payment integration in M6 */
   isPro?: boolean;
-  /** Whether parent lock is configured (hash not stored until PIN security ships) */
+  /** Unused by the UX gate. The gate treats a PIN as set only when both hash and salt are present. */
   parentPinEnabled?: boolean;
+  /** SHA-256 hex of `salt + PIN`. Never the PIN itself. See ADR-007. */
   parentPinHash?: string;
+  /** Random hex salt that was prefixed to the PIN before hashing. */
+  parentPinSalt?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }

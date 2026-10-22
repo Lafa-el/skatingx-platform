@@ -26,6 +26,7 @@ import {
   toAuthErrorNote,
   type AuthErrorNote,
 } from "@/shared/i18n/auth-messages";
+import { clearParentPinUnlock } from "@/shared/parentPin";
 
 /**
  * For whoever diagnoses a problem: the operation and the error code only. The message can carry
@@ -177,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       await signOutUser(auth);
+      clearParentPinUnlock(sessionStorage);
       setUser(null);
     } catch (error) {
       reportAuthFailure("sign-out", error);

@@ -7,9 +7,11 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { useReloadUserSettings } from "@/app/providers/FirestoreProvider";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import { LanguageSetting } from "@/components/LanguageSetting";
+import { ParentPinManager } from "@/components/ParentPinManager";
 import { useAthleteProfile } from "@/hooks/firestore";
 import { useIsPro } from "@/hooks/useIsPro";
 import { useLanguageSetting } from "@/hooks/useLanguageSetting";
+import { useParentPinGuard } from "@/hooks/useParentPinGuard";
 import { useLocale } from "@/hooks/useLocale";
 import { APP_VERSION } from "@/shared/appVersion";
 import {
@@ -111,6 +113,8 @@ export function SettingsPage() {
   const [forgotBusy, setForgotBusy] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotFailure, setForgotFailure] = useState<ResetFailure | null>(null);
+  const [planConfirmed, setPlanConfirmed] = useState(false);
+  const { guard, dialog: pinDialog } = useParentPinGuard();
   const languageSetting = useLanguageSetting();
   const locale: Locale = useLocale();
   const t = (key: SettingsPageMessageKey, params?: Record<string, string | number>) =>
@@ -196,7 +200,19 @@ export function SettingsPage() {
     }
   }
 
-  async function handlePasswordReset() {
+  function handlePasswordReset() {
+    guard("passwordReset", () => {
+      void sendPasswordReset();
+    });
+  }
+
+  function requestPlanChange() {
+    guard("planChange", () => {
+      setPlanConfirmed(true);
+    });
+  }
+
+  async function sendPasswordReset() {
     const email = user?.email?.trim() ?? "";
     setResetSent(false);
     setResetFailure(null);
@@ -266,6 +282,8 @@ export function SettingsPage() {
             <dd className="font-medium text-brand-navy">{emailDisplay}</dd>
           </div>
         </dl>
+
+        <ParentPinManager />
 
         {authError ? <ErrorNotice className="mt-4">{formatAuthError(authError, locale)}</ErrorNotice> : null}
 
@@ -401,6 +419,10 @@ export function SettingsPage() {
             <StatusTag tone="brand">{t("settings.plan.proTag")}</StatusTag>
             <p className="mt-3 text-lg font-semibold text-brand-navy">{t("settings.plan.proTitle")}</p>
             <PlanBenefits locale={locale} locked={false} />
+            <Button type="button" variant="outline" className="mt-4" onClick={requestPlanChange}>
+              {t("settings.plan.change")}
+            </Button>
+            {planConfirmed ? <p className="mt-2 text-sm font-medium text-brand-navy">{t("settings.plan.confirmed")}</p> : null}
           </div>
         ) : (
           <div>
@@ -408,6 +430,10 @@ export function SettingsPage() {
             <PlanBenefits locale={locale} locked />
             <p className="mt-3 text-lg font-semibold text-brand-navy">{t("settings.plan.price")}</p>
             <p className="mt-1 text-sm text-brand-navy/80">{t("settings.plan.manual")}</p>
+            <Button type="button" variant="outline" className="mt-4" onClick={requestPlanChange}>
+              {t("settings.plan.start")}
+            </Button>
+            {planConfirmed ? <p className="mt-2 text-sm font-medium text-brand-navy">{t("settings.plan.confirmed")}</p> : null}
           </div>
         )}
       </Card>
@@ -429,6 +455,7 @@ export function SettingsPage() {
       </Card>
 
       <p className="text-xs text-brand-navy/70">{t("settings.footer.version", { version: APP_VERSION })}</p>
+      {pinDialog}
     </section>
   );
 }

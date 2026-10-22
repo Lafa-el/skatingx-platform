@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { useActiveAthlete } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
+import { useParentPinGuard } from "@/hooks/useParentPinGuard";
 
 import { EventPicker } from "../components/EventPicker";
 import { VerificationBadge } from "../components/VerificationBadge";
@@ -70,6 +71,7 @@ export function SetupPage() {
   const rosterSubmit = useSubmitState("saveRoster");
   const rowAction = useSubmitState("rowAction");
   const templateSubmit = useSubmitState("applyTemplate");
+  const { guard: guardParentPin, dialog: pinDialog } = useParentPinGuard();
 
   function afterWrite(outcome: WriteOutcome | null): boolean {
     if (outcome === null) {
@@ -355,9 +357,11 @@ export function SetupPage() {
                   .then(afterWrite);
               }}
               onDelete={(entry) => {
-                void rowAction
-                  .submit(() => actions.deleteRoster(activeEvent.eventId, entry.rosterId))
-                  .then(afterWrite);
+                guardParentPin("deleteAthlete", () => {
+                  void rowAction
+                    .submit(() => actions.deleteRoster(activeEvent.eventId, entry.rosterId))
+                    .then(afterWrite);
+                });
               }}
             />
           )}
@@ -391,6 +395,7 @@ export function SetupPage() {
           )}
         </section>
       ) : null}
+      {pinDialog}
     </div>
   );
 }

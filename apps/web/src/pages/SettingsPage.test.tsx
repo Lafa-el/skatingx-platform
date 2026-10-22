@@ -9,6 +9,8 @@ import { render, screen, userEvent, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
 import { watchUnhandledRejections } from "@/test/unhandledRejections";
 
+import { hashParentPin } from "@/shared/parentPin";
+
 import { SettingsPage } from "./SettingsPage";
 
 const h = vi.hoisted(() => {
@@ -72,6 +74,7 @@ beforeEach(() => {
   h.reset = vi.fn().mockResolvedValue(undefined);
   h.authClient = {};
   h.update = vi.fn().mockResolvedValue(undefined);
+  sessionStorage.clear();
 });
 
 const originalConfirm = window.confirm;
@@ -175,7 +178,7 @@ describe("SettingsPage text", () => {
     const { container } = renderSettings();
     const note = container.querySelector("code")?.parentElement;
     expect(note?.textContent).toBe(
-      "家长 PIN 锁在 M6 中尚未实现。PIN 不会以明文保存。PIN 安全功能上线后，只会把哈希值保存在 settings/main 中。",
+      "家长 PIN 在账号分组里设置。保存下来的只有哈希，明文不会写入 settings/main。",
     );
     expect(container.querySelector("code")?.textContent).toBe("settings/main");
   });
@@ -184,7 +187,7 @@ describe("SettingsPage text", () => {
     setEnglish();
     const { container } = renderSettings();
     expect(container.querySelector("code")?.parentElement?.textContent).toBe(
-      "Parent PIN lock is not implemented in M6. PINs are not stored in plaintext. When PIN security ships, only a hash will be saved on settings/main.",
+      "The parent PIN is set in the Account group. Only a hash is stored, never the PIN itself, on settings/main.",
     );
   });
 });
@@ -196,12 +199,12 @@ describe("SettingsPage details", () => {
     (stored) => {
       h.settings = { ...h.settings, parentPinEnabled: stored };
       const zh = renderSettings();
-      expect(zh.container.textContent).not.toMatch(/parentPinEnabled/);
+      expect(zh.container.textContent).not.toMatch(/parentPinEnabled|parentPinHash|parentPinSalt/);
       zh.unmount();
 
       setEnglish();
       const en = renderSettings();
-      expect(en.container.textContent).not.toMatch(/parentPinEnabled/);
+      expect(en.container.textContent).not.toMatch(/parentPinEnabled|parentPinHash|parentPinSalt/);
     },
   );
 });
@@ -678,5 +681,105 @@ describe("SettingsPage look (UI v1)", () => {
     const signOut = screen.getByRole("button", { name: "退出登录" });
     expect(signOut.className).toContain("text-status-danger");
     expect(signOut.className).not.toContain("brand-flame");
+  });
+});
+
+describe("SettingsPage parent PIN", () => {
+  const pin = "1357";
+
+  async function storedPin() {
+    const salt = "ab";
+    return { parentPinHash: await hashParentPin(salt, pin), parentPinSalt: salt };
+  }
+
+  it("suggests setting a PIN and does not block the three actions while it is unset", async () => {
+    registered();
+    const user = userEvent.setup();
+    renderSettings();
+    expect(screen.getByText(/建议设置一个/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "设置家长 PIN" })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "修改密码" }));
+    expect(h.reset).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "开通" }));
+    expect(screen.getByText(/这一步不会改你的套餐状态/)).toBeTruthy();
+    expect(h.update).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("saves only when the two entries match, and the write contains the hash, not the PIN", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+    await user.click(screen.getByRole("button", { name: "设置家长 PIN" }));
+    await user.type(screen.getByLabelText("新 PIN"), pin);
+    await user.type(screen.getByLabelText("再输入一次"), "0000");
+    expect(screen.getByRole("button", { name: "保存" })).toHaveProperty("disabled", true);
+    expect(h.update).not.toHaveBeenCalled();
+
+    await user.clear(screen.getByLabelText("再输入一次"));
+    await user.type(screen.getByLabelText("再输入一次"), pin);
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(h.update).toHaveBeenCalledTimes(1);
+    const patch = h.update.mock.calls[0]?.[2] as { parentPinHash: string; parentPinSalt: string };
+    expect(JSON.stringify(patch)).not.toContain(pin);
+    expect(patch.parentPinHash).toBe(await hashParentPin(patch.parentPinSalt, pin));
+    expect(screen.getByText("已保存")).toBeTruthy();
+  });
+
+  it("a wrong current PIN does not replace the stored hash", async () => {
+    h.settings = { ...h.settings, ...(await storedPin()) };
+    const user = userEvent.setup();
+    renderSettings();
+    await user.click(screen.getByRole("button", { name: "修改 PIN" }));
+    await user.type(screen.getByLabelText("当前 PIN"), "0000");
+    await user.type(screen.getByLabelText("新 PIN"), "2468");
+    await user.type(screen.getByLabelText("再输入一次"), "2468");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(h.update).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toContain("PIN 不正确");
+  });
+
+  it("holds the password email and the plan action until the PIN matches, then keeps the session unlocked", async () => {
+    registered();
+    h.settings = { ...h.settings, ...(await storedPin()) };
+    const user = userEvent.setup();
+    renderSettings();
+    expect(screen.queryByText(/建议设置一个/)).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "修改密码" }));
+    expect(h.reset).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog");
+    await user.type(within(dialog).getByLabelText("家长 PIN"), "0000");
+    await user.click(within(dialog).getByRole("button", { name: "验证" }));
+    expect(h.reset).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole("alert").textContent).toContain("PIN 不正确");
+
+    await user.click(within(dialog).getByRole("button", { name: "取消" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(h.reset).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "开通" }));
+    expect(screen.queryByText(/这一步不会改你的套餐状态/)).toBeNull();
+    await user.type(within(screen.getByRole("dialog")).getByLabelText("家长 PIN"), pin);
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "验证" }));
+    expect(screen.getByText(/这一步不会改你的套餐状态/)).toBeTruthy();
+    expect(h.update).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "修改密码" }));
+    expect(h.reset).toHaveBeenCalledExactlyOnceWith(h.authClient, "person@example.com");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("the PRO card's change action is the same gate and still does not write isPro", async () => {
+    h.settings = { ...h.settings, isPro: true, ...(await storedPin()) };
+    const user = userEvent.setup();
+    renderSettings();
+    await user.click(screen.getByRole("button", { name: "变更" }));
+    expect(h.update).not.toHaveBeenCalled();
+    expect(screen.queryByText(/这一步不会改你的套餐状态/)).toBeNull();
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "取消" }));
+    expect(screen.queryByText(/这一步不会改你的套餐状态/)).toBeNull();
   });
 });
