@@ -7,8 +7,10 @@ import {
 
 /**
  * View model for the analysis hub. It does not read or write.
- * A missing number stays missing: it is not zero, and a pace stability index is not a decay.
- * Delta and sparkline exist only when that kind has at least two records.
+ * A missing decay stays missing: it is not zero, and the stability index is not copied into it.
+ * The pace card headline is the rating and the stability index. Decay is a separate line,
+ * present only when that record stored a number.
+ * Delta and sparkline exist only when that kind has at least two finite numbers.
  */
 
 export const HUB_SPARK_LIMIT = 8;
@@ -31,6 +33,7 @@ export type HubAnalysisInput = {
   readonly avgKnee: number | null;
   readonly avgLean: number | null;
   readonly decayPercent: number | null;
+  readonly stabilityIndexPercent: number | null;
   readonly rating: HubPaceRating | null;
 };
 
@@ -75,6 +78,12 @@ export type HubAngleCard =
       readonly knee: HubMetric;
     };
 
+export type HubPaceDecay = {
+  readonly latest: number;
+  readonly delta: number | null;
+  readonly spark: readonly number[];
+};
+
 export type HubPaceCard =
   | { readonly status: "loading" }
   | { readonly status: "error" }
@@ -82,16 +91,16 @@ export type HubPaceCard =
   | {
       readonly status: "single";
       readonly createdAt: string;
-      readonly decayPercent: number | null;
       readonly rating: HubPaceRating | null;
+      readonly stabilityIndexPercent: number | null;
+      readonly decay: HubPaceDecay | null;
     }
   | {
       readonly status: "trend";
       readonly createdAt: string;
-      readonly decayPercent: number | null;
       readonly rating: HubPaceRating | null;
-      readonly delta: number | null;
-      readonly spark: readonly number[];
+      readonly stabilityIndexPercent: number | null;
+      readonly decay: HubPaceDecay | null;
     };
 
 export type HubEquipmentCard =
@@ -124,6 +133,7 @@ export type HubRecentItem =
       readonly id: string;
       readonly createdAt: string;
       readonly decayPercent: number | null;
+      readonly stabilityIndexPercent: number | null;
       readonly rating: HubPaceRating | null;
     }
   | {
@@ -265,6 +275,17 @@ function angleCard(lane: HubLane<HubAnalysisInput>): HubAngleCard {
   };
 }
 
+function paceDecay(rows: readonly HubAnalysisInput[]): HubPaceDecay | null {
+  const latest = finite(rows[0]?.decayPercent);
+  if (latest === null) return null;
+  const series = numericSeries(rows.map((row) => row.decayPercent));
+  return {
+    latest,
+    delta: series.kind === "trend" ? series.delta : null,
+    spark: series.kind === "trend" ? series.spark : [],
+  };
+}
+
 function paceCard(lane: HubLane<HubAnalysisInput>): HubPaceCard {
   if (lane.status === "loading") return { status: "loading" };
   if (lane.status === "error") return { status: "error" };
@@ -272,23 +293,13 @@ function paceCard(lane: HubLane<HubAnalysisInput>): HubPaceCard {
   if (rows.length === 0) return { status: "empty" };
   const latest = rows[0];
   if (!latest) return { status: "empty" };
-  if (rows.length === 1) {
-    return {
-      status: "single",
-      createdAt: latest.createdAt,
-      decayPercent: finite(latest.decayPercent),
-      rating: latest.rating,
-    };
-  }
-  const series = numericSeries(rows.map((row) => row.decayPercent));
-  return {
-    status: "trend",
+  const headline = {
     createdAt: latest.createdAt,
-    decayPercent: finite(latest.decayPercent),
     rating: latest.rating,
-    delta: series.kind === "trend" ? series.delta : null,
-    spark: series.kind === "trend" ? series.spark : [],
+    stabilityIndexPercent: finite(latest.stabilityIndexPercent),
+    decay: paceDecay(rows),
   };
+  return rows.length === 1 ? { status: "single", ...headline } : { status: "trend", ...headline };
 }
 
 function equipmentCard(lane: HubLane<HubEquipmentInput>): HubEquipmentCard {
@@ -314,6 +325,7 @@ function paceItem(row: HubAnalysisInput): HubRecentItem {
     id: row.id,
     createdAt: row.createdAt,
     decayPercent: finite(row.decayPercent),
+    stabilityIndexPercent: finite(row.stabilityIndexPercent),
     rating: row.rating,
   };
 }

@@ -90,6 +90,8 @@ describe("analyses/{analysisId}", () => {
     await assertFails(setDoc(doc(db, path), paceDoc({ createdAt: new Date() })));
     await assertFails(setDoc(doc(db, path), paceDoc({ createdAt: "2026-10-19T04:59:13Z" })));
     await assertFails(setDoc(doc(db, path), { ...created, paceInput: { distance: "500" } }));
+    const { decayPercent: _removed, ...paceWithoutDecay } = created.pace;
+    await assertFails(setDoc(doc(db, path), { ...created, pace: paceWithoutDecay }));
     await assertFails(
       setDoc(doc(db, path), {
         ...created,

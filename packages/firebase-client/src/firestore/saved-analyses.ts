@@ -11,10 +11,11 @@ export type SavedAnalysisSource = FeedbackSource & {
   readonly biomech: { readonly avgKnee: number | null; readonly avgLean: number | null } | null;
   /**
    * Set on a pace document. `decayPercent` is present only when the saved document
-   * already stores that number. The stability index is a different figure and is not copied in.
+   * already stores that number. The stability index is returned under its own name.
    */
   readonly pace: {
     readonly decayPercent: number | null;
+    readonly stabilityIndexPercent: number | null;
     readonly rating: SavedPaceRating | null;
   } | null;
 };
@@ -62,12 +63,18 @@ function biomechAverages(frames: unknown): { avgKnee: number | null; avgLean: nu
 }
 
 function paceDetail(pace: unknown): NonNullable<SavedAnalysisSource["pace"]> {
-  if (!pace || typeof pace !== "object") return { decayPercent: null, rating: null };
+  if (!pace || typeof pace !== "object") {
+    return { decayPercent: null, stabilityIndexPercent: null, rating: null };
+  }
   const row = pace as Record<string, unknown>;
   const rating = typeof row.rating === "string" && PACE_RATINGS.has(row.rating as SavedPaceRating)
     ? (row.rating as SavedPaceRating)
     : null;
-  return { decayPercent: finiteNumber(row.decayPercent), rating };
+  return {
+    decayPercent: finiteNumber(row.decayPercent),
+    stabilityIndexPercent: finiteNumber(row.stabilityIndexPercent),
+    rating,
+  };
 }
 
 /** Same query as before. Extra fields are read off the document that is already loaded. */

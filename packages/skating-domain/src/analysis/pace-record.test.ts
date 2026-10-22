@@ -32,6 +32,7 @@ describe("pace analysis record", () => {
     expect(record.provenance.algorithmVersion).toBe("legacy-pace-port-1");
     expect(record.pace.rating).toBe("needs-work");
     expect(record.pace.stabilityIndexPercent).toBe(72);
+    expect(record.pace.decayPercent).toBe(result.analysis.decayPercent);
     expect(record.pace.trainingEmphasisRatio).toBe("45:55");
     expect(Object.keys(record).sort()).toEqual(
       ["athleteId", "createdAt", "findings", "id", "ownerUserId", "pace", "provenance"],
