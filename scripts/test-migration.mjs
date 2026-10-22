@@ -16,7 +16,7 @@ const result = spawnSync(
     "firestore",
     "--project",
     "demo-skatingx-migration",
-    "node scripts/migrate-analysis.test.mjs && node scripts/migrate-current-data.test.mjs && node scripts/migrate-auth-users.test.mjs && node scripts/verify-prod-migration.test.mjs && node scripts/migration/training-source-counts.test.mjs && node scripts/migration/training-map.test.mjs && node scripts/migration/migrate-training.test.mjs && node scripts/migration/journal-source-counts.test.mjs && node scripts/migration/journal-map.test.mjs",
+    "node scripts/migrate-analysis.test.mjs && node scripts/migrate-current-data.test.mjs && node scripts/migrate-auth-users.test.mjs && node scripts/verify-prod-migration.test.mjs && node scripts/migration/training-source-counts.test.mjs && node scripts/migration/training-map.test.mjs && node scripts/migration/migrate-training.test.mjs && node scripts/migration/journal-source-counts.test.mjs && node scripts/migration/journal-map.test.mjs && node scripts/migration/migrate-journal.test.mjs",
   ],
   { cwd: rootDir, stdio: "inherit" },
 );
