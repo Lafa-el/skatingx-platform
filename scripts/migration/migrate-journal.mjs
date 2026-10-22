@@ -1,6 +1,6 @@
 /**
  * Journal migration. Default is a dry run. Writes stay on the local Firestore
- * emulator. Staging accepts a dry run only; production is refused while parsing.
+ * emulator. Staging writes require a snapshot; production is refused while parsing.
  *
  * The source project is blaze-skate-journal. There is no --project flag.
  * The staging project is skatingx-platform. Its credential must be the writer
@@ -85,7 +85,7 @@ export function parseArgs(argv) {
     else stop(`unknown argument ${token}`);
   }
   if (args.target === "production") stop("--target production is refused.");
-  if (args.write && args.target !== "emulator") stop("--write requires --target emulator");
+  if (args.write && args.target !== "emulator" && args.target !== "staging") stop("--write requires --target emulator");
   if (args.target !== "emulator" && args.target !== "staging") stop("--target must be emulator");
   if (args.write && !args.snapshotOut) stop("--write requires --snapshot-out outside the repository");
   if (args.snapshotOut && isInsideRepo(args.snapshotOut)) {

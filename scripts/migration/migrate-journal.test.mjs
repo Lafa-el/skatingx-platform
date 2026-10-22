@@ -226,7 +226,7 @@ assert(!sourceText.includes("\"skatingx-prod\"") && !sourceText.includes("'skati
 assert(sourceText.includes("anchorPrefix: ANCHOR_PREFIX") && sourceText.includes("targetUid: TARGET_UID"), "plan options are not pinned");
 assert(STAGING_PROJECT === "skatingx-platform", "staging project is not skatingx-platform");
 assert(sourceText.includes(`export const STAGING_PROJECT = "${STAGING_PROJECT}"`), "staging project is not fixed");
-assert(sourceText.includes('if (args.write && args.target !== "emulator") stop("--write requires --target emulator");'), "staging write rejection changed");
+assert(sourceText.includes('if (args.write && args.target !== "emulator" && args.target !== "staging") stop("--write requires --target emulator");'), "staging write gate changed");
 const stagingOpen = sourceText.slice(sourceText.indexOf("async function openStagingDb"), sourceText.indexOf("export async function openTargetDb"));
 assert(stagingOpen.indexOf("assertStagingEnvironment") >= 0 && stagingOpen.indexOf("assertStagingEnvironment") < stagingOpen.indexOf("initializeApp"), "staging connects before its guard");
 assert(stagingOpen.includes("projectId: STAGING_PROJECT"), "staging client does not use the fixed project");
@@ -241,8 +241,10 @@ const productionWrite = stops("production write", () => parseArgs(["--target", "
 assert(productionWrite.message === "--target production is refused.", "production write was not refused at parse");
 const stagingParsed = parseArgs(["--target", "staging", "--fixture", "fixture.json"]);
 assert(stagingParsed.target === "staging" && stagingParsed.write === false, "staging dry-run was refused");
-const stagingWrite = stops("staging write", () => parseArgs(["--target", "staging", "--write", "--snapshot-out", "/tmp/journal-m4.json"]));
-assert(stagingWrite.message === "--write requires --target emulator", "staging write rejection changed");
+const stagingWrite = parseArgs(["--target", "staging", "--write", "--snapshot-out", "/tmp/journal-m4.json"]);
+assert(stagingWrite.write === true && stagingWrite.target === "staging", "staging write was refused");
+const stagingWriteNoSnapshot = stops("staging write snapshot", () => parseArgs(["--target", "staging", "--write"]));
+assert(stagingWriteNoSnapshot.message.includes("--snapshot-out"), "staging write skipped the snapshot requirement");
 const wrongProject = stops("staging project id", () => assertStagingProject("demo-skatingx-migration"));
 assert(wrongProject.message === "staging project must be skatingx-platform", "wrong staging project was accepted");
 const missingTarget = stops("write without target", () => parseArgs(["--write", "--snapshot-out", "/tmp/journal-m4.json"]));
@@ -400,8 +402,8 @@ assert(missingSource.counts.source === 0 && missingSource.counts.target === 0, "
 assert(missingSource.error instanceof MigrationStop && missingSource.error.message.includes("GOOGLE_APPLICATION_CREDENTIALS"), "missing source key was not named");
 
 const parsedWrite = await attempt(["--target", "staging", "--write", "--snapshot-out", gateSnapshot], stagingEnv);
-assert(parsedWrite.counts.source === 0 && parsedWrite.counts.target === 0, "staging write connected");
-assert(parsedWrite.error instanceof MigrationStop && parsedWrite.error.message === "--write requires --target emulator", "staging write reached the database");
+assert(parsedWrite.counts.source === 0 && parsedWrite.counts.target === 0, "staging write connected before the source credential check");
+assert(parsedWrite.error instanceof MigrationStop && parsedWrite.error.message.includes("GOOGLE_APPLICATION_CREDENTIALS"), "staging write skipped the source credential check");
 
 const parsedProduction = await attempt(["--target", "production", "--fixture", gateFixture], stagingEnv);
 assert(parsedProduction.counts.source === 0 && parsedProduction.counts.target === 0, "production connected");
