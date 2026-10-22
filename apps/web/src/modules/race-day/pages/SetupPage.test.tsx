@@ -3,7 +3,8 @@ import type { RaceEvent, RaceRosterEntry } from "@skatingx/schema";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { legacyColourClasses } from "@/test/legacyLook";
-import { render, screen, userEvent, waitFor } from "@/test/dom";
+import { hashParentPin } from "@/shared/parentPin";
+import { render, screen, userEvent, waitFor, within } from "@/test/dom";
 
 import type { ListState } from "../hooks/useRaceDayData";
 import { SetupPage } from "./SetupPage";
@@ -11,6 +12,10 @@ import { SetupPage } from "./SetupPage";
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => "zh" }));
 vi.mock("@/app/providers/FirestoreProvider", () => ({
   useActiveAthlete: () => ({ athleteId: "lindsay" }),
+  useUserSettings: () => h.userSettings,
+}));
+vi.mock("@/app/providers/AuthProvider", () => ({
+  useAuth: () => ({ uid: "u1" }),
 }));
 
 const h = vi.hoisted(() => {
@@ -22,6 +27,7 @@ const h = vi.hoisted(() => {
     actions: null as unknown,
     syncFailed: false,
     clearSyncFailed: undefined as unknown,
+    userSettings: { data: { language: "zh" } as Record<string, unknown> | null, loading: false, error: null as string | null },
   };
 });
 
@@ -117,6 +123,8 @@ beforeEach(() => {
   h.actions = makeActions();
   h.syncFailed = false;
   h.clearSyncFailed = vi.fn();
+  h.userSettings = { data: { language: "zh" }, loading: false, error: null };
+  sessionStorage.clear();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
@@ -354,6 +362,29 @@ describe("SetupPage roster", () => {
     expect(actions().setRosterVerified).toHaveBeenCalledWith("buffalo-abc123", "lindsay-1", true);
     await user.click(screen.getByRole("button", { name: /^删除 Lindsay/ }));
     await user.click(screen.getByRole("button", { name: /确认删除 Lindsay/ }));
+    expect(actions().deleteRoster).toHaveBeenCalledWith("buffalo-abc123", "lindsay-1");
+  });
+
+  it("holds athlete deletion until the parent PIN matches, and a wrong PIN does not delete", async () => {
+    const pin = "1357";
+    const salt = "ab";
+    h.userSettings = {
+      data: { language: "zh", parentPinHash: await hashParentPin(salt, pin), parentPinSalt: salt },
+      loading: false,
+      error: null,
+    };
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    await user.click(screen.getByRole("button", { name: /^删除 Lindsay/ }));
+    await user.click(screen.getByRole("button", { name: /确认删除 Lindsay/ }));
+    expect(actions().deleteRoster).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog");
+    await user.type(within(dialog).getByLabelText("家长 PIN"), "0000");
+    await user.click(within(dialog).getByRole("button", { name: "验证" }));
+    expect(actions().deleteRoster).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole("alert").textContent).toContain("PIN 不正确");
+    await user.type(within(dialog).getByLabelText("家长 PIN"), pin);
+    await user.click(within(dialog).getByRole("button", { name: "验证" }));
     expect(actions().deleteRoster).toHaveBeenCalledWith("buffalo-abc123", "lindsay-1");
   });
 

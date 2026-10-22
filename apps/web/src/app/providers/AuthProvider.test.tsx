@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { act, renderHook, waitFor } from "@/test/dom";
 
+import { PARENT_PIN_SESSION_KEY } from "@/shared/parentPin";
+
 import { AuthProvider, useAuth } from "./AuthProvider";
 
 const sdkError = (code: string, message = `Firebase: Error (${code}).`) =>
@@ -118,7 +120,19 @@ describe("AuthProvider: errors are kept as what happened", () => {
     expect(result.current.authError).toEqual({ key: "auth.error.emailInUse" });
   });
 
-  it("a failed sign-out keeps the error and ends the loading", async () => {
+  it("a successful sign-out clears the parent PIN unlock", async () => {
+    h.state.auth = {};
+    sessionStorage.setItem(PARENT_PIN_SESSION_KEY, "someone");
+    const { result } = mount();
+    await act(async () => {
+      await result.current.logout();
+    });
+    expect(sessionStorage.getItem(PARENT_PIN_SESSION_KEY)).toBeNull();
+  });
+
+  it("a failed sign-out keeps the unlock, the error and ends the loading", async () => {
+    h.state.auth = {};
+    sessionStorage.setItem(PARENT_PIN_SESSION_KEY, "someone");
     const { result } = mount();
     h.signOutUser.mockRejectedValue(sdkError("auth/network-request-failed"));
     await act(async () => {
@@ -126,6 +140,7 @@ describe("AuthProvider: errors are kept as what happened", () => {
     });
     expect(result.current.authError).toEqual({ key: "auth.error.network" });
     expect(result.current.loading).toBe(false);
+    expect(sessionStorage.getItem(PARENT_PIN_SESSION_KEY)).toBe("someone");
     expect(logged).toHaveBeenCalledExactlyOnceWith("[auth] sign-out failed", {
       code: "auth/network-request-failed",
     });

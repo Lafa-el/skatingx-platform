@@ -14,8 +14,8 @@ const zh = {
   "settings.parent.title": "家长设置",
   // The sentence has a field name in the middle that is not translated, so it is two pieces around
   // a <code> element. The space before the field name is part of the first piece.
-  "settings.parent.noteBefore": "家长 PIN 锁在 M6 中尚未实现。PIN 不会以明文保存。PIN 安全功能上线后，只会把哈希值保存在 ",
-  "settings.parent.noteAfter": " 中。",
+  "settings.parent.noteBefore": "家长 PIN 在账号分组里设置。保存下来的只有哈希，明文不会写入 ",
+  "settings.parent.noteAfter": "。",
 
   "settings.account.title": "当前用户",
   "settings.account.status": "状态",
@@ -59,6 +59,25 @@ const zh = {
   "settings.passwordReset.sent": "重置邮件已发送",
   "settings.passwordReset.noEmail": "这个账户没有邮箱，发不了重置邮件。",
 
+  "settings.pin.suggest": "还没有家长 PIN。建议设置一个，用来确认修改密码、删除运动员和订阅变更。未设置时这些操作不会被拦住。",
+  "settings.pin.set": "设置家长 PIN",
+  "settings.pin.change": "修改 PIN",
+  "settings.pin.current": "当前 PIN",
+  "settings.pin.next": "新 PIN",
+  "settings.pin.again": "再输入一次",
+  "settings.pin.save": "保存",
+  "settings.pin.saving": "保存中…",
+  "settings.pin.saved": "已保存",
+  "settings.pin.mismatch": "两次输入不一致。",
+  "settings.pin.invalid": "请输入 4 位数字。",
+  "settings.pin.wrong": "PIN 不正确。请再试一次。",
+  "settings.pin.saveFailed": "没能保存，请再试一次。",
+  "settings.pin.dialogTitle": "请输入家长 PIN",
+  "settings.pin.dialogHelp": "输入家长 PIN 后才会继续。这只是为了防止误触，不是账户的安全锁。",
+  "settings.pin.dialogLabel": "家长 PIN",
+  "settings.pin.cancel": "取消",
+  "settings.pin.verify": "验证",
+
   "settings.athlete.name": "姓名",
   "settings.athlete.id": "运动员 ID",
   "settings.athlete.current": "当前",
@@ -76,6 +95,9 @@ const zh = {
   "settings.plan.benefit.feedback": "分析生成训练建议",
   "settings.plan.price": "$19.99 / 月",
   "settings.plan.manual": "目前由管理员人工开通；在线订阅即将推出",
+  "settings.plan.start": "开通",
+  "settings.plan.change": "变更",
+  "settings.plan.confirmed": "已核对。套餐仍由管理员处理，这一步不会改你的套餐状态。",
 
   "settings.footer.version": "版本 {version}",
 } as const;
@@ -88,7 +110,7 @@ const en: Record<SettingsPageKey, string> = {
 
   "settings.parent.title": "Parent settings",
   "settings.parent.noteBefore":
-    "Parent PIN lock is not implemented in M6. PINs are not stored in plaintext. When PIN security ships, only a hash will be saved on ",
+    "The parent PIN is set in the Account group. Only a hash is stored, never the PIN itself, on ",
   "settings.parent.noteAfter": ".",
 
   "settings.account.title": "Current user",
@@ -134,6 +156,27 @@ const en: Record<SettingsPageKey, string> = {
   "settings.passwordReset.sent": "Password reset email sent",
   "settings.passwordReset.noEmail": "This account has no email address, so a reset email cannot be sent.",
 
+  "settings.pin.suggest":
+    "No parent PIN yet. Set one to confirm password changes, athlete deletion and subscription changes. Until you set one, those actions are not held back.",
+  "settings.pin.set": "Set parent PIN",
+  "settings.pin.change": "Change PIN",
+  "settings.pin.current": "Current PIN",
+  "settings.pin.next": "New PIN",
+  "settings.pin.again": "Enter it again",
+  "settings.pin.save": "Save",
+  "settings.pin.saving": "Saving…",
+  "settings.pin.saved": "Saved",
+  "settings.pin.mismatch": "The two entries do not match.",
+  "settings.pin.invalid": "Enter 4 digits.",
+  "settings.pin.wrong": "That PIN is not correct. Try again.",
+  "settings.pin.saveFailed": "Could not save. Try again.",
+  "settings.pin.dialogTitle": "Enter the parent PIN",
+  "settings.pin.dialogHelp":
+    "Enter the parent PIN to continue. This only prevents an accidental tap. It is not an account security lock.",
+  "settings.pin.dialogLabel": "Parent PIN",
+  "settings.pin.cancel": "Cancel",
+  "settings.pin.verify": "Verify",
+
   "settings.athlete.name": "Name",
   "settings.athlete.id": "Athlete ID",
   "settings.athlete.current": "Current",
@@ -151,6 +194,9 @@ const en: Record<SettingsPageKey, string> = {
   "settings.plan.benefit.feedback": "Training suggestions from analysis",
   "settings.plan.price": "$19.99 / month",
   "settings.plan.manual": "An administrator turns this on for now. Online subscription is coming.",
+  "settings.plan.start": "Activate",
+  "settings.plan.change": "Change",
+  "settings.plan.confirmed": "Checked. An administrator still handles the plan. This step does not change it.",
 
   "settings.footer.version": "Version {version}",
 };
