@@ -141,7 +141,7 @@ describe("training plan page", () => {
     await user.click(screen.getByRole("button", { name: /Technique and corner control/ }));
     expect(screen.queryByRole("region", { name: "Suggestions from analysis" })).toBeNull();
     expect(screen.getAllByRole("button", { name: "Check in" })).toHaveLength(7);
-    expect(screen.queryByText(/Warming the model/)).toBeNull();
+    expect(screen.queryByText(/Loading the engine/)).toBeNull();
     expect(screen.getByText(/Points checked in this week:/).textContent).toContain("0");
   });
 

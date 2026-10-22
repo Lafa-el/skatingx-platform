@@ -5,8 +5,10 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { fireEvent } from "@testing-library/react";
+
 import { AnalysisBiomechanicsPage } from "@/pages/analysis/AnalysisBiomechanicsPage";
-import { render, screen, userEvent } from "@/test/dom";
+import { act, render, screen, userEvent } from "@/test/dom";
 import { legacyColourClasses } from "@/test/legacyLook";
 
 const state = vi.hoisted(() => ({
@@ -15,6 +17,7 @@ const state = vi.hoisted(() => ({
   db: {} as object | null,
   save: vi.fn((_db: unknown, _record: unknown) => Promise.resolve()),
   release: vi.fn(() => Promise.resolve()),
+  prefetch: vi.fn(),
   load: vi.fn((_onResults: (landmarks: unknown) => void) =>
     Promise.resolve({ send: vi.fn(), close: () => state.release() }),
   ),
@@ -31,6 +34,8 @@ vi.mock("@skatingx/firebase-client", () => ({
 vi.mock("@/modules/analysis/biomechanics/pose-engine", () => ({
   loadPoseEngine: (onResults: (landmarks: unknown) => void) => state.load(onResults),
   releasePoseEngine: () => state.release(),
+  prefetchPoseAssets: () => state.prefetch(),
+  POSE_WARMUP_TIMEOUT_MS: 60_000,
   POSE_SCRIPT_URL: "/mediapipe/pose/0.5.1675469404/pose.js",
 }));
 
@@ -41,6 +46,8 @@ afterEach(() => {
   state.save.mockClear();
   state.load.mockClear();
   state.release.mockClear();
+  state.prefetch.mockClear();
+  vi.useRealTimers();
 });
 
 describe("biomechanics page", () => {
@@ -48,7 +55,7 @@ describe("biomechanics page", () => {
     const view = render(<AnalysisBiomechanicsPage />);
     const button = screen.getByRole("button", { name: "请先上传视频" });
     expect(button.hasAttribute("disabled")).toBe(true);
-    expect(screen.getByText(/正在预热模型\.\.\./)).toBeTruthy();
+    expect(screen.getByText(/正在加载引擎/)).toBeTruthy();
     expect(screen.getByText("标定纠错：3D Normal Projection Active")).toBeTruthy();
     expect(screen.getByText(/● 已连接/)).toBeTruthy();
     const grid = screen.getByRole("checkbox");
@@ -59,6 +66,7 @@ describe("biomechanics page", () => {
     expect(view.container.textContent).not.toContain("jsdelivr");
     expect(legacyColourClasses(view.container)).toEqual([]);
     expect(state.load).not.toHaveBeenCalled();
+    expect(state.prefetch).toHaveBeenCalledTimes(1);
   });
 
   it("loads the local pose script only after the video is chosen and analysis starts", async () => {
@@ -81,7 +89,7 @@ describe("biomechanics page", () => {
     render(<AnalysisBiomechanicsPage />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Analysis · Biomechanics");
     expect(screen.getByRole("button", { name: "Choose a video first" }).hasAttribute("disabled")).toBe(true);
-    expect(screen.getByText(/Warming the model/)).toBeTruthy();
+    expect(screen.getByText(/Loading the engine/)).toBeTruthy();
   });
 
   it("closes Pose when the video is reset and when the page unmounts", async () => {
@@ -109,5 +117,40 @@ describe("biomechanics page", () => {
     expect(source).toContain("pose.js");
     expect(source).toContain("modelComplexity: 1");
     expect(source).toContain("smoothLandmarks: true");
+    expect(source).toContain("POSE_WARMUP_TIMEOUT_MS = 60_000");
+    expect(source).toContain("pose_solution_simd_wasm_bin.wasm");
+    expect(source).toContain("pose_landmark_full.tflite");
+    expect(source).toContain("pose_solution_packed_assets.data");
+    const page = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "BiomechanicsPage.tsx"),
+      "utf8",
+    );
+    expect(page).toContain("prefetchPoseAssets()");
+  });
+
+  it("shows a retry after the warmup waits past the operational timeout", async () => {
+    state.load.mockImplementation(() => new Promise(() => undefined));
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    render(<AnalysisBiomechanicsPage />);
+    const input = document.querySelector("input[type=file]") as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [new File(["video"], "clip.mp4", { type: "video/mp4" })] } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
+    });
+    expect(state.load).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(screen.getByText(/模型脚本加载失败/)).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "重试" }));
+      await Promise.resolve();
+    });
+    expect(state.load).toHaveBeenCalledTimes(2);
+    expect(state.release.mock.invocationCallOrder[0]).toBeLessThan(
+      state.load.mock.invocationCallOrder[1] ?? Number.POSITIVE_INFINITY,
+    );
   });
 });
