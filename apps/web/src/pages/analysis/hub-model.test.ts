@@ -17,6 +17,7 @@ function analysis(overrides: Partial<HubAnalysisInput> & Pick<HubAnalysisInput, 
     avgKnee: null,
     avgLean: null,
     decayPercent: null,
+    stabilityIndexPercent: null,
     rating: null,
     ...overrides,
   };
@@ -199,7 +200,7 @@ describe("buildHubModel", () => {
     });
   });
 
-  it("does not draw a decay sparkline when the saved records have no decay number", () => {
+  it("keeps an old pace card on the rating and stability index when decay was not stored", () => {
     const model = buildHubModel({
       analyses: ready([
         analysis({
@@ -207,11 +208,76 @@ describe("buildHubModel", () => {
           id: "pace-old",
           createdAt: "2026-10-01T00:00:00.000Z",
           rating: "excellent",
+          stabilityIndexPercent: 80,
         }),
         analysis({
           kind: "pace",
           id: "pace-new",
           createdAt: "2026-10-09T00:00:00.000Z",
+          rating: "needs-work",
+          stabilityIndexPercent: 72,
+        }),
+      ]),
+      equipment: ready([]),
+      hidden: new Set(),
+    });
+    expect(model.pace).toEqual({
+      status: "trend",
+      createdAt: "2026-10-09T00:00:00.000Z",
+      rating: "needs-work",
+      stabilityIndexPercent: 72,
+      decay: null,
+    });
+  });
+
+  it("shows the stored decay line when the newest pace record has one", () => {
+    const model = buildHubModel({
+      analyses: ready([
+        analysis({
+          kind: "pace",
+          id: "pace-old",
+          createdAt: "2026-10-01T00:00:00.000Z",
+          decayPercent: 4,
+          stabilityIndexPercent: 80,
+          rating: "excellent",
+        }),
+        analysis({
+          kind: "pace",
+          id: "pace-new",
+          createdAt: "2026-10-09T00:00:00.000Z",
+          decayPercent: 6.5,
+          stabilityIndexPercent: 72,
+          rating: "needs-work",
+        }),
+      ]),
+      equipment: ready([]),
+      hidden: new Set(),
+    });
+    expect(model.pace).toEqual({
+      status: "trend",
+      createdAt: "2026-10-09T00:00:00.000Z",
+      rating: "needs-work",
+      stabilityIndexPercent: 72,
+      decay: { latest: 6.5, delta: 2.5, spark: [4, 6.5] },
+    });
+  });
+
+  it("hides the decay line when only an older pace record stored one", () => {
+    const model = buildHubModel({
+      analyses: ready([
+        analysis({
+          kind: "pace",
+          id: "pace-old",
+          createdAt: "2026-10-01T00:00:00.000Z",
+          decayPercent: 4,
+          stabilityIndexPercent: 80,
+          rating: "excellent",
+        }),
+        analysis({
+          kind: "pace",
+          id: "pace-new",
+          createdAt: "2026-10-09T00:00:00.000Z",
+          stabilityIndexPercent: 72,
           rating: "needs-work",
         }),
       ]),
@@ -219,11 +285,9 @@ describe("buildHubModel", () => {
       hidden: new Set(),
     });
     expect(model.pace).toMatchObject({
-      status: "trend",
-      decayPercent: null,
       rating: "needs-work",
-      delta: null,
-      spark: [],
+      stabilityIndexPercent: 72,
+      decay: null,
     });
   });
 

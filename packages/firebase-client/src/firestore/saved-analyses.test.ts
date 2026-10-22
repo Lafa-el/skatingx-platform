@@ -30,7 +30,11 @@ describe("savedAnalysisFromDocument", () => {
       findings: [{ code: "pace.decay.back-half" }],
       pace: { decayPercent: 4.5, stabilityIndexPercent: 80, rating: "needs-work" },
     });
-    expect(stored?.pace).toEqual({ decayPercent: 4.5, rating: "needs-work" });
+    expect(stored?.pace).toEqual({
+      decayPercent: 4.5,
+      stabilityIndexPercent: 80,
+      rating: "needs-work",
+    });
 
     const missing = savedAnalysisFromDocument("doc-3", {
       id: "pace-2",
@@ -38,7 +42,11 @@ describe("savedAnalysisFromDocument", () => {
       findings: [],
       pace: { stabilityIndexPercent: 80, rating: "excellent" },
     });
-    expect(missing?.pace).toEqual({ decayPercent: null, rating: "excellent" });
+    expect(missing?.pace).toEqual({
+      decayPercent: null,
+      stabilityIndexPercent: 80,
+      rating: "excellent",
+    });
   });
 
   it("drops a document that is not exactly one kind, or has no createdAt", () => {

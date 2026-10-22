@@ -124,6 +124,8 @@ export interface PaceOutput {
   readonly totalSeconds: number;
   readonly benchmarkTotalSeconds: number;
   readonly stabilityIndexPercent: number;
+  /** Present on records written after this field. Older documents omit it. */
+  readonly decayPercent?: number;
   readonly rating: "excellent" | "needs-work" | "moderate";
   readonly trainingEmphasisRatio: string;
   readonly findings: readonly AnalysisFinding[];

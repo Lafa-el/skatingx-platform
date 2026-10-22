@@ -283,14 +283,15 @@ service cloud.firestore {
       function validPaceOutput(pace, id) {
         return pace is map
           && exactKeys(pace, ['provenance', 'totalSeconds', 'benchmarkTotalSeconds',
-                              'stabilityIndexPercent', 'rating', 'trainingEmphasisRatio',
-                              'findings'])
+                              'stabilityIndexPercent', 'decayPercent', 'rating',
+                              'trainingEmphasisRatio', 'findings'])
           && validAnalysisProvenance(pace.provenance)
           && pace.totalSeconds is number
           && pace.benchmarkTotalSeconds is number
           && pace.stabilityIndexPercent is int
           && pace.stabilityIndexPercent >= 0
           && pace.stabilityIndexPercent <= 100
+          && pace.decayPercent is number
           && pace.rating in ['excellent', 'needs-work', 'moderate']
           && pace.trainingEmphasisRatio is string
           && pace.trainingEmphasisRatio.size() > 0

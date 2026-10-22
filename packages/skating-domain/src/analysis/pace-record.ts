@@ -48,6 +48,8 @@ export interface PaceAnalysisRecord {
     readonly totalSeconds: number;
     readonly benchmarkTotalSeconds: number;
     readonly stabilityIndexPercent: number;
+    /** The decay already computed for this run. Older saved records omit it. */
+    readonly decayPercent: number;
     readonly rating: "excellent" | "needs-work" | "moderate";
     readonly trainingEmphasisRatio: PaceAnalysis["trainingRatio"];
     readonly findings: readonly { readonly code: string; readonly analysisId: string }[];
@@ -93,6 +95,7 @@ export function buildPaceAnalysisRecord(input: {
       totalSeconds: input.analysis.totalSeconds,
       benchmarkTotalSeconds: input.analysis.benchmarkTotalSeconds,
       stabilityIndexPercent: input.analysis.lacticIndexPercent,
+      decayPercent: input.analysis.decayPercent,
       rating: ratingByLabel[input.analysis.ratingLabel],
       trainingEmphasisRatio: input.analysis.trainingRatio,
       findings,

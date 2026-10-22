@@ -15,7 +15,11 @@ type AnalysisRow = {
   createdAt: string;
   findings: { code: string }[];
   biomech: { avgKnee: number | null; avgLean: number | null } | null;
-  pace: { decayPercent: number | null; rating: "excellent" | "needs-work" | "moderate" | null } | null;
+  pace: {
+    decayPercent: number | null;
+    stabilityIndexPercent?: number | null;
+    rating: "excellent" | "needs-work" | "moderate" | null;
+  } | null;
 };
 
 type EquipmentRow = {
@@ -218,6 +222,47 @@ describe("analysis hub: states", () => {
     await user.click(screen.getByRole("button", { name: "忽略" }));
     expect(screen.queryByTestId("hub-suggestion")).toBeNull();
     expect(JSON.parse(sessionStorage.getItem(HIDDEN_FEEDBACK_KEY) ?? "[]")).toEqual(["set-focus:pace:pace-1"]);
+  });
+
+  it("shows the decay row only when the saved pace record has one", () => {
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    state.analyses = [
+      {
+        kind: "pace",
+        id: "pace-old",
+        createdAt: "2026-10-01T00:00:00.000Z",
+        findings: [],
+        biomech: null,
+        pace: { decayPercent: null, stabilityIndexPercent: 80, rating: "excellent" },
+      },
+    ];
+    const oldView = render(renderHub());
+    const oldPace = oldView.container.querySelector("[data-testid='hub-pace']");
+    expect(oldPace?.textContent).toContain("优秀");
+    expect(oldPace?.textContent).toContain("稳定指数");
+    expect(oldPace?.textContent).toContain("80%");
+    expect(oldPace?.textContent).not.toContain("后程衰减");
+    expect(oldPace?.textContent).not.toContain("—");
+    oldView.unmount();
+
+    state.analyses = [
+      {
+        kind: "pace",
+        id: "pace-new",
+        createdAt: "2026-10-09T00:00:00.000Z",
+        findings: [],
+        biomech: null,
+        pace: { decayPercent: 6.5, stabilityIndexPercent: 72, rating: "needs-work" },
+      },
+    ];
+    const next = render(renderHub());
+    const pace = next.container.querySelector("[data-testid='hub-pace']");
+    expect(pace?.textContent).toContain("需强化");
+    expect(pace?.textContent).toContain("稳定指数");
+    expect(pace?.textContent).toContain("72%");
+    expect(pace?.textContent).toContain("后程衰减");
+    expect(pace?.textContent).toContain("6.5%");
   });
 
   it("opens equipment for a review suggestion and does not set a focus", () => {

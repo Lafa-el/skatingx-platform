@@ -121,9 +121,11 @@ function headline(item: HubRecentItem, locale: Locale): string {
     });
   }
   if (item.kind === "pace") {
+    const rating = ratingText(item.rating, locale);
+    if (item.stabilityIndexPercent === null) return rating;
     return tAnalysis(locale, "analysis.hub.headline.pace", {
-      decay: percentText(item.decayPercent, locale),
-      rating: ratingText(item.rating, locale),
+      rating,
+      stability: percentText(item.stabilityIndexPercent, locale),
     });
   }
   return equipmentSummary(item.symptomKey, item.symptomText, locale);
@@ -144,6 +146,7 @@ function toAnalysis(row: SavedAnalysisSource): HubAnalysisInput {
     avgKnee: row.biomech?.avgKnee ?? null,
     avgLean: row.biomech?.avgLean ?? null,
     decayPercent: row.pace?.decayPercent ?? null,
+    stabilityIndexPercent: row.pace?.stabilityIndexPercent ?? null,
     rating: row.pace?.rating ?? null,
   };
 }
@@ -515,16 +518,28 @@ function PaceCockpit({ card, locale, onRetry }: { card: HubPaceCard; locale: Loc
           />
         ) : (
           <div className="grid gap-3">
-            <MetricReadout
-              label={tAnalysis(locale, "analysis.hub.metric.decay")}
-              value={percentText(card.decayPercent, locale)}
-              delta={card.status === "trend" && card.delta !== null ? formatSigned(card.delta, locale) : null}
-              spark={card.status === "trend" ? card.spark : []}
-            />
-            <p className="text-sm font-semibold text-brand-navy">
-              {tAnalysis(locale, "analysis.hub.metric.rating")}
-            </p>
-            <p className="text-lg font-semibold text-brand-flame">{ratingText(card.rating, locale)}</p>
+            <div>
+              <p className="text-sm font-semibold text-brand-navy">
+                {tAnalysis(locale, "analysis.hub.metric.rating")}
+              </p>
+              <p className="text-lg font-semibold text-brand-flame">{ratingText(card.rating, locale)}</p>
+            </div>
+            {card.stabilityIndexPercent !== null ? (
+              <MetricReadout
+                label={tAnalysis(locale, "analysis.hub.metric.stability")}
+                value={percentText(card.stabilityIndexPercent, locale)}
+                delta={null}
+                spark={[]}
+              />
+            ) : null}
+            {card.decay ? (
+              <MetricReadout
+                label={tAnalysis(locale, "analysis.hub.metric.decay")}
+                value={percentText(card.decay.latest, locale)}
+                delta={card.decay.delta !== null ? formatSigned(card.decay.delta, locale) : null}
+                spark={card.decay.spark}
+              />
+            ) : null}
           </div>
         )}
       </Card>
