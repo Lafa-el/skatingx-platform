@@ -15,9 +15,13 @@ import {
   EMULATOR_PROJECT,
   MigrationStop,
   SOURCE_PROJECT,
+  STAGING_PROJECT,
   TARGET_UID,
+  assertStagingProject,
+  formatTargetShape,
   parseArgs,
   run,
+  stagingWriterKeyPath,
   storagePath,
   withLiveSource,
 } from "./migrate-journal.mjs";
@@ -220,11 +224,27 @@ assert((sourceText.match(/\.set\s*\(/g) ?? []).length === 1, "more than the targ
 assert(!sourceText.includes("serverTimestamp"), "script mints a timestamp");
 assert(!sourceText.includes("\"skatingx-prod\"") && !sourceText.includes("'skatingx-prod'"), "script names the production project");
 assert(sourceText.includes("anchorPrefix: ANCHOR_PREFIX") && sourceText.includes("targetUid: TARGET_UID"), "plan options are not pinned");
+assert(STAGING_PROJECT === "skatingx-platform", "staging project is not skatingx-platform");
+assert(sourceText.includes(`export const STAGING_PROJECT = "${STAGING_PROJECT}"`), "staging project is not fixed");
+assert(sourceText.includes('if (args.write && args.target !== "emulator") stop("--write requires --target emulator");'), "staging write rejection changed");
+const stagingOpen = sourceText.slice(sourceText.indexOf("async function openStagingDb"), sourceText.indexOf("export async function openTargetDb"));
+assert(stagingOpen.indexOf("assertStagingEnvironment") >= 0 && stagingOpen.indexOf("assertStagingEnvironment") < stagingOpen.indexOf("initializeApp"), "staging connects before its guard");
+assert(stagingOpen.includes("projectId: STAGING_PROJECT"), "staging client does not use the fixed project");
+assert(!stagingOpen.includes(".collection(") && !/\.(set|update|delete|create|add)\s*\(/.test(stagingOpen), "staging opener reads or writes documents");
+assert(!stagingOpen.includes("FIRESTORE_EMULATOR_HOST ="), "staging opener changes the emulator host");
+const targetReader = sourceText.slice(sourceText.indexOf("export async function readTargetJournal"), sourceText.indexOf("function jsonSafe"));
+assert(targetReader.includes("journal/main") && !targetReader.includes("collectionGroup") && !targetReader.includes("listCollections"), "target reader is not limited to the journal subtree");
 
 const production = stops("production", () => parseArgs(["--target", "production", "--fixture", "fixture.json"]));
-assert(production.message.includes("emulator"), "production dry-run was not refused");
+assert(production.message === "--target production is refused.", "production dry-run was not refused");
+const productionWrite = stops("production write", () => parseArgs(["--target", "production", "--write", "--snapshot-out", "/tmp/journal-m4.json"]));
+assert(productionWrite.message === "--target production is refused.", "production write was not refused at parse");
+const stagingParsed = parseArgs(["--target", "staging", "--fixture", "fixture.json"]);
+assert(stagingParsed.target === "staging" && stagingParsed.write === false, "staging dry-run was refused");
 const stagingWrite = stops("staging write", () => parseArgs(["--target", "staging", "--write", "--snapshot-out", "/tmp/journal-m4.json"]));
-assert(stagingWrite.message.includes("emulator"), "staging write was not refused");
+assert(stagingWrite.message === "--write requires --target emulator", "staging write rejection changed");
+const wrongProject = stops("staging project id", () => assertStagingProject("demo-skatingx-migration"));
+assert(wrongProject.message === "staging project must be skatingx-platform", "wrong staging project was accepted");
 const missingTarget = stops("write without target", () => parseArgs(["--write", "--snapshot-out", "/tmp/journal-m4.json"]));
 assert(missingTarget.message.includes("--target"), "write without target was not named");
 stops("project flag", () => parseArgs(["--project", "blaze-skate-journal", "--target", "emulator"]));
@@ -307,6 +327,121 @@ await run(["--target", "emulator", "--fixture", gateFixture], { GOOGLE_APPLICATI
   },
 });
 assert(dryEvents.length === 0, "dry-run wrote or snapshotted");
+
+const shape = formatTargetShape({
+  "journal/days/day-1": { parentNote: "secret-note", legacy: { appId: "blaze-skate-journal", documentId: "day-1" } },
+});
+assert(shape === "target-shape journal/days/day-1 fields=legacy.appId,legacy.documentId,parentNote", "target shape");
+assert(!shape.includes("secret-note"), "target shape included a field value");
+
+async function attempt(argv, env, deps = {}) {
+  const counts = { source: 0, target: 0 };
+  try {
+    await run(argv, env, {
+      readSource: async () => {
+        counts.source += 1;
+        throw new Error("source connected");
+      },
+      openTargetDb: async () => {
+        counts.target += 1;
+        throw new Error("target connected");
+      },
+      ...deps,
+    });
+    return { counts, error: null };
+  } catch (error) {
+    return { counts, error };
+  }
+}
+
+const savedStagingHost = process.env.FIRESTORE_EMULATOR_HOST;
+delete process.env.FIRESTORE_EMULATOR_HOST;
+const writerKey = stagingWriterKeyPath();
+const stagingEnv = {
+  GOOGLE_APPLICATION_CREDENTIALS: "",
+  TARGET_GOOGLE_APPLICATION_CREDENTIALS: writerKey,
+};
+const wrongKey = path.join(gateDir, "not-the-writer.json");
+const wrongPath = await attempt(["--target", "staging", "--fixture", gateFixture], {
+  ...stagingEnv,
+  TARGET_GOOGLE_APPLICATION_CREDENTIALS: wrongKey,
+});
+assert(wrongPath.counts.source === 0 && wrongPath.counts.target === 0, "wrong writer path connected");
+assert(wrongPath.error instanceof MigrationStop, "wrong writer path did not stop");
+assert(wrongPath.error.message.includes("migration-writer.json"), "wrong writer path was not named");
+assert(!wrongPath.error.message.includes(wrongKey), "rejected writer path was echoed");
+
+const missingWriter = await attempt(["--target", "staging", "--fixture", gateFixture], {
+  GOOGLE_APPLICATION_CREDENTIALS: "",
+  TARGET_GOOGLE_APPLICATION_CREDENTIALS: "",
+});
+assert(missingWriter.counts.source === 0 && missingWriter.counts.target === 0, "missing writer key connected");
+assert(missingWriter.error instanceof MigrationStop && missingWriter.error.message.includes("unset"), "missing writer key was not named");
+
+const insideWriter = await attempt(["--target", "staging", "--fixture", gateFixture], {
+  GOOGLE_APPLICATION_CREDENTIALS: "",
+  TARGET_GOOGLE_APPLICATION_CREDENTIALS: script,
+});
+assert(insideWriter.counts.source === 0 && insideWriter.counts.target === 0, "in-repo writer key connected");
+assert(insideWriter.error instanceof MigrationStop && insideWriter.error.message.includes("repository"), "in-repo writer key was not named");
+
+process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
+const hosted = await attempt(["--target", "staging", "--fixture", gateFixture], {
+  ...stagingEnv,
+  FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+});
+assert(hosted.counts.source === 0 && hosted.counts.target === 0, "staging connected while the emulator host was set");
+assert(hosted.error instanceof MigrationStop && hosted.error.message.includes("FIRESTORE_EMULATOR_HOST"), "emulator host was not named");
+assert(process.env.FIRESTORE_EMULATOR_HOST === "127.0.0.1:8080", "staging guard cleared the emulator host");
+delete process.env.FIRESTORE_EMULATOR_HOST;
+
+const missingSource = await attempt(["--target", "staging"], stagingEnv);
+assert(missingSource.counts.source === 0 && missingSource.counts.target === 0, "missing source key connected");
+assert(missingSource.error instanceof MigrationStop && missingSource.error.message.includes("GOOGLE_APPLICATION_CREDENTIALS"), "missing source key was not named");
+
+const parsedWrite = await attempt(["--target", "staging", "--write", "--snapshot-out", gateSnapshot], stagingEnv);
+assert(parsedWrite.counts.source === 0 && parsedWrite.counts.target === 0, "staging write connected");
+assert(parsedWrite.error instanceof MigrationStop && parsedWrite.error.message === "--write requires --target emulator", "staging write reached the database");
+
+const parsedProduction = await attempt(["--target", "production", "--fixture", gateFixture], stagingEnv);
+assert(parsedProduction.counts.source === 0 && parsedProduction.counts.target === 0, "production connected");
+assert(parsedProduction.error instanceof MigrationStop && parsedProduction.error.message === "--target production is refused.", "production reached the database");
+
+const parsedProject = await attempt(["--project", "skatingx-platform", "--target", "staging", "--fixture", gateFixture], stagingEnv);
+assert(parsedProject.counts.source === 0 && parsedProject.counts.target === 0, "--project connected");
+assert(parsedProject.error instanceof MigrationStop && parsedProject.error.message.includes("--project"), "--project was not named");
+
+const seen = [];
+let sideWrites = 0;
+const fakeTarget = {
+  collection(name) {
+    seen.push(name);
+    return { get: async () => ({ docs: [] }) };
+  },
+  doc() {
+    throw new Error("staging read used a document path");
+  },
+};
+const stagingDry = await run(["--target", "staging", "--fixture", gateFixture], stagingEnv, {
+  openTargetDb: async () => fakeTarget,
+  readSource: async () => {
+    throw new Error("fixture run read the live source");
+  },
+  collectSnapshot: async () => {
+    sideWrites += 1;
+    return { source: {}, target: [] };
+  },
+  writeDocuments: async () => {
+    sideWrites += 1;
+  },
+});
+assert(stagingDry.plan.writes.length === 7 && stagingDry.plan.skips.length === 0, "staging fixture plan");
+assert(sideWrites === 0, "staging dry-run wrote");
+const journalRoot = `artifacts/skatingx-production/users/${TARGET_UID}/journal/main/`;
+assert(seen.length === 8 && seen.every((name) => name.startsWith(journalRoot)), "staging read left the journal subtree");
+assert(seen.map((name) => name.slice(journalRoot.length)).join(",") === "athlete,days,sessions,coachNotes,bodyStatus,performance,videos,weeklyReviews", "staging collection list changed");
+if (savedStagingHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+else process.env.FIRESTORE_EMULATOR_HOST = savedStagingHost;
 
 function adminDb() {
   const app = initializeApp({ projectId: EMULATOR_PROJECT }, "journal-m4-test");
