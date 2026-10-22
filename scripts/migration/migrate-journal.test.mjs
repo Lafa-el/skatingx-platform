@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -378,6 +378,24 @@ async function attempt(argv, env, deps = {}) {
     return { counts, error };
   }
 }
+
+// CI has no writer keys. os.homedir() rereads HOME, so the guards stat these stand-ins.
+const savedHome = process.env.HOME;
+const fakeHome = mkdtempSync(path.join(tmpdir(), "journal-migration-home-"));
+const fakeKeyDir = path.join(fakeHome, ".config", "gcp");
+mkdirSync(fakeKeyDir, { recursive: true });
+const fakeServiceAccount = `${JSON.stringify({
+  client_email: "test@example.invalid",
+  private_key: "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----\n",
+})}\n`;
+writeFileSync(path.join(fakeKeyDir, "migration-writer.json"), fakeServiceAccount);
+writeFileSync(path.join(fakeKeyDir, "prod-writer.json"), fakeServiceAccount);
+process.env.HOME = fakeHome;
+process.on("exit", () => {
+  if (savedHome === undefined) delete process.env.HOME;
+  else process.env.HOME = savedHome;
+  rmSync(fakeHome, { recursive: true, force: true });
+});
 
 const savedStagingHost = process.env.FIRESTORE_EMULATOR_HOST;
 delete process.env.FIRESTORE_EMULATOR_HOST;
