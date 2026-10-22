@@ -1,7 +1,7 @@
 # M2 契约 — 旧日志站 Firestore → SkatingX
 
 日期：2026-10-21
-状态：待评审。待决项 b、c 由评审拍板。本步不进入 M3。
+状态：待决项 a、b、c 已于 2026-10-21 评审拍板（结论见决策记录），本步可合并，M3 待启动。
 本文件路径：`docs/migration/journal-contract.md`。M1 盘点是 `docs/migration/journal-inventory.md`。
 
 本步做了两件事：只读普查脚本 `scripts/migration/journal-source-counts.mjs`，以及这份映射契约。源项目 `blaze-skate-journal` 只用 `migration-reader@blaze-skate-journal`（仅 `datastore.viewer`）读了一次全量。在此之前用 `--limit 2` 对过字段计数，那次数字不收入本文。没有写 Firestore，没有改规则，没有改 legacy 仓库。
@@ -149,25 +149,27 @@
 
 ## 2. 落点方案（待决项 a）
 
-推荐 **(ii) 在 `users/{uid}` 下按集合分开镜像**。目标前缀是 `artifacts/skatingx-production/users/{uid}/journal/...`，具体集合见 §1。
+已采纳 **(ii) 在 `users/{uid}` 下按集合分开镜像**。目标前缀是 `artifacts/skatingx-production/users/{uid}/journal/...`，具体集合见 §1。
 
 现有规则：`firestore.rules` 在 `artifacts/skatingx-production/users/{userId}` 下，除 `raceDay`、`analyses`、`athletes` 三个名字外，`{collection}/{path=**}` 已是所有者可读写。名为 `journal` 的第一段不在排除名单里，更深的 `days/{id}` 由 `path=**` 盖住。按 (ii) 写入不需要新的所有者规则。字段校验若要加，是以后的规则切片，不是这次迁移的前提。
 
 现有代码：`packages/schema/src/paths.ts` 没有日志路径。导航是总览、训练、分析、AI 教练、设置，没有日志页。训练备注、器材备注、赛日 `coachNote` 都不是这批文档的落点。
 
-与 `AGENTS.md` 的差别：规范写的是单一集合 `users/{uid}/journalEntries/{entryId}`。案 (ii) 不用这个名字。评审若采纳 (ii)，M3 改代码之前先补一份 ADR，说明为什么不把九种形状塞进一个集合。本步不写这份 ADR，也不改代码。
+与 `AGENTS.md` 的差别：规范写的是单一集合 `users/{uid}/journalEntries/{entryId}`。案 (ii) 不用这个名字。M3 写任何代码之前先补一份 ADR（`docs/adr/` 下按仓库现有编号顺延），说明为何不用 AGENTS.md 的单一 journalEntries 集合、改用 `users/{uid}/journal/...` 按集合镜像，理由以 §2 对照表为准。本步不写这份 ADR，也不改代码。
 
 | 方案 | 规则 | 代码 | 以后的界面 |
 |---|---|---|---|
 | (i) `journalEntries/{entryId}` 加类型字段 | 集合名不在排除名单里，现有所有者规则能盖住。一种文档里九套字段，规则若要校验就得写成大分支 | 与 `AGENTS.md` 的路径一致，不必为路径另写 ADR。转换器要先看类型再分支 | 每个页面都先按类型过滤。运动员档不是一条日记，塞进同一集合会和日记列表混在一起 |
-| (ii) `users/{uid}/journal/<集合>/{id}` | 同样被现有所有者规则盖住，不必改规则才能做所有者读写 | 要新增路径。与单一 `journalEntries` 的写法不同，采纳前需要 ADR | 一个旧页面对应一个集合，空集合保持空集合。和旧站的分栏一致 |
+| (ii) `users/{uid}/journal/<集合>/{id}` | 同样被现有所有者规则盖住，不必改规则才能做所有者读写 | 要新增路径。与单一 `journalEntries` 的写法不同，M3 写代码前补 ADR | 一个旧页面对应一个集合，空集合保持空集合。和旧站的分栏一致 |
 | (iii) 顶层集合 + `athleteId` | 现有规则只匹配 `users/{userId}` 下面。顶层集合现在没有任何允许语句，必须新写规则。源库的全开式不能拿来用 | 应用的读写都在 uid 前缀下，没有顶层 `athleteId` 查询 | 要维持第二套授权（`athleteId == uid`）。这正是源库规则没收紧的形状 |
 
 不选 (i)，是因为实测形状已经分成日记、训练课、身体、运动员档，后三类还有五个目前为空的集合。一个集合加类型字段，省下的路径名字换不回查询和校验的清楚。(iii) 把数据留在所有者规则外面，和新平台已经在用的边界相反。
 
 ## 3. 待决项 b：Phase 3 要不要做界面
 
-本步不选。两案的数据契约相同，差在 Phase 3 的完成线。
+已拍板：Phase 3 范围 = 数据迁移 + 旧站归档；日志界面另立项。
+
+两案的数据契约相同，差在 Phase 3 的完成线。
 
 | 选项 | 工期含义 |
 |---|---|
@@ -176,7 +178,9 @@
 
 ## 4. 待决项 c：日志站账号
 
-本步不代为拍板。按普查给出推荐。
+已拍板：账号不迁、只迁数据。
+
+按普查给出推荐。
 
 普查：每个有文档的集合，`distinct athleteId` 都是 1，缺失 0。`journal_days` 2 条全部属于主锚点，占比 100%。没有第二个人的数据。
 
@@ -357,3 +361,9 @@
 | `sorenessAreas` | 1 | array |
 | `sourceApp` | 1 | string |
 | `updatedAt` | 1 | string |
+
+## 决策记录（2026-10-21）
+
+- (a) 落点采纳案 (ii)：artifacts/skatingx-production/users/{uid}/journal/... 按源集合镜像；现有所有者规则直接覆盖，不为迁移改规则；ADR 在 M3 前补齐。
+- (b) Phase 3 范围 = 数据迁移 + 旧站归档；日志界面另立项。Phase 3 完成线：数据迁入生产且可逐项对账、旧站只读归档。迁入的数据在新平台暂时没有界面展示，此为已接受的已知状态。
+- (c) 账号不迁、只迁数据：不读日志站 Auth、不带哈希导入；主锚点 pH6yf0RX 的文档写入已有目标 uid baWEw6SZKcQItvcDdpF64ZNe5W12；旧站密码仅在旧站有效至归档。
