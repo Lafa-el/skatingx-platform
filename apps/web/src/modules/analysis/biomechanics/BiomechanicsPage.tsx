@@ -30,7 +30,7 @@ import { tAnalysis } from "@/shared/i18n/analysis-messages";
 import { tBiomech, type BiomechMessageKey } from "@/shared/i18n/biomech-messages";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
-import { clockOf, drawPoseOverlay, frameCanvasSize } from "./pose-overlay";
+import { clockOf, drawPoseOverlay, frameCanvasSize, supportOverlaySide } from "./pose-overlay";
 import {
   POSE_WARMUP_TIMEOUT_MS,
   loadPoseEngine,
@@ -175,7 +175,7 @@ export function BiomechanicsPage() {
     };
   }, []);
 
-  const paint = (landmarks: readonly PoseLandmark[] | null) => {
+  const paint = (landmarks: readonly PoseLandmark[] | null, supportSide: "left" | "right" | null) => {
     const canvas = paintRef.current;
     const video = videoRef.current;
     if (!canvas || !video) return;
@@ -185,7 +185,7 @@ export function BiomechanicsPage() {
     canvas.height = height;
     const context = canvas.getContext("2d");
     if (!context) return;
-    drawPoseOverlay(context, width, height, { roll: rollRef.current, grid, landmarks });
+    drawPoseOverlay(context, width, height, { roll: rollRef.current, grid, landmarks, supportSide });
   };
 
   const acceptLandmarks = (landmarks: PoseLandmark[] | null) => {
@@ -207,7 +207,7 @@ export function BiomechanicsPage() {
     trackingRef.current = result.tracking;
     supportRef.current = result.support;
     setLive(result.live);
-    paint(mapped);
+    paint(mapped, supportOverlaySide(result.sample));
     if (!pendingRef.current) return;
     pendingRef.current = false;
     setSamples((current) => appendKeyframe(current, result.sample));
