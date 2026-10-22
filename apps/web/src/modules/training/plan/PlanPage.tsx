@@ -30,6 +30,7 @@ import { tPlan, type PlanMessageKey } from "@/shared/i18n/plan-messages";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 import { dayCopy } from "./plan-day-copy";
+import { readHiddenFeedback, usePlanFocus, writeHiddenFeedback } from "./plan-session";
 
 const FOCUS_TITLE: Record<PlanFocus, PlanMessageKey> = {
   lean: "plan.focus.lean.title",
@@ -49,26 +50,6 @@ const FOCUS_SUMMARY: Record<PlanFocus, PlanMessageKey> = {
   endurance: "plan.focus.endurance.summary",
 };
 
-const HIDDEN_FEEDBACK_KEY = "skatingx.plan.feedback.hidden";
-
-function readHiddenFeedback(): Set<string> {
-  try {
-    const raw = sessionStorage.getItem(HIDDEN_FEEDBACK_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function writeHiddenFeedback(hidden: ReadonlySet<string>) {
-  try {
-    sessionStorage.setItem(HIDDEN_FEEDBACK_KEY, JSON.stringify([...hidden]));
-  } catch (error) {
-    logActionFailure("training-plan", "hide-suggestion", error);
-  }
-}
-
 function analysisDay(createdAt: string, locale: ReturnType<typeof useLocale>): string {
   const day = createdAt.slice(0, 10);
   const formatted = formatCalendarDate(day, locale);
@@ -79,7 +60,7 @@ export function PlanPage() {
   const locale = useLocale();
   const { uid } = useAuth();
   const gamification = useGamification();
-  const [focus, setFocus] = useState<PlanFocus | null>(null);
+  const [focus, setFocus] = usePlanFocus();
   const [checkIns, setCheckIns] = useState<readonly PlanningCheckIn[]>([]);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [failedId, setFailedId] = useState<string | null>(null);
