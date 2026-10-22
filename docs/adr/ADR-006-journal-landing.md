@@ -49,3 +49,9 @@ M4 及以后只写这些路径。不另开 `journalEntries`。
 ## 4. 回退
 
 若案 (ii) 被撤回，这些路径和映射函数一起停用。在那之前不要把日志写入单一 `journalEntries` 集合。
+
+## 5. 存储段数（M4）
+
+映射函数给出的相对路径是 `journal/<集合>/{id}`，运动员档是 `journal/athlete/main`。接在 `artifacts/skatingx-production/users/{uid}` 后面是 7 段。Firestore 文档路径必须是偶数段，这个路径写不进去。
+
+写入时在 `journal` 和集合名之间加一层 `main`，与训练记录使用 `training/main/...` 的理由相同。实际文档是 `journal/main/<集合>/{id}`，运动员档是 `journal/main/athlete/main`。读回目标后再去掉这层 `main`，交给 `buildJournalPlan` 的仍是映射路径。不改字段，也不改成单一 `journalEntries`。
