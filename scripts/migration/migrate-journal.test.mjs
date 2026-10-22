@@ -14,12 +14,16 @@ import {
   ANCHOR_PREFIX,
   EMULATOR_PROJECT,
   MigrationStop,
+  PRODUCTION_PROJECT,
   SOURCE_PROJECT,
   STAGING_PROJECT,
   TARGET_UID,
+  assertProductionProject,
+  assertProductionWrite,
   assertStagingProject,
   formatTargetShape,
   parseArgs,
+  prodWriterKeyPath,
   run,
   stagingWriterKeyPath,
   storagePath,
@@ -222,23 +226,42 @@ assert(reader.indexOf("delete process.env.FIRESTORE_EMULATOR_HOST") < reader.ind
 assert(sourceText.includes(`export const SOURCE_PROJECT = "${SOURCE_PROJECT}"`), "source project is not fixed");
 assert((sourceText.match(/\.set\s*\(/g) ?? []).length === 1, "more than the target set call");
 assert(!sourceText.includes("serverTimestamp"), "script mints a timestamp");
-assert(!sourceText.includes("\"skatingx-prod\"") && !sourceText.includes("'skatingx-prod'"), "script names the production project");
+assert(PRODUCTION_PROJECT === "skatingx-prod", "production project is not skatingx-prod");
+assert(sourceText.includes(`export const PRODUCTION_PROJECT = "${PRODUCTION_PROJECT}"`), "production project is not fixed");
 assert(sourceText.includes("anchorPrefix: ANCHOR_PREFIX") && sourceText.includes("targetUid: TARGET_UID"), "plan options are not pinned");
 assert(STAGING_PROJECT === "skatingx-platform", "staging project is not skatingx-platform");
 assert(sourceText.includes(`export const STAGING_PROJECT = "${STAGING_PROJECT}"`), "staging project is not fixed");
-assert(sourceText.includes('if (args.write && args.target !== "emulator" && args.target !== "staging") stop("--write requires --target emulator");'), "staging write gate changed");
-const stagingOpen = sourceText.slice(sourceText.indexOf("async function openStagingDb"), sourceText.indexOf("export async function openTargetDb"));
+assert(sourceText.includes('if (args.write && args.target !== "emulator" && args.target !== "staging" && args.target !== "production")'), "write gate dropped production");
+const runBody = sourceText.slice(sourceText.indexOf("export async function run"));
+const printAt = runBody.indexOf("printSummary");
+const checkpointAt = runBody.indexOf("assertProductionWrite");
+const snapshotAt = runBody.indexOf("collectSnapshot");
+const writeSnapshotAt = runBody.indexOf("writeSnapshot");
+const writeAt = runBody.indexOf("writeDocuments");
+assert(printAt >= 0 && printAt < checkpointAt && checkpointAt < snapshotAt && snapshotAt < writeSnapshotAt && writeSnapshotAt < writeAt, "production checkpoint does not run before the write");
+const stagingOpen = sourceText.slice(sourceText.indexOf("async function openStagingDb"), sourceText.indexOf("async function openProductionDb"));
 assert(stagingOpen.indexOf("assertStagingEnvironment") >= 0 && stagingOpen.indexOf("assertStagingEnvironment") < stagingOpen.indexOf("initializeApp"), "staging connects before its guard");
 assert(stagingOpen.includes("projectId: STAGING_PROJECT"), "staging client does not use the fixed project");
 assert(!stagingOpen.includes(".collection(") && !/\.(set|update|delete|create|add)\s*\(/.test(stagingOpen), "staging opener reads or writes documents");
 assert(!stagingOpen.includes("FIRESTORE_EMULATOR_HOST ="), "staging opener changes the emulator host");
+const productionOpen = sourceText.slice(sourceText.indexOf("async function openProductionDb"), sourceText.indexOf("export async function openTargetDb"));
+assert(productionOpen.indexOf("assertProductionEnvironment") >= 0 && productionOpen.indexOf("assertProductionEnvironment") < productionOpen.indexOf("initializeApp"), "production connects before its guard");
+assert(productionOpen.includes("projectId: PRODUCTION_PROJECT") && productionOpen.includes("prodWriterKeyPath()"), "production client does not use the fixed project and key");
+assert(!productionOpen.includes(".collection(") && !/\.(set|update|delete|create|add)\s*\(/.test(productionOpen), "production opener reads or writes documents");
+assert(!productionOpen.includes("FIRESTORE_EMULATOR_HOST ="), "production opener changes the emulator host");
 const targetReader = sourceText.slice(sourceText.indexOf("export async function readTargetJournal"), sourceText.indexOf("function jsonSafe"));
 assert(targetReader.includes("journal/main") && !targetReader.includes("collectionGroup") && !targetReader.includes("listCollections"), "target reader is not limited to the journal subtree");
 
-const production = stops("production", () => parseArgs(["--target", "production", "--fixture", "fixture.json"]));
-assert(production.message === "--target production is refused.", "production dry-run was not refused");
+const productionDryArgs = parseArgs(["--target", "production", "--fixture", "fixture.json"]);
+assert(productionDryArgs.target === "production" && productionDryArgs.write === false && productionDryArgs.confirmProduction === false, "production dry-run was refused");
 const productionWrite = stops("production write", () => parseArgs(["--target", "production", "--write", "--snapshot-out", "/tmp/journal-m4.json"]));
-assert(productionWrite.message === "--target production is refused.", "production write was not refused at parse");
+assert(productionWrite.message === "--write production requires --confirm-production", "production write without confirmation was not refused");
+const productionConfirmed = parseArgs(["--target", "production", "--write", "--confirm-production", "--snapshot-out", "/tmp/journal-m4.json"]);
+assert(productionConfirmed.write === true && productionConfirmed.confirmProduction === true, "confirmed production write was refused");
+const productionNoSnapshot = stops("production snapshot", () => parseArgs(["--target", "production", "--write", "--confirm-production"]));
+assert(productionNoSnapshot.message.includes("--snapshot-out"), "production write skipped the snapshot requirement");
+const wrongProductionProject = stops("production project id", () => assertProductionProject("skatingx-platform"));
+assert(wrongProductionProject.message === "production project must be skatingx-prod", "wrong production project was accepted");
 const stagingParsed = parseArgs(["--target", "staging", "--fixture", "fixture.json"]);
 assert(stagingParsed.target === "staging" && stagingParsed.write === false, "staging dry-run was refused");
 const stagingWrite = parseArgs(["--target", "staging", "--write", "--snapshot-out", "/tmp/journal-m4.json"]);
@@ -406,8 +429,9 @@ assert(parsedWrite.counts.source === 0 && parsedWrite.counts.target === 0, "stag
 assert(parsedWrite.error instanceof MigrationStop && parsedWrite.error.message.includes("GOOGLE_APPLICATION_CREDENTIALS"), "staging write skipped the source credential check");
 
 const parsedProduction = await attempt(["--target", "production", "--fixture", gateFixture], stagingEnv);
-assert(parsedProduction.counts.source === 0 && parsedProduction.counts.target === 0, "production connected");
-assert(parsedProduction.error instanceof MigrationStop && parsedProduction.error.message === "--target production is refused.", "production reached the database");
+assert(parsedProduction.counts.source === 0 && parsedProduction.counts.target === 0, "production connected with the staging key");
+assert(parsedProduction.error instanceof MigrationStop && parsedProduction.error.message.includes("prod-writer.json"), "production accepted the staging key");
+assert(!parsedProduction.error.message.includes(stagingWriterKeyPath()), "rejected production key path was echoed");
 
 const parsedProject = await attempt(["--project", "skatingx-platform", "--target", "staging", "--fixture", gateFixture], stagingEnv);
 assert(parsedProject.counts.source === 0 && parsedProject.counts.target === 0, "--project connected");
@@ -442,6 +466,135 @@ assert(sideWrites === 0, "staging dry-run wrote");
 const journalRoot = `artifacts/skatingx-production/users/${TARGET_UID}/journal/main/`;
 assert(seen.length === 8 && seen.every((name) => name.startsWith(journalRoot)), "staging read left the journal subtree");
 assert(seen.map((name) => name.slice(journalRoot.length)).join(",") === "athlete,days,sessions,coachNotes,bodyStatus,performance,videos,weeklyReviews", "staging collection list changed");
+
+const prodEnv = {
+  GOOGLE_APPLICATION_CREDENTIALS: "",
+  TARGET_GOOGLE_APPLICATION_CREDENTIALS: prodWriterKeyPath(),
+};
+const prodWriteArgs = ["--target", "production", "--write", "--confirm-production", "--snapshot-out"];
+function rejectingWriters(snap) {
+  const writes = { count: 0 };
+  return {
+    writes,
+    deps: {
+      openTargetDb: async () => ({ tag: "db" }),
+      readTargetJournal: async () => ({}),
+      collectSnapshot: async () => {
+        writeFileSync(snap, "{}\n");
+        return { source: {}, target: [] };
+      },
+      writeSnapshot: (file) => {
+        writeFileSync(file, "{}\n");
+      },
+      writeDocuments: async () => {
+        writes.count += 1;
+      },
+    },
+  };
+}
+async function expectBlocked(label, argv, deps) {
+  const snap = argv[argv.indexOf("--snapshot-out") + 1];
+  let error = null;
+  try {
+    await run(argv, prodEnv, deps);
+  } catch (caught) {
+    error = caught;
+  }
+  assert(error instanceof MigrationStop, `${label} did not stop`);
+  assert(!existsSync(snap), `${label} wrote a snapshot`);
+  return error;
+}
+
+const censusPlan = buildJournalPlan(sourceFixture(), {}, { anchorPrefix: ANCHOR_PREFIX, targetUid: TARGET_UID });
+assertProductionWrite(sourceFixture(), {}, censusPlan, "/tmp/journal-m6.json");
+const emptySnapshot = stops("empty snapshot path", () => assertProductionWrite(sourceFixture(), {}, censusPlan, ""));
+assert(emptySnapshot.message.includes("snapshot path"), "empty snapshot path was not named");
+
+const productionDry = await run(["--target", "production", "--fixture", gateFixture], prodEnv, {
+  openTargetDb: async () => ({ tag: "db" }),
+  readTargetJournal: async () => ({ "journal/coachNotes/preset": { note: "secret-preset" } }),
+  collectSnapshot: async () => {
+    throw new Error("production dry-run snapshotted");
+  },
+  writeDocuments: async () => {
+    throw new Error("production dry-run wrote");
+  },
+});
+assert(productionDry.plan.writes.length === 7 && productionDry.plan.skips.length === 0, "production dry-run did not reach the plan");
+
+const sourceSnap = path.join(gateDir, "reject-source.json");
+const sourceFixturePath = path.join(gateDir, "extra-coach.json");
+const extraSource = sourceFixture();
+extraSource.coach_notes.push({
+  id: "coach-extra",
+  data: meta({ date: "2026-06-08", coachName: "coach-placeholder", note: "note-placeholder" }),
+});
+writeFileSync(sourceFixturePath, JSON.stringify(extraSource));
+const sourceBlock = rejectingWriters(sourceSnap);
+const sourceError = await expectBlocked("source counts", [...prodWriteArgs, sourceSnap, "--fixture", sourceFixturePath], sourceBlock.deps);
+assert(sourceError.message.includes("source counts"), "source count checkpoint was not named");
+assert(sourceBlock.writes.count === 0, "source count checkpoint wrote");
+
+const targetSnap = path.join(gateDir, "reject-target.json");
+const targetBlock = rejectingWriters(targetSnap);
+const targetError = await expectBlocked("target preset", [...prodWriteArgs, targetSnap, "--fixture", gateFixture], {
+  ...targetBlock.deps,
+  readTargetJournal: async () => ({ "journal/coachNotes/preset": { note: "secret-preset" } }),
+});
+assert(targetError.message.includes("target document count"), "target checkpoint was not named");
+assert(!targetError.message.includes("secret-preset"), "target checkpoint printed a field value");
+assert(targetBlock.writes.count === 0, "target checkpoint wrote");
+
+const planSnap = path.join(gateDir, "reject-plan.json");
+const planBlock = rejectingWriters(planSnap);
+const planError = await expectBlocked("plan size", [...prodWriteArgs, planSnap, "--fixture", gateFixture], {
+  ...planBlock.deps,
+  buildJournalPlan: () => ({
+    writes: Array.from({ length: 6 }, (_, index) => ({ path: `journal/days/extra-${index}`, data: {} })),
+    skips: [],
+  }),
+});
+assert(planError.message.includes("plan"), "plan checkpoint was not named");
+assert(planBlock.writes.count === 0, "plan checkpoint wrote");
+
+const confirmSnap = path.join(gateDir, "reject-confirm.json");
+const missingConfirm = await attempt(["--target", "production", "--write", "--fixture", gateFixture, "--snapshot-out", confirmSnap], prodEnv);
+assert(missingConfirm.counts.source === 0 && missingConfirm.counts.target === 0, "missing confirmation connected");
+assert(missingConfirm.error instanceof MigrationStop && missingConfirm.error.message === "--write production requires --confirm-production", "missing confirmation was not named");
+assert(!existsSync(confirmSnap), "missing confirmation wrote a snapshot");
+
+const passed = [];
+const passSnap = path.join(gateDir, "prod-pass.json");
+await run([...prodWriteArgs, passSnap, "--fixture", gateFixture], prodEnv, {
+  openTargetDb: async () => ({ tag: "db" }),
+  readTargetJournal: async () => ({}),
+  collectSnapshot: async () => {
+    passed.push("snapshot");
+    return { source: {}, target: [] };
+  },
+  writeSnapshot: () => {
+    passed.push("write-snapshot");
+  },
+  writeDocuments: async () => {
+    passed.push("write");
+  },
+  postCheck: async () => {
+    passed.push("post-check");
+    return { writes: [], skips: Array.from({ length: 7 }, () => ({ path: "journal/days/day-1", reason: "already-identical" })) };
+  },
+});
+assert(passed.join(",") === "snapshot,write-snapshot,write,post-check", "production write skipped the checkpoint order");
+assert(!existsSync(passSnap), "injected production writer created a snapshot");
+
+process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
+const productionHost = await attempt(["--target", "production", "--fixture", gateFixture], {
+  ...prodEnv,
+  FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+});
+assert(productionHost.counts.source === 0 && productionHost.counts.target === 0, "production connected while the emulator host was set");
+assert(productionHost.error instanceof MigrationStop && productionHost.error.message.includes("FIRESTORE_EMULATOR_HOST"), "production emulator host was not named");
+delete process.env.FIRESTORE_EMULATOR_HOST;
+
 if (savedStagingHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
 else process.env.FIRESTORE_EMULATOR_HOST = savedStagingHost;
 
