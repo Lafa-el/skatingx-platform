@@ -31,7 +31,15 @@ import { tBiomech, type BiomechMessageKey } from "@/shared/i18n/biomech-messages
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 import { clockOf, drawPoseOverlay, frameCanvasSize } from "./pose-overlay";
-import { loadPoseEngine, releasePoseEngine, type PoseEngine, type PoseLandmark } from "./pose-engine";
+import {
+  POSE_WARMUP_TIMEOUT_MS,
+  loadPoseEngine,
+  prefetchPoseAssets,
+  releasePoseEngine,
+  type PoseEngine,
+  type PoseLandmark,
+  type PoseWarmupStage,
+} from "./pose-engine";
 
 const SPEEDS = [
   { value: "1", key: "biomech.speed.full" },
@@ -45,6 +53,22 @@ const SUPPORT = [
   { value: "left", key: "biomech.support.left" },
   { value: "right", key: "biomech.support.right" },
 ] as const satisfies readonly { value: SupportOverride; key: BiomechMessageKey }[];
+
+type ModelPhase = "loading-engine" | "loading-model" | "initializing" | "ready" | "failed";
+
+const MODEL_KEY: Record<ModelPhase, BiomechMessageKey> = {
+  "loading-engine": "biomech.console.loadingEngine",
+  "loading-model": "biomech.console.loadingModel",
+  initializing: "biomech.console.initializing",
+  ready: "biomech.console.ready",
+  failed: "biomech.console.failed",
+};
+
+const STAGE_PHASE: Record<PoseWarmupStage, ModelPhase> = {
+  loadScript: "loading-engine",
+  construct: "loading-model",
+  warmupSend: "initializing",
+};
 
 const BLANK_METRICS: PoseFrameMetrics = {
   readable: false,
@@ -90,6 +114,7 @@ export function BiomechanicsPage() {
   const runRef = useRef(0);
   const lastSentRef = useRef(0);
   const inFlightRef = useRef(false);
+  const warmupTimerRef = useRef(0);
 
   const [fileName, setFileName] = useState<string | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
@@ -101,7 +126,7 @@ export function BiomechanicsPage() {
   const [supportMode, setSupportMode] = useState<SupportOverride>("auto");
   const [speed, setSpeed] = useState("0.25");
   const [locked, setLocked] = useState(false);
-  const [model, setModel] = useState<"warming" | "ready" | "failed">("warming");
+  const [model, setModel] = useState<ModelPhase>("loading-engine");
   const [live, setLive] = useState<PoseFrameMetrics>(BLANK_METRICS);
   const [samples, setSamples] = useState<readonly PoseKeyframeSample[]>([]);
   const [feedback, setFeedback] = useState<BiomechMessageKey>("biomech.feedback.waiting");
@@ -129,6 +154,10 @@ export function BiomechanicsPage() {
       : "biomech.calibration.manual";
 
   useEffect(() => {
+    prefetchPoseAssets();
+  }, []);
+
+  useEffect(() => {
     return () => {
       cancelAnimationFrame(loopRef.current);
       if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -138,6 +167,7 @@ export function BiomechanicsPage() {
   useEffect(() => {
     return () => {
       runRef.current += 1;
+      window.clearTimeout(warmupTimerRef.current);
       cancelAnimationFrame(loopRef.current);
       void releasePoseEngine().catch((error: unknown) => {
         logActionFailure("biomechanics", "close", error);
@@ -250,6 +280,7 @@ export function BiomechanicsPage() {
 
   const reset = () => {
     runRef.current += 1;
+    window.clearTimeout(warmupTimerRef.current);
     const session = resetAnalysisSession({
       started,
       objectUrl,
@@ -283,7 +314,7 @@ export function BiomechanicsPage() {
     setSupportMode("auto");
     modeRef.current = "auto";
     setFeedback("biomech.feedback.waiting");
-    setModel("warming");
+    setModel("loading-engine");
     setClock("00:00");
     setDuration("00:00");
     if (session.poseClosed) {
@@ -291,6 +322,55 @@ export function BiomechanicsPage() {
         logActionFailure("biomechanics", "close", error);
       });
     }
+  };
+
+  const clearWarmupTimer = () => {
+    window.clearTimeout(warmupTimerRef.current);
+    warmupTimerRef.current = 0;
+  };
+
+  const beginWarmup = async (run: number): Promise<boolean> => {
+    clearWarmupTimer();
+    setModel("loading-engine");
+    let expired = false;
+    warmupTimerRef.current = window.setTimeout(() => {
+      expired = true;
+      if (run === runRef.current) setModel("failed");
+    }, POSE_WARMUP_TIMEOUT_MS);
+    try {
+      const engine = await loadPoseEngine(acceptLandmarks, {
+        onStage(stage) {
+          if (expired || run !== runRef.current) return;
+          setModel(STAGE_PHASE[stage]);
+        },
+      });
+      if (expired || run !== runRef.current) {
+        await engine.close();
+        return false;
+      }
+      clearWarmupTimer();
+      engineRef.current = engine;
+      setModel("ready");
+      return true;
+    } catch (error) {
+      clearWarmupTimer();
+      if (run !== runRef.current) return false;
+      logActionFailure("biomechanics", "model", error);
+      setModel("failed");
+      return false;
+    }
+  };
+
+  const playStarted = async (run: number) => {
+    const video = videoRef.current;
+    if (!video || run !== runRef.current) return;
+    video.playbackRate = Number(speed);
+    await video.play().catch((error: unknown) => {
+      logActionFailure("biomechanics", "play", error);
+    });
+    if (run !== runRef.current) return;
+    setPaused(false);
+    startLoop();
   };
 
   const start = async () => {
@@ -303,27 +383,25 @@ export function BiomechanicsPage() {
     const run = runRef.current;
     setStarted(true);
     setStatus(null);
-    try {
-      const engine = await loadPoseEngine(acceptLandmarks);
-      if (run !== runRef.current) {
-        await engine.close();
-        return;
-      }
-      engineRef.current = engine;
-      setModel("ready");
-    } catch (error) {
-      logActionFailure("biomechanics", "model", error);
-      setModel("failed");
-      return;
-    }
-    if (run !== runRef.current) return;
-    video.playbackRate = Number(speed);
-    await video.play().catch((error: unknown) => {
-      logActionFailure("biomechanics", "play", error);
+    const readyEngine = await beginWarmup(run);
+    if (!readyEngine) return;
+    await playStarted(run);
+  };
+
+  const retryWarmup = async () => {
+    const video = videoRef.current;
+    if (!video || !objectUrl) return;
+    runRef.current += 1;
+    const run = runRef.current;
+    engineRef.current = null;
+    clearWarmupTimer();
+    await releasePoseEngine().catch((error: unknown) => {
+      logActionFailure("biomechanics", "close", error);
     });
     if (run !== runRef.current) return;
-    setPaused(false);
-    startLoop();
+    const readyEngine = await beginWarmup(run);
+    if (!readyEngine) return;
+    await playStarted(run);
   };
 
   const sample = () => {
@@ -383,8 +461,7 @@ export function BiomechanicsPage() {
     }
   };
 
-  const modelKey: BiomechMessageKey =
-    model === "ready" ? "biomech.console.ready" : model === "failed" ? "biomech.console.failed" : "biomech.console.warming";
+  const modelKey = MODEL_KEY[model];
 
   return (
     <div className="grid gap-6">
@@ -466,6 +543,11 @@ export function BiomechanicsPage() {
               <p>
                 {tBiomech(locale, "biomech.console.model")}：{tBiomech(locale, modelKey)}
               </p>
+              {model === "failed" ? (
+                <Button variant="outline" onClick={() => void retryWarmup()}>
+                  {tBiomech(locale, "biomech.console.retry")}
+                </Button>
+              ) : null}
               <p>{tBiomech(locale, "biomech.console.calibration")}</p>
               <p>
                 {tBiomech(locale, "biomech.console.sync")}：{tBiomech(locale, syncKey)}
