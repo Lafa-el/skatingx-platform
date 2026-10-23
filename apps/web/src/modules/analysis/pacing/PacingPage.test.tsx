@@ -95,10 +95,47 @@ describe("pacing page", () => {
     await fillSynthetic500m(user);
     await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
     expect(screen.getByText("需强化")).toBeTruthy();
-    expect(screen.getByText("72%")).toBeTruthy();
+    expect(screen.getByText("47%")).toBeTruthy();
     expect(screen.getByText("45:55")).toBeTruthy();
-    expect(screen.getByText(/总成绩 47\.60s，比 Junior D 标杆慢 1\.88s/)).toBeTruthy();
+    expect(screen.getByText(/总成绩 47\.60s，比 Junior D 标杆快 2\.40s/)).toBeTruthy();
     await waitFor(() => expect(state.configs).toHaveLength(1));
+  });
+
+  it("shows the Junior D factory benchmarks for each distance", async () => {
+    const user = userEvent.setup();
+    render(<AnalysisPacingPage />);
+    const read = (label: string) => (screen.getByLabelText(label) as HTMLInputElement).value;
+    expect([
+      read("起跑前半圈"),
+      read("Lap 1"),
+      read("Lap 2"),
+      read("Lap 3"),
+      read("Lap 4"),
+    ]).toEqual(["8.00", "10.30", "10.40", "10.50", "10.80"]);
+
+    await user.click(screen.getByRole("button", { name: "777m" }));
+    expect([
+      read("起跑圈"),
+      read("第1圈"),
+      read("第2圈"),
+      read("第3圈"),
+      read("第4圈"),
+      read("第5圈"),
+      read("冲刺圈"),
+    ]).toEqual(["13.80", "10.50", "10.60", "10.70", "10.90", "11.20", "12.30"]);
+
+    await user.click(screen.getByRole("button", { name: "1000m" }));
+    expect([
+      read("起跑圈"),
+      read("第1圈"),
+      read("第2圈"),
+      read("第3圈"),
+      read("第4圈"),
+      read("第5圈"),
+      read("第6圈"),
+      read("第7圈"),
+      read("冲刺圈"),
+    ]).toEqual(["14.10", "11.60", "11.60", "11.60", "11.50", "11.30", "11.10", "11.30", "10.90"]);
   });
 
   it("switches to 777m labels", async () => {
