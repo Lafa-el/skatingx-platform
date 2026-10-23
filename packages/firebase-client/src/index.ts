@@ -27,6 +27,7 @@ export {
   planningCheckInRef,
   planningCheckInsCollectionRef,
   settingsRef,
+  taskHistoryCollectionRef,
   taskHistoryRef,
   trainingRecordRef,
   trainingRecordsCollectionRef,
@@ -86,6 +87,12 @@ export {
   type PlanningCheckIn,
 } from "./firestore/planning-check-in";
 export { updateUserSettings } from "./firestore/settings";
+export {
+  deleteTaskHistoryDay,
+  subscribeToTaskHistoryMonth,
+  type ArchivedTask,
+  type ArchivedTaskDay,
+} from "./firestore/task-history";
 export {
   ensureDefaultRewardsCatalog,
   normalizeRewardsCatalog,

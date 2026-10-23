@@ -48,7 +48,7 @@ describe("parent PIN hash", () => {
 });
 
 describe("parent PIN gate", () => {
-  it("does not block any of the three actions when no PIN is set", () => {
+  it("does not block any listed action when no PIN is set", () => {
     for (const action of PARENT_PIN_ACTIONS) {
       expect(
         parentPinAllows({ action, settingsReady: true, configured: false, unlocked: false }),
@@ -56,7 +56,7 @@ describe("parent PIN gate", () => {
     }
   });
 
-  it("blocks a set PIN until this session unlocks, then lets the same three actions through", () => {
+  it("blocks a set PIN until this session unlocks, then lets the listed actions through", () => {
     for (const action of PARENT_PIN_ACTIONS) {
       expect(
         parentPinAllows({ action, settingsReady: true, configured: true, unlocked: false }),
