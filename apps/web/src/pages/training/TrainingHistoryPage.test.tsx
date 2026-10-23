@@ -32,6 +32,27 @@ const state = vi.hoisted(() => ({
   subscribeCalls: [] as { start: string; end: string }[],
   ledger: { points: 40, streakDays: 5, completedDays: ["2026-10-19"] },
   db: { kind: "db" },
+  ledgerTotal: 40,
+  ledgerOpening: 0,
+  octoberLedger: [] as {
+    id: string;
+    dateId: string;
+    delta: number;
+    reason: string;
+    refId?: string;
+    createdAt: string;
+  }[],
+  septemberLedger: [] as {
+    id: string;
+    dateId: string;
+    delta: number;
+    reason: string;
+    refId?: string;
+    createdAt: string;
+  }[],
+  ledgerMode: "ready" as "ready" | "loading" | "error" | "error-then-ready",
+  ledgerAttempt: 0,
+  ledgerMonthReads: [] as string[],
 }));
 
 vi.mock("@skatingx/schema", async () => {
@@ -85,7 +106,23 @@ vi.mock("@skatingx/firebase-client", () => ({
   },
   deleteTaskHistoryDay: (...args: unknown[]) => state.deleteDay(...args),
   updateGamification: (...args: unknown[]) => state.updateGamification(...args),
+  readPointsLedgerTotal: () => ledgerResult(state.ledgerTotal),
+  readPointsLedgerOpening: () => ledgerResult(state.ledgerOpening),
+  readPointsLedgerMonth: (_db: unknown, _uid: string, _athleteId: string, start: string) => {
+    state.ledgerMonthReads.push(start);
+    return ledgerResult(start.startsWith("2026-09") ? state.septemberLedger : state.octoberLedger);
+  },
 }));
+
+function ledgerResult<T>(value: T): Promise<T> {
+  if (state.ledgerMode === "loading") return new Promise(() => undefined);
+  if (state.ledgerMode === "error") return Promise.reject(new Error("ledger failed"));
+  if (state.ledgerMode === "error-then-ready") {
+    state.ledgerAttempt += 1;
+    if (state.ledgerAttempt <= 3) return Promise.reject(new Error("ledger failed"));
+  }
+  return Promise.resolve(value);
+}
 
 describe("TrainingHistoryPage", () => {
   afterEach(() => {
@@ -98,6 +135,13 @@ describe("TrainingHistoryPage", () => {
     state.user = { uid: "user-1" };
     state.subscribeCalls = [];
     state.ledger = { points: 40, streakDays: 5, completedDays: ["2026-10-19"] };
+    state.ledgerTotal = 40;
+    state.ledgerOpening = 0;
+    state.octoberLedger = [];
+    state.septemberLedger = [];
+    state.ledgerMode = "ready";
+    state.ledgerAttempt = 0;
+    state.ledgerMonthReads = [];
     state.deleteDay.mockClear();
     state.updateGamification.mockClear();
     vi.unstubAllGlobals();
@@ -200,5 +244,79 @@ describe("TrainingHistoryPage", () => {
     expect(state.updateGamification).not.toHaveBeenCalled();
     expect(state.ledger).toBe(ledger);
     expect(ledger).toEqual({ points: 40, streakDays: 5, completedDays: ["2026-10-19"] });
+  });
+
+  it("reads the ledger only after the detail view opens, and the month change follows the calendar", async () => {
+    state.ledgerTotal = 180;
+    state.ledgerOpening = 80;
+    state.ledger.points = 180;
+    state.octoberLedger = [
+      { id: "task", dateId: "2026-10-19", delta: 20, reason: "task-complete", refId: "a", createdAt: "2026-10-19T01:00:00.000Z" },
+      { id: "bonus", dateId: "2026-10-19", delta: 50, reason: "daily-bonus-add", createdAt: "2026-10-19T02:00:00.000Z" },
+      { id: "plan", dateId: "2026-10-22", delta: 30, reason: "plan-checkin", refId: "jd_tech_mon", createdAt: "2026-10-22T03:00:00.000Z" },
+    ];
+    state.septemberLedger = [
+      { id: "opening", dateId: "2026-09-02", delta: 80, reason: "opening-balance", createdAt: "2026-09-02T00:00:00.000Z" },
+    ];
+    const user = userEvent.setup();
+    render(<TrainingHistoryPage />);
+    await screen.findByText("完成 1/2");
+    expect(state.ledgerMonthReads).toEqual([]);
+    const subscriptions = state.subscribeCalls.length;
+
+    await user.click(screen.getByRole("button", { name: "积分明细" }));
+    expect(await screen.findByText("完成任务")).toBeTruthy();
+    expect(screen.getByText("全勤奖励")).toBeTruthy();
+    expect(screen.getByText("计划打卡（技术基础，周一）")).toBeTruthy();
+    expect(screen.getByText("小计 +70")).toBeTruthy();
+    expect(screen.getByText("小计 +30")).toBeTruthy();
+    expect(screen.getByText("当前积分＝期初＋流水净额")).toBeTruthy();
+    expect(screen.queryByText("未归属差额")).toBeNull();
+    expect(screen.queryByText("期初余额（迁移带入）")).toBeNull();
+    expect(screen.queryByText("400m")).toBeNull();
+    expect(state.ledgerMonthReads).toEqual(["2026-10-01"]);
+    expect(state.subscribeCalls.length).toBe(subscriptions);
+
+    await user.click(screen.getByRole("button", { name: "上个月" }));
+    expect(await screen.findByText("期初余额（迁移带入）")).toBeTruthy();
+    expect(screen.queryByText("完成任务")).toBeNull();
+    expect(state.ledgerMonthReads.at(-1)).toBe("2026-09-01");
+
+    await user.click(screen.getByRole("button", { name: "日历" }));
+    expect(await screen.findByText("这一天没有归档的任务。")).toBeTruthy();
+    expect(state.subscribeCalls.length).toBe(subscriptions + 1);
+  });
+
+  it("shows an unattributed gap when the balance and the ledger sum differ", async () => {
+    state.ledger.points = 100;
+    state.ledgerTotal = 180;
+    state.ledgerOpening = 80;
+    const user = userEvent.setup();
+    render(<TrainingHistoryPage />);
+    await user.click(screen.getByRole("button", { name: "积分明细" }));
+    expect(await screen.findByText("未归属差额 -80")).toBeTruthy();
+    expect(screen.getByText("这个月没有积分流水。")).toBeTruthy();
+  });
+
+  it("keeps a ledger read failure inside the detail view, and retry loads it", async () => {
+    state.ledgerMode = "error-then-ready";
+    const user = userEvent.setup();
+    render(<TrainingHistoryPage />);
+    await screen.findByText("完成 1/2");
+    await user.click(screen.getByRole("button", { name: "积分明细" }));
+    expect(await screen.findByText("这次没有读出积分流水。")).toBeTruthy();
+    expect(screen.queryByText("这次没有读出这个月的记录。")).toBeNull();
+    expect(screen.queryByText("这个月没有积分流水。")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "重试" }));
+    expect(await screen.findByText("这个月没有积分流水。")).toBeTruthy();
+  });
+
+  it("shows the ledger skeleton while the month of events is loading", async () => {
+    state.ledgerMode = "loading";
+    const user = userEvent.setup();
+    render(<TrainingHistoryPage />);
+    await user.click(screen.getByRole("button", { name: "积分明细" }));
+    expect(await screen.findByText("正在读取积分流水。")).toBeTruthy();
+    expect(screen.queryByText("这个月没有积分流水。")).toBeNull();
   });
 });

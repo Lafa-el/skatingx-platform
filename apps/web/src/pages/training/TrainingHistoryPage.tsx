@@ -23,6 +23,7 @@ import {
   shiftMonth,
   type HistoryMonth,
 } from "@/modules/training/history/history-model";
+import { PointsLedgerPanel } from "@/modules/training/history/PointsLedgerPanel";
 import { formatCalendarDate } from "@/shared/i18n/format";
 import type { Locale } from "@/shared/i18n/translator";
 import {
@@ -65,6 +66,7 @@ export function TrainingHistoryPage() {
   const db = getFirestoreDb();
   const today = todayDateString();
   const [visible, setVisible] = useState<HistoryMonth>(() => monthFromDateId(today) ?? { year: 2026, month: 10 });
+  const [view, setView] = useState<"calendar" | "ledger">("calendar");
   const [picked, setPicked] = useState<string | null>(null);
   const [lane, setLane] = useState<HistoryLane>({ status: "loading" });
   const [retry, setRetry] = useState(0);
@@ -132,6 +134,22 @@ export function TrainingHistoryPage() {
   return (
     <section>
       <h1 className="text-2xl font-bold text-brand-navy">{t("training.history.title")}</h1>
+      <div className="mt-4 flex gap-2" role="group" aria-label={t("training.history.ledger.switch")}>
+        <Button
+          variant={view === "calendar" ? "brand" : "outline"}
+          aria-pressed={view === "calendar"}
+          onClick={() => setView("calendar")}
+        >
+          {t("training.history.ledger.calendar")}
+        </Button>
+        <Button
+          variant={view === "ledger" ? "brand" : "outline"}
+          aria-pressed={view === "ledger"}
+          onClick={() => setView("ledger")}
+        >
+          {t("training.history.ledger.detail")}
+        </Button>
+      </div>
       <Card title={monthTitle(visible, locale)} className="mt-4">
         {uid && db ? (
           <div className="mb-3 flex items-center justify-between gap-2">
@@ -151,82 +169,100 @@ export function TrainingHistoryPage() {
           </div>
         ) : null}
 
-        {showSkeleton ? (
-          <div aria-busy="true">
-            <p>{t("training.history.loading")}</p>
-            <div className="mt-3 grid grid-cols-7 gap-1">
-              {Array.from({ length: 35 }, (_, index) => (
-                <div key={index} className="h-11 animate-pulse rounded-control bg-brand-ice" />
-              ))}
+        {view === "calendar" ? (
+          showSkeleton ? (
+            <div aria-busy="true">
+              <p>{t("training.history.loading")}</p>
+              <div className="mt-3 grid grid-cols-7 gap-1">
+                {Array.from({ length: 35 }, (_, index) => (
+                  <div key={index} className="h-11 animate-pulse rounded-control bg-brand-ice" />
+                ))}
+              </div>
             </div>
-          </div>
+          ) : !uid ? (
+            <p>{t("training.history.signedOut")}</p>
+          ) : !db ? (
+            <p>{t("training.history.unavailable")}</p>
+          ) : showFailure ? (
+            <div>
+              <p>{t("training.history.error")}</p>
+              <Button className="mt-3" variant="outline" onClick={() => setRetry((count) => count + 1)}>
+                {t("training.history.retry")}
+              </Button>
+            </div>
+          ) : (
+            <div>
+              <div className="grid grid-cols-7 gap-1 text-center text-xs text-brand-navy/70">
+                {WEEKDAYS.map((key) => (
+                  <div key={key} className="py-1">
+                    {t(key)}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {calendarCells(visible).map((dateId, index) =>
+                  dateId ? (
+                    <button
+                      key={dateId}
+                      type="button"
+                      aria-pressed={dateId === selected}
+                      aria-label={t("training.history.day.button", {
+                        date: formatCalendarDate(dateId, locale),
+                        marks: dayButtonMarks(dateId, archived, completedDays, today, t),
+                      })}
+                      className={[
+                        "flex min-h-11 flex-col items-center justify-center rounded-control text-brand-navy",
+                        dayMark(dateId, archived, completedDays, today).fullAttendance
+                          ? "bg-brand-flame font-semibold"
+                          : dateId === selected
+                            ? "bg-brand-ice"
+                            : "",
+                        dayMark(dateId, archived, completedDays, today).today ? "ring-2 ring-brand-navy" : "",
+                      ].join(" ")}
+                      onClick={() => {
+                        setPicked(dateId);
+                        setDeleteFailed(false);
+                      }}
+                    >
+                      <span className="sx-numeric">{Number(dateId.slice(-2))}</span>
+                      {dayMark(dateId, archived, completedDays, today).archived ? (
+                        <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-brand-navy" />
+                      ) : (
+                        <span className="mt-0.5 h-1.5 w-1.5" />
+                      )}
+                    </button>
+                  ) : (
+                    <div key={`blank-${String(index)}`} className="min-h-11" />
+                  ),
+                )}
+              </div>
+              <p className="mt-3 flex items-center gap-2">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-navy" />
+                <span className="inline-block h-3 w-3 rounded-sm bg-brand-flame" />
+                {t("training.history.legend")}
+              </p>
+            </div>
+          )
         ) : !uid ? (
           <p>{t("training.history.signedOut")}</p>
         ) : !db ? (
           <p>{t("training.history.unavailable")}</p>
-        ) : showFailure ? (
-          <div>
-            <p>{t("training.history.error")}</p>
-            <Button className="mt-3" variant="outline" onClick={() => setRetry((count) => count + 1)}>
-              {t("training.history.retry")}
-            </Button>
-          </div>
-        ) : (
-          <div>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs text-brand-navy/70">
-              {WEEKDAYS.map((key) => (
-                <div key={key} className="py-1">
-                  {t(key)}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {calendarCells(visible).map((dateId, index) =>
-                dateId ? (
-                  <button
-                    key={dateId}
-                    type="button"
-                    aria-pressed={dateId === selected}
-                    aria-label={t("training.history.day.button", {
-                      date: formatCalendarDate(dateId, locale),
-                      marks: dayButtonMarks(dateId, archived, completedDays, today, t),
-                    })}
-                    className={[
-                      "flex min-h-11 flex-col items-center justify-center rounded-control text-brand-navy",
-                      dayMark(dateId, archived, completedDays, today).fullAttendance
-                        ? "bg-brand-flame font-semibold"
-                        : dateId === selected
-                          ? "bg-brand-ice"
-                          : "",
-                      dayMark(dateId, archived, completedDays, today).today ? "ring-2 ring-brand-navy" : "",
-                    ].join(" ")}
-                    onClick={() => {
-                      setPicked(dateId);
-                      setDeleteFailed(false);
-                    }}
-                  >
-                    <span className="sx-numeric">{Number(dateId.slice(-2))}</span>
-                    {dayMark(dateId, archived, completedDays, today).archived ? (
-                      <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-brand-navy" />
-                    ) : (
-                      <span className="mt-0.5 h-1.5 w-1.5" />
-                    )}
-                  </button>
-                ) : (
-                  <div key={`blank-${String(index)}`} className="min-h-11" />
-                ),
-              )}
-            </div>
-            <p className="mt-3 flex items-center gap-2">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-navy" />
-              <span className="inline-block h-3 w-3 rounded-sm bg-brand-flame" />
-              {t("training.history.legend")}
-            </p>
-          </div>
-        )}
+        ) : null}
       </Card>
 
-      {ready && uid && db ? (
+      {view === "ledger" && uid && db ? (
+        <PointsLedgerPanel
+          db={db}
+          userId={uid}
+          athleteId={athleteId}
+          month={visible}
+          locale={locale}
+          points={gamification.loading || gamification.error ? null : (gamification.data?.points ?? 0)}
+          gamificationFailed={Boolean(gamification.error)}
+        />
+      ) : null}
+
+      {view === "calendar" && ready && uid && db ? (
         <Card title={formatCalendarDate(selected, locale)} className="mt-4">
           {selectedDay ? (
             <div>
