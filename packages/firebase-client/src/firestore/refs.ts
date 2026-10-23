@@ -84,6 +84,24 @@ export function athleteGamificationRef(
   return docFromPath(db, paths.athleteGamification(userId, athleteId));
 }
 
+export function pointsLedgerRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+  eventId: string,
+): DocumentReference {
+  return docFromPath(db, paths.pointsLedger(userId, athleteId, eventId));
+}
+
+export function pointsLedgerCollectionRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+): CollectionReference {
+  const segments = pathToSegments(paths.pointsLedgerCollection(userId, athleteId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
 export function trainingStateRef(
   db: Firestore,
   userId: string,

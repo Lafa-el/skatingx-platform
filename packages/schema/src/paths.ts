@@ -10,6 +10,14 @@ export const paths = {
   athleteGamification: (userId: string, athleteId: string) =>
     `${prefix(userId)}/athletes/${athleteId}/gamification/main`,
   /**
+   * Two segments under the athlete (`pointsLedger/{eventId}`), so the existing
+   * owner `{a}/{b}` rule covers it. Append-only is a client rule, not a rules change.
+   */
+  pointsLedger: (userId: string, athleteId: string, eventId: string) =>
+    `${prefix(userId)}/athletes/${athleteId}/pointsLedger/${eventId}`,
+  pointsLedgerCollection: (userId: string, athleteId: string) =>
+    `${prefix(userId)}/athletes/${athleteId}/pointsLedger`,
+  /**
    * Blueprint: `training/state/main`. Firestore requires an even segment count;
    * `training/state/main` is 9 segments, so the state doc is `training/state`.
    */

@@ -22,6 +22,7 @@ import {
   taskHistoryRef,
   trainingStateRef,
 } from "./refs";
+import { recordPointsChange } from "./points-ledger";
 import {
   serializeTaskHistoryDay,
   serializeTrainingTask,
@@ -199,12 +200,16 @@ export async function deleteTrainingTask(
 
     const removed = state.todayTasks.find((t) => t.id === taskId);
     if (!removed) {
+      await recordPointsChange(
+        tx,
+        ctx.db,
+        ctx.userId,
+        ctx.athleteId,
+        gamification.points,
+        [],
+        today,
+      );
       return;
-    }
-
-    let pointAdjust = 0;
-    if (removed.completed) {
-      pointAdjust -= state.pointsPerTask;
     }
 
     const remaining = state.todayTasks.filter((t) => t.id !== taskId);
@@ -213,12 +218,33 @@ export async function deleteTrainingTask(
       remaining.length > 0 && remaining.every((t) => t.completed);
 
     let completedDays = [...gamification.completedDays];
+    const drafts = [];
+    if (removed.completed) {
+      drafts.push({
+        dateId: today,
+        delta: -state.pointsPerTask,
+        reason: "task-delete" as const,
+        refId: taskId,
+      });
+    }
     if (wasAllCompleted && !stillAllCompleted && remaining.length >= 0) {
-      pointAdjust -= state.dailyBonusPoints;
+      drafts.push({
+        dateId: today,
+        delta: -state.dailyBonusPoints,
+        reason: "daily-bonus-remove" as const,
+      });
       completedDays = completedDays.filter((d) => d !== today);
     }
 
-    const points = Math.max(0, gamification.points + pointAdjust);
+    const points = await recordPointsChange(
+      tx,
+      ctx.db,
+      ctx.userId,
+      ctx.athleteId,
+      gamification.points,
+      drafts,
+      today,
+    );
     const streakDays = calculateStreakDays(completedDays, today);
 
     tx.update(
@@ -276,6 +302,40 @@ export async function toggleTrainingTask(
     bonusApplied = result.bonusApplied;
     bonusRemoved = result.bonusRemoved;
 
+    const toggled = state.todayTasks.find((task) => task.id === taskId);
+    const drafts = [];
+    if (toggled) {
+      drafts.push({
+        dateId: today,
+        delta: toggled.completed ? -state.pointsPerTask : state.pointsPerTask,
+        reason: toggled.completed ? ("task-uncomplete" as const) : ("task-complete" as const),
+        refId: taskId,
+      });
+    }
+    if (result.bonusApplied) {
+      drafts.push({
+        dateId: today,
+        delta: state.dailyBonusPoints,
+        reason: "daily-bonus-add" as const,
+      });
+    }
+    if (result.bonusRemoved) {
+      drafts.push({
+        dateId: today,
+        delta: -state.dailyBonusPoints,
+        reason: "daily-bonus-remove" as const,
+      });
+    }
+    const points = await recordPointsChange(
+      tx,
+      ctx.db,
+      ctx.userId,
+      ctx.athleteId,
+      gamification.points,
+      drafts,
+      today,
+    );
+
     tx.update(
       stateRef,
       toFirestoreData({
@@ -286,7 +346,7 @@ export async function toggleTrainingTask(
     tx.update(
       gamificationRef,
       toFirestoreData({
-        points: result.gamification.points,
+        points,
         completedDays: result.gamification.completedDays,
         streakDays: result.gamification.streakDays,
         updatedAt: serverTimestamp(),

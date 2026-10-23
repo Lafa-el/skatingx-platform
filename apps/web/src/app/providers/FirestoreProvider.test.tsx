@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { todayDateString } from "@skatingx/schema";
 
 import { act, renderHook, waitFor } from "@/test/dom";
 
@@ -13,6 +14,7 @@ const h = vi.hoisted(() => {
     bootstrap: (async () => undefined) as () => Promise<unknown>,
     language: undefined as string | undefined,
     deliverSettings: null as null | (() => void),
+    ensureOpening: vi.fn(async (..._args: unknown[]) => undefined),
   });
   return { base, state: base() };
 });
@@ -22,6 +24,7 @@ vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => h.state.db,
   initFirestorePersistence: async () => undefined,
   bootstrapUserDocuments: () => h.state.bootstrap(),
+  ensurePointsOpeningBalance: (...args: unknown[]) => h.state.ensureOpening(...args),
   settingsRef: () => "settings",
   athleteProfileRef: () => "profile",
   athleteGamificationRef: () => "gamification",
@@ -81,6 +84,9 @@ describe("useFirestoreStatus: why the data service did not start", () => {
     await waitFor(() => expect(result.current.ready).toBe(true));
     expect(result.current.bootstrapError).toBeNull();
     expect(result.current.connectivityError).toBeNull();
+    await waitFor(() =>
+      expect(h.state.ensureOpening).toHaveBeenCalledWith(h.state.db, "uid-1", "lindsay", todayDateString()),
+    );
   });
 
   it("not signed in yet but Firebase is set up: nothing to report", async () => {

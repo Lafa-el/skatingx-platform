@@ -24,7 +24,7 @@ const zh = {
   "training.history.task.done": "已完成",
   "training.history.task.open": "未完成",
   "training.history.delete": "删除这天的记录",
-  "training.history.delete.confirm": "删除后不可恢复。积分与连续天数是已发放的账本，不受影响，也不会重算。",
+  "training.history.delete.confirm": "删除后不可恢复。这一天已发的任务分和全勤奖励会按当前费率收回，连续天数会重算。",
   "training.history.delete.busy": "正在删除…",
   "training.history.delete.failed": "没能删除这一天的记录。",
   "training.history.loading": "正在读取这个月的记录。",
@@ -58,7 +58,7 @@ const en: Record<HistoryMessageKey, string> = {
   "training.history.task.open": "Not done",
   "training.history.delete": "Delete this day's record",
   "training.history.delete.confirm":
-    "This cannot be undone. Points and the streak are a ledger that was already issued. They are unaffected and are not recalculated.",
+    "This cannot be undone. Task points and the full-attendance bonus for this day are taken back at the current rates, and the streak is recalculated.",
   "training.history.delete.busy": "Deleting…",
   "training.history.delete.failed": "This day's record could not be deleted.",
   "training.history.loading": "Reading this month's records.",

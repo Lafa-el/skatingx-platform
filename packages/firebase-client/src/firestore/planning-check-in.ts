@@ -1,5 +1,5 @@
-import { applyPlanCheckIn, planDayById } from "@skatingx/skating-domain";
-import type { Gamification } from "@skatingx/schema";
+import { planDayById } from "@skatingx/skating-domain";
+import { todayDateString, type Gamification } from "@skatingx/schema";
 import {
   onSnapshot,
   runTransaction,
@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 
 import { athleteGamificationRef, planningCheckInRef, planningCheckInsCollectionRef } from "./refs";
+import { recordPointsChange } from "./points-ledger";
 import { toFirestoreData } from "./sanitize";
 
 export type PlanningCheckIn = {
@@ -60,14 +61,25 @@ export async function completePlanningCheckIn(
   }
   const taskRef = planningCheckInRef(db, userId, athleteId, taskId);
   const gamificationRef = athleteGamificationRef(db, userId, athleteId);
+  const today = todayDateString();
 
   return runTransaction(db, async (tx) => {
     const taskSnap = await tx.get(taskRef);
-    if (taskSnap.exists()) return "already";
-
     const gamificationSnap = await tx.get(gamificationRef);
     const current = gamificationSnap.data() as Gamification | undefined;
-    const points = applyPlanCheckIn(current?.points ?? 0, day.points, false);
+    if (taskSnap.exists()) {
+      await recordPointsChange(tx, db, userId, athleteId, current?.points ?? 0, [], today);
+      return "already";
+    }
+    const points = await recordPointsChange(
+      tx,
+      db,
+      userId,
+      athleteId,
+      current?.points ?? 0,
+      [{ dateId: today, delta: day.points, reason: "plan-checkin", refId: day.id }],
+      today,
+    );
 
     tx.set(
       taskRef,
@@ -97,5 +109,53 @@ export async function completePlanningCheckIn(
       );
     }
     return "saved";
+  });
+}
+
+/**
+ * Removes one check-in and takes back the points that check-in stored.
+ * A second call finds no document and does not take points again.
+ */
+export async function cancelPlanningCheckIn(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+  taskId: string,
+): Promise<"cancelled" | "missing"> {
+  const day = planDayById(taskId);
+  if (!day) {
+    throw new Error("unknown-plan-day");
+  }
+  const taskRef = planningCheckInRef(db, userId, athleteId, taskId);
+  const gamificationRef = athleteGamificationRef(db, userId, athleteId);
+  const today = todayDateString();
+
+  return runTransaction(db, async (tx) => {
+    const taskSnap = await tx.get(taskRef);
+    const gamificationSnap = await tx.get(gamificationRef);
+    const current = gamificationSnap.data() as Gamification | undefined;
+    const todayPoints = current?.points ?? 0;
+    if (!taskSnap.exists()) {
+      await recordPointsChange(tx, db, userId, athleteId, todayPoints, [], today);
+      return "missing";
+    }
+
+    const stored = taskSnap.data() as { points?: unknown };
+    const awarded = typeof stored.points === "number" ? stored.points : day.points;
+    const points = await recordPointsChange(
+      tx,
+      db,
+      userId,
+      athleteId,
+      todayPoints,
+      [{ dateId: today, delta: -awarded, reason: "plan-uncheckin", refId: day.id }],
+      today,
+    );
+
+    tx.delete(taskRef);
+    if (gamificationSnap.exists()) {
+      tx.update(gamificationRef, toFirestoreData({ points, updatedAt: serverTimestamp() }));
+    }
+    return "cancelled";
   });
 }

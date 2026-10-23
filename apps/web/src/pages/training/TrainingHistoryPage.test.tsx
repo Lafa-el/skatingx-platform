@@ -193,7 +193,8 @@ describe("TrainingHistoryPage", () => {
     await user.click(screen.getByRole("button", { name: "删除这天的记录" }));
     expect(state.action).toBe("deleteTaskHistory");
     expect(state.confirmMessage).toContain("删除后不可恢复");
-    expect(state.confirmMessage).toContain("不会重算");
+    expect(state.confirmMessage).toContain("按当前费率收回");
+    expect(state.confirmMessage).toContain("会重算");
     expect(state.deleteDay).toHaveBeenCalledTimes(1);
     expect(state.deleteDay.mock.calls[0]).toEqual([state.db, "user-1", "lindsay", "2026-10-19"]);
     expect(state.updateGamification).not.toHaveBeenCalled();
