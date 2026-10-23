@@ -82,6 +82,28 @@ describe("pacing page", () => {
     expect(view.container.querySelector("svg")).not.toBeNull();
   });
 
+  it("saves an even pace with no findings, so it does not carry a focus signal", async () => {
+    state.uid = "alice";
+    const user = userEvent.setup();
+    render(<AnalysisPacingPage />);
+    const benchmarkLabels = ["起跑前半圈", "Lap 1", "Lap 2", "Lap 3", "Lap 4"];
+    const athleteLabels = ["起跑前半圈 (s)", "Lap 1 (s)", "Lap 2 (s)", "Lap 3 (s)", "Lap 4 (s)"];
+    for (const [index, label] of athleteLabels.entries()) {
+      const benchmark = screen.getByLabelText(benchmarkLabels[index] ?? "");
+      await user.type(screen.getByLabelText(label), (benchmark as HTMLInputElement).value);
+    }
+    await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+    expect(screen.getByText("优秀")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "保存本次配速" }));
+    await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1));
+    const record = state.save.mock.calls[0]?.[1] as {
+      findings: { code: string }[];
+      pace: { findings: { code: string }[] };
+    };
+    expect(record.findings).toEqual([]);
+    expect(record.pace.findings).toEqual([]);
+  });
+
   it("rejects an empty split list with the legacy message", async () => {
     const user = userEvent.setup();
     render(<AnalysisPacingPage />);

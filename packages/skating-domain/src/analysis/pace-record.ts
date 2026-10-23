@@ -78,10 +78,14 @@ export function buildPaceAnalysisRecord(input: {
     algorithmVersion: PACE_ALGORITHM_VERSION,
     model: paceProvenanceModel,
   };
-  const findings = [
-    { code: "pace.decay.back-half" as const, analysisId: input.id },
-    { code: "pace.total.versus-benchmark" as const, analysisId: input.id },
-  ];
+  // +3 is the boundary legacy-pace already uses before a run leaves 优秀.
+  const findings: PaceAnalysisRecord["findings"][number][] = [];
+  if (input.analysis.decayPercent > input.analysis.benchmarkDecayPercent + 3) {
+    findings.push({ code: "pace.decay.back-half", analysisId: input.id });
+  }
+  if (input.analysis.totalSeconds > input.analysis.benchmarkTotalSeconds) {
+    findings.push({ code: "pace.total.versus-benchmark", analysisId: input.id });
+  }
 
   return {
     id: input.id,
