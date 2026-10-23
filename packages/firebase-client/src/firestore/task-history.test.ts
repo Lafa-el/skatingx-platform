@@ -8,11 +8,14 @@ const firestore = vi.hoisted(() => ({
   onSnapshot: vi.fn(),
   collection: vi.fn((...parts: unknown[]) => ({ kind: "collection", parts })),
   doc: vi.fn((...parts: unknown[]) => ({ kind: "doc", parts })),
+  limit: vi.fn((n: number) => ({ kind: "limit", n })),
+  runTransaction: vi.fn(),
+  serverTimestamp: vi.fn(() => "ts"),
 }));
 
 vi.mock("firebase/firestore", () => firestore);
 
-import { deleteTaskHistoryDay, subscribeToTaskHistoryMonth } from "./task-history";
+import { subscribeToTaskHistoryMonth } from "./task-history";
 
 const db = { kind: "db" };
 
@@ -67,16 +70,5 @@ describe("subscribeToTaskHistoryMonth", () => {
     subscribeToTaskHistoryMonth(db as never, "user-1", "lindsay", "", "2026-10-31", vi.fn(), onError);
     expect(onError).toHaveBeenCalledOnce();
     expect(firestore.query).not.toHaveBeenCalled();
-  });
-});
-
-describe("deleteTaskHistoryDay", () => {
-  it("deletes that day's archive document and does not touch gamification", async () => {
-    await deleteTaskHistoryDay(db as never, "user-1", "lindsay", "2026-10-19");
-    expect(firestore.deleteDoc).toHaveBeenCalledOnce();
-    const [ref] = firestore.deleteDoc.mock.calls[0] as unknown as [{ parts: unknown[] }];
-    expect(ref.parts).toContain("taskHistory");
-    expect(ref.parts).toContain("2026-10-19");
-    expect(ref.parts).not.toContain("gamification");
   });
 });

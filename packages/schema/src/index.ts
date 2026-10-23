@@ -9,6 +9,13 @@ export type { Athlete, AthleteId, AthleteProfile } from "./athlete";
 
 export type { Gamification } from "./gamification";
 
+export {
+  POINTS_LEDGER_OPENING_ID,
+  POINTS_LEDGER_REASONS,
+  type PointsLedgerEvent,
+  type PointsLedgerReason,
+} from "./points-ledger";
+
 export type {
   AnalysisModule,
   AnalysisSession,

@@ -1,5 +1,6 @@
 export { compareDateStrings, previousDateString, todayDateString } from "./dates";
 export { calculateStreakDays } from "./streak";
+export { clampPointsDeltas, type PointsLedgerDraft } from "./points-ledger";
 export {
   deriveTrainingFeedback,
   latestFeedbackSourceByKind,

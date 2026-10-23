@@ -1,5 +1,6 @@
 import {
   createDefaultRewardsCatalog,
+  todayDateString,
   type Gamification,
   type RewardRedemption,
   type RewardsCatalogDocument,
@@ -17,6 +18,7 @@ import {
   trainingRedemptionRef,
   trainingRewardsCatalogRef,
 } from "./refs";
+import { recordPointsChange } from "./points-ledger";
 import { toFirestoreData } from "./sanitize";
 
 export type RewardsActorContext = {
@@ -78,6 +80,7 @@ export async function redeemReward(
     redemptionId,
   );
   const nowIso = new Date().toISOString();
+  const today = todayDateString();
 
   return runTransaction(ctx.db, async (tx) => {
     const catalogSnap = await tx.get(catalogRef);
@@ -96,12 +99,20 @@ export async function redeemReward(
     }
 
     const gamification = gamificationSnap.data() as Gamification | undefined;
-    const points = gamification?.points ?? 0;
-    if (points < cost) {
+    const balance = gamification?.points ?? 0;
+    if (balance < cost) {
       throw new Error("Not enough points for this reward.");
     }
 
-    const pointsAfter = Math.max(0, points - cost);
+    const pointsAfter = await recordPointsChange(
+      tx,
+      ctx.db,
+      ctx.userId,
+      ctx.athleteId,
+      balance,
+      [{ dateId: today, delta: -cost, reason: "reward-redeem", refId: redemptionId }],
+      today,
+    );
     const redemption: RewardRedemption = {
       id: redemptionId,
       rewardId,

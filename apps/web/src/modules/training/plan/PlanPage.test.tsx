@@ -25,6 +25,9 @@ const state = vi.hoisted(() => ({
   complete: vi.fn(
     (_db: unknown, _uid: unknown, _athlete: unknown, _taskId: string) => Promise.resolve("saved" as const),
   ),
+  cancel: vi.fn(
+    (_db: unknown, _uid: unknown, _athlete: unknown, _taskId: string) => Promise.resolve("cancelled" as const),
+  ),
 }));
 
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
@@ -52,6 +55,8 @@ vi.mock("@skatingx/firebase-client", () => ({
   },
   completePlanningCheckIn: (db: unknown, uid: unknown, athlete: unknown, taskId: string) =>
     state.complete(db, uid, athlete, taskId),
+  cancelPlanningCheckIn: (db: unknown, uid: unknown, athlete: unknown, taskId: string) =>
+    state.cancel(db, uid, athlete, taskId),
   subscribeToSavedAnalyses: (
     _db: unknown,
     _uid: unknown,
@@ -85,6 +90,7 @@ afterEach(() => {
   state.unsubscribe.mockClear();
   state.stopFeedback.mockClear();
   state.complete.mockClear();
+  state.cancel.mockClear();
   sessionStorage.clear();
 });
 
@@ -132,6 +138,27 @@ describe("training plan page", () => {
     expect(screen.getAllByRole("button", { name: "打卡同步" })).toHaveLength(6);
     expect(screen.getByText(/本周已打卡积分：/).textContent).toContain("30");
     expect(screen.getByText("积分 150")).toBeTruthy();
+  });
+
+  it("cancels a checked-in day from the matching button", async () => {
+    state.checkIns = [{ taskId: "jd_tech_mon", points: 30 }];
+    state.points = 150;
+    state.cancel.mockImplementation(async () => {
+      state.points = 120;
+      state.checkIns = [];
+      state.onData?.(state.checkIns);
+      return "cancelled";
+    });
+    const user = userEvent.setup();
+    render(<TrainingPlanPage />);
+    await user.click(screen.getByRole("button", { name: /技术基础与弯道控制/ }));
+    await user.click(screen.getByRole("button", { name: "取消打卡" }));
+
+    expect(state.cancel).toHaveBeenCalledWith({}, "user-1", "lindsay", "jd_tech_mon");
+    expect(state.complete).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "取消打卡" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "打卡同步" })).toHaveLength(7);
+    expect(screen.getByText("积分 120")).toBeTruthy();
   });
 
   it("uses the English draft when the locale is English", async () => {

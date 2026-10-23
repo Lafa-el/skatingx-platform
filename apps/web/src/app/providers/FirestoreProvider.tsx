@@ -1,5 +1,6 @@
 import {
   bootstrapUserDocuments,
+  ensurePointsOpeningBalance,
   getFirestoreDb,
   initFirestorePersistence,
   subscribeToDocument,
@@ -14,7 +15,7 @@ import type {
   TrainingState,
   UserSettings,
 } from "@skatingx/schema";
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
+import { DEFAULT_ATHLETE_ID, todayDateString } from "@skatingx/schema";
 import {
   createContext,
   useContext,
@@ -30,6 +31,7 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { tAuth } from "@/shared/i18n/auth-messages";
 import { tShell } from "@/shared/i18n/shell-messages";
 import { type Locale, toLocale } from "@/shared/i18n/translator";
+import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 /**
  * Why the data service could not start. It keeps what happened, not the sentence, so the banner
@@ -203,6 +205,13 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
             setTrainingState({ data: null, loading: false, error: message }),
         ).unsubscribe,
       );
+
+      // First read of this athlete's points. An empty ledger with a balance
+      // above zero gets one opening line. A failure stays in the log: the next
+      // points change records the same line.
+      void ensurePointsOpeningBalance(db, uid, athleteId, todayDateString()).catch((error: unknown) => {
+        logActionFailure("training-points", "opening-balance", error);
+      });
 
       setReady(true);
     }

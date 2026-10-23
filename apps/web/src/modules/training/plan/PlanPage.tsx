@@ -11,6 +11,7 @@ import {
   type TrainingFeedback,
 } from "@skatingx/skating-domain";
 import {
+  cancelPlanningCheckIn,
   completePlanningCheckIn,
   getFirestoreDb,
   subscribeToEquipmentHistory,
@@ -167,6 +168,28 @@ export function PlanPage() {
     }
   };
 
+  const cancelCheckIn = async (taskId: string) => {
+    if (!uid || pendingId) return;
+    const db = getFirestoreDb();
+    if (!db) {
+      setFailedId(taskId);
+      setStatus("plan.check.cancel.offline");
+      return;
+    }
+    setPendingId(taskId);
+    setFailedId(null);
+    setStatus(null);
+    try {
+      await cancelPlanningCheckIn(db, uid, DEFAULT_ATHLETE_ID, taskId);
+    } catch (error) {
+      logActionFailure("training-plan", "cancel-check-in", error);
+      setFailedId(taskId);
+      setStatus("plan.check.retry");
+    } finally {
+      setPendingId(null);
+    }
+  };
+
   const ignoreSuggestion = (item: TrainingFeedback) => {
     const next = new Set(hidden);
     next.add(trainingFeedbackKey(item));
@@ -283,6 +306,19 @@ export function PlanPage() {
                   <Button className="mt-3 w-full" disabled={done || pending} onClick={() => void checkIn(day.id)}>
                     {tPlan(locale, label)}
                   </Button>
+                  {done ? (
+                    <Button
+                      className="mt-3 w-full"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => void cancelCheckIn(day.id)}
+                    >
+                      {tPlan(
+                        locale,
+                        pending ? "plan.check.pending" : failedId === day.id ? "plan.check.retry" : "plan.check.cancel",
+                      )}
+                    </Button>
+                  ) : null}
                 </li>
               );
             })}

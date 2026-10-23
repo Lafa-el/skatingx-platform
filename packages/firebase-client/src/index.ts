@@ -29,6 +29,8 @@ export {
   settingsRef,
   taskHistoryCollectionRef,
   taskHistoryRef,
+  pointsLedgerCollectionRef,
+  pointsLedgerRef,
   trainingRecordRef,
   trainingRecordsCollectionRef,
   trainingRedemptionRef,
@@ -83,10 +85,12 @@ export {
 } from "./firestore/equipment-history";
 export {
   completePlanningCheckIn,
+  cancelPlanningCheckIn,
   subscribeToPlanningCheckIns,
   type PlanningCheckIn,
 } from "./firestore/planning-check-in";
 export { updateUserSettings } from "./firestore/settings";
+export { ensurePointsOpeningBalance, recordPointsChange } from "./firestore/points-ledger";
 export {
   deleteTaskHistoryDay,
   subscribeToTaskHistoryMonth,
