@@ -58,6 +58,18 @@ describe("analysis feedback", () => {
     ]);
   });
 
+  it("does not suggest a pace focus when the latest pace record has no findings", () => {
+    expect(
+      deriveTrainingFeedback([
+        source({
+          kind: "pace",
+          id: "pace-excellent",
+          findings: [],
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
   it("does not turn an unreadable frame into training advice", () => {
     expect(
       deriveTrainingFeedback([

@@ -1,8 +1,39 @@
 import { describe, expect, it } from "vitest";
 
 import { baselinePoseParameters } from "../../../../docs/migration/analysis/contract-types";
-import { calculatePacingAnalysis, pacingDistanceConfigs } from "./legacy-pace";
+import { calculatePacingAnalysis, pacingDistanceConfigs, type PaceAnalysis } from "./legacy-pace";
 import { buildPaceAnalysisRecord, paceProvenanceModel } from "./pace-record";
+
+function analysis(overrides: Partial<PaceAnalysis>): PaceAnalysis {
+  return {
+    ratingLabel: "优秀",
+    levelSub: "后半程节奏接近标杆",
+    trainingRatio: "60:40",
+    lacticIndexPercent: 100,
+    totalSeconds: 50,
+    benchmarkTotalSeconds: 50,
+    decayPercent: 8,
+    benchmarkDecayPercent: 5,
+    earlyAverageSeconds: 10,
+    lateAverageSeconds: 10,
+    maxSegmentJump: 0,
+    benchmarkMaxJump: 0,
+    finishGapSeconds: 0,
+    ...overrides,
+  };
+}
+
+function recordFor(next: PaceAnalysis) {
+  return buildPaceAnalysisRecord({
+    id: "pace-500-abc",
+    ownerUserId: "alice",
+    createdAt: "2026-10-19T04:59:13.497Z",
+    distance: "500",
+    splits: [1, 1, 1, 1, 1],
+    benchmark: [1, 1, 1, 1, 1],
+    analysis: next,
+  });
+}
 
 describe("pace analysis record", () => {
   it("keeps the contract pose parameter block, even though this run does not start Pose", () => {
@@ -40,5 +71,37 @@ describe("pace analysis record", () => {
     expect(record).not.toHaveProperty("paceInput");
     expect(record).not.toHaveProperty("video");
     expect(JSON.stringify(record)).not.toMatch(/storage|gs:\/\//);
+  });
+
+  it("writes a decay finding only past the excellent boundary and a total finding only when slower", () => {
+    const cases = [
+      {
+        name: "decay over and slower",
+        analysis: analysis({ decayPercent: 8.01, totalSeconds: 50.01 }),
+        codes: ["pace.decay.back-half", "pace.total.versus-benchmark"],
+      },
+      {
+        name: "decay over and not slower",
+        analysis: analysis({ decayPercent: 8.01, totalSeconds: 50 }),
+        codes: ["pace.decay.back-half"],
+      },
+      {
+        name: "decay at the boundary and slower",
+        analysis: analysis({ decayPercent: 8, totalSeconds: 50.01 }),
+        codes: ["pace.total.versus-benchmark"],
+      },
+      {
+        name: "neither",
+        analysis: analysis({ decayPercent: 8, totalSeconds: 50 }),
+        codes: [],
+      },
+    ] as const;
+
+    for (const item of cases) {
+      const record = recordFor(item.analysis);
+      const codes = item.codes.map((code) => ({ code, analysisId: "pace-500-abc" }));
+      expect(record.findings, item.name).toEqual(codes);
+      expect(record.pace.findings, item.name).toBe(record.findings);
+    }
   });
 });
