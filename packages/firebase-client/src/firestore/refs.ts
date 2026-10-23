@@ -101,6 +101,15 @@ export function taskHistoryRef(
   return docFromPath(db, paths.taskHistory(userId, athleteId, dateId));
 }
 
+export function taskHistoryCollectionRef(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+): CollectionReference {
+  const segments = pathToSegments(paths.taskHistoryCollection(userId, athleteId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
 export function trainingRecordRef(
   db: Firestore,
   userId: string,

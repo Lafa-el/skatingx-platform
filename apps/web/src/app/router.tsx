@@ -25,6 +25,11 @@ const AnalysisEquipmentPage = lazy(() =>
 const TrainingPlanPage = lazy(() =>
   import("@/pages/training/TrainingPlanPage").then((module) => ({ default: module.TrainingPlanPage })),
 );
+const TrainingHistoryPage = lazy(() =>
+  import("@/pages/training/TrainingHistoryPage").then((module) => ({
+    default: module.TrainingHistoryPage,
+  })),
+);
 import { AthletePage } from "@/pages/AthletePage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -57,6 +62,14 @@ export function AppRouter() {
           }
         />
         <Route path="tasks" element={<TrainingTasksPage />} />
+        <Route
+          path="history"
+          element={
+            <Suspense fallback={<div className="min-h-11" />}>
+              <TrainingHistoryPage />
+            </Suspense>
+          }
+        />
         <Route path="academy" element={<TrainingAcademyPage />} />
         <Route path="records" element={<TrainingRecordsPage />} />
         <Route path="shop" element={<TrainingShopPage />} />

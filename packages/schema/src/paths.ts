@@ -18,6 +18,9 @@ export const paths = {
   /** Under `training` module; 10 segments via `training/main/taskHistory/{dateId}`. */
   taskHistory: (userId: string, athleteId: string, dateId: string) =>
     `${prefix(userId)}/athletes/${athleteId}/training/main/taskHistory/${dateId}`,
+  /** Parent of the existing per-day documents. Not a new store. */
+  taskHistoryCollection: (userId: string, athleteId: string) =>
+    `${prefix(userId)}/athletes/${athleteId}/training/main/taskHistory`,
   /**
    * Blueprint: `training/records/{distanceId}` (9 segments if literal).
    * Valid path: `training/main/records/{distanceId}` (10 segments).

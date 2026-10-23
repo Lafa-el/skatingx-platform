@@ -5,7 +5,12 @@
 
 export const PARENT_PIN_LENGTH = 4;
 
-export const PARENT_PIN_ACTIONS = ["passwordReset", "deleteAthlete", "planChange"] as const;
+export const PARENT_PIN_ACTIONS = [
+  "passwordReset",
+  "deleteAthlete",
+  "planChange",
+  "deleteTaskHistory",
+] as const;
 
 export type ParentPinAction = (typeof PARENT_PIN_ACTIONS)[number];
 
@@ -30,13 +35,14 @@ export function parentPinConfigured(hash: unknown, salt: unknown): boolean {
 
 /**
  * Unset PIN does not block. A set PIN blocks until this session has unlocked.
- * The three actions share that rule on purpose.
+ * The listed actions share that rule on purpose.
  */
 export function parentPinAllows(input: ParentPinGateInput): boolean {
   switch (input.action) {
     case "passwordReset":
     case "deleteAthlete":
     case "planChange":
+    case "deleteTaskHistory":
       break;
     default: {
       const unreachable: never = input.action;
