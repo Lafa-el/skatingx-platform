@@ -92,6 +92,13 @@ export {
 export { updateUserSettings } from "./firestore/settings";
 export { ensurePointsOpeningBalance, recordPointsChange } from "./firestore/points-ledger";
 export {
+  pointsLedgerRowFromDocument,
+  readPointsLedgerMonth,
+  readPointsLedgerOpening,
+  readPointsLedgerTotal,
+  type PointsLedgerRow,
+} from "./firestore/points-ledger-read";
+export {
   deleteTaskHistoryDay,
   subscribeToTaskHistoryMonth,
   type ArchivedTask,
