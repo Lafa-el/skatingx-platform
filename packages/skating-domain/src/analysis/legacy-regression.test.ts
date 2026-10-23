@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { buildEquipmentChecklist, parseGaugeNumber } from "./legacy-equipment";
-import { calculatePacingAnalysis, pacingDistanceConfigs } from "./legacy-pace";
+import { calculatePacingAnalysis } from "./legacy-pace";
+
+/** The 500m benchmark this file was locked against. It is not the current factory default. */
+const locked500Benchmark = [7.05, 9.1, 9.42, 9.85, 10.3];
 import {
   assessVideoInput,
   emptySupportTracker,
@@ -157,7 +160,7 @@ describe("legacy pace calculation", () => {
     const result = calculatePacingAnalysis(
       "500",
       [7.2, 9.3, 9.5, 10.4, 11.2],
-      pacingDistanceConfigs["500"].defaults,
+      locked500Benchmark,
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -173,7 +176,7 @@ describe("legacy pace calculation", () => {
   });
 
   it("locks the empty-input failures", () => {
-    expect(calculatePacingAnalysis("500", [0, 9.1, 9.4, 9.8, 10.3], pacingDistanceConfigs["500"].defaults)).toEqual({
+    expect(calculatePacingAnalysis("500", [0, 9.1, 9.4, 9.8, 10.3], locked500Benchmark)).toEqual({
       ok: false,
       message: "请输入完整且大于 0 的圈速数据后再生成曲线。",
     });

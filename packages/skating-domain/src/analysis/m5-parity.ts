@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { aggregateKeyframes, samplePoseFrame } from "./biomech-session";
 import { buildEquipmentChecklist } from "./legacy-equipment";
-import { calculatePacingAnalysis, pacingDistanceConfigs } from "./legacy-pace";
+import { calculatePacingAnalysis } from "./legacy-pace";
 import {
   assessVideoInput,
   emptySupportTracker,
@@ -81,7 +81,9 @@ function fixtureInput(name: string): Record<string, unknown> {
 }
 
 function paceRows(): ParityRow[] {
-  const result = calculatePacingAnalysis("500", [7.2, 9.3, 9.5, 10.4, 11.2], pacingDistanceConfigs["500"].defaults);
+  // Locked with the benchmark this table was written against, not the current factory default.
+  const locked500Benchmark = [7.05, 9.1, 9.42, 9.85, 10.3];
+  const result = calculatePacingAnalysis("500", [7.2, 9.3, 9.5, 10.4, 11.2], locked500Benchmark);
   if (!result.ok) {
     return [row("配速 · 500m 合成分段", "可计算", result.message)];
   }
@@ -97,7 +99,7 @@ function paceRows(): ParityRow[] {
     row("配速 · 标杆衰减", "8.8013%", `${analysis.benchmarkDecayPercent.toFixed(4)}%`),
     row("配速 · 后半程说明", "后半程掉速明显，优先补节奏耐受", analysis.levelSub),
   ];
-  const emptySplit = calculatePacingAnalysis("500", [0, 9.1, 9.4, 9.8, 10.3], pacingDistanceConfigs["500"].defaults);
+  const emptySplit = calculatePacingAnalysis("500", [0, 9.1, 9.4, 9.8, 10.3], locked500Benchmark);
   const emptyBenchmark = calculatePacingAnalysis("500", [7.2, 9.3, 9.5, 10.4, 11.2], [0, 0, 0, 0, 0]);
   return [
     ...locked,
