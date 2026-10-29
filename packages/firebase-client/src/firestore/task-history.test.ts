@@ -15,7 +15,7 @@ const firestore = vi.hoisted(() => ({
 
 vi.mock("firebase/firestore", () => firestore);
 
-import { subscribeToTaskHistoryMonth } from "./task-history";
+import { archivedDayFromDocument, subscribeToTaskHistoryMonth } from "./task-history";
 
 const db = { kind: "db" };
 
@@ -70,5 +70,24 @@ describe("subscribeToTaskHistoryMonth", () => {
     subscribeToTaskHistoryMonth(db as never, "user-1", "lindsay", "", "2026-10-31", vi.fn(), onError);
     expect(onError).toHaveBeenCalledOnce();
     expect(firestore.query).not.toHaveBeenCalled();
+  });
+});
+
+describe("archivedDayFromDocument", () => {
+  it("keeps where an archived task came from, and the plan entry it was generated from", () => {
+    const day = archivedDayFromDocument("2026-10-29", {
+      tasks: [
+        { id: "a", text: "plan task", completed: true, source: "plan", planEntryId: "jd_tech_mon.1" },
+        { id: "b", text: "academy task", completed: false, source: "academy" },
+        { id: "c", text: "older task", completed: false },
+        { id: "d", text: "odd task", completed: false, source: "elsewhere", planEntryId: 7 },
+      ],
+    });
+    expect(day?.tasks).toEqual([
+      { id: "a", text: "plan task", completed: true, source: "plan", planEntryId: "jd_tech_mon.1" },
+      { id: "b", text: "academy task", completed: false, source: "academy" },
+      { id: "c", text: "older task", completed: false },
+      { id: "d", text: "odd task", completed: false },
+    ]);
   });
 });

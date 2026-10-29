@@ -61,7 +61,7 @@ export function PlanPage() {
   const locale = useLocale();
   const { uid } = useAuth();
   const gamification = useGamification();
-  const [focus, setFocus] = usePlanFocus();
+  const [focus, setFocus, focusStatus] = usePlanFocus();
   const [checkIns, setCheckIns] = useState<readonly PlanningCheckIn[]>([]);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [failedId, setFailedId] = useState<string | null>(null);
@@ -253,6 +253,17 @@ export function PlanPage() {
         </header>
         <div className="grid gap-3">
           <p className="text-sm font-semibold text-brand-navy">{tPlan(locale, "plan.focus.label")}</p>
+          {focusStatus.staleFocus ? (
+            <div className="grid gap-2 rounded-card border border-brand-navy/15 p-3">
+              <p className="text-sm text-brand-navy">
+                {tPlan(locale, "plan.focus.stale", { title: tPlan(locale, FOCUS_TITLE[focusStatus.staleFocus]) })}
+              </p>
+              <Button type="button" variant="outline" onClick={() => setFocus(focusStatus.staleFocus!)}>
+                {tPlan(locale, "plan.focus.staleConfirm")}
+              </Button>
+            </div>
+          ) : null}
+          {focusStatus.failed ? <p role="status" className="text-sm text-status-danger">{tPlan(locale, "plan.focus.saveFailed")}</p> : null}
           {PLAN_FOCUSES.map((item) => (
             <button
               key={item}
@@ -325,7 +336,7 @@ export function PlanPage() {
           </ul>
         ) : (
           <Card title={tPlan(locale, "plan.week.choose")}>
-            <p>{tPlan(locale, "plan.empty")}</p>
+            <p>{tPlan(locale, focusStatus.loading ? "plan.focus.loading" : "plan.empty")}</p>
           </Card>
         )}
         {focus ? (

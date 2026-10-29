@@ -1,4 +1,4 @@
-import { todayDateString, type Gamification, type TrainingState } from "@skatingx/schema";
+import { todayDateString, type Gamification, type TrainingState, type TrainingTaskSource } from "@skatingx/schema";
 import { calculateStreakDays, normalizeTrainingState } from "@skatingx/skating-domain";
 import {
   documentId,
@@ -19,6 +19,10 @@ export type ArchivedTask = {
   id: string;
   text: string;
   completed: boolean;
+  /** Where the task came from. Absent on tasks archived before `source` was read here. */
+  source?: TrainingTaskSource;
+  /** Plan template entry id, present only on `source: "plan"` tasks. */
+  planEntryId?: string;
 };
 
 /** One `taskHistory/{dateId}` document. `dateId` is the document id. */
@@ -44,7 +48,12 @@ function archivedTask(value: unknown): ArchivedTask | null {
   const row = value as Record<string, unknown>;
   if (typeof row.id !== "string" || row.id.length === 0) return null;
   if (typeof row.text !== "string") return null;
-  return { id: row.id, text: row.text, completed: row.completed === true };
+  const task: ArchivedTask = { id: row.id, text: row.text, completed: row.completed === true };
+  if (row.source === "manual" || row.source === "academy" || row.source === "system" || row.source === "plan") {
+    task.source = row.source;
+  }
+  if (typeof row.planEntryId === "string" && row.planEntryId) task.planEntryId = row.planEntryId;
+  return task;
 }
 
 /** Readable days only. A document that is not a calendar id is skipped, not invented. */

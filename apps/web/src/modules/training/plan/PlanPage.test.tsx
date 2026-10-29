@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-import { PLAN_DAYS } from "@skatingx/skating-domain";
+import { todayDateString } from "@skatingx/schema";
+import { mondayOfWeek, PLAN_DAYS } from "@skatingx/skating-domain";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
@@ -28,21 +29,52 @@ const state = vi.hoisted(() => ({
   cancel: vi.fn(
     (_db: unknown, _uid: unknown, _athlete: unknown, _taskId: string) => Promise.resolve("cancelled" as const),
   ),
+  // The training state the focus is stored on (ADR-008). A tiny store so a write re-renders.
+  training: { value: null as Record<string, unknown> | null, loading: false, listeners: new Set<() => void>() },
+  setPlanFocus: vi.fn(),
+  setPlanFocusFails: false,
 }));
+
+const thisMonday = () => mondayOfWeek(todayDateString());
+
+function emit() {
+  for (const listener of state.training.listeners) listener();
+}
 
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
 vi.mock("@/app/providers/AuthProvider", () => ({
   useAuth: () => ({ uid: state.uid, loading: false, firebaseReady: Boolean(state.uid) }),
 }));
-vi.mock("@/app/providers/FirestoreProvider", () => ({
-  useGamification: () => ({
-    data: { points: state.points, streakDays: 0, completedDays: [] },
-    loading: false,
-    error: null,
-  }),
-}));
+vi.mock("@/app/providers/FirestoreProvider", async () => {
+  const { useSyncExternalStore } = await import("react");
+  return {
+    useGamification: () => ({
+      data: { points: state.points, streakDays: 0, completedDays: [] },
+      loading: false,
+      error: null,
+    }),
+    useTrainingState: () => ({
+      data: useSyncExternalStore(
+        (listener) => {
+          state.training.listeners.add(listener);
+          return () => state.training.listeners.delete(listener);
+        },
+        () => state.training.value,
+      ),
+      loading: state.training.loading,
+      error: null,
+    }),
+    useUserSettings: () => ({ data: { activeAthleteId: "lindsay" }, loading: false, error: null }),
+  };
+});
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => state.db,
+  setPlanFocus: async (ctx: unknown, focus: string) => {
+    state.setPlanFocus(ctx, focus);
+    if (state.setPlanFocusFails) throw new Error("write");
+    state.training.value = { planFocus: focus, planFocusWeek: thisMonday(), todayTasks: [] };
+    emit();
+  },
   subscribeToPlanningCheckIns: (
     _db: unknown,
     _uid: unknown,
@@ -84,6 +116,10 @@ afterEach(() => {
   state.db = {};
   state.points = 120;
   state.checkIns = [];
+  state.training.value = null;
+  state.training.loading = false;
+  state.setPlanFocus.mockClear();
+  state.setPlanFocusFails = false;
   state.onData = null;
   state.onAnalyses = null;
   state.onEquipment = null;
@@ -107,7 +143,7 @@ describe("training plan page", () => {
     expect(screen.queryByRole("button", { name: "打卡同步" })).toBeNull();
 
     await user.click(screen.getByRole("button", { name: /技术基础与弯道控制/ }));
-    expect(sessionStorage.getItem("skatingx.plan.focus")).toBe("lean");
+    expect(state.setPlanFocus).toHaveBeenCalledWith({ db: {}, userId: "user-1", athleteId: "lindsay" }, "lean");
     expect(screen.getByRole("heading", { level: 2 }).textContent).toContain("第 1 周周期微循环：技术基础与弯道控制");
     expect(screen.getAllByRole("button", { name: "打卡同步" })).toHaveLength(7);
     expect(screen.getByText(/本周已打卡积分：/)).toBeTruthy();
@@ -119,6 +155,44 @@ describe("training plan page", () => {
 
     view.unmount();
     expect(state.unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a focus chosen this week after a reload, with no click", () => {
+    state.training.value = { planFocus: "bounce", planFocusWeek: thisMonday(), todayTasks: [] };
+    render(<TrainingPlanPage />);
+    expect(screen.getByRole("button", { name: /速度窗口与500m配速/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getAllByRole("button", { name: "打卡同步" })).toHaveLength(7);
+  });
+
+  it("does not call a state that has not arrived 'nothing chosen'", () => {
+    state.training.loading = true;
+    render(<TrainingPlanPage />);
+    expect(screen.getByText("正在读取本周侧重…")).toBeTruthy();
+    expect(screen.queryByText(/请在左侧选择本周训练侧重/)).toBeNull();
+  });
+
+  it("asks to confirm a focus from an earlier week, and shows no week until it is confirmed", async () => {
+    state.training.value = { planFocus: "lean", planFocusWeek: "2020-01-06", todayTasks: [] };
+    const user = userEvent.setup();
+    render(<TrainingPlanPage />);
+    expect(screen.getByText(/之前选的侧重是「技术基础与弯道控制」，本周还没有确认/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "打卡同步" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "本周沿用" }));
+    expect(state.setPlanFocus).toHaveBeenCalledWith({ db: {}, userId: "user-1", athleteId: "lindsay" }, "lean");
+    expect(screen.getAllByRole("button", { name: "打卡同步" })).toHaveLength(7);
+    expect(screen.queryByText(/本周还没有确认/)).toBeNull();
+  });
+
+  it("says the focus was not saved, and does not show the week as chosen", async () => {
+    state.setPlanFocusFails = true;
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const user = userEvent.setup();
+    render(<TrainingPlanPage />);
+    await user.click(screen.getByRole("button", { name: /技术基础与弯道控制/ }));
+    expect(await screen.findByText("侧重没有保存成功，请再试一次。")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "打卡同步" })).toBeNull();
+    error.mockRestore();
   });
 
   it("checks a day in, adds that day's points to the week, and moves the training balance", async () => {
