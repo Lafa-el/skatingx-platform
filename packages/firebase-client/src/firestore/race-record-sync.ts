@@ -6,13 +6,21 @@ import {
   type RaceRosterEntry,
 } from "@skatingx/schema";
 import {
+  parseRaceRecordEntryId,
   planRaceRecords,
   reconcileRaceEntries,
   type DesiredRaceRecord,
   type RaceRecordPlan,
   type RaceRecordSources,
 } from "@skatingx/skating-domain";
-import { getDocs, runTransaction, serverTimestamp, type DocumentData, type Unsubscribe } from "firebase/firestore";
+import {
+  getDocs,
+  onSnapshot,
+  runTransaction,
+  serverTimestamp,
+  type DocumentData,
+  type Unsubscribe,
+} from "firebase/firestore";
 
 import {
   subscribeToRaceEvents,
@@ -403,4 +411,48 @@ export function startRaceRecordSync(
     }
     events.clear();
   };
+}
+
+// --- reading what is recorded ---------------------------------------------------------
+
+/**
+ * Read-only. The `race_` entries currently stored in the athlete's records documents, so the
+ * Results page can tell "recorded" from "still waiting". Entries it does not own, and documents
+ * whose `entries` is not an array, are left out; nothing is written or changed.
+ *
+ * The raw stored fields are passed on (not normalised): the page compares them with what the
+ * sync would write, using the same test the sync uses.
+ */
+export function subscribeToRaceRecordEntries(
+  ctx: RecordsActorContext,
+  onData: (entries: ReadonlyArray<Readonly<Record<string, unknown>>>) => void,
+  onError: (error: { code: string }) => void,
+): Unsubscribe {
+  return onSnapshot(
+    trainingRecordsCollectionRef(ctx.db, ctx.userId, ctx.athleteId),
+    (snapshot) => {
+      const found: Array<Readonly<Record<string, unknown>>> = [];
+      for (const docSnap of snapshot.docs) {
+        const entries: unknown = docSnap.data().entries;
+        if (!Array.isArray(entries)) {
+          continue;
+        }
+        for (const entry of entries as unknown[]) {
+          if (
+            typeof entry === "object" &&
+            entry !== null &&
+            !Array.isArray(entry) &&
+            typeof (entry as { id?: unknown }).id === "string" &&
+            parseRaceRecordEntryId((entry as { id: string }).id) !== null
+          ) {
+            found.push(entry as Readonly<Record<string, unknown>>);
+          }
+        }
+      }
+      onData(found);
+    },
+    (error) => {
+      onError({ code: typeof error.code === "string" ? error.code : "unknown" });
+    },
+  );
 }

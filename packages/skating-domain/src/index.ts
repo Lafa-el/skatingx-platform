@@ -90,8 +90,16 @@ export {
   RACE_RECORD_ENTRY_PREFIX,
 } from "./race-record-entry-id";
 export {
+  deriveResultSyncInfo,
+  type ResultSyncDerivation,
+  type ResultSyncInfo,
+  type ResultSyncStatus,
+  type StoredRaceEntry,
+} from "./race-record-status";
+export {
   mapRaceDistanceToRecordDistance,
   planRaceRecords,
+  raceEntryMatchesDesired,
   reconcileRaceEntries,
   selfRosterEntry,
   type DesiredRaceRecord,

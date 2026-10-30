@@ -201,13 +201,22 @@ function isStoredEntry(value: unknown): value is StoredEntry {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function differs(stored: StoredEntry, desired: DesiredRaceRecord): boolean {
+function differs(stored: Readonly<StoredEntry>, desired: DesiredRaceRecord): boolean {
   return (
     stored.date !== desired.date ||
     stored.timeSeconds !== desired.timeSeconds ||
     stored.note !== desired.note ||
     stored.source !== "race"
   );
+}
+
+/**
+ * True when a stored `race_` entry already holds what `desired` says. This is the same test the
+ * reconcile below uses to decide whether to update, exposed so the Results page can tell
+ * "recorded" from "still waiting" with the very same rule (it changes nothing about reconciling).
+ */
+export function raceEntryMatchesDesired(stored: Readonly<Record<string, unknown>>, desired: DesiredRaceRecord): boolean {
+  return !differs(stored, desired);
 }
 
 /**
