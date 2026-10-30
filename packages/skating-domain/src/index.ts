@@ -130,6 +130,12 @@ export {
 } from "./race-day-overview";
 export { instantToZonedDateTime, zonedDateTimeToInstant } from "./race-day-time";
 export {
+  parseRaceVideoLink,
+  RACE_VIDEO_PARAM,
+  raceVideoAnalysisHref,
+  type RaceVideoLink,
+} from "./race-video-link";
+export {
   createIdSuffix,
   checkExternalUrl,
   createRaceDayEntityId,
