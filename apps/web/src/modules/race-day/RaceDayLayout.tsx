@@ -6,10 +6,12 @@ import { SubNav } from "@/components/SubNav";
 import { useLocale } from "@/hooks/useLocale";
 import { ShellFrame } from "@/layouts/ShellFrame";
 
+import { useRaceRecordSync } from "./hooks/useRaceRecordSync";
 import { t } from "./i18n/messages";
 
 export function RaceDayLayout() {
   const locale = useLocale();
+  useRaceRecordSync();
 
   const items: NavItem[] = [
     { to: "/race-day", label: t(locale, "raceDay.tab.today"), end: true },

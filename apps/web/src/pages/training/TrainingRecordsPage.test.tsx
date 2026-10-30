@@ -99,6 +99,7 @@ const TEXT = {
     cancel: "取消",
     edit: "编辑",
     del: "删除",
+    synced: "由比赛成绩同步而来，随成绩走",
     pb: "个人最好",
     loading: "正在加载纪录…",
     listTitle: (label: string, n: number) => `${label} — ${n} 条纪录`,
@@ -131,6 +132,7 @@ const TEXT = {
     cancel: "Cancel",
     edit: "Edit",
     del: "Delete",
+    synced: "Synced from a race result; it follows the result",
     pb: "PB",
     loading: "Loading records…",
     listTitle: (label: string, n: number) => `${label} — ${n} entries`,
@@ -225,6 +227,32 @@ describe.each(["zh", "en"] as const)("TrainingRecordsPage (%s)", (locale) => {
       expect(screen.getByText(t.empty(t.distances.start_lap))).toBeTruthy();
       expect(screen.getByRole("heading", { name: t.listTitle(t.distances.start_lap, 0) })).toBeTruthy();
     });
+  });
+
+  it("a synced race entry has no Edit or Delete, only a note; a typed one with source Race keeps both", async () => {
+    setup();
+    h.state.records.byDistance["500m"] = [
+      entry("race_buffalo-championships-2026_500m-1", "2026-10-24", 48.123, {
+        source: "race",
+        note: "Buffalo · 500m",
+      }),
+      entry("time_1_abc", "2026-10-12", 49.8, { source: "race" }),
+    ];
+    renderPage();
+    const rows = screen.getAllByRole("listitem");
+    expect(rows).toHaveLength(2);
+    const synced = within(rows[0]!);
+    expect(rows[0]!.textContent).toContain("48.12");
+    expect(synced.queryByRole("button", { name: t.edit })).toBeNull();
+    expect(synced.queryByRole("button", { name: t.del })).toBeNull();
+    expect(synced.getByText(t.synced)).toBeTruthy();
+
+    const typed = within(rows[1]!);
+    expect(typed.getByRole("button", { name: t.edit })).toBeTruthy();
+    expect(typed.getByRole("button", { name: t.del })).toBeTruthy();
+    expect(typed.queryByText(t.synced)).toBeNull();
+    // The PB is still the plain minimum over all entries, synced or not.
+    expect(within(screen.getByRole("heading", { name: t.best }).closest("article")!).getByText("48.12")).toBeTruthy();
   });
 
   it("the form: labels, placeholders, source choices and the button", () => {

@@ -10,6 +10,10 @@ import RaceDayModule from "./RaceDayModule";
 const locale = vi.hoisted(() => ({ current: "zh" as "zh" | "en" }));
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => locale.current }));
 
+// The records sync talks to Firestore; it has its own tests.
+const recordSync = vi.hoisted(() => vi.fn());
+vi.mock("./hooks/useRaceRecordSync", () => ({ useRaceRecordSync: recordSync }));
+
 // Header and BottomNav need the Firebase-backed providers; they have their own tests.
 vi.mock("@/components/Header", () => ({ Header: () => null }));
 vi.mock("@/components/BottomNav", () => ({ BottomNav: () => null }));
@@ -42,6 +46,12 @@ describe("RaceDayModule", () => {
     renderAt("/race-day");
     const nav = screen.getByRole("navigation", { name: "比赛日分区" });
     expect(Array.from(nav.querySelectorAll("a")).map((a) => a.textContent)).toEqual(TABS_ZH);
+  });
+
+  it("keeps the records in line with confirmed results while any Race Day page is open", () => {
+    recordSync.mockClear();
+    renderAt("/race-day/schedule");
+    expect(recordSync).toHaveBeenCalled();
   });
 
   it("the page body breaks long unbroken text instead of scrolling sideways on a phone", () => {
