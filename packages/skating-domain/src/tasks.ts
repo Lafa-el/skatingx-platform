@@ -17,6 +17,15 @@ export function normalizeTrainingState(
   state: Partial<TrainingState> | null | undefined,
 ): TrainingState {
   const todayTasks = (state?.todayTasks ?? []).map(normalizeTask);
+  const plan: Partial<Pick<TrainingState, "planFocus" | "planFocusWeek" | "planGeneratedDate">> = {};
+  // A stored value that is not one of the three focuses is dropped, not trusted.
+  if (state?.planFocus === "lean" || state?.planFocus === "bounce" || state?.planFocus === "endurance") {
+    plan.planFocus = state.planFocus;
+  }
+  if (typeof state?.planFocusWeek === "string" && state.planFocusWeek) plan.planFocusWeek = state.planFocusWeek;
+  if (typeof state?.planGeneratedDate === "string" && state.planGeneratedDate) {
+    plan.planGeneratedDate = state.planGeneratedDate;
+  }
   return {
     todayTasks,
     weeklyTemplate: state?.weeklyTemplate ?? {
@@ -31,6 +40,7 @@ export function normalizeTrainingState(
     lastLoginDate: state?.lastLoginDate ?? "",
     pointsPerTask: state?.pointsPerTask ?? DEFAULT_POINTS_PER_TASK,
     dailyBonusPoints: state?.dailyBonusPoints ?? DEFAULT_DAILY_BONUS_POINTS,
+    ...plan,
     updatedAt: state?.updatedAt,
   };
 }
@@ -56,6 +66,9 @@ export function normalizeTask(task: TrainingTask): TrainingTask {
   }
   if (task.academyItemId) {
     normalized.academyItemId = task.academyItemId;
+  }
+  if (task.planEntryId) {
+    normalized.planEntryId = task.planEntryId;
   }
   if (task.tags && task.tags.length > 0) {
     normalized.tags = [...task.tags];

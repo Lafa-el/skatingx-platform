@@ -3,7 +3,7 @@ import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
-import { HIDDEN_FEEDBACK_KEY, PLAN_FOCUS_KEY } from "@/modules/training/plan/plan-session";
+import { HIDDEN_FEEDBACK_KEY } from "@/modules/training/plan/plan-session";
 import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent } from "@/test/dom";
 
@@ -39,14 +39,43 @@ const state = vi.hoisted(() => ({
   equipmentMode: "hold" as "hold" | "ready" | "error",
   analyses: [] as AnalysisRow[],
   equipment: [] as EquipmentRow[],
+  // The training state the plan focus is stored on (ADR-008). A tiny store so a write re-renders.
+  training: { value: null as Record<string, unknown> | null, listeners: new Set<() => void>() },
+  setPlanFocus: vi.fn(),
+  setPlanFocusFails: false,
 }));
 
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
 vi.mock("@/app/providers/AuthProvider", () => ({
   useAuth: () => ({ uid: state.uid, loading: state.authLoading, firebaseReady: true }),
 }));
+vi.mock("@/app/providers/FirestoreProvider", async () => {
+  const { useSyncExternalStore } = await import("react");
+  return {
+    useTrainingState: () => ({
+      data: useSyncExternalStore(
+        (listener) => {
+          state.training.listeners.add(listener);
+          return () => state.training.listeners.delete(listener);
+        },
+        () => state.training.value,
+      ),
+      loading: false,
+      error: null,
+    }),
+    useUserSettings: () => ({ data: { activeAthleteId: "lindsay" }, loading: false, error: null }),
+  };
+});
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => state.db,
+  setPlanFocus: async (ctx: unknown, focus: string) => {
+    state.setPlanFocus(ctx, focus);
+    if (state.setPlanFocusFails) throw new Error("write");
+    const { mondayOfWeek } = await import("@skatingx/skating-domain");
+    const { todayDateString } = await import("@skatingx/schema");
+    state.training.value = { planFocus: focus, planFocusWeek: mondayOfWeek(todayDateString()), todayTasks: [] };
+    for (const listener of state.training.listeners) listener();
+  },
   subscribeToSavedAnalyses: (
     _db: unknown,
     _uid: unknown,
@@ -86,6 +115,9 @@ function readyEmpty() {
 }
 
 afterEach(() => {
+  state.training.value = null;
+  state.setPlanFocus.mockClear();
+  state.setPlanFocusFails = false;
   state.locale = "zh";
   state.uid = "user-1";
   state.authLoading = false;
@@ -216,12 +248,57 @@ describe("analysis hub: states", () => {
     const view = render(renderHub());
     expect(view.container.querySelector(".sx-energy-gradient")).not.toBeNull();
     await user.click(screen.getByRole("button", { name: "接受" }));
-    expect(sessionStorage.getItem(PLAN_FOCUS_KEY)).toBe("bounce");
-    expect(screen.getByText(/已设为本周重点：速度窗口与500m配速/)).toBeTruthy();
+    expect(state.setPlanFocus).toHaveBeenCalledWith({ db: {}, userId: "user-1", athleteId: "lindsay" }, "bounce");
+    expect(state.training.value).toMatchObject({ planFocus: "bounce" });
+    expect(await screen.findByText(/已设为本周重点：速度窗口与500m配速/)).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "忽略" }));
     expect(screen.queryByTestId("hub-suggestion")).toBeNull();
     expect(JSON.parse(sessionStorage.getItem(HIDDEN_FEEDBACK_KEY) ?? "[]")).toEqual(["set-focus:pace:pace-1"]);
+  });
+
+  const paceSuggestion = () => {
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    state.analyses = [
+      {
+        kind: "pace",
+        id: "pace-1",
+        createdAt: "2026-10-20T00:00:00.000Z",
+        findings: [{ code: "pace.decay.back-half" }],
+        biomech: null,
+        pace: { decayPercent: 6.5, rating: "needs-work" },
+      },
+    ];
+  };
+
+  it("shows a focus saved earlier this week as already accepted, without a click", async () => {
+    paceSuggestion();
+    const { mondayOfWeek } = await import("@skatingx/skating-domain");
+    const { todayDateString } = await import("@skatingx/schema");
+    state.training.value = { planFocus: "bounce", planFocusWeek: mondayOfWeek(todayDateString()), todayTasks: [] };
+    render(renderHub());
+    expect(screen.getByText(/已设为本周重点：速度窗口与500m配速/)).toBeTruthy();
+  });
+
+  it("does not treat a focus from an earlier week as accepted", () => {
+    paceSuggestion();
+    state.training.value = { planFocus: "bounce", planFocusWeek: "2020-01-06", todayTasks: [] };
+    render(renderHub());
+    expect(screen.queryByText(/已设为本周重点/)).toBeNull();
+    expect(screen.getByRole("button", { name: "接受" })).toBeTruthy();
+  });
+
+  it("says so when the accepted focus could not be saved, and does not claim it was accepted", async () => {
+    paceSuggestion();
+    state.setPlanFocusFails = true;
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const user = userEvent.setup();
+    render(renderHub());
+    await user.click(screen.getByRole("button", { name: "接受" }));
+    expect(await screen.findByText("侧重没有保存成功，请再试一次。")).toBeTruthy();
+    expect(screen.queryByText(/已设为本周重点/)).toBeNull();
+    error.mockRestore();
   });
 
   it("shows the decay row only when the saved pace record has one", () => {
@@ -281,7 +358,7 @@ describe("analysis hub: states", () => {
     const link = screen.getByRole("link", { name: "打开装备页" });
     expect(link.getAttribute("href")).toBe("/analysis/equipment");
     expect(screen.queryByRole("button", { name: "接受" })).toBeNull();
-    expect(sessionStorage.getItem(PLAN_FOCUS_KEY)).toBeNull();
+    expect(state.setPlanFocus).not.toHaveBeenCalled();
   });
 
   it("does not show empty calls to action when signed out", () => {

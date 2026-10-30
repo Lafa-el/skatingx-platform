@@ -238,7 +238,7 @@ export function AnalysisHubPage() {
   const [analysesAttempt, setAnalysesAttempt] = useState(0);
   const [equipmentAttempt, setEquipmentAttempt] = useState(0);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => readHiddenFeedback());
-  const [focus, setFocus] = usePlanFocus();
+  const [focus, setFocus, focusStatus] = usePlanFocus();
 
   useEffect(() => {
     if (!uid) return;
@@ -318,6 +318,7 @@ export function AnalysisHubPage() {
             suggestion={model.suggestion}
             locale={locale}
             focus={focus}
+            saveFailed={focusStatus.failed}
             onAccept={setFocus}
             onIgnore={ignore}
             onRetry={() => {
@@ -368,6 +369,7 @@ function SuggestionCard({
   suggestion,
   locale,
   focus,
+  saveFailed,
   onAccept,
   onIgnore,
   onRetry,
@@ -375,6 +377,7 @@ function SuggestionCard({
   suggestion: ReturnType<typeof buildHubModel>["suggestion"];
   locale: Locale;
   focus: PlanFocus | null;
+  saveFailed: boolean;
   onAccept: (focus: PlanFocus) => void;
   onIgnore: (item: TrainingFeedback) => void;
   onRetry: () => void;
@@ -434,6 +437,11 @@ function SuggestionCard({
             {tAnalysis(locale, "analysis.hub.feedback.ignore")}
           </Button>
         </div>
+        {item.type === "set-focus" && saveFailed ? (
+          <p role="status" className="mt-3 font-semibold">
+            {tPlan(locale, "plan.focus.saveFailed")}
+          </p>
+        ) : null}
         {item.type === "set-focus" && focus === item.focus ? (
           <p role="status" className="mt-3 font-semibold">
             {tAnalysis(locale, "analysis.hub.feedback.accepted", { focus: tPlan(locale, FOCUS_TITLE[item.focus]) })}

@@ -58,6 +58,9 @@ export function serializeTrainingTask(task: TrainingTask): TrainingTask {
   if (task.academyItemId) {
     serialized.academyItemId = task.academyItemId;
   }
+  if (task.planEntryId) {
+    serialized.planEntryId = task.planEntryId;
+  }
   if (task.tags && task.tags.length > 0) {
     serialized.tags = [...task.tags];
   }

@@ -130,6 +130,11 @@ export {
   type TrainingActorContext,
 } from "./firestore/training-tasks";
 export {
+  generatePlanTasksIfNeeded,
+  setPlanFocus,
+  type GeneratePlanTasksResult,
+} from "./firestore/training-plan";
+export {
   sanitizeForFirestore,
   serializeTimeEntry,
   serializeTrainingTask,

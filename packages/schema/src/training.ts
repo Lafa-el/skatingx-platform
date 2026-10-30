@@ -1,6 +1,9 @@
 import type { DateString, Timestamp } from "./common";
 
-export type TrainingTaskSource = "manual" | "academy" | "system";
+export type TrainingTaskSource = "manual" | "academy" | "system" | "plan";
+
+/** Same three values as the plan template focuses; the schema package cannot import the domain one. */
+export type TrainingPlanFocus = "lean" | "bounce" | "endurance";
 
 export interface TrainingTask {
   id: string;
@@ -13,6 +16,8 @@ export interface TrainingTask {
   completedAt?: Timestamp;
   /** Stable id from `@skatingx/content` academy catalog */
   academyItemId?: string;
+  /** Stable, language-independent id of the plan template entry (`jd_tech_mon.1`) this task came from. */
+  planEntryId?: string;
   tags?: string[];
   /** @deprecated Use description */
   desc?: string;
@@ -38,6 +43,12 @@ export interface TrainingState {
   lastLoginDate: DateString;
   pointsPerTask: number;
   dailyBonusPoints: number;
+  /** ADR-008: the week focus chosen on the plan page or accepted from an analysis suggestion. */
+  planFocus?: TrainingPlanFocus;
+  /** Monday (local date) of the week `planFocus` was chosen. The focus only generates tasks in that week. */
+  planFocusWeek?: DateString;
+  /** Last local date plan tasks were generated. The idempotency marker: a deleted task is not re-created. */
+  planGeneratedDate?: DateString;
   updatedAt?: Timestamp;
 }
 

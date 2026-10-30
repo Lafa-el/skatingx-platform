@@ -103,6 +103,31 @@ describe("TrainingTasksPage: Chinese", () => {
     expect(screen.getByText("Keep the knee over the toe")).toBeTruthy();
   });
 
+  it("tells a plan task from an Academy task and a manual one by its own badge, in both languages", () => {
+    h.state.training = h.ready({
+      pointsPerTask: 20,
+      dailyBonusPoints: 50,
+      todayTasks: [
+        { id: "m", text: "Mine", completed: false },
+        { id: "a", text: "Drill", completed: false, source: "academy" },
+        { id: "p", text: "Skating posture", completed: false, source: "plan", planEntryId: "jd_tech_mon.2", target: "6 sets" },
+      ],
+    });
+    const row = (task: string) => screen.getByText(task).closest("li") as HTMLElement;
+    const view = render(<TrainingTasksPage />);
+    expect(within(row("Skating posture")).getByText("计划")).toBeTruthy();
+    expect(within(row("Skating posture")).queryByText("学院")).toBeNull();
+    expect(within(row("Drill")).queryByText("计划")).toBeNull();
+    expect(within(row("Mine")).queryByText("计划")).toBeNull();
+    expect(within(row("Mine")).queryByText("学院")).toBeNull();
+    view.unmount();
+
+    setEnglish();
+    render(<TrainingTasksPage />);
+    expect(within(row("Skating posture")).getByText("Plan")).toBeTruthy();
+    expect(within(row("Drill")).getByText("Academy")).toBeTruthy();
+  });
+
   it("only Academy tasks carry the badge, and the check box and delete names say what they act on", () => {
     render(<TrainingTasksPage />);
     const row = (task: string) => screen.getByText(task).closest("li") as HTMLElement;

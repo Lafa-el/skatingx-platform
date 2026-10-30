@@ -187,6 +187,11 @@ export function TrainingTasksPage() {
                       {t("trainingTasks.list.academyBadge")}
                     </StatusTag>
                   ) : null}
+                  {task.source === "plan" ? (
+                    <StatusTag tone="neutral" className="mt-1">
+                      {t("trainingTasks.list.planBadge")}
+                    </StatusTag>
+                  ) : null}
                   {task.description ? (
                     <p className="mt-1 break-words text-xs text-brand-navy/80">{task.description}</p>
                   ) : null}

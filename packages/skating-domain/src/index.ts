@@ -22,6 +22,15 @@ export {
   type PlanFocus,
 } from "./training/plan-template";
 export {
+  buildTaskFromPlanCandidate,
+  filterNewPlanCandidates,
+  mondayOfWeek,
+  planDayIdFor,
+  planGenerationSkip,
+  type PlanGenerationSkip,
+  type PlanTaskCandidate,
+} from "./training/plan-tasks";
+export {
   allTasksCompleted,
   applyTaskToggle,
   createTaskId,

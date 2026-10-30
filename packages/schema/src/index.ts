@@ -40,6 +40,7 @@ export type {
   TrainingState,
   TrainingTask,
   TrainingTaskSource,
+  TrainingPlanFocus,
   WeeklyTemplate,
   WeeklyTemplateByDay,
 } from "./training";
