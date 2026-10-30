@@ -16,7 +16,8 @@ export type FeedbackSource = {
   readonly findings: readonly { readonly code: string }[];
 };
 
-export type TrainingFeedback =
+/** Suggestions that come from a saved analysis or equipment record. */
+export type AnalysisTrainingFeedback =
   | {
       readonly type: "set-focus";
       readonly focus: Extract<PlanFocus, "bounce" | "lean">;
@@ -30,6 +31,25 @@ export type TrainingFeedback =
       readonly analysisId: string;
       readonly createdAt: string;
     };
+
+/**
+ * A race-week suggestion (docs/design/race-day-linkages.md 2.c). It comes from a Race Day event, not
+ * from an analysis, so it is identified by `eventId`. It is derived on render and never stored.
+ */
+export type RaceWeekFeedback = {
+  readonly type: "set-focus";
+  readonly focus: Extract<PlanFocus, "endurance">;
+  readonly sourceKind: "race";
+  readonly eventId: string;
+  readonly eventName: string;
+  /** Earliest and latest valid race day, as `YYYY-MM-DD`. */
+  readonly firstDay: string;
+  readonly lastDay: string;
+  /** The event's dates are still pending confirmation, and the suggestion is triggered by them. */
+  readonly datesPending: boolean;
+};
+
+export type TrainingFeedback = AnalysisTrainingFeedback | RaceWeekFeedback;
 
 const PACE_CODES = new Set(["pace.decay.back-half", "pace.total.versus-benchmark"]);
 const BIOMECH_ADVICE_CODES = new Set(["biomech.knee.high", "biomech.lean.high", "biomech.pelvis.high"]);
@@ -73,9 +93,9 @@ function hasEquipmentSymptom(source: FeedbackSource): boolean {
  * Suggestions from the latest pace record, the latest biomechanics record, and
  * the latest equipment record. Older records of the same kind do not contribute.
  */
-export function deriveTrainingFeedback(sources: readonly FeedbackSource[]): readonly TrainingFeedback[] {
+export function deriveTrainingFeedback(sources: readonly FeedbackSource[]): readonly AnalysisTrainingFeedback[] {
   const latest = latestFeedbackSourceByKind(sources);
-  const cards: TrainingFeedback[] = [];
+  const cards: AnalysisTrainingFeedback[] = [];
   const pace = latest.pace;
   if (pace && hasCode(pace, PACE_CODES)) {
     cards.push({
@@ -109,5 +129,6 @@ export function deriveTrainingFeedback(sources: readonly FeedbackSource[]): read
 }
 
 export function trainingFeedbackKey(feedback: TrainingFeedback): string {
-  return `${feedback.type}:${feedback.sourceKind}:${feedback.analysisId}`;
+  const sourceId = feedback.sourceKind === "race" ? feedback.eventId : feedback.analysisId;
+  return `${feedback.type}:${feedback.sourceKind}:${sourceId}`;
 }

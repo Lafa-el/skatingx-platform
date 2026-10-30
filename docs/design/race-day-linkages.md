@@ -313,6 +313,15 @@ ADR-001 D4 还明确写了：「If [video analysis] is ever offered on race vide
 
 代价：计划页多一个事件列表监听，开关关闭时为 0。
 
+**步骤 ③ 的实现口径（已按评审定的取法实现，以代码为准）**：
+
+- 纯函数 `deriveRaceWeekFeedback(events, today, currentFocus)` 在 `packages/skating-domain/src/training/race-week-feedback.ts`，返回至多一张卡（数组）。多个事件同时满足条件时取 `first` 最小的一个，并列按 `eventId` 升序（代码单元序）。卡的数据是 `RaceWeekFeedback`：`sourceKind: "race"`、`eventId`、事件名、`firstDay`、`lastDay`、`datesPending`。`deriveTrainingFeedback`（分析建议）的返回类型收窄为 `AnalysisTrainingFeedback`，行为不变；分析总览只改了这一个类型名。
+- 触发条件以 `first` 所在的计划周为准：开始于上一周、跨入本周的事件（例如周六开始、下周一结束）在下周一不出卡。这是设计稿条件 2 的字面结果。
+- 卡在三种情况下不出：本周侧重还没读到（训练状态加载中）、训练状态读失败（侧重未知）、本周侧重已是 `endurance`。前两种是为了不在「其实已经是 `endurance`」的周里闪出一张卡。
+- 事件读取在 `apps/web/src/hooks/useRaceWeekEvents.ts`：只有一个监听，`isRaceDayEnabled()` 为假时不订阅，卸载时释放；订阅函数放在单独的 `raceWeekSubscribe.ts`，用 `import()` 加载，开关关闭时这部分代码不会进入计划页的构建产物，也不会被下载（开关关闭的构建里该块被整体去掉）。
+- 比赛周建议是计划页上独立的一节，放在「来自分析的建议」之前，标题为「比赛周建议」，而不是并入「来自分析的建议」，因为后者的标题对一张来自比赛日的卡不成立。读失败时这一节只显示「比赛周建议暂时读不出来」，分析建议照常显示。
+- `isRealDateString` 从 `race-day-input.ts` 原样移到 `calendar-date.ts`，并从原处重新导出，所有已有 import 不变。目的：计划页只需要这一个检查，留在 `race-day-input.ts` 里会把比赛日表单校验整个拉进计划页。
+
 ### 2.d 视频 → 分析
 
 **推荐：深链加上下文横幅，不复制、不上传、不建草稿。**视频页每条记录加一个「去分析」入口，跳到 `/analysis/biomechanics`；用户在分析页自己选本地文件。

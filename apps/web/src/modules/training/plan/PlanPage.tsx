@@ -1,5 +1,6 @@
 import { DEFAULT_ATHLETE_ID, todayDateString } from "@skatingx/schema";
 import {
+  deriveRaceWeekFeedback,
   deriveTrainingFeedback,
   mondayOfWeek,
   normalizeTrainingState,
@@ -13,6 +14,7 @@ import {
   trainingFeedbackKey,
   type FeedbackSource,
   type PlanFocus,
+  type RaceWeekFeedback,
   type TrainingFeedback,
 } from "@skatingx/skating-domain";
 import {
@@ -22,13 +24,14 @@ import {
   subscribeToTaskHistoryMonth,
   type ArchivedTask,
 } from "@skatingx/firebase-client";
-import { Button, Card } from "@skatingx/ui";
+import { Button, Card, StatusTag } from "@skatingx/ui";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useTrainingState, useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
+import { useRaceWeekEvents } from "@/hooks/useRaceWeekEvents";
 import { formatCalendarDate } from "@/shared/i18n/format";
 import { tPlan, type PlanMessageKey } from "@/shared/i18n/plan-messages";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
@@ -59,6 +62,14 @@ function analysisDay(createdAt: string, locale: ReturnType<typeof useLocale>): s
   const day = createdAt.slice(0, 10);
   const formatted = formatCalendarDate(day, locale);
   return formatted === day && createdAt.length > 10 ? createdAt : formatted;
+}
+
+function raceDates(item: RaceWeekFeedback, locale: ReturnType<typeof useLocale>): string {
+  if (item.firstDay === item.lastDay) return formatCalendarDate(item.firstDay, locale);
+  return tPlan(locale, "plan.feedback.race.range", {
+    from: formatCalendarDate(item.firstDay, locale),
+    to: formatCalendarDate(item.lastDay, locale),
+  });
 }
 
 type HistoryRead = {
@@ -109,6 +120,8 @@ export function PlanPage() {
   const [sources, setSources] = useState<readonly FeedbackSource[]>([]);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => readHiddenFeedback());
   const [feedbackUnreadable, setFeedbackUnreadable] = useState(false);
+  // Off (no listener at all) unless VITE_FEATURE_RACE_DAY is on.
+  const raceEvents = useRaceWeekEvents();
 
   useEffect(() => {
     if (!uid) return;
@@ -203,6 +216,14 @@ export function PlanPage() {
   const days = focus ? planDays(focus) : [];
   const suggestions = deriveTrainingFeedback(sources).filter((item) => !hidden.has(trainingFeedbackKey(item)));
   const title = focus ? tPlan(locale, FOCUS_TITLE[focus]) : tPlan(locale, "plan.week.choose");
+  // Race week suggestion: derived on every render and never stored. Until this week's focus is known
+  // it is held back, because "no focus yet" would read as "not endurance" and could suggest it again.
+  const focusKnown = !focusStatus.loading && !stateError;
+  const raceSuggestions =
+    raceEvents.status === "ready" && focusKnown
+      ? deriveRaceWeekFeedback(raceEvents.events, today, focus).filter((item) => !hidden.has(trainingFeedbackKey(item)))
+      : [];
+  const raceUnreadable = raceEvents.status === "error";
 
   const ignoreSuggestion = (item: TrainingFeedback) => {
     const next = new Set(hidden);
@@ -213,6 +234,36 @@ export function PlanPage() {
 
   return (
     <div className="grid gap-6">
+      {raceUnreadable || raceSuggestions.length > 0 ? (
+        // First, ahead of the analysis suggestions: it expires with the race week, they do not.
+        <section aria-labelledby="plan-race-feedback-title" className="grid gap-3">
+          <h2 id="plan-race-feedback-title" className="text-lg font-bold text-brand-navy">
+            {tPlan(locale, "plan.feedback.race.title")}
+          </h2>
+          {raceUnreadable ? <p role="status">{tPlan(locale, "plan.feedback.race.unavailable")}</p> : null}
+          {raceSuggestions.map((item) => (
+            <article key={trainingFeedbackKey(item)} className="grid gap-2 rounded-card border border-brand-navy/15 p-4">
+              <p className="font-semibold text-brand-navy">{tPlan(locale, "plan.feedback.race")}</p>
+              <p className="text-sm text-brand-navy/70">
+                {tPlan(locale, "plan.feedback.source.race", { name: item.eventName, dates: raceDates(item, locale) })}
+              </p>
+              {item.datesPending ? (
+                <p>
+                  <StatusTag tone="pending">{tPlan(locale, "plan.feedback.race.pending")}</StatusTag>
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" onClick={() => setFocus(item.focus)}>
+                  {tPlan(locale, "plan.feedback.accept")}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => ignoreSuggestion(item)}>
+                  {tPlan(locale, "plan.feedback.ignore")}
+                </Button>
+              </div>
+            </article>
+          ))}
+        </section>
+      ) : null}
       {feedbackUnreadable || suggestions.length > 0 ? (
         <section aria-labelledby="plan-feedback-title" className="grid gap-3">
           <h2 id="plan-feedback-title" className="text-lg font-bold text-brand-navy">

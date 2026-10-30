@@ -2,7 +2,7 @@ import {
   deriveTrainingFeedback,
   trainingFeedbackKey,
   type FeedbackSource,
-  type TrainingFeedback,
+  type AnalysisTrainingFeedback,
 } from "@skatingx/skating-domain";
 
 /**
@@ -118,7 +118,7 @@ export type HubSuggestion =
   | { readonly status: "loading" }
   | { readonly status: "error" }
   | { readonly status: "none" }
-  | { readonly status: "ready"; readonly feedback: TrainingFeedback };
+  | { readonly status: "ready"; readonly feedback: AnalysisTrainingFeedback };
 
 export type HubRecentItem =
   | {
@@ -238,7 +238,7 @@ function feedbackOf(
   ];
 }
 
-function visibleFeedback(sources: readonly FeedbackSource[], hidden: ReadonlySet<string>): TrainingFeedback[] {
+function visibleFeedback(sources: readonly FeedbackSource[], hidden: ReadonlySet<string>): AnalysisTrainingFeedback[] {
   return deriveTrainingFeedback(sources).filter((item) => !hidden.has(trainingFeedbackKey(item)));
 }
 

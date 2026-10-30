@@ -4,7 +4,7 @@ import {
   type EquipmentHistoryRecord,
   type EquipmentSymptomKey,
   type PlanFocus,
-  type TrainingFeedback,
+  type AnalysisTrainingFeedback,
 } from "@skatingx/skating-domain";
 import {
   getFirestoreDb,
@@ -291,7 +291,7 @@ export function AnalysisHubPage() {
     setEquipmentAttempt((attempt) => attempt + 1);
   };
 
-  const ignore = (item: TrainingFeedback) => {
+  const ignore = (item: AnalysisTrainingFeedback) => {
     const next = new Set(hidden);
     next.add(trainingFeedbackKey(item));
     setHidden(next);
@@ -379,7 +379,7 @@ function SuggestionCard({
   focus: PlanFocus | null;
   saveFailed: boolean;
   onAccept: (focus: PlanFocus) => void;
-  onIgnore: (item: TrainingFeedback) => void;
+  onIgnore: (item: AnalysisTrainingFeedback) => void;
   onRetry: () => void;
 }) {
   if (suggestion.status === "none") return null;

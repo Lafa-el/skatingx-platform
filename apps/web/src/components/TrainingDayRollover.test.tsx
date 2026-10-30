@@ -122,6 +122,18 @@ describe("TrainingDayRollover: plan task generation", () => {
     expect(h.rollover).not.toHaveBeenCalled();
   });
 
+  // The race-week suggestion only sets this focus (docs/design/race-day-linkages.md 2.c); the tasks
+  // come from this same generation, from the race template.
+  it("generates the race-week template when the chosen focus is endurance", async () => {
+    h.training = readyWeek({ planFocus: "endurance" });
+    render(<TrainingDayRollover />);
+    await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(1));
+    const input = h.generate.mock.calls[0]?.[1] as { focus: string; candidates: { planEntryId: string; text: string }[] };
+    expect(input.focus).toBe("endurance");
+    expect(input.candidates.length).toBeGreaterThan(0);
+    expect(input.candidates.every((c) => c.planEntryId.startsWith("jd_race_wed."))).toBe(true);
+  });
+
   it("writes the candidates in English when the language is English", async () => {
     h.locale = "en";
     h.training = readyWeek();
