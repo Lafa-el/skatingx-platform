@@ -111,7 +111,23 @@ export class RaceDayValidationError extends Error {
 /** A document that exists but failed validation. Reported, not displayed and not guessed at. */
 export type InvalidRaceDayDocument = { id: string; reason: string };
 
-export type RaceDayList<T> = { items: T[]; invalid: InvalidRaceDayDocument[] };
+export type RaceDayList<T> = {
+  items: T[];
+  invalid: InvalidRaceDayDocument[];
+  /**
+   * True while the snapshot comes from the local cache only. A cached list can be missing
+   * documents that exist on the server, so it must never be read as "these were deleted".
+   */
+  fromCache?: boolean;
+};
+
+export type RaceDaySubscribeOptions = {
+  /**
+   * Also fire when only the metadata changes (cache -> server). Off for screens, which only care
+   * about data; the records sync needs it to know when a list became authoritative.
+   */
+  includeMetadataChanges?: boolean;
+};
 
 export type RaceDayListError = { code: string; message: string };
 
@@ -145,9 +161,11 @@ function subscribeToList<T>(
   parse: (id: string, data: unknown) => ParseResult<T>,
   onData: (list: RaceDayList<T>) => void,
   onError: (error: RaceDayListError) => void,
+  options: RaceDaySubscribeOptions = {},
 ): Unsubscribe {
   return onSnapshot(
     ref,
+    { includeMetadataChanges: options.includeMetadataChanges === true },
     (snapshot) => {
       const items: T[] = [];
       const invalid: InvalidRaceDayDocument[] = [];
@@ -161,7 +179,7 @@ function subscribeToList<T>(
           invalid.push({ id: docSnap.id, reason: parsed.reason });
         }
       }
-      onData({ items, invalid });
+      onData({ items, invalid, fromCache: snapshot.metadata.fromCache });
     },
     (error: FirestoreError) => {
       onError({ code: error.code, message: error.message });
@@ -295,8 +313,15 @@ export function subscribeToRaceEvents(
   ctx: RaceDayContext,
   onData: (list: RaceDayList<RaceEvent>) => void,
   onError: (error: RaceDayListError) => void,
+  options?: RaceDaySubscribeOptions,
 ): Unsubscribe {
-  return subscribeToList(raceDayEventsCollectionRef(ctx.db, ctx.userId), parseRaceEvent, onData, onError);
+  return subscribeToList(
+    raceDayEventsCollectionRef(ctx.db, ctx.userId),
+    parseRaceEvent,
+    onData,
+    onError,
+    options,
+  );
 }
 
 // --- roster -------------------------------------------------------------------------
@@ -397,6 +422,7 @@ export function subscribeToRoster(
   eventId: string,
   onData: (list: RaceDayList<RaceRosterEntry>) => void,
   onError: (error: RaceDayListError) => void,
+  options?: RaceDaySubscribeOptions,
 ): Unsubscribe {
   assertValidId("eventId", eventId);
   return subscribeToList(
@@ -404,6 +430,7 @@ export function subscribeToRoster(
     parseRosterEntry,
     onData,
     onError,
+    options,
   );
 }
 
@@ -475,6 +502,7 @@ export function subscribeToRaces(
   eventId: string,
   onData: (list: RaceDayList<RaceEntry>) => void,
   onError: (error: RaceDayListError) => void,
+  options?: RaceDaySubscribeOptions,
 ): Unsubscribe {
   assertValidId("eventId", eventId);
   return subscribeToList(
@@ -482,6 +510,7 @@ export function subscribeToRaces(
     parseRaceEntry,
     onData,
     onError,
+    options,
   );
 }
 
@@ -549,6 +578,7 @@ export function subscribeToRaceResults(
   eventId: string,
   onData: (list: RaceDayList<RaceResult>) => void,
   onError: (error: RaceDayListError) => void,
+  options?: RaceDaySubscribeOptions,
 ): Unsubscribe {
   assertValidId("eventId", eventId);
   return subscribeToList(
@@ -556,6 +586,7 @@ export function subscribeToRaceResults(
     parseRaceResult,
     onData,
     onError,
+    options,
   );
 }
 

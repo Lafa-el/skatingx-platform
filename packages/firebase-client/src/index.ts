@@ -71,8 +71,16 @@ export {
   type RaceDayContext,
   type RaceDayList,
   type RaceDayListError,
+  type RaceDaySubscribeOptions,
   type RaceSummaryState,
 } from "./firestore/race-day";
+export {
+  reconcileRaceRecords,
+  startRaceRecordSync,
+  type RaceRecordSyncFailure,
+  type RaceRecordSyncHandlers,
+  type RaceRecordSyncReport,
+} from "./firestore/race-record-sync";
 export { saveBiomechAnalysisRecord } from "./firestore/biomech-analysis";
 export { savePaceAnalysisRecord } from "./firestore/pace-analysis";
 export { subscribeToSavedAnalyses, type SavedAnalysisSource } from "./firestore/saved-analyses";

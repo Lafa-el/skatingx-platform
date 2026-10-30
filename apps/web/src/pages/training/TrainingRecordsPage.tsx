@@ -1,6 +1,7 @@
 import { DEFAULT_TRAINING_DISTANCES, todayDateString } from "@skatingx/schema";
 import {
   formatSecondsToTime,
+  isRaceSyncedEntryId,
   parseTimeToSeconds,
 } from "@skatingx/skating-domain";
 import { Button, Card, ErrorNotice, StatusTag } from "@skatingx/ui";
@@ -318,24 +319,32 @@ export function TrainingRecordsPage() {
                       <p className="mt-0.5 text-xs text-brand-navy/80">{entry.note}</p>
                     ) : null}
                   </div>
-                  <div className="flex shrink-0 gap-1">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => startEdit(entry.id)}
-                      className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs font-semibold text-brand-navy underline underline-offset-2 disabled:opacity-50"
-                    >
-                      {t("records.entry.edit")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void handleDelete(entry.id, timeLabel)}
-                      className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs font-semibold text-status-danger underline underline-offset-2 disabled:opacity-50"
-                    >
-                      {t("records.entry.delete")}
-                    </button>
-                  </div>
+                  {isRaceSyncedEntryId(entry.id) ? (
+                    // Reconciliation owns these: an edit would be put back and a delete would
+                    // be re-added, so the page says where to change it instead (ADR-009 2.8).
+                    <p className="max-w-[9rem] shrink-0 text-right text-xs text-brand-navy/70">
+                      {t("records.entry.synced")}
+                    </p>
+                  ) : (
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => startEdit(entry.id)}
+                        className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs font-semibold text-brand-navy underline underline-offset-2 disabled:opacity-50"
+                      >
+                        {t("records.entry.edit")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void handleDelete(entry.id, timeLabel)}
+                        className="-my-3 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-xs font-semibold text-status-danger underline underline-offset-2 disabled:opacity-50"
+                      >
+                        {t("records.entry.delete")}
+                      </button>
+                    </div>
+                  )}
                 </li>
               );
             })}

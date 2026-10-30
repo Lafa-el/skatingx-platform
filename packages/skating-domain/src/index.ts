@@ -81,6 +81,25 @@ export {
   type RaceSummaryItem,
 } from "./race-day";
 export {
+  createRaceRecordEntryId,
+  isRaceSyncedEntryId,
+  parseRaceRecordEntryId,
+  RACE_RECORD_ENTRY_PREFIX,
+} from "./race-record-entry-id";
+export {
+  mapRaceDistanceToRecordDistance,
+  planRaceRecords,
+  reconcileRaceEntries,
+  selfRosterEntry,
+  type DesiredRaceRecord,
+  type RaceRecordPlan,
+  type RaceRecordReconcileResult,
+  type RaceRecordSkipReason,
+  type RaceRecordSourceEvent,
+  type RaceRecordSources,
+  type SkippedRaceResult,
+} from "./race-record-sync";
+export {
   BUFFALO_2026_TEMPLATE,
   RACE_DAY_TEMPLATES,
   type RaceDayTemplate,

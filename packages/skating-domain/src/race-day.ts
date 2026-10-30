@@ -8,6 +8,8 @@ import type {
   Timestamp,
 } from "@skatingx/schema";
 
+import { isValidRaceDayId } from "./race-day-id";
+
 /**
  * Pure Race Day logic (ADR-001). No Firestore, no React, no clock access: callers pass
  * the current time in, so every function here is deterministic and testable.
@@ -15,16 +17,8 @@ import type {
 
 // --- ids -------------------------------------------------------------------------
 
-/**
- * Ids are lowercase letters, digits and hyphens. Underscore is excluded on purpose: it is the
- * separator in `createRaceResultId`, so a composed id can always be split back unambiguously.
- */
-const RACE_DAY_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const MAX_ID_LENGTH = 64;
-
-export function isValidRaceDayId(id: string): boolean {
-  return id.length > 0 && id.length <= MAX_ID_LENGTH && RACE_DAY_ID_PATTERN.test(id);
-}
+// Defined in its own module (see race-day-id.ts); re-exported so the public path is unchanged.
+export { isValidRaceDayId };
 
 /**
  * Deterministic result id: saving the same race and athlete twice updates one document
