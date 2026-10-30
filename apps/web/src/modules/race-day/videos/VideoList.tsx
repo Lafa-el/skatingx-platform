@@ -1,4 +1,6 @@
+import { raceVideoAnalysisHref } from "@skatingx/skating-domain";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useLocale } from "@/hooks/useLocale";
 
@@ -8,6 +10,7 @@ import { raceOptionLabel } from "../lib/schedule";
 import type { VideoGroup, VideoView } from "../lib/videos";
 
 type VideoListProps = {
+  eventId: string;
   groups: readonly VideoGroup[];
   busy: boolean;
   onEdit: (view: VideoView) => void;
@@ -15,7 +18,7 @@ type VideoListProps = {
 };
 
 /** Records grouped by race. Links open in a new tab, and the list shows only the host. */
-export function VideoList({ groups, busy, onEdit, onDelete }: VideoListProps) {
+export function VideoList({ eventId, groups, busy, onEdit, onDelete }: VideoListProps) {
   const locale = useLocale();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
@@ -36,6 +39,7 @@ export function VideoList({ groups, busy, onEdit, onDelete }: VideoListProps) {
               {group.views.map((view) => {
                 const { video, athlete, linkHost } = view;
                 const confirming = confirmingId === video.videoId;
+                const analysisHref = raceVideoAnalysisHref(eventId, video.videoId);
                 const athleteName = athlete?.displayName ?? t(locale, "raceDay.videos.item.unknownAthlete");
                 const suffix = <span className="sr-only"> {`${video.label} ${athleteName}`}</span>;
 
@@ -95,6 +99,14 @@ export function VideoList({ groups, busy, onEdit, onDelete }: VideoListProps) {
                         </>
                       ) : (
                         <>
+                          {/* A plain link: the Analysis page shows this record as context and the user
+                              picks the file there. Only the two ids travel (ADR-010). */}
+                          {analysisHref ? (
+                            <Link to={analysisHref} className={SECONDARY_BUTTON}>
+                              {t(locale, "raceDay.videos.item.analyze")}
+                              {suffix}
+                            </Link>
+                          ) : null}
                           <button
                             type="button"
                             disabled={busy}

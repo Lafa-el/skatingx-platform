@@ -194,6 +194,43 @@ describe("VideosPage PRO gate", () => {
   });
 });
 
+describe("VideosPage go-to-analysis entry (ADR-010)", () => {
+  it("a PRO user gets one link per record, carrying only the event id and the video id", () => {
+    h.videos = ready([
+      video({ externalUrl: "https://example.com/v?token=zzz", storedWhere: "手机相册" }),
+      video({ videoId: "v2", label: "Finish" }),
+    ]);
+    renderPage();
+    const links = screen.getAllByRole("link", { name: /^去分析/ });
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/analysis/biomechanics?raceVideo=buffalo-1.v1",
+      "/analysis/biomechanics?raceVideo=buffalo-1.v2",
+    ]);
+  });
+
+  it("a free user sees no entry and no listener is mounted", () => {
+    h.videos = ready([video()]);
+    pro.isPro = false;
+    renderPage();
+    expect(screen.queryByRole("link", { name: /^去分析/ })).toBeNull();
+    expect(h.videosCalls).toEqual([]);
+  });
+
+  it("no entry while the plan is loading or unreadable", () => {
+    h.videos = ready([video()]);
+    pro.loading = true;
+    renderPage();
+    expect(screen.queryByRole("link", { name: /^去分析/ })).toBeNull();
+  });
+
+  it("English locale", () => {
+    locale.current = "en";
+    h.videos = ready([video()]);
+    renderPage();
+    expect(screen.getByRole("link", { name: /^Go to Analysis/ })).toBeTruthy();
+  });
+});
+
 describe("VideosPage states", () => {
   it("shows the heading and a preparing message until the context is ready", () => {
     h.ctx = null;
@@ -223,9 +260,10 @@ describe("VideosPage states", () => {
     expect(screen.queryByLabelText("比赛")).toBeNull();
   });
 
-  it("says plainly that nothing is uploaded, played or analysed", () => {
+  it("says plainly that nothing is uploaded or played here, and points to the Analysis page", () => {
     renderPage();
-    expect(screen.getByText(/不会上传、播放或分析视频文件/)).toBeTruthy();
+    expect(screen.getByText(/本页不上传、不播放视频/)).toBeTruthy();
+    expect(screen.getByText(/在分析页自己选择文件，分析在本机完成/)).toBeTruthy();
     expect(document.querySelector('input[type="file"], video')).toBeNull();
   });
 

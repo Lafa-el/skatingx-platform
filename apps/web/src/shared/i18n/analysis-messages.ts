@@ -60,6 +60,18 @@ const zh = {
   "analysis.biomechanics.title": "分析 · 动作分析",
   "analysis.pacing.title": "分析 · 配速",
   "analysis.equipment.title": "分析 · 装备",
+  "analysis.raceVideo.title": "来自比赛日的视频记录",
+  "analysis.raceVideo.hint":
+    "这是你在比赛日记录的信息，只作参考。请用下面的文件选择框自己选择视频文件；分析在本机完成，视频不会上传。",
+  "analysis.raceVideo.pending": "待确认",
+  "analysis.raceVideo.field.event": "比赛",
+  "analysis.raceVideo.field.race": "项目",
+  "analysis.raceVideo.field.video": "视频名称",
+  "analysis.raceVideo.field.storedWhere": "存在哪",
+  "analysis.raceVideo.field.link": "外链",
+  "analysis.raceVideo.link.open": "打开链接（{host}）",
+  "analysis.raceVideo.link.notWeb": "不是普通网页链接，只显示文字：{text}",
+  "analysis.raceVideo.link.credentials": "这条链接含用户名或口令，不在此显示。",
 } as const;
 
 type AnalysisKey = keyof typeof zh;
@@ -119,6 +131,18 @@ const en: Record<AnalysisKey, string> = {
   "analysis.biomechanics.title": "Analysis · Biomechanics",
   "analysis.pacing.title": "Analysis · Pacing",
   "analysis.equipment.title": "Analysis · Equipment",
+  "analysis.raceVideo.title": "Video record from Race Day",
+  "analysis.raceVideo.hint":
+    "This is what you recorded in Race Day, for reference only. Choose the video file yourself with the file picker below; the analysis runs on this device and the video is not uploaded.",
+  "analysis.raceVideo.pending": "Pending",
+  "analysis.raceVideo.field.event": "Event",
+  "analysis.raceVideo.field.race": "Race",
+  "analysis.raceVideo.field.video": "Video name",
+  "analysis.raceVideo.field.storedWhere": "Kept at",
+  "analysis.raceVideo.field.link": "Link",
+  "analysis.raceVideo.link.open": "Open link ({host})",
+  "analysis.raceVideo.link.notWeb": "Not a plain web link, shown as text only: {text}",
+  "analysis.raceVideo.link.credentials": "This link contains a user name or password, so it is not shown here.",
 };
 
 export type AnalysisMessageKey = AnalysisKey;

@@ -295,6 +295,7 @@ function VideosContent() {
               <p className="text-sm text-brand-navy/70">{t(locale, "raceDay.videos.list.empty")}</p>
             ) : (
               <VideoList
+                eventId={activeEvent.eventId}
                 groups={groups}
                 busy={rowAction.saving}
                 onEdit={startEdit}

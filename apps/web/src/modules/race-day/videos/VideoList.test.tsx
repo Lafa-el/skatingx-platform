@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import type { RaceEntry, RaceRosterEntry, RaceVideoRef } from "@skatingx/schema";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import { render, screen, userEvent, within } from "@/test/dom";
@@ -54,7 +55,17 @@ const video = (over: Partial<RaceVideoRef> = {}): RaceVideoRef => ({
 function setup(videos: RaceVideoRef[], busy = false) {
   const onEdit = vi.fn();
   const onDelete = vi.fn();
-  render(<VideoList groups={buildVideoGroups(videos, [race1], [ann])} busy={busy} onEdit={onEdit} onDelete={onDelete} />);
+  render(
+    <MemoryRouter>
+      <VideoList
+        eventId="buffalo-1"
+        groups={buildVideoGroups(videos, [race1], [ann])}
+        busy={busy}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
+    </MemoryRouter>,
+  );
   return { user: userEvent.setup(), onEdit, onDelete };
 }
 
@@ -82,8 +93,9 @@ describe("VideoList", () => {
       video(),
       video({ videoId: "v2", label: "Bad", externalUrl: "javascript:alert(1)" }),
     ]);
-    expect(screen.queryByRole("link")).toBeNull();
-    expect(document.querySelector("a")).toBeNull();
+    // The only links are the two "go to analysis" entries; none points at an outside address.
+    expect(document.querySelectorAll('a[target="_blank"]')).toHaveLength(0);
+    expect(document.querySelectorAll('a[href^="http"], a[href^="javascript"]')).toHaveLength(0);
   });
 
   it("never renders a video player or file input", () => {
@@ -94,15 +106,52 @@ describe("VideoList", () => {
 
   it("shows an unknown athlete and an unknown race instead of hiding the record", () => {
     render(
-      <VideoList
-        groups={buildVideoGroups([video({ rosterId: "ghost" }), video({ videoId: "v2", raceId: "gone" })], [race1], [ann])}
-        busy={false}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-      />,
+      <MemoryRouter>
+        <VideoList
+          eventId="buffalo-1"
+          groups={buildVideoGroups([video({ rosterId: "ghost" }), video({ videoId: "v2", raceId: "gone" })], [race1], [ann])}
+          busy={false}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </MemoryRouter>,
     );
     expect(screen.getByText("未知运动员")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "未知比赛" })).toBeTruthy();
+  });
+
+  it("each record has a go-to-analysis link that carries only the event id and the video id", () => {
+    setup([
+      video({ externalUrl: "https://videos.example.com/watch/abc?token=zzz", storedWhere: "手机相册", note: "第三圈" }),
+      video({ videoId: "v2", label: "Finish" }),
+    ]);
+    const links = screen.getAllByRole("link", { name: /^去分析/ });
+    expect(links).toHaveLength(2);
+    expect(links[0]?.getAttribute("href")).toBe("/analysis/biomechanics?raceVideo=buffalo-1.v1");
+    expect(links[1]?.getAttribute("href")).toBe("/analysis/biomechanics?raceVideo=buffalo-1.v2");
+    // The accessible name says which record it is for, so a row of identical links can be told apart.
+    expect(links[0]?.textContent).toContain("Start");
+    for (const link of links) {
+      const href = link.getAttribute("href") ?? "";
+      expect(href).not.toContain("example.com");
+      expect(href).not.toContain("zzz");
+      expect(href).not.toContain("Ann");
+      expect(href).not.toContain("手机");
+      // Same tab: the analysis page is in this app.
+      expect(link.getAttribute("target")).toBeNull();
+    }
+  });
+
+  it("shows no go-to-analysis link for a record whose id could not be parsed back", () => {
+    setup([video({ videoId: "Bad.Id" })]);
+    expect(screen.queryByRole("link", { name: /^去分析/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /^编辑/ })).toBeTruthy();
+  });
+
+  it("hides the go-to-analysis link while a delete is being confirmed", async () => {
+    const { user } = setup([video()]);
+    await user.click(screen.getByRole("button", { name: /^删除/ }));
+    expect(screen.queryByRole("link", { name: /^去分析/ })).toBeNull();
   });
 
   it("edit hands over the record", async () => {
@@ -151,6 +200,9 @@ describe("VideoList", () => {
     locale.current = "en";
     const { user } = setup([video({ externalUrl: "https://example.com/x", storedWhere: "Camera roll" })]);
     expect(screen.getByRole("link", { name: "Open link (example.com)" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /^Go to Analysis/ }).getAttribute("href")).toBe(
+      "/analysis/biomechanics?raceVideo=buffalo-1.v1",
+    );
     expect(screen.getByText("Kept at: Camera roll")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: /^Delete/ }));
     expect(screen.getByRole("alert").textContent).toContain("video file itself is not affected");
