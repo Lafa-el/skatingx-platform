@@ -9,9 +9,9 @@
 - 配速页 `calculatePacingAnalysis`。总时间等展示是 `toFixed(2)`，与 `formatPaceReport` 相同。
 - 器材页 `buildEquipmentChecklist`。输入是 M3 回归里的两张合成清单。
 - 生物力学页 `assessVideoInput`、`samplePoseFrame`、`shouldSendPoseFrame`、`aggregateKeyframes`、`resetAnalysisSession`。输入是五条固件。
-- 计划页的周积分是 `weeklyCheckedPoints`。打卡事务里的余额是 `applyPlanCheckIn`。序列：余额 120，技术侧重，打卡 `jd_tech_mon`，再打卡 `jd_tech_sun`，再重复周一。重复打卡不加分。
+- 计划页的打卡对照行（三张周积分表、打卡后的周积分与余额、重复打卡、技术周不含速度周一，共 9 行）已随打卡退役移除（ADR-008 步骤 ③）。对应的周积分与打卡余额函数已删除，计划页完成度改为由任务派生。仅保留「计划 · 积分落点」一行。
 
-旧站锁定值来自 M3 的 `*.expected.json`、`legacy-regression.test.ts`，以及 `blaze-skate-analysis` 的 `plansDatabase` / 云端 `checkTask`。`poseClosed` 与 `poseInstanceOpen` 的旧站值来自盘点：`resetUpload()` 不调用 `pose.close()`。
+旧站锁定值来自 M3 的 `*.expected.json`、`legacy-regression.test.ts`，以及 `blaze-skate-analysis` 的云端 `checkTask`（积分落点一行）。`poseClosed` 与 `poseInstanceOpen` 的旧站值来自盘点：`resetUpload()` 不调用 `pose.close()`。
 
 已批准容差（2026-10-19）。测试不读取这些界限，差不是 0 就失败：
 
@@ -109,14 +109,4 @@
 | 生物力学 · fx-cancel-midway · buttonLabel | 请先上传视频 | 请先上传视频 | 0 | 是 |
 | 生物力学 · fx-cancel-midway · poseClosed | false | true | 2026-10-19 评审：重置时关闭 Pose。旧站 resetUpload 不调用 close。 | 已解释 |
 | 生物力学 · fx-cancel-midway · poseInstanceOpen | true | false | 同一决定：关闭后实例不再保持打开。 | 已解释 |
-| 计划 · 技术周积分表 | 30,20,30,15,30,30,10 | 30,20,30,15,30,30,10 | 0 | 是 |
-| 计划 · 速度周积分表 | 35,20,35,15,30,35,10 | 35,20,35,15,30,35,10 | 0 | 是 |
-| 计划 · 比赛周积分表 | 25,15,25,10,20,25,10 | 25,15,25,10,20,25,10 | 0 | 是 |
-| 计划 · 打卡周一后的周积分 | 30 | 30 | 0 | 是 |
-| 计划 · 打卡周一后的余额 | 150 | 150 | 0 | 是 |
-| 计划 · 再打卡周日的周积分 | 40 | 40 | 0 | 是 |
-| 计划 · 再打卡周日的余额 | 160 | 160 | 0 | 是 |
-| 计划 · 重复周一的周积分 | 40 | 40 | 0 | 是 |
-| 计划 · 重复周一的余额 | 160 | 160 | 0 | 是 |
-| 计划 · 技术周不含速度周一 | 0 | 0 | 0 | 是 |
 | 计划 · 积分落点 | profile.points | gamification/main.points | DR-004：走训练积分，不另建分析积分。旧站云端事务加的是 profile。 | 已解释 |

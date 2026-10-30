@@ -60,7 +60,7 @@ ADR-005 其余内容不变：「21 条日课是客户端模板」仍成立（模
 |---|---|
 | ① 本 PR | 本 ADR；schema 与四处白名单；条目与文案；`setPlanFocus`、`generatePlanTasksIfNeeded`；`usePlanFocus` 读写 `training/state`；任务页 plan 徽标。**不接** `TrainingDayRollover` 的触发，不动计划页打卡。 |
 | ② | 接上生成触发；计划页去掉打卡按钮，改为推导完成度（今天读 `todayTasks`，过去读 `taskHistory`）。触发接线与去掉打卡按钮在同一次发布，避免两套机制同日重复计分。 |
-| ③ | 退役打卡入口与函数（清单见设计稿 §4.g）。前置：全库只读审计 `planning/main/completedTasks`，结果写进 PR。 |
+| ③ | 退役打卡入口与函数（清单见设计稿 §4.g）。前置：全库只读审计 `planning/main/completedTasks`，结果写进 PR。见 §7。 |
 
 仓库没有 feature flag 机制，所以用「步骤 ① 不接触发」代替开关：生成函数存在、有测试，但没有任何调用方。
 
@@ -101,3 +101,28 @@ ADR-005 其余内容不变：「21 条日课是客户端模板」仍成立（模
 ### 回滚
 
 revert 本步 PR：打卡按钮、订阅与周积分恢复，触发移除。已生成的 `source: "plan"` 任务留在任务列表里，用户可删；归档里的任务保留 `source` 与 `planEntryId`，无害。`planning-check-in.ts` 与 `planning/main/completedTasks` 本步未动，回滚后旧打卡数据照常可用。
+
+## 7. 步骤 ③ 实施记录
+
+### 7.1 全库只读审计（2026-10-30）
+
+- 对象：`skatingx-prod`，Admin SDK，`collectionGroup("completedTasks")` 全量读取，只读、零写入。脚本与输出在用户 Mac 的 `~/.config/gcp/`（与 2026-10-22、2026-10-23 的清理备份同目录），不进仓库。输出只含路径、`taskId`、`points`。
+- 结果：`completedTasks` 全库 **0** 条。其中 `planning/main/completedTasks` 0 条，其他路径的 `completedTasks` 0 条；Lindsay 账号 0 条，非 Lindsay 账号 0 条。
+- 对照：与 2026-10-23 清理后的回读一致（Lindsay 账号 0 条）。对照项 `pointsLedger` 全库 3 条（`opening` +55，`cleanout-jd_speed_tue` −20，`cleanout-jd_speed_wed` −35），说明 collectionGroup 查询本身有效，0 不是查询失败。
+- 结论：**无残留，退役无数据影响。**
+
+### 7.2 退役内容
+
+- 删除 `planning-check-in.ts`（完成、取消、订阅三个函数与 `PlanningCheckIn` 类型）；`refs.ts` 的两个 ref；`paths.ts` 的 `planningCheckIn`、`planningCheckInsCollection` 与 ADR-005 §1 标为禁止沿用的 9 段 `planningCompletedTask`；对应的 `paths.planning.test.ts`。
+- `plan-template.ts` 删 `points` 字段、`weeklyCheckedPoints`、`applyPlanCheckIn`。保留 `PLAN_FOCUSES`、`PLAN_DAYS`（id 与 focus）、`planDays`、`planDayById`：历史页积分明细靠它们把 `plan-checkin` / `plan-uncheckin` 的 `refId` 还原成侧重与周几。
+- `m5-parity.ts` 的 `planRows` 删去用到上述符号的 9 行，只保留「计划 · 积分落点」一行（它不依赖被删符号）；`m5-parity-report.md` 同步并标注。
+- `plan-messages.ts` 删 `plan.check.*`。计划页仍在用的那一句改名为 `plan.note.progress`，正文不变。
+- `plan.week.points`、`plan.balance`、`plan.pointsBadge` 在步骤 ② 已删。
+
+### 7.3 明确不动
+
+`firestore.rules` 与 `tests/rules/access.rules.test.ts`（`planning` 路径仍属主可写，退役不收紧）；`POINTS_LEDGER_REASONS` 里的 `plan-checkin` / `plan-uncheckin`；`scripts/migrate-*.mjs`、`verify-prod-migration.mjs` 及其测试。ADR-005 里对 `paths.planningCheckIn` 的描述保留为历史记录，以本 ADR 为准。
+
+### 7.4 回滚
+
+revert 本步 PR 即可恢复全部代码。无数据变更，无规则变更。

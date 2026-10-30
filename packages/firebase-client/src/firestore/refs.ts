@@ -43,24 +43,6 @@ export function analysisRecordRef(
   return docFromPath(db, paths.analysisRecord(userId, analysisId));
 }
 
-export function planningCheckInRef(
-  db: Firestore,
-  userId: string,
-  athleteId: string,
-  taskId: string,
-): DocumentReference {
-  return docFromPath(db, paths.planningCheckIn(userId, athleteId, taskId));
-}
-
-export function planningCheckInsCollectionRef(
-  db: Firestore,
-  userId: string,
-  athleteId: string,
-): CollectionReference {
-  const segments = pathToSegments(paths.planningCheckInsCollection(userId, athleteId));
-  return collection(db, ...(segments as [string, ...string[]]));
-}
-
 export function settingsRef(
   db: Firestore,
   userId: string,

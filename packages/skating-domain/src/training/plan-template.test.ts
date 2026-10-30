@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  PLAN_DAYS,
-  PLAN_FOCUSES,
-  applyPlanCheckIn,
-  planDayById,
-  planDays,
-  weeklyCheckedPoints,
-} from "./plan-template";
+import { PLAN_DAYS, PLAN_FOCUSES, planDayById, planDays } from "./plan-template";
 
 describe("plan template", () => {
   it("keeps 21 client day cards, seven for each focus", () => {
@@ -18,17 +11,16 @@ describe("plan template", () => {
     }
   });
 
-  it("sums only the checked days of the selected focus", () => {
-    const checked = new Set(["jd_tech_mon", "jd_tech_sun", "jd_speed_mon"]);
-    expect(weeklyCheckedPoints("lean", checked)).toBe(40);
-    expect(weeklyCheckedPoints("bounce", checked)).toBe(35);
-    expect(weeklyCheckedPoints("endurance", checked)).toBe(0);
+  it("resolves a day id to its focus, and leaves unknown ids undefined", () => {
+    expect(planDayById("jd_tech_mon")?.focus).toBe("lean");
+    expect(planDayById("jd_speed_wed")?.focus).toBe("bounce");
+    expect(planDayById("jd_race_sun")?.focus).toBe("endurance");
+    expect(planDayById("missing")).toBeUndefined();
   });
 
-  it("adds the template award once, and leaves an existing check-in unchanged", () => {
-    expect(planDayById("jd_tech_mon")?.points).toBe(30);
-    expect(applyPlanCheckIn(120, 30, false)).toBe(150);
-    expect(applyPlanCheckIn(150, 30, true)).toBe(150);
-    expect(planDayById("missing")).toBeUndefined();
+  it("no longer carries per-day points (ADR-008: points come from tasks)", () => {
+    for (const day of PLAN_DAYS) {
+      expect(Object.keys(day).sort()).toEqual(["focus", "id"]);
+    }
   });
 });

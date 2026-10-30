@@ -65,17 +65,6 @@ export const paths = {
   analysesCollection: (userId: string) => `${prefix(userId)}/analyses`,
   analysisSession: (userId: string, athleteId: string, sessionId: string) =>
     `${prefix(userId)}/athletes/${athleteId}/analysis/sessions/${sessionId}/summary`,
-  planningCompletedTask: (userId: string, athleteId: string, taskId: string) =>
-    `${prefix(userId)}/athletes/${athleteId}/planning/completedTasks/${taskId}`,
-  /**
-   * ADR-005 §1 and §3. Plan check-in, 10 segments, same shape as training records.
-   * `planningCompletedTask` above is the unused 9-segment path and must not be used for this.
-   */
-  planningCheckIn: (userId: string, athleteId: string, taskId: string) =>
-    `${prefix(userId)}/athletes/${athleteId}/planning/main/completedTasks/${taskId}`,
-  planningCheckInsCollection: (userId: string, athleteId: string) =>
-    `${prefix(userId)}/athletes/${athleteId}/planning/main/completedTasks`,
-
   // Race Day Companion (ADR-001 D6). Account-scoped, not athlete-scoped: the roster
   // holds followed athletes as well as the user's own.
   raceDayEvent: (userId: string, eventId: string) =>
