@@ -254,6 +254,8 @@ describe("TrainingHistoryPage", () => {
       { id: "task", dateId: "2026-10-19", delta: 20, reason: "task-complete", refId: "a", createdAt: "2026-10-19T01:00:00.000Z" },
       { id: "bonus", dateId: "2026-10-19", delta: 50, reason: "daily-bonus-add", createdAt: "2026-10-19T02:00:00.000Z" },
       { id: "plan", dateId: "2026-10-22", delta: 30, reason: "plan-checkin", refId: "jd_tech_mon", createdAt: "2026-10-22T03:00:00.000Z" },
+      // Retired check-in events stay in the ledger and must keep naming focus and weekday (ADR-008 step 3).
+      { id: "unplan", dateId: "2026-10-23", delta: -35, reason: "plan-uncheckin", refId: "jd_speed_wed", createdAt: "2026-10-23T03:00:00.000Z" },
     ];
     state.septemberLedger = [
       { id: "opening", dateId: "2026-09-02", delta: 80, reason: "opening-balance", createdAt: "2026-09-02T00:00:00.000Z" },
@@ -268,8 +270,10 @@ describe("TrainingHistoryPage", () => {
     expect(await screen.findByText("完成任务")).toBeTruthy();
     expect(screen.getByText("全勤奖励")).toBeTruthy();
     expect(screen.getByText("计划打卡（技术基础，周一）")).toBeTruthy();
+    expect(screen.getByText("取消打卡（速度，周三）")).toBeTruthy();
     expect(screen.getByText("小计 +70")).toBeTruthy();
     expect(screen.getByText("小计 +30")).toBeTruthy();
+    expect(screen.getByText(/小计 [-−]35/)).toBeTruthy();
     expect(screen.getByText("当前积分＝期初＋流水净额")).toBeTruthy();
     expect(screen.queryByText("未归属差额")).toBeNull();
     expect(screen.queryByText("期初余额（迁移带入）")).toBeNull();

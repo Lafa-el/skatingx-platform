@@ -24,8 +24,6 @@ export {
   analysisRecordRef,
   equipmentHistoryCollectionRef,
   equipmentHistoryRecordRef,
-  planningCheckInRef,
-  planningCheckInsCollectionRef,
   settingsRef,
   taskHistoryCollectionRef,
   taskHistoryRef,
@@ -83,12 +81,6 @@ export {
   saveEquipmentHistoryRecord,
   subscribeToEquipmentHistory,
 } from "./firestore/equipment-history";
-export {
-  completePlanningCheckIn,
-  cancelPlanningCheckIn,
-  subscribeToPlanningCheckIns,
-  type PlanningCheckIn,
-} from "./firestore/planning-check-in";
 export { updateUserSettings } from "./firestore/settings";
 export { ensurePointsOpeningBalance, recordPointsChange } from "./firestore/points-ledger";
 export {

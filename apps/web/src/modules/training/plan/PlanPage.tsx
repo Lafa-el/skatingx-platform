@@ -357,7 +357,7 @@ export function PlanPage() {
         )}
         {focus ? (
           <div className="grid gap-2 border-t border-brand-navy/10 pt-4">
-            <p className="text-sm text-brand-navy/70">{tPlan(locale, "plan.check.note")}</p>
+            <p className="text-sm text-brand-navy/70">{tPlan(locale, "plan.note.progress")}</p>
             <p className="text-sm text-brand-navy/80">{tPlan(locale, "plan.note.generated")}</p>
             <p className="text-sm font-semibold text-brand-navy">{tPlan(locale, "plan.note.bonus")}</p>
             {stateError ? <p role="status" className="text-sm text-status-danger">{tPlan(locale, "plan.progress.stateFailed")}</p> : null}

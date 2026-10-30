@@ -62,7 +62,6 @@ const firestore = vi.hoisted(() => {
 
 vi.mock("firebase/firestore", () => firestore);
 
-import { cancelPlanningCheckIn, completePlanningCheckIn } from "./planning-check-in";
 import { ensurePointsOpeningBalance } from "./points-ledger";
 import { deleteTaskHistoryDay } from "./task-history";
 import { deleteTrainingTask, toggleTrainingTask } from "./training-tasks";
@@ -227,26 +226,6 @@ describe("points ledger transactions", () => {
     expect(store.get(paths.trainingState(userId, athleteId))?.todayTasks).toEqual([]);
   });
 
-  it("adds plan points once and takes them back once", async () => {
-    seedGame(100);
-    const checked = await expectChange(() => completePlanningCheckIn(db, userId, athleteId, "jd_tech_mon"));
-    expect(checked.filter((event) => event.reason === "plan-checkin")).toEqual([
-      expect.objectContaining({ delta: 30, refId: "jd_tech_mon", dateId: today }),
-    ]);
-    expect(points()).toBe(130);
-
-    const cancelled = await expectChange(() => cancelPlanningCheckIn(db, userId, athleteId, "jd_tech_mon"));
-    expect(cancelled.map((event) => [event.reason, event.delta, event.refId])).toEqual([
-      ["plan-uncheckin", -30, "jd_tech_mon"],
-    ]);
-    expect(points()).toBe(100);
-    expect(store.has(paths.planningCheckIn(userId, athleteId, "jd_tech_mon"))).toBe(false);
-
-    const again = await expectChange(() => cancelPlanningCheckIn(db, userId, athleteId, "jd_tech_mon"));
-    expect(again).toEqual([]);
-    expect(points()).toBe(100);
-  });
-
   it("records a redemption as a negative event", async () => {
     seedGame(200);
     put(paths.trainingRewardsCatalog(userId, athleteId), createDefaultRewardsCatalog());
@@ -312,8 +291,6 @@ describe("points ledger transactions", () => {
     await expectChange(() => toggleTrainingTask(actor, "a"));
     await expectChange(() => toggleTrainingTask(actor, "b"));
     await expectChange(() => toggleTrainingTask(actor, "b"));
-    await expectChange(() => completePlanningCheckIn(db, userId, athleteId, "jd_tech_tue"));
-    await expectChange(() => cancelPlanningCheckIn(db, userId, athleteId, "jd_tech_tue"));
     await expectChange(() => deleteTrainingTask(actor, "a"));
     expect(ledger().some((event) => event.reason === "opening-balance" && event.delta === 40)).toBe(true);
     expect(points()).toBe(sum());

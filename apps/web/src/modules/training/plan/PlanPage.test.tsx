@@ -209,7 +209,7 @@ describe("training plan page", () => {
   });
 
   it("has no check-in code left in the page", () => {
-    expect(planPageSource).not.toMatch(/CheckIn|pendingId|failedId|useGamification|weeklyCheckedPoints/);
+    expect(planPageSource).not.toMatch(/CheckIn|pendingId|failedId|useGamification|weeklyChecked/);
   });
 
   it("keeps a focus chosen this week after a reload, with no click", () => {

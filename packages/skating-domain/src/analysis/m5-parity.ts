@@ -21,7 +21,6 @@ import {
   type PlanePoint,
   type PoseFrameMetrics,
 } from "./legacy-pose";
-import { applyPlanCheckIn, planDayById, PLAN_DAYS, weeklyCheckedPoints, type PlanFocus } from "../training/plan-template";
 
 const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 
@@ -300,52 +299,11 @@ function biomechRows(): ParityRow[] {
   ];
 }
 
-const LEGACY_POINTS: Record<PlanFocus, readonly number[]> = {
-  lean: [30, 20, 30, 15, 30, 30, 10],
-  bounce: [35, 20, 35, 15, 30, 35, 10],
-  endurance: [25, 15, 25, 10, 20, 25, 10],
-};
-
-function pointsOf(focus: PlanFocus): string {
-  return PLAN_DAYS.filter((day) => day.focus === focus)
-    .map((day) => day.points)
-    .join(",");
-}
-
+// The check-in rows (weekly points tables, balance after check-in, repeat check-in)
+// were removed with the check-in retirement (ADR-008 step 3). Only the destination
+// row stays: plan points still land in the training balance, now through tasks.
 function planRows(): ParityRow[] {
-  const start = 120;
-  const checked = new Set<string>();
-  let balance = start;
-  const check = (taskId: string) => {
-    const day = planDayById(taskId);
-    if (!day) return;
-    const already = checked.has(taskId);
-    balance = applyPlanCheckIn(balance, day.points, already);
-    if (!already) checked.add(taskId);
-  };
-
-  check("jd_tech_mon");
-  const afterMondayWeek = weeklyCheckedPoints("lean", checked);
-  const afterMondayBalance = balance;
-  check("jd_tech_sun");
-  const afterSundayWeek = weeklyCheckedPoints("lean", checked);
-  const afterSundayBalance = balance;
-  check("jd_tech_mon");
-  const afterRepeatWeek = weeklyCheckedPoints("lean", checked);
-  const afterRepeatBalance = balance;
-  const leanIgnoresSpeed = weeklyCheckedPoints("lean", new Set(["jd_speed_mon"]));
-
   return [
-    row("计划 · 技术周积分表", LEGACY_POINTS.lean.join(","), pointsOf("lean")),
-    row("计划 · 速度周积分表", LEGACY_POINTS.bounce.join(","), pointsOf("bounce")),
-    row("计划 · 比赛周积分表", LEGACY_POINTS.endurance.join(","), pointsOf("endurance")),
-    row("计划 · 打卡周一后的周积分", "30", String(afterMondayWeek)),
-    row("计划 · 打卡周一后的余额", "150", String(afterMondayBalance)),
-    row("计划 · 再打卡周日的周积分", "40", String(afterSundayWeek)),
-    row("计划 · 再打卡周日的余额", "160", String(afterSundayBalance)),
-    row("计划 · 重复周一的周积分", "40", String(afterRepeatWeek)),
-    row("计划 · 重复周一的余额", "160", String(afterRepeatBalance)),
-    row("计划 · 技术周不含速度周一", "0", String(leanIgnoresSpeed)),
     explained(
       "计划 · 积分落点",
       "profile.points",
@@ -373,9 +331,9 @@ export function renderParityReport(rows: readonly ParityRow[]): string {
     "- 配速页 `calculatePacingAnalysis`。总时间等展示是 `toFixed(2)`，与 `formatPaceReport` 相同。",
     "- 器材页 `buildEquipmentChecklist`。输入是 M3 回归里的两张合成清单。",
     "- 生物力学页 `assessVideoInput`、`samplePoseFrame`、`shouldSendPoseFrame`、`aggregateKeyframes`、`resetAnalysisSession`。输入是五条固件。",
-    "- 计划页的周积分是 `weeklyCheckedPoints`。打卡事务里的余额是 `applyPlanCheckIn`。序列：余额 120，技术侧重，打卡 `jd_tech_mon`，再打卡 `jd_tech_sun`，再重复周一。重复打卡不加分。",
+    "- 计划页的打卡对照行（三张周积分表、打卡后的周积分与余额、重复打卡、技术周不含速度周一，共 9 行）已随打卡退役移除（ADR-008 步骤 ③）。对应的周积分与打卡余额函数已删除，计划页完成度改为由任务派生。仅保留「计划 · 积分落点」一行。",
     "",
-    "旧站锁定值来自 M3 的 `*.expected.json`、`legacy-regression.test.ts`，以及 `blaze-skate-analysis` 的 `plansDatabase` / 云端 `checkTask`。`poseClosed` 与 `poseInstanceOpen` 的旧站值来自盘点：`resetUpload()` 不调用 `pose.close()`。",
+    "旧站锁定值来自 M3 的 `*.expected.json`、`legacy-regression.test.ts`，以及 `blaze-skate-analysis` 的云端 `checkTask`（积分落点一行）。`poseClosed` 与 `poseInstanceOpen` 的旧站值来自盘点：`resetUpload()` 不调用 `pose.close()`。",
     "",
     "已批准容差（2026-10-19）。测试不读取这些界限，差不是 0 就失败：",
     "",

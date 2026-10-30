@@ -14,10 +14,8 @@ export {
   PLAN_DAYS,
   PLAN_FOCUSES,
   PLAN_WEEK_NUMBER,
-  applyPlanCheckIn,
   planDayById,
   planDays,
-  weeklyCheckedPoints,
   type PlanDayTemplate,
   type PlanFocus,
 } from "./training/plan-template";
