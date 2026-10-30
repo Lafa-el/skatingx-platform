@@ -1,8 +1,10 @@
+import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { normalizeTrainingState } from "@skatingx/firebase-client";
 import { formatSecondsToTime, localizeRedemptionName } from "@skatingx/skating-domain";
 import { Card, ErrorNotice, ProgressBar } from "@skatingx/ui";
 
+import { isRaceDayEnabled } from "@/app/features";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import {
   useAthleteProfile,
@@ -16,6 +18,13 @@ import { useTrainingRecords } from "@/hooks/useTrainingRecords";
 import { type DashboardMessageKey, tDashboard } from "@/shared/i18n/dashboard-messages";
 import { tSettingsPage } from "@/shared/i18n/settings-page-messages";
 import { formatCalendarDate } from "@/shared/i18n/format";
+
+// The card reads Race Day data through the Firestore Race Day code (parsers, validation), which is
+// big for a dashboard. It is its own chunk, fetched only when the flag is on, so the main bundle
+// does not carry it (AGENTS.md: heavy modules are loaded on demand).
+const RaceOverviewCard = lazy(() =>
+  import("@/components/RaceOverviewCard").then((module) => ({ default: module.RaceOverviewCard })),
+);
 
 /** Destinations do not depend on the language; only the text is looked up. */
 const dashboardCards: ReadonlyArray<{
@@ -223,6 +232,24 @@ export function DashboardPage() {
             </p>
           )}
         </Card>
+        {/* Mounted only with the flag on: the card's hook subscribes the moment it renders. */}
+        {isRaceDayEnabled() ? (
+          <Suspense
+            fallback={
+              <Card
+                variant="raised"
+                title={tDashboard(locale, "dashboard.card.race")}
+                className="sm:col-span-2 lg:col-span-3"
+              >
+                <p role="status" className="text-sm text-brand-navy/70">
+                  {tDashboard(locale, "dashboard.race.loading")}
+                </p>
+              </Card>
+            }
+          >
+            <RaceOverviewCard />
+          </Suspense>
+        ) : null}
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">

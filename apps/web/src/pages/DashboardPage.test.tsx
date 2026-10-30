@@ -41,6 +41,10 @@ vi.mock("@/app/providers/FirestoreProvider", () => ({
 }));
 vi.mock("@/hooks/useRewardsShop", () => ({ useRewardsShop: () => h.state.shop }));
 vi.mock("@/hooks/useTrainingRecords", () => ({ useTrainingRecords: () => h.state.records }));
+// The Race Day card's own tests cover its states; here only whether the page mounts it.
+const emptyOverview = vi.hoisted(() => () => ({ status: "ready", eventCount: 0, hiddenCount: 0, next: null, previous: null }));
+const raceOverview = vi.hoisted(() => vi.fn<() => unknown>());
+vi.mock("@/hooks/useRaceOverview", () => ({ useRaceOverview: raceOverview }));
 vi.mock("@/components/FirestoreStatusBanner", () => ({ FirestoreStatusBanner: () => null }));
 // The real one reads the training document; tasks arrive already normalized in this test.
 vi.mock("@skatingx/firebase-client", () => ({ normalizeTrainingState: (state: unknown) => state }));
@@ -51,7 +55,12 @@ const setLanguage = (language: "zh" | "en", isPro = false) => {
 
 afterEach(() => {
   h.state = h.base();
+  vi.unstubAllEnvs();
+  raceOverview.mockReset();
+  raceOverview.mockImplementation(emptyOverview);
 });
+
+raceOverview.mockImplementation(emptyOverview);
 
 const renderPage = () =>
   render(
@@ -367,6 +376,52 @@ describe("DashboardPage: shortcut cards", () => {
       expect(screen.getByText(text), text).toBeTruthy();
     }
     expect(screen.getAllByText("Open →")).toHaveLength(4);
+  });
+});
+
+describe("DashboardPage: Race Day card (VITE_FEATURE_RACE_DAY)", () => {
+  it("flag off: no card, no Race Day subscription, and the same cards as before", () => {
+    vi.stubEnv("VITE_FEATURE_RACE_DAY", "");
+    const { container } = renderPage();
+    expect(raceOverview).not.toHaveBeenCalled();
+    expect(screen.queryByRole("heading", { level: 3, name: "比赛日" })).toBeNull();
+    expect(container.querySelectorAll("article")).toHaveLength(13);
+    expect(screen.getAllByRole("link")).toHaveLength(4);
+  });
+
+  it("flag unset behaves like off", () => {
+    renderPage();
+    expect(raceOverview).not.toHaveBeenCalled();
+    expect(screen.queryByRole("heading", { level: 3, name: "比赛日" })).toBeNull();
+  });
+
+  it("flag on: one more card, inside the status grid and after the existing ones, in the main bundle only as a lazy slot", async () => {
+    vi.stubEnv("VITE_FEATURE_RACE_DAY", "true");
+    const { container } = renderPage();
+    await screen.findByText("还没有比赛日赛事。");
+    const grid = screen.getByRole("heading", { level: 3, name: "比赛日" }).closest("article")?.parentElement;
+    const titles = [...(grid?.querySelectorAll("article > h3") ?? [])].map((h3) => h3.textContent);
+    expect(titles.at(-1)).toBe("比赛日");
+    expect(titles).toHaveLength(10);
+    expect(container.querySelectorAll("article")).toHaveLength(14);
+  });
+
+  it("flag on, English", async () => {
+    vi.stubEnv("VITE_FEATURE_RACE_DAY", "true");
+    setLanguage("en");
+    renderPage();
+    expect(await screen.findByText("No Race Day events yet.")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 3, name: "Race Day" })).toBeTruthy();
+  });
+
+  it("a Race Day read failure stays inside its card and does not touch the page's own error line", async () => {
+    vi.stubEnv("VITE_FEATURE_RACE_DAY", "true");
+    raceOverview.mockReturnValue({ status: "error", permissionDenied: true });
+    renderPage();
+    await screen.findByText("没有权限读取比赛日数据。");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(card("比赛日").getByRole("alert").textContent).toBe("没有权限读取比赛日数据。");
+    expect(card("积分").getByText("120")).toBeTruthy();
   });
 });
 
