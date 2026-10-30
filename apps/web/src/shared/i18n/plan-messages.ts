@@ -258,6 +258,12 @@ const zh = {
   "plan.feedback.accept": "采纳",
   "plan.feedback.ignore": "忽略",
   "plan.feedback.unavailable": "分析建议暂时读不出来。计划本身没有被改动。",
+  "plan.feedback.race.title": "比赛周建议",
+  "plan.feedback.race": "将本周侧重设为『比赛周与恢复管理』",
+  "plan.feedback.source.race": "来自比赛日赛事「{name}」，{dates}",
+  "plan.feedback.race.range": "{from} – {to}",
+  "plan.feedback.race.pending": "赛事日期待确认",
+  "plan.feedback.race.unavailable": "比赛周建议暂时读不出来。计划本身没有被改动。",
 } as const;
 
 type PlanKey = keyof typeof zh;
@@ -526,6 +532,12 @@ const en: Record<PlanKey, string> = {
   "plan.feedback.accept": "Use this",
   "plan.feedback.ignore": "Hide for now",
   "plan.feedback.unavailable": "Analysis suggestions could not be read. The plan itself was not changed.",
+  "plan.feedback.race.title": "Race week suggestion",
+  "plan.feedback.race": "Set this week's focus to \"Race week and recovery\"",
+  "plan.feedback.source.race": "From the Race Day event \"{name}\", {dates}",
+  "plan.feedback.race.range": "{from} – {to}",
+  "plan.feedback.race.pending": "Event dates to be confirmed",
+  "plan.feedback.race.unavailable": "The race week suggestion could not be read. The plan itself was not changed.",
 };
 
 export type PlanMessageKey = PlanKey;

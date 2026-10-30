@@ -7,9 +7,12 @@ export {
   trainingFeedbackKey,
   FEEDBACK_SOURCE_KINDS,
   type FeedbackSource,
+  type AnalysisTrainingFeedback,
   type FeedbackSourceKind,
+  type RaceWeekFeedback,
   type TrainingFeedback,
 } from "./training/analysis-feedback";
+export { deriveRaceWeekFeedback, type RaceWeekEvent } from "./training/race-week-feedback";
 export {
   PLAN_DAYS,
   PLAN_FOCUSES,
