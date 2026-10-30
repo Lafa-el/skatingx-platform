@@ -31,6 +31,14 @@ export {
   type PlanTaskCandidate,
 } from "./training/plan-tasks";
 export {
+  addDaysToDateString,
+  planDayDate,
+  planDayProgress,
+  type PlanDayProgress,
+  type PlanProgressInput,
+  type ProgressTask,
+} from "./training/plan-progress";
+export {
   allTasksCompleted,
   applyTaskToggle,
   createTaskId,
