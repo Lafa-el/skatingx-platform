@@ -6,12 +6,13 @@ import { SubNav } from "@/components/SubNav";
 import { useLocale } from "@/hooks/useLocale";
 import { ShellFrame } from "@/layouts/ShellFrame";
 
+import { RaceRecordSyncContext } from "./hooks/raceRecordSyncState";
 import { useRaceRecordSync } from "./hooks/useRaceRecordSync";
 import { t } from "./i18n/messages";
 
 export function RaceDayLayout() {
   const locale = useLocale();
-  useRaceRecordSync();
+  const recordSync = useRaceRecordSync();
 
   const items: NavItem[] = [
     { to: "/race-day", label: t(locale, "raceDay.tab.today"), end: true },
@@ -30,7 +31,9 @@ export function RaceDayLayout() {
       <Notice tone="pending" className="mb-4">
         {t(locale, "raceDay.phase0.notice")}
       </Notice>
-      <Outlet />
+      <RaceRecordSyncContext.Provider value={recordSync}>
+        <Outlet />
+      </RaceRecordSyncContext.Provider>
     </ShellFrame>
   );
 }

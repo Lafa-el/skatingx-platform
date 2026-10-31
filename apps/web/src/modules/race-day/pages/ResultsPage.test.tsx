@@ -42,6 +42,9 @@ vi.mock("../hooks/useRaceDayActions", () => ({
   }),
 }));
 
+// The sync status lines read the records through Firestore; useResultSyncInfo has its own tests.
+vi.mock("../hooks/useResultSyncInfo", () => ({ useResultSyncInfo: () => new Map() }));
+
 const prov = {
   verification: "pending" as const,
   source: "manual" as const,

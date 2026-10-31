@@ -9,6 +9,7 @@ import { FormMessage, PRIMARY_BUTTON, SelectField } from "../components/fields";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { WriteNotices } from "../components/WriteNotices";
 import { useSelectedEvent } from "../hooks/useActiveEvent";
+import { useRaceRecordSyncState } from "../hooks/raceRecordSyncState";
 import { useRaceDayActions } from "../hooks/useRaceDayActions";
 import {
   useRaceDayContext,
@@ -17,6 +18,7 @@ import {
   useRaces,
   useRoster,
 } from "../hooks/useRaceDayData";
+import { useResultSyncInfo } from "../hooks/useResultSyncInfo";
 import { useSubmitState } from "../hooks/useSubmitState";
 import { t } from "../i18n/messages";
 import { loadErrorMessageKey } from "../lib/errors";
@@ -55,6 +57,15 @@ export function ResultsPage() {
     () => buildResultViews(results.items, races.items, roster.items),
     [results.items, races.items, roster.items],
   );
+
+  // Read-only: what the records sync did with each confirmed row, and whether it last failed.
+  const syncInfo = useResultSyncInfo({
+    event: activeEvent ?? null,
+    races: races.items,
+    roster: roster.items,
+    results: results.items,
+  });
+  const recordSync = useRaceRecordSyncState();
 
   const heading = <h1 className="text-2xl font-bold text-brand-navy">{t(locale, "raceDay.tab.results")}</h1>;
 
@@ -265,6 +276,9 @@ export function ResultsPage() {
                     .submit(() => actions.deleteResult(activeEvent.eventId, view.result.resultId))
                     .then(afterWrite);
                 }}
+                sync={syncInfo}
+                syncFailed={recordSync.failed}
+                onRetrySync={recordSync.retry}
               />
             )}
           </section>

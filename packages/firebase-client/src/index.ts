@@ -77,6 +77,7 @@ export {
 export {
   reconcileRaceRecords,
   startRaceRecordSync,
+  subscribeToRaceRecordEntries,
   type RaceRecordSyncFailure,
   type RaceRecordSyncHandlers,
   type RaceRecordSyncReport,

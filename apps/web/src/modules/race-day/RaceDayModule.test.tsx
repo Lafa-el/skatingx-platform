@@ -11,7 +11,7 @@ const locale = vi.hoisted(() => ({ current: "zh" as "zh" | "en" }));
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => locale.current }));
 
 // The records sync talks to Firestore; it has its own tests.
-const recordSync = vi.hoisted(() => vi.fn());
+const recordSync = vi.hoisted(() => vi.fn(() => ({ failed: false, retry: () => undefined })));
 vi.mock("./hooks/useRaceRecordSync", () => ({ useRaceRecordSync: recordSync }));
 
 // Header and BottomNav need the Firebase-backed providers; they have their own tests.

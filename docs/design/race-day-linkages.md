@@ -237,6 +237,17 @@ ADR-001 D4 还明确写了：「If [video analysis] is ever offered on race vide
 
 成绩行（`results/ResultList.tsx`）对已确认的行加一行小字，只有四种：「已记入纪录（500m）」「未记入：项目无法对应纪录」「未记入：缺少比赛日期」「未记入：没有关联本人运动员」。同步失败时显示可重试的提示（`role="status"`），错误细节只进日志，不进界面。「标记为已确认」按钮旁加一句「确认后会记入纪录页」，让用户在点之前就知道它会改 PB。文案进统一 i18n，不硬编码。
 
+**可见状态的实现口径（遗留切片已按上文实现，以代码为准）：**
+
+- 状态由 `packages/skating-domain/src/race-record-status.ts` 的纯函数 `deriveResultSyncInfo` 推导，对本事件跑一次 `planRaceRecords`，取 `desired` 与 `skipped`，不另写映射表、不猜距离。本人行的判定与对账同用 `selfRosterEntry`。
+- 比设计稿的四种多一种「等待同步」（§5「最终一致」的要求）：已确认、会被记入，但纪录里还没有这条（离线确认，或防抖未到）。它与「已记入」必须分开，所以要读纪录。
+- **「已记入」看值，不只看存在**：条目 `race_{eventId}_{raceId}` 存在，且日期、用时、备注与对账现在要写的一致（复用对账自己的 `differs`，导出为 `raceEntryMatchesDesired`，行为未变）。离线编辑用时后纪录里还是旧值，此时显示「等待同步」，而不是误报已记入。测试里用真实的 `reconcileRaceEntries` 验证了「等待 → 已记入」。
+- 读取是只读的 `subscribeToRaceRecordEntries`（`firebase-client`，只收 `race_` 条目，不碰其他条目），一个监听，随成绩页卸载释放。读不到时，需要纪录才能判断的行（已记入 / 等待）不显示，不冒充；不依赖纪录的原因（项目对不上、缺日期、没有本人运动员）照常显示。读失败只记一次错误码。
+- 失败与重试：`useRaceRecordSync` 返回 `{ failed, retry }`，经 `RaceRecordSyncContext`（仅内存，不写库）传给成绩页。任何 `onError` 记为失败，一次干净的对账报告清除。重试是停掉并重新启动同一个 `startRaceRecordSync`（不另写同步路径，也没有改对账的触发、防抖、缓存保护）；重新启动会重建监听并重新计 500 ms 防抖。重试只出现在「等待同步」的行上。
+- 「确认后会记入纪录页」只在确认后确实会进入同步候选的行显示（未确认的本人行，且确认后会落到「已记入 / 等待」）。不显示：项目对不上 / 缺日期 / 没有本人运动员、DNS / DNF / DQ、他人行、已确认行。口径由实现者提出，评审可改。
+- `invalid-time` / `race-missing` 不显示状态行，只在开发日志里记原因（不带 id，因为 id 可能含姓名）。
+- 本人行的 `athleteRefId` 指向另一个运动员（用户切换了运动员）时，这些行不是当前运动员的同步对象，不显示状态行。
+
 #### 规则与数据
 
 - 不改 `firestore.rules`：纪录路径本来就是属主可写的自由形状（§1.3）。
