@@ -136,7 +136,12 @@ export {
   type OverviewEventStatus,
   type OverviewResultRow,
 } from "./race-day-overview";
-export { instantToZonedDateTime, zonedDateTimeToInstant } from "./race-day-time";
+export {
+  instantToZonedDateTime,
+  rezoneInstant,
+  rezoneRaceSchedules,
+  zonedDateTimeToInstant,
+} from "./race-day-time";
 export {
   parseRaceVideoLink,
   RACE_VIDEO_PARAM,

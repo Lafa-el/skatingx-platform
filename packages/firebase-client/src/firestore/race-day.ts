@@ -17,6 +17,7 @@ import {
   prepareRaceSummaryNoteInput,
   prepareRaceVideoInput,
   prepareRosterEntryInput,
+  rezoneRaceSchedules,
   type PreparedInput,
   type RaceDayInputError,
   type RaceEventInput,
@@ -28,6 +29,7 @@ import {
 import {
   arrayRemove,
   deleteDoc,
+  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -49,6 +51,7 @@ import {
   encodeRaceCreate,
   encodeRaceEventCreate,
   encodeRaceEventUpdate,
+  encodeRaceScheduledAt,
   encodeRaceResultCreate,
   encodeRaceResultUpdate,
   encodeRaceSummaryCreate,
@@ -244,7 +247,56 @@ export async function updateRaceEvent(
 ): Promise<void> {
   assertValidId("eventId", eventId);
   const value = validated(prepareRaceEventInput(input));
-  await updateDoc(raceDayEventRef(ctx.db, ctx.userId, eventId), encodeRaceEventUpdate(value));
+  const eventRef = raceDayEventRef(ctx.db, ctx.userId, eventId);
+
+  // The races hold instants. When the event's zone changes, the wall clock the user typed stays
+  // and the instants move with it, so the schedule keeps reading the same on screen. Without a
+  // readable old zone (no document, unreadable, or none set) or a new one there is nothing to
+  // recover or show, so the event is just updated, as before.
+  const previousZone = await readStoredTimeZone(eventRef, eventId);
+  if (previousZone !== null && value.timeZone !== null && previousZone !== value.timeZone) {
+    const snapshot = await getDocs(raceDayRacesCollectionRef(ctx.db, ctx.userId, eventId));
+    const races: RaceEntry[] = [];
+    for (const docSnap of snapshot.docs) {
+      // A race that does not parse is left untouched rather than guessed at.
+      const parsed = parseRaceEntry(docSnap.id, docSnap.data({ serverTimestamps: "estimate" }));
+      if (parsed.ok) {
+        races.push(parsed.value);
+      }
+    }
+    const changes = rezoneRaceSchedules(races, previousZone, value.timeZone);
+    if (changes.length > 0) {
+      // One batch in practice (an event has far fewer races than the limit): the zone and the
+      // times change together or not at all. Only `scheduledAt` and `updatedAt` are written to a
+      // race, never its verification, which `encodeRaceUpdate` would reset.
+      await commitInBatches(ctx.db, [
+        (batch) => batch.update(eventRef, encodeRaceEventUpdate(value)),
+        ...changes.map(
+          (change): BatchOperation =>
+            (batch) =>
+              batch.update(raceDayRaceRef(ctx.db, ctx.userId, eventId, change.raceId), {
+                ...encodeRaceScheduledAt(change.scheduledAt),
+                updatedAt: serverTimestamp(),
+              }),
+        ),
+      ]);
+      return;
+    }
+  }
+  await updateDoc(eventRef, encodeRaceEventUpdate(value));
+}
+
+/** The zone saved on the event, or null when the document is missing, unreadable or has none. */
+async function readStoredTimeZone(
+  eventRef: DocumentReference,
+  eventId: string,
+): Promise<string | null> {
+  const snapshot = await getDoc(eventRef);
+  if (!snapshot.exists()) {
+    return null;
+  }
+  const parsed = parseRaceEvent(eventId, snapshot.data({ serverTimestamps: "estimate" }));
+  return parsed.ok ? parsed.value.timeZone : null;
 }
 
 export async function setRaceEventVerified(

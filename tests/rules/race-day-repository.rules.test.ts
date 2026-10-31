@@ -3,7 +3,7 @@ import {
   assertSucceeds,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import type { RaceEntry, RaceEvent, RaceRosterEntry } from "@skatingx/schema";
+import { paths, type RaceEntry, type RaceEvent, type RaceRosterEntry } from "@skatingx/schema";
 import { doc, getDoc, setDoc, Timestamp, type Firestore, type Unsubscribe } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -193,6 +193,83 @@ describe("edits and verification", () => {
     expect(edited).toMatchObject({ verification: "pending", verifiedAt: null, name: "Renamed" });
     expect(edited?.createdAt).toBe(verified?.createdAt);
     expect(Date.parse(edited?.updatedAt ?? "")).toBeGreaterThanOrEqual(Date.parse(verified?.updatedAt ?? ""));
+  });
+
+  describe("changing the event's time zone", () => {
+    const CHICAGO = "America/Chicago";
+    // 09:30 in New York on the 24th (EDT) is 13:30Z; 09:30 in Chicago (CDT) is 14:30Z.
+    const NY_0930 = "2026-10-24T13:30:00.000Z";
+    const CHI_0930 = "2026-10-24T14:30:00.000Z";
+
+    async function setup(zone: string | null) {
+      const ctx = alice();
+      const eventId = await createRaceEvent(ctx, { ...eventInput, timeZone: zone }, { eventId: "ev" });
+      await createRace(ctx, eventId, raceInput({ scheduledAt: NY_0930 }), { raceId: "timed" });
+      await createRace(ctx, eventId, raceInput({ scheduledAt: null, label: "1000m", distanceId: "1000m" }), {
+        raceId: "untimed",
+      });
+      return { ctx, eventId };
+    }
+
+    it("keeps the wall clock, leaves races without a time, and keeps a race confirmed", async () => {
+      const { ctx, eventId } = await setup("America/New_York");
+      await assertSucceeds(setRaceVerified(ctx, eventId, "timed", true));
+      const before = (await racesOf(ctx, eventId)).items.find((r) => r.raceId === "timed");
+      expect(before?.verification).toBe("verified");
+
+      await assertSucceeds(updateRaceEvent(ctx, eventId, { ...eventInput, timeZone: CHICAGO }));
+
+      const event = (await events(ctx, (l) => l.items[0]?.timeZone === CHICAGO)).items[0];
+      expect(event?.timeZone).toBe(CHICAGO);
+      const races = (await racesOf(ctx, eventId)).items;
+      const timed = races.find((r) => r.raceId === "timed");
+      expect(timed?.scheduledAt).toBe(CHI_0930);
+      // Only the time and updatedAt change: the confirmation is not reset.
+      expect(timed).toMatchObject({ verification: "verified", day: before?.day, label: before?.label });
+      expect(timed?.verifiedAt).toBe(before?.verifiedAt);
+      expect(timed?.createdAt).toBe(before?.createdAt);
+      expect(races.find((r) => r.raceId === "untimed")?.scheduledAt).toBeNull();
+    });
+
+    it("does not touch the races when the zone is the same", async () => {
+      const { ctx, eventId } = await setup("America/New_York");
+      const before = (await racesOf(ctx, eventId)).items;
+      await assertSucceeds(updateRaceEvent(ctx, eventId, { ...eventInput, name: "Renamed" }));
+      await events(ctx, (l) => l.items[0]?.name === "Renamed");
+      expect((await racesOf(ctx, eventId)).items).toEqual(before);
+    });
+
+    it("keeps the times as they are when the new zone is none, or the old one was", async () => {
+      const { ctx, eventId } = await setup("America/New_York");
+      await assertSucceeds(updateRaceEvent(ctx, eventId, { ...eventInput, timeZone: null }));
+      await events(ctx, (l) => l.items[0]?.timeZone === null);
+      expect((await racesOf(ctx, eventId)).items.find((r) => r.raceId === "timed")?.scheduledAt).toBe(NY_0930);
+
+      await assertSucceeds(updateRaceEvent(ctx, eventId, { ...eventInput, timeZone: CHICAGO }));
+      await events(ctx, (l) => l.items[0]?.timeZone === CHICAGO);
+      expect((await racesOf(ctx, eventId)).items.find((r) => r.raceId === "timed")?.scheduledAt).toBe(NY_0930);
+    });
+
+    it("leaves a race that does not parse untouched and still moves the others", async () => {
+      const { ctx, eventId } = await setup("America/New_York");
+      // A document the codec cannot read (no createdAt): it must be skipped, not rewritten.
+      await env.withSecurityRulesDisabled(async (admin) => {
+        await setDoc(doc(modularDb(admin.firestore()), paths.raceDayRace("alice", "ev", "broken")), {
+          raceId: "broken",
+          scheduledAt: Timestamp.fromDate(new Date(NY_0930)),
+        });
+      });
+
+      await assertSucceeds(updateRaceEvent(ctx, eventId, { ...eventInput, timeZone: CHICAGO }));
+
+      expect((await racesOf(ctx, eventId)).items.find((r) => r.raceId === "timed")?.scheduledAt).toBe(CHI_0930);
+      await env.withSecurityRulesDisabled(async (admin) => {
+        const snap = await getDoc(
+          doc(modularDb(admin.firestore()), paths.raceDayRace("alice", "ev", "broken")),
+        );
+        expect((snap.data()?.scheduledAt as Timestamp).toMillis()).toBe(Date.parse(NY_0930));
+      });
+    });
   });
 
   it("verifies and un-verifies roster entries and races", async () => {
