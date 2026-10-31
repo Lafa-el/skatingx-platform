@@ -274,7 +274,14 @@ export function PacingPage() {
           <p className="text-sm leading-relaxed text-brand-navy">{report}</p>
         </Card>
 
-        <Button className="w-full md:w-auto" disabled={!analysis || saving} onClick={() => void save()}>
+        {/* After a successful save the same analysis is not written again; a new generate (or a
+            distance switch) resets saveState and frees the button. A failed save leaves an error
+            key, so it stays clickable. */}
+        <Button
+          className="w-full md:w-auto"
+          disabled={!analysis || saving || saveState === "saved"}
+          onClick={() => void save()}
+        >
           {tPace(locale, "pace.action.save")}
         </Button>
         {saveState === "saved" ? (

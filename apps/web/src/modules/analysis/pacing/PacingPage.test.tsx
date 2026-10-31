@@ -217,6 +217,58 @@ describe("pacing page", () => {
     expect(view.container.textContent).not.toContain("需强化");
   });
 
+  describe("the save button after a save", () => {
+    const saveButton = () => screen.getByRole("button", { name: "保存本次配速" }) as HTMLButtonElement;
+
+    async function generated() {
+      state.uid = "alice";
+      const user = userEvent.setup();
+      render(<AnalysisPacingPage />);
+      await fillSynthetic500m(user);
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      return user;
+    }
+
+    it("locks after a successful save and does not write the same analysis twice; generating again frees it", async () => {
+      const user = await generated();
+      await user.click(saveButton());
+      await screen.findByText("已保存到你的分析记录。");
+      expect(saveButton().disabled).toBe(true);
+
+      await user.click(saveButton());
+      expect(state.save).toHaveBeenCalledTimes(1);
+
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      expect(saveButton().disabled).toBe(false);
+      await user.click(saveButton());
+      await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2));
+    });
+
+    it("switching distance also frees it (there is no analysis left, so it is disabled for that reason)", async () => {
+      const user = await generated();
+      await user.click(saveButton());
+      await screen.findByText("已保存到你的分析记录。");
+      await user.click(screen.getByRole("button", { name: "777m" }));
+      expect(screen.queryByText("已保存到你的分析记录。")).toBeNull();
+      expect(saveButton().disabled).toBe(true);
+    });
+
+    it("stays clickable when the save fails, and can be retried", async () => {
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      state.save.mockRejectedValueOnce(new Error("cloud down"));
+      const user = await generated();
+      await user.click(saveButton());
+      expect((await screen.findByRole("alert")).textContent).toBe("保存没有完成，请再试一次。");
+      expect(saveButton().disabled).toBe(false);
+
+      await user.click(saveButton());
+      await screen.findByText("已保存到你的分析记录。");
+      expect(state.save).toHaveBeenCalledTimes(2);
+      expect(saveButton().disabled).toBe(true);
+      log.mockRestore();
+    });
+  });
+
   describe("the benchmark is a snapshot taken when the curve is generated", () => {
     const generated = [8, 10.3, 10.4, 10.5, 10.8];
     const settle = () => new Promise((resolve) => setTimeout(resolve, 50));

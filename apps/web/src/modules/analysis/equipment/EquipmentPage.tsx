@@ -381,6 +381,10 @@ export function EquipmentPage() {
   };
 
   const advice = ADVICE[draft?.symptomKey ?? "slide"];
+  const draftSaved =
+    statusKey === "equipment.status.saved" ||
+    statusKey === "equipment.status.savedLocal" ||
+    statusKey === "equipment.status.savedLocalAfterFailure";
 
   return (
     <section className="grid gap-6 lg:grid-cols-12">
@@ -597,7 +601,15 @@ export function EquipmentPage() {
           <Button className="w-full" onClick={generate}>
             {tEquipment(locale, "equipment.action.generate")}
           </Button>
-          <Button variant="outline" className="w-full" disabled={!draft || saving} onClick={() => save()}>
+          {/* Once the draft is on record (cloud, or this browser's archive) saving again would only
+              write a second copy under a new id; generating again frees the button. Only
+              saveFailed, where nothing was written, stays clickable. */}
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={!draft || saving || draftSaved}
+            onClick={() => save()}
+          >
             {tEquipment(locale, "equipment.action.save")}
           </Button>
         </div>
