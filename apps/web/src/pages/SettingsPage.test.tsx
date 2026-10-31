@@ -219,6 +219,7 @@ describe("SettingsPage forms: a failed sign-in or link", () => {
     ["link", "绑定账户", "linkEmailPassword", "123456"],
     ["sign-in", "登录", "signInEmailPassword", "secret"],
   ] as const)("%s: no unhandled rejection, the fields keep their text, the button is usable again", async (_name, button, method, password) => {
+    stubConfirm(true); // a guest signing in is asked first; this test is about what follows
     const watcher = watchUnhandledRejections();
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     h.auth[method] = vi.fn().mockRejectedValue(fail());
@@ -379,6 +380,7 @@ describe("SettingsPage forms", () => {
   });
 
   it("sign-in form, Chinese: help text, labelled fields and a busy state", async () => {
+    stubConfirm(true);
     h.auth.signInEmailPassword = vi.fn().mockReturnValue(new Promise(() => undefined));
     const user = userEvent.setup();
     renderSettings();
@@ -445,6 +447,100 @@ describe("SettingsPage sign out", () => {
   it("a guest has no sign-out button", () => {
     renderSettings();
     expect(screen.queryByRole("button", { name: "退出登录" })).toBeNull();
+  });
+});
+
+describe("SettingsPage sign in", () => {
+  const ZH_CONFIRM =
+    "要登录已有账户吗？登录会替换当前的访客会话：访客数据不会转移到登录后的账户，而且你无法再回到这个访客会话。";
+  const EN_CONFIRM =
+    "Sign in to an existing account? Signing in replaces the current guest session: guest data will not be transferred to the account you sign in to, and you will not be able to return to this guest session.";
+
+  const fillSignIn = async (user: ReturnType<typeof userEvent.setup>, button: string) => {
+    const submit = screen.getByRole("button", { name: button });
+    const form = submit.closest("form") as HTMLElement;
+    const email = within(form).getByLabelText(/邮箱|Email/) as HTMLInputElement;
+    const password = within(form).getByLabelText(/密码|Password/) as HTMLInputElement;
+    await user.type(email, "a@example.com");
+    await user.type(password, "secret");
+    return { submit, email, password };
+  };
+
+  it("a guest who declines: nothing is called and the typed email and password stay", async () => {
+    const confirm = stubConfirm(false);
+    const user = userEvent.setup();
+    renderSettings();
+    const { submit, email, password } = await fillSignIn(user, "登录");
+    await user.click(submit);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(h.auth.signInEmailPassword).not.toHaveBeenCalled();
+    expect(h.auth.clearAuthError).not.toHaveBeenCalled();
+    expect(email.value).toBe("a@example.com");
+    expect(password.value).toBe("secret");
+    expect((screen.getByRole("button", { name: "登录" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("a guest who agrees: signs in once with what was typed, then the fields are cleared", async () => {
+    const confirm = stubConfirm(true);
+    h.auth.signInEmailPassword = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderSettings();
+    const { submit, email, password } = await fillSignIn(user, "登录");
+    await user.click(submit);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(h.auth.signInEmailPassword).toHaveBeenCalledExactlyOnceWith("a@example.com", "secret");
+    expect(email.value).toBe("");
+    expect(password.value).toBe("");
+  });
+
+  it("asks in the active language: the stored sentence, once (Chinese, then English)", async () => {
+    const confirm = stubConfirm(false);
+    const user = userEvent.setup();
+    const zh = renderSettings();
+    await user.click((await fillSignIn(user, "登录")).submit);
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(ZH_CONFIRM);
+    zh.unmount();
+
+    setEnglish();
+    const en = stubConfirm(false);
+    renderSettings();
+    await user.click((await fillSignIn(user, "Sign in")).submit);
+    expect(en).toHaveBeenCalledExactlyOnceWith(EN_CONFIRM);
+  });
+
+  it("the sentence says the session is replaced and the data does not move, and does not say deleted", () => {
+    expect(ZH_CONFIRM).toMatch(/替换/);
+    expect(ZH_CONFIRM).toMatch(/不会转移/);
+    expect(ZH_CONFIRM).not.toMatch(/删除/);
+    expect(EN_CONFIRM).toMatch(/replaces/);
+    expect(EN_CONFIRM).toMatch(/not be transferred/);
+    expect(EN_CONFIRM).not.toMatch(/delet/i);
+  });
+
+  it("a signed-out user is not asked: sign-in goes straight ahead", async () => {
+    h.auth.isAnonymous = false;
+    h.auth.user = null;
+    const confirm = stubConfirm(false);
+    h.auth.signInEmailPassword = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderSettings();
+    await user.click((await fillSignIn(user, "登录")).submit);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(h.auth.signInEmailPassword).toHaveBeenCalledExactlyOnceWith("a@example.com", "secret");
+  });
+
+  it("linking is not asked about: it keeps the same uid", async () => {
+    const confirm = stubConfirm(false);
+    h.auth.linkEmailPassword = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderSettings();
+    const submit = screen.getByRole("button", { name: "绑定账户" });
+    const form = submit.closest("form") as HTMLElement;
+    await user.type(within(form).getByLabelText("邮箱"), "a@example.com");
+    await user.type(within(form).getByLabelText("密码"), "123456");
+    await user.click(submit);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(h.auth.linkEmailPassword).toHaveBeenCalledTimes(1);
   });
 });
 
