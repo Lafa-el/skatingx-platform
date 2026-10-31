@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
 import { APP_VERSION } from "@/shared/appVersion";
-import { render, screen, userEvent, within } from "@/test/dom";
+import { render, screen, userEvent, waitFor, within } from "@/test/dom";
 import { controlsBelowTapTarget } from "@/test/tapTarget";
 import { watchUnhandledRejections } from "@/test/unhandledRejections";
 
@@ -817,7 +817,8 @@ describe("SettingsPage parent PIN", () => {
     await user.clear(screen.getByLabelText("再输入一次"));
     await user.type(screen.getByLabelText("再输入一次"), pin);
     await user.click(screen.getByRole("button", { name: "保存" }));
-    expect(h.update).toHaveBeenCalledTimes(1);
+    // Saving hashes the PIN first (WebCrypto, async), so the write lands after the click returns.
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
     const patch = h.update.mock.calls[0]?.[2] as { parentPinHash: string; parentPinSalt: string };
     expect(JSON.stringify(patch)).not.toContain(pin);
     expect(patch.parentPinHash).toBe(await hashParentPin(patch.parentPinSalt, pin));
