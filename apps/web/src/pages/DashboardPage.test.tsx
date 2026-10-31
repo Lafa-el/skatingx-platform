@@ -332,6 +332,87 @@ describe("DashboardPage: records and redemptions", () => {
   });
 });
 
+describe("DashboardPage: a failed read is not drawn as a real value", () => {
+  const failed = (data: unknown = null): Hook => ({ data, loading: false, error: "firestore-original-text" });
+
+  it("gamification failure: points and streak show a dash and a generic line, tasks keep real values", () => {
+    h.state.gamification = failed();
+    renderPage();
+    for (const title of ["积分", "连续天数"]) {
+      const c = card(title);
+      expect(c.getByText("—"), title).toBeTruthy();
+      expect(c.getByText("暂时无法加载"), title).toBeTruthy();
+    }
+    expect(card("积分").queryByText("0")).toBeNull();
+    expect(card("连续天数").queryByText("0 天")).toBeNull();
+    expect(card("今日任务").getByText("2 / 3")).toBeTruthy();
+    expect(card("今日任务").queryByText("暂时无法加载")).toBeNull();
+  });
+
+  it("training failure: the tasks card shows a dash, an error line, no hint and no progress bar; points stay real", () => {
+    h.state.training = failed();
+    renderPage();
+    const tasks = card("今日任务");
+    expect(tasks.getByText("—")).toBeTruthy();
+    expect(tasks.getByText("暂时无法加载")).toBeTruthy();
+    expect(tasks.queryByText("0 / 0")).toBeNull();
+    expect(tasks.queryByText("已完成 / 总数")).toBeNull();
+    expect(tasks.queryByRole("progressbar")).toBeNull();
+    expect(card("积分").getByText("120")).toBeTruthy();
+    expect(card("积分").queryByText("暂时无法加载")).toBeNull();
+  });
+
+  it("training failure with stale data still shows no progress", () => {
+    h.state.training = failed({ todayTasks: [{ completed: true }] });
+    renderPage();
+    expect(card("今日任务").getByText("—")).toBeTruthy();
+    expect(card("今日任务").queryByRole("progressbar")).toBeNull();
+  });
+
+  it("shop failure: the redemption card shows a dash and an error line, never 'no redemptions'", () => {
+    h.state.shop = { ...h.state.shop, error: "firestore-original-text" };
+    renderPage();
+    const redemption = card("最近兑换");
+    expect(redemption.getByText("—")).toBeTruthy();
+    expect(redemption.getByText("暂时无法加载")).toBeTruthy();
+    expect(screen.queryByText("还没有兑换记录")).toBeNull();
+  });
+
+  it("English: the same generic line, and the original error text only in the banner", () => {
+    setLanguage("en");
+    h.state.shop = { ...h.state.shop, error: "firestore-original-text" };
+    renderPage();
+    expect(card("Latest redemption").getByText("Couldn't load right now")).toBeTruthy();
+    expect(screen.queryByText("No redemptions yet")).toBeNull();
+    expect(screen.getAllByText("firestore-original-text")).toHaveLength(1);
+    expect(screen.getByRole("alert").textContent).toBe("firestore-original-text");
+  });
+
+  it("the cards left alone: athlete, records and plan keep their rendering when other reads fail", () => {
+    h.state.gamification = failed();
+    h.state.training = failed();
+    h.state.shop = { ...h.state.shop, error: "firestore-original-text" };
+    renderPage();
+    expect(card("运动员").getByText("Sample Skater")).toBeTruthy();
+    expect(card("500m 个人最好").getByText("—")).toBeTruthy();
+    expect(card("最近纪录").getByText("还没有纪录")).toBeTruthy();
+    expect(card("方案").getByText("免费版")).toBeTruthy();
+  });
+
+  it("no failure and no loading: every card is as before, no error line anywhere", () => {
+    renderPage();
+    expect(screen.queryByText("暂时无法加载")).toBeNull();
+    expect(card("最近兑换").getByText("还没有兑换记录")).toBeTruthy();
+  });
+
+  it("while loading, the redemption card shows the placeholder only, not 'no redemptions'", () => {
+    h.state.shop = { ...h.state.shop, loading: true };
+    renderPage();
+    expect(card("最近兑换").getByText("…")).toBeTruthy();
+    expect(screen.queryByText("还没有兑换记录")).toBeNull();
+  });
+});
+
 describe("DashboardPage: shortcut cards", () => {
   it("lead to the same places in either language", () => {
     renderPage();

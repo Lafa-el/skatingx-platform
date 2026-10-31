@@ -101,6 +101,13 @@ export function DashboardPage() {
   const completedCount = tasks.filter((t) => t.completed).length;
   const taskCount = tasks.length;
 
+  // A failed read must not look like a real value (0 points, 0 days, 0 / 0, "no redemptions").
+  // Cards show a dash and one generic line; the technical text stays in the banner above.
+  const pointsFailed = !loading && Boolean(gamificationError);
+  const tasksFailed = !loading && Boolean(trainingError);
+  const redemptionFailed = !loading && Boolean(shopError);
+  const loadErrorText = tDashboard(locale, "dashboard.card.loadError");
+
   const name = profile?.displayName ?? "…";
   const points = gamification?.points ?? 0;
   const streakDays = gamification?.streakDays ?? 0;
@@ -130,28 +137,40 @@ export function DashboardPage() {
         </Card>
         <Card variant="raised" title={tDashboard(locale, "dashboard.card.points")}>
           <p className="sx-numeric text-3xl text-brand-navy">
-            {loading ? "…" : points}
+            {loading ? "…" : pointsFailed ? "—" : points}
           </p>
+          {pointsFailed ? (
+            <p className="mt-1 text-xs text-brand-navy/70">{loadErrorText}</p>
+          ) : null}
         </Card>
         <Card variant="raised" title={tDashboard(locale, "dashboard.card.streak")}>
           <p className="text-lg font-semibold text-brand-navy">
             {loading
               ? "…"
-              : tDashboard(
-                  locale,
-                  streakDays === 1 ? "dashboard.streak.one" : "dashboard.streak.other",
-                  { count: streakDays },
-                )}
+              : pointsFailed
+                ? "—"
+                : tDashboard(
+                    locale,
+                    streakDays === 1 ? "dashboard.streak.one" : "dashboard.streak.other",
+                    { count: streakDays },
+                  )}
           </p>
+          {pointsFailed ? (
+            <p className="mt-1 text-xs text-brand-navy/70">{loadErrorText}</p>
+          ) : null}
         </Card>
         <Card variant="hero" title={tDashboard(locale, "dashboard.card.tasks")}>
           <p className="sx-numeric text-4xl text-brand-navy">
-            {loading ? "…" : `${completedCount} / ${taskCount}`}
+            {loading ? "…" : tasksFailed ? "—" : `${completedCount} / ${taskCount}`}
           </p>
-          <p className="mt-1 text-xs text-brand-navy">
-            {tDashboard(locale, "dashboard.tasks.hint")}
-          </p>
-          {!loading && taskCount > 0 ? (
+          {tasksFailed ? (
+            <p className="mt-1 text-xs text-brand-navy">{loadErrorText}</p>
+          ) : (
+            <p className="mt-1 text-xs text-brand-navy">
+              {tDashboard(locale, "dashboard.tasks.hint")}
+            </p>
+          )}
+          {!loading && !tasksFailed && taskCount > 0 ? (
             <ProgressBar
               className="mt-3"
               label={tDashboard(locale, "dashboard.card.tasks")}
@@ -197,11 +216,15 @@ export function DashboardPage() {
           <p className="text-lg font-semibold text-brand-navy">
             {loading
               ? "…"
-              : latestRedemption
-                ? localizeRedemptionName(latestRedemption, shopCatalog?.items ?? [], locale)
-                : "—"}
+              : redemptionFailed
+                ? "—"
+                : latestRedemption
+                  ? localizeRedemptionName(latestRedemption, shopCatalog?.items ?? [], locale)
+                  : "—"}
           </p>
-          {latestRedemption ? (
+          {loading ? null : redemptionFailed ? (
+            <p className="mt-1 text-xs text-brand-navy/70">{loadErrorText}</p>
+          ) : latestRedemption ? (
             <p className="mt-1 text-xs text-brand-navy/70">
               {tDashboard(locale, "dashboard.redemption.cost", {
                 cost: latestRedemption.cost,

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { renderHook, waitFor } from "@/test/dom";
+import { act, renderHook, waitFor } from "@/test/dom";
 
 import { useRewardsShop } from "./useRewardsShop";
 
@@ -77,21 +77,23 @@ describe("useRewardsShop: errors", () => {
     expect(result.current.error).toBe("permission-denied");
   });
 
-  it("a failing listener is shown as received and stops the loading", async () => {
+  it("a failing listener is shown as received; loading ends once the other one has settled too", async () => {
     const { result } = renderHook(() => useRewardsShop());
     await waitFor(() => expect(h.state.handlers).toHaveLength(2));
     h.state.handlers[0]!.error(new Error("catalog-listener-denied"));
     await waitFor(() => expect(result.current.error).toBe("catalog-listener-denied"));
-    expect(result.current.loading).toBe(false);
+    expect(result.current.loading).toBe(true);
 
     h.state.handlers[1]!.error(new Error("redemptions-listener-denied"));
     await waitFor(() => expect(result.current.error).toBe("redemptions-listener-denied"));
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it("has no error when everything loads", async () => {
     const { result } = renderHook(() => useRewardsShop());
     await waitFor(() => expect(h.state.handlers).toHaveLength(2));
     h.state.handlers[0]!.next({ data: () => ({ items: [] }) });
+    h.state.handlers[1]!.next({ forEach: () => undefined });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBeNull();
   });
@@ -102,5 +104,48 @@ describe("useRewardsShop: errors", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBeNull();
     expect(h.state.handlers).toHaveLength(0);
+  });
+});
+
+describe("useRewardsShop: loading covers both subscriptions", () => {
+  const catalogSnap = { data: () => ({ items: [] }) };
+  const redemptionsSnap = {
+    forEach: (visit: (doc: { data: () => unknown }) => void) =>
+      visit({ data: () => ({ rewardId: "r1", rewardName: "Sample", cost: 5, redeemedAt: "2026-10-14T18:30:00.000Z" }) }),
+  };
+
+  it("catalog in, redemptions still on the way: still loading", async () => {
+    const { result } = renderHook(() => useRewardsShop());
+    await waitFor(() => expect(h.state.handlers).toHaveLength(2));
+    act(() => h.state.handlers[0]!.next(catalogSnap));
+    expect(result.current.catalog).not.toBeNull();
+    expect(result.current.loading).toBe(true);
+  });
+
+  it("redemptions arrive after the catalog: loading ends, with the redemption available", async () => {
+    const { result } = renderHook(() => useRewardsShop());
+    await waitFor(() => expect(h.state.handlers).toHaveLength(2));
+    act(() => h.state.handlers[0]!.next(catalogSnap));
+    act(() => h.state.handlers[1]!.next(redemptionsSnap));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.latestRedemption?.rewardId).toBe("r1");
+  });
+
+  it("redemptions arrive first: still loading until the catalog is in", async () => {
+    const { result } = renderHook(() => useRewardsShop());
+    await waitFor(() => expect(h.state.handlers).toHaveLength(2));
+    act(() => h.state.handlers[1]!.next(redemptionsSnap));
+    expect(result.current.loading).toBe(true);
+    act(() => h.state.handlers[0]!.next(catalogSnap));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+  });
+
+  it("redemptions fail after the catalog arrived: loading ends and the error is set", async () => {
+    const { result } = renderHook(() => useRewardsShop());
+    await waitFor(() => expect(h.state.handlers).toHaveLength(2));
+    act(() => h.state.handlers[0]!.next(catalogSnap));
+    act(() => h.state.handlers[1]!.error(new Error("redemptions-denied")));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toBe("redemptions-denied");
   });
 });
