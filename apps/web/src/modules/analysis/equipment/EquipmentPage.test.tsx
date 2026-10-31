@@ -203,6 +203,9 @@ describe("equipment page", () => {
     await user.click(screen.getByRole("button", { name: "生成清单" }));
     await user.click(screen.getByRole("button", { name: "保存记录" }));
     expect(await screen.findByText("云端保存失败，已先保存到本机浏览器档案。")).toBeTruthy();
+    // The first record is on file, so the same draft cannot be saved again: a second record
+    // needs a fresh checklist.
+    await user.click(screen.getByRole("button", { name: "生成清单" }));
     await user.click(screen.getByRole("button", { name: "保存记录" }));
 
     expect(await screen.findByText("云端保存失败，已先保存到本机浏览器档案。")).toBeTruthy();
@@ -212,6 +215,82 @@ describe("equipment page", () => {
 
     await user.click(screen.getByRole("button", { name: "生成对比" }));
     expect(screen.getByText("调整前后对比摘要")).toBeTruthy();
+  });
+
+  describe("the save button after a save", () => {
+    const saveButton = () => screen.getByRole("button", { name: "保存记录" }) as HTMLButtonElement;
+    const generate = (user: ReturnType<typeof userEvent.setup>) =>
+      user.click(screen.getByRole("button", { name: "生成清单" }));
+    const signedIn = (db: object | null) => {
+      state.uid = "user-1";
+      state.db = db;
+    };
+
+    it("locks after a cloud save, does not write the same draft twice, and generating again frees it", async () => {
+      signedIn({});
+      const user = userEvent.setup();
+      renderPage();
+      await generate(user);
+      await user.click(saveButton());
+      await screen.findByText("已保存到云端器材档案。");
+      expect(saveButton().disabled).toBe(true);
+
+      await user.click(saveButton());
+      expect(state.save).toHaveBeenCalledTimes(1);
+
+      await generate(user);
+      expect(saveButton().disabled).toBe(false);
+      await user.click(saveButton());
+      await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2));
+    });
+
+    it("locks after a cloud failure that was kept in this browser (the record is on file)", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      signedIn({});
+      state.save.mockRejectedValue(new Error("cloud down"));
+      const user = userEvent.setup();
+      renderPage();
+      await generate(user);
+      await user.click(saveButton());
+      await screen.findByText("云端保存失败，已先保存到本机浏览器档案。");
+      expect(saveButton().disabled).toBe(true);
+
+      await user.click(saveButton());
+      expect(state.save).toHaveBeenCalledTimes(1);
+      const archived = JSON.parse(window.localStorage.getItem("skatingx-equipment-history-v1:user-1") ?? "[]");
+      expect(archived).toHaveLength(1);
+    });
+
+    it("locks after a save in this browser when Firebase is not connected", async () => {
+      signedIn(null);
+      const user = userEvent.setup();
+      renderPage();
+      await generate(user);
+      await user.click(saveButton());
+      await screen.findByText("Firebase 未连接，已保存到本机浏览器档案。");
+      expect(saveButton().disabled).toBe(true);
+    });
+
+    it("stays clickable when nothing was written anywhere, and can be retried", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      signedIn({});
+      state.save.mockRejectedValue(new Error("cloud down"));
+      const setItem = vi.spyOn(window.localStorage, "setItem").mockImplementation(() => {
+        throw new Error("quota");
+      });
+      const user = userEvent.setup();
+      renderPage();
+      await generate(user);
+      await user.click(saveButton());
+      expect((await screen.findByRole("alert")).textContent).toBe("保存没有完成，请再试一次。");
+      expect(saveButton().disabled).toBe(false);
+
+      setItem.mockRestore();
+      await user.click(saveButton());
+      await screen.findByText("云端保存失败，已先保存到本机浏览器档案。");
+      expect(state.save).toHaveBeenCalledTimes(2);
+      expect(saveButton().disabled).toBe(true);
+    });
   });
 
   it("saves in this browser when Firebase is not connected", async () => {

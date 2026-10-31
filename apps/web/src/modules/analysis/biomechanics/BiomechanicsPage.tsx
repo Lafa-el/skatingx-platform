@@ -133,6 +133,9 @@ export function BiomechanicsPage() {
   const [feedbackSide, setFeedbackSide] = useState<BiomechMessageKey>("biomech.support.left");
   const [status, setStatus] = useState<BiomechMessageKey | null>(null);
   const [saving, setSaving] = useState(false);
+  // The exact samples array that was last saved. appendKeyframe always returns a new array, so any
+  // new keyframe breaks the equality and frees the button; unchanged samples stay locked.
+  const [savedSamples, setSavedSamples] = useState<readonly PoseKeyframeSample[] | null>(null);
   const [clock, setClock] = useState("00:00");
   const [duration, setDuration] = useState("00:00");
 
@@ -452,6 +455,7 @@ export function BiomechanicsPage() {
         samples,
       });
       await saveBiomechAnalysisRecord(database, record);
+      setSavedSamples(samples);
       setStatus("biomech.status.saved");
     } catch (error) {
       logActionFailure("biomechanics", "save", error);
@@ -732,7 +736,10 @@ export function BiomechanicsPage() {
                   ? tBiomech(locale, feedback, { side: tBiomech(locale, feedbackSide) })
                   : tBiomech(locale, feedback)}
               </p>
-              <Button disabled={samples.length === 0 || saving} onClick={() => void save()}>
+              <Button
+                disabled={samples.length === 0 || saving || (savedSamples !== null && savedSamples === samples)}
+                onClick={() => void save()}
+              >
                 {tBiomech(locale, "biomech.action.save")}
               </Button>
               {status ? <p className="text-sm text-brand-navy">{tBiomech(locale, status)}</p> : null}

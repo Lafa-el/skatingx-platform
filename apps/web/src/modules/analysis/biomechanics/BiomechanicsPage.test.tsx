@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent } from "@testing-library/react";
 
 import { AnalysisBiomechanicsPage } from "@/pages/analysis/AnalysisBiomechanicsPage";
-import { act, render, screen, userEvent } from "@/test/dom";
+import { act, render, screen, userEvent, waitFor } from "@/test/dom";
 import { legacyColourClasses } from "@/test/legacyLook";
 
 const state = vi.hoisted(() => ({
@@ -126,6 +126,83 @@ describe("biomechanics page", () => {
       "utf8",
     );
     expect(page).toContain("prefetchPoseAssets()");
+  });
+
+  describe("the save button after a save", () => {
+    const saveButton = () => screen.getByRole("button", { name: "保存本次分析" }) as HTMLButtonElement;
+
+    afterEach(() => {
+      vi.restoreAllMocks(); // the stage's bounding-box stub and the console spy
+    });
+
+    /** Starts the page, locks a target and takes one keyframe: the engine's callback delivers the frame. */
+    async function started() {
+      const user = userEvent.setup();
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+        left: 0,
+        top: 0,
+        right: 160,
+        bottom: 90,
+        width: 160,
+        height: 90,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      });
+      const view = render(<AnalysisBiomechanicsPage />);
+      const input = document.querySelector("input[type=file]") as HTMLInputElement;
+      await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
+      await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
+      await screen.findByText(/就绪并缓存在本地/);
+      const stage = view.container.querySelector("video")!.parentElement!;
+      fireEvent.click(stage, { clientX: 80, clientY: 45 });
+      const onResults = state.load.mock.calls[0]![0];
+      const takeKeyframe = async () => {
+        await user.click(screen.getByRole("button", { name: "采样当前帧" }));
+        act(() => onResults(null));
+      };
+      return { user, takeKeyframe };
+    }
+
+    it("is disabled with no keyframe, locks after a successful save, and a new keyframe frees it", async () => {
+      const { user, takeKeyframe } = await started();
+      expect(saveButton().disabled).toBe(true);
+
+      await takeKeyframe();
+      expect(screen.getByText("1 / 10")).toBeTruthy();
+      expect(saveButton().disabled).toBe(false);
+
+      await user.click(saveButton());
+      await screen.findByText("已保存这次分析。");
+      expect(state.save).toHaveBeenCalledTimes(1);
+      expect(saveButton().disabled).toBe(true);
+
+      await user.click(saveButton());
+      expect(state.save).toHaveBeenCalledTimes(1);
+
+      await takeKeyframe();
+      expect(screen.getByText("2 / 10")).toBeTruthy();
+      expect(saveButton().disabled).toBe(false);
+      await user.click(saveButton());
+      await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2));
+    });
+
+    it("stays clickable when the save fails, and can be retried", async () => {
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      state.save.mockRejectedValueOnce(new Error("cloud down"));
+      const { user, takeKeyframe } = await started();
+      await takeKeyframe();
+
+      await user.click(saveButton());
+      await screen.findByText("云端保存失败。");
+      expect(saveButton().disabled).toBe(false);
+
+      await user.click(saveButton());
+      await screen.findByText("已保存这次分析。");
+      expect(state.save).toHaveBeenCalledTimes(2);
+      expect(saveButton().disabled).toBe(true);
+      log.mockRestore();
+    });
   });
 
   it("shows a retry after the warmup waits past the operational timeout", async () => {
