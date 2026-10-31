@@ -219,3 +219,95 @@ describe("a generated task through toggle and the day archive", () => {
     expect(tasks()).toEqual([]);
   });
 });
+
+describe("runDayRolloverIfNeeded reads the server copy inside the transaction", () => {
+  const task = (id: string, text: string, completed = false) => ({
+    id,
+    text,
+    source: "manual",
+    completed,
+    createdAt: "t",
+    ...(completed ? { completedAt: "t" } : {}),
+  });
+  const historyPath = (dateId: string) => paths.taskHistory(userId, athleteId, dateId);
+  const historyPaths = () => [...store.keys()].filter((path) => path.startsWith(historyPath("").slice(0, -1)));
+  const snapshotOfStore = () => JSON.stringify([...store.entries()].sort(([a], [b]) => a.localeCompare(b)));
+
+  it("writes nothing and returns false when the server date is already today", async () => {
+    // A stale snapshot from before another device rolled over.
+    const stale = normalizeTrainingState({
+      lastLoginDate: "2026-10-28",
+      todayTasks: [task("old", "yesterday")],
+    } as never);
+    seed({ lastLoginDate: today, todayTasks: [task("new", "today's work")] });
+    const before = snapshotOfStore();
+
+    expect(await runDayRolloverIfNeeded(actor, stale, today)).toBe(false);
+    expect(snapshotOfStore()).toBe(before);
+    expect(historyPaths()).toEqual([]);
+  });
+
+  it("writes nothing when the server document is missing or has no date", async () => {
+    const stale = normalizeTrainingState({ lastLoginDate: "2026-10-28", todayTasks: [task("old", "x")] } as never);
+
+    expect(await runDayRolloverIfNeeded(actor, stale, today)).toBe(false);
+    expect(store.size).toBe(0);
+
+    seed({ lastLoginDate: "", todayTasks: [task("a", "x")] });
+    const before = snapshotOfStore();
+    expect(await runDayRolloverIfNeeded(actor, stale, today)).toBe(false);
+    expect(snapshotOfStore()).toBe(before);
+  });
+
+  it("archives the server list under the server date, not the passed snapshot's", async () => {
+    // The passed snapshot is older: one day earlier and without the task ticked since.
+    const stale = normalizeTrainingState({
+      lastLoginDate: "2026-10-27",
+      todayTasks: [task("a", "stale a"), task("gone", "deleted since")],
+    } as never);
+    seed({
+      lastLoginDate: "2026-10-28",
+      todayTasks: [task("a", "server a", true), task("b", "server b")],
+    });
+
+    expect(await runDayRolloverIfNeeded(actor, stale, today)).toBe(true);
+
+    expect(store.get(historyPath("2026-10-27"))).toBeUndefined();
+    const archived = store.get(historyPath("2026-10-28"));
+    expect(archived).toBeDefined();
+    const day = archivedDayFromDocument("2026-10-28", archived!);
+    expect(day?.tasks.map((t) => [t.id, t.text, t.completed])).toEqual([
+      ["a", "server a", true],
+      ["b", "server b", false],
+    ]);
+    expect(store.get(statePath)).toMatchObject({ todayTasks: [], lastLoginDate: today });
+  });
+
+  it("keeps a task ticked after the snapshot was taken", async () => {
+    const stale = normalizeTrainingState({ lastLoginDate: "2026-10-28", todayTasks: [task("a", "run")] } as never);
+    seed({ lastLoginDate: "2026-10-28", todayTasks: [task("a", "run", true)] });
+
+    expect(await runDayRolloverIfNeeded(actor, stale, today)).toBe(true);
+    const day = archivedDayFromDocument("2026-10-28", store.get(historyPath("2026-10-28"))!);
+    expect(day?.tasks.map((t) => t.completed)).toEqual([true]);
+  });
+
+  it("writes no history document for an empty server list, but still clears and advances the date", async () => {
+    // The snapshot still shows tasks that another device already removed.
+    const stale = normalizeTrainingState({ lastLoginDate: "2026-10-28", todayTasks: [task("a", "stale")] } as never);
+    seed({ lastLoginDate: "2026-10-28", todayTasks: [] });
+
+    expect(await runDayRolloverIfNeeded(actor, stale, today)).toBe(true);
+    expect(historyPaths()).toEqual([]);
+    expect(store.get(statePath)).toMatchObject({ todayTasks: [], lastLoginDate: today });
+  });
+
+  it("takes the fast path on a current snapshot and never reads the server copy", async () => {
+    seed({ lastLoginDate: "2026-10-28", todayTasks: [task("a", "server")] });
+    const before = snapshotOfStore();
+    const current = normalizeTrainingState({ lastLoginDate: today, todayTasks: [] } as never);
+
+    expect(await runDayRolloverIfNeeded(actor, current, today)).toBe(false);
+    expect(snapshotOfStore()).toBe(before);
+  });
+});
