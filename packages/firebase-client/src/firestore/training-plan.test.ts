@@ -311,3 +311,115 @@ describe("runDayRolloverIfNeeded reads the server copy inside the transaction", 
     expect(snapshotOfStore()).toBe(before);
   });
 });
+
+describe("runDayRolloverIfNeeded splits a list that holds two days", () => {
+  // Real ISO strings, the shape every creation path writes (nowIso); local times so the day does
+  // not depend on the machine's time zone.
+  const iso = (month: number, day: number, hour: number, minute = 0) =>
+    new Date(2026, month - 1, day, hour, minute).toISOString();
+  const yesterdayAt = iso(10, 28, 10);
+  const todayAt = iso(10, 29, 9);
+  const raw = (id: string, createdAt: unknown, completed = false) => ({
+    id,
+    text: id,
+    source: "manual",
+    completed,
+    ...(createdAt === undefined ? {} : { createdAt }),
+    ...(completed ? { completedAt: "2026-10-29T13:00:00.000Z" } : {}),
+  });
+  const stale = () => normalizeTrainingState({ lastLoginDate: "2026-10-28", todayTasks: [] } as never);
+  const historyPath = (dateId: string) => paths.taskHistory(userId, athleteId, dateId);
+  const historyKeys = () => [...store.keys()].filter((path) => path.startsWith(`${historyPath("").slice(0, -1)}`));
+  const archivedIds = (dateId: string) =>
+    archivedDayFromDocument(dateId, store.get(historyPath(dateId))!)?.tasks.map((t) => [t.id, t.completed]);
+  const kept = () => (store.get(statePath)?.todayTasks ?? []) as { id: string; completed: boolean; createdAt?: unknown }[];
+
+  it("archives yesterday's tasks under the server date and keeps today's, with completed state intact", async () => {
+    seed({
+      lastLoginDate: "2026-10-28",
+      todayTasks: [raw("yesterday-done", yesterdayAt, true), raw("today-open", todayAt), raw("today-done", todayAt, true)],
+    });
+
+    expect(await runDayRolloverIfNeeded(actor, stale(), today)).toBe(true);
+
+    expect(historyKeys()).toEqual([historyPath("2026-10-28")]);
+    expect(archivedIds("2026-10-28")).toEqual([["yesterday-done", true]]);
+    expect(kept().map((t) => [t.id, t.completed])).toEqual([
+      ["today-open", false],
+      ["today-done", true],
+    ]);
+    expect(store.get(statePath)).toMatchObject({ lastLoginDate: today });
+  });
+
+  it("writes no history and keeps the list as it was when every task is from today", async () => {
+    seed({ lastLoginDate: "2026-10-28", todayTasks: [raw("a", todayAt), raw("b", iso(10, 29, 0, 5), true)] });
+
+    expect(await runDayRolloverIfNeeded(actor, stale(), today)).toBe(true);
+
+    expect(historyKeys()).toEqual([]);
+    expect(kept().map((t) => [t.id, t.completed, t.createdAt])).toEqual([
+      ["a", false, todayAt],
+      ["b", true, iso(10, 29, 0, 5)],
+    ]);
+    expect(store.get(statePath)).toMatchObject({ lastLoginDate: today });
+  });
+
+  it("archives a task whose createdAt is missing or unreadable, as the old behaviour did", async () => {
+    seed({
+      lastLoginDate: "2026-10-28",
+      todayTasks: [raw("missing", undefined), raw("garbage", "not a date"), raw("empty", ""), raw("number", 12345), raw("today", todayAt)],
+    });
+
+    expect(await runDayRolloverIfNeeded(actor, stale(), today)).toBe(true);
+
+    expect(archivedIds("2026-10-28")?.map(([id]) => id)).toEqual(["missing", "garbage", "empty", "number"]);
+    expect(kept().map((t) => t.id)).toEqual(["today"]);
+  });
+
+  it("splits at local midnight, not UTC midnight", async () => {
+    seed({
+      lastLoginDate: "2026-10-28",
+      todayTasks: [raw("late-yesterday", iso(10, 28, 23, 59)), raw("early-today", iso(10, 29, 0, 1))],
+    });
+
+    await runDayRolloverIfNeeded(actor, stale(), today);
+
+    expect(archivedIds("2026-10-28")?.map(([id]) => id)).toEqual(["late-yesterday"]);
+    expect(kept().map((t) => t.id)).toEqual(["early-today"]);
+  });
+
+  it("keeps a task created in the future, so a fast clock cannot file today's work under yesterday", async () => {
+    seed({ lastLoginDate: "2026-10-28", todayTasks: [raw("ahead", iso(10, 31, 8)), raw("old", yesterdayAt)] });
+
+    await runDayRolloverIfNeeded(actor, stale(), today);
+
+    expect(archivedIds("2026-10-28")?.map(([id]) => id)).toEqual(["old"]);
+    expect(kept().map((t) => t.id)).toEqual(["ahead"]);
+  });
+
+  it("reads a Firestore Timestamp createdAt from toDate() or from seconds", async () => {
+    const stamp = (date: Date) => ({ seconds: Math.floor(date.getTime() / 1000), nanoseconds: 0 });
+    seed({
+      lastLoginDate: "2026-10-28",
+      todayTasks: [
+        raw("old-seconds", stamp(new Date(yesterdayAt))),
+        raw("new-seconds", stamp(new Date(todayAt))),
+        raw("old-method", { toDate: () => new Date(yesterdayAt) }),
+        raw("new-method", { toDate: () => new Date(todayAt) }),
+      ],
+    });
+
+    await runDayRolloverIfNeeded(actor, stale(), today);
+
+    expect(archivedIds("2026-10-28")?.map(([id]) => id)).toEqual(["old-seconds", "old-method"]);
+    expect(kept().map((t) => t.id)).toEqual(["new-seconds", "new-method"]);
+  });
+
+  it("still skips, with no write, when the server date is already today", async () => {
+    seed({ lastLoginDate: today, todayTasks: [raw("a", yesterdayAt), raw("b", todayAt)] });
+    const before = JSON.stringify([...store.entries()]);
+
+    expect(await runDayRolloverIfNeeded(actor, stale(), today)).toBe(false);
+    expect(JSON.stringify([...store.entries()])).toBe(before);
+  });
+});

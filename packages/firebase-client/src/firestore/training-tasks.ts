@@ -1,4 +1,4 @@
-import type { Gamification, TrainingState } from "@skatingx/schema";
+import type { Gamification, TrainingState, TrainingTask } from "@skatingx/schema";
 import { todayDateString } from "@skatingx/schema";
 import {
   applyTaskToggle,
@@ -47,6 +47,50 @@ function gamificationFromDoc(data: Gamification | undefined): Gamification {
   };
 }
 
+/**
+ * The local calendar day a task was created on, from the raw stored `createdAt`, or null when it
+ * is missing or unreadable. Raw on purpose: `normalizeTask` replaces a missing value with "now",
+ * which would make an old task look created today.
+ *
+ * Accepts the ISO string every creation path writes, a Firestore Timestamp (`toDate()` or
+ * `seconds`), and treats anything else as unknown. The day is the device's local one, the same
+ * as `todayDateString`, because that is what "today" means for the training page.
+ */
+function createdOnLocalDay(raw: unknown): string | null {
+  let date: Date | null = null;
+  if (typeof raw === "string") {
+    date = new Date(raw);
+  } else if (raw && typeof raw === "object") {
+    const stamp = raw as { toDate?: unknown; seconds?: unknown };
+    if (typeof stamp.toDate === "function") {
+      date = (stamp.toDate as () => unknown).call(raw) as Date;
+    } else if (typeof stamp.seconds === "number") {
+      date = new Date(stamp.seconds * 1000);
+    }
+  }
+  return date instanceof Date && !Number.isNaN(date.getTime()) ? todayDateString(date) : null;
+}
+
+/**
+ * Splits the server's task list at the rollover. `archive`: created before `today`, or with no
+ * readable creation time (archived as before rather than left behind). `keep`: created today or
+ * later; a future day, from a clock that ran ahead, is kept too so nothing of today is filed
+ * under yesterday. `rawCreatedAt[i]` is the stored `createdAt` of `tasks[i]` (normalizing keeps the order).
+ */
+function splitTasksForRollover(
+  tasks: readonly TrainingTask[],
+  rawCreatedAt: readonly unknown[],
+  today: string,
+): { archive: TrainingTask[]; keep: TrainingTask[] } {
+  const archive: TrainingTask[] = [];
+  const keep: TrainingTask[] = [];
+  tasks.forEach((task, index) => {
+    const day = createdOnLocalDay(rawCreatedAt[index]);
+    (day === null || compareDateStrings(day, today) < 0 ? archive : keep).push(task);
+  });
+  return { archive, keep };
+}
+
 export async function runDayRolloverIfNeeded(
   ctx: TrainingActorContext,
   state: TrainingState,
@@ -76,7 +120,15 @@ export async function runDayRolloverIfNeeded(
     }
 
     const previousDate = server.lastLoginDate;
-    if (server.todayTasks.length > 0) {
+    // A retry after a failed rollover can find two days in one list: yesterday's tasks plus ones
+    // added since. Only yesterday's are archived; today's stay on the list, completed state intact.
+    const rawTasks = (serverSnap.data() as { todayTasks?: unknown[] } | undefined)?.todayTasks ?? [];
+    const { archive, keep } = splitTasksForRollover(
+      server.todayTasks,
+      rawTasks.map((task) => (task as { createdAt?: unknown } | null)?.createdAt),
+      today,
+    );
+    if (archive.length > 0) {
       const historyRef = taskHistoryRef(
         ctx.db,
         ctx.userId,
@@ -85,7 +137,7 @@ export async function runDayRolloverIfNeeded(
       );
       const payload = serializeTaskHistoryDay({
         dateId: previousDate,
-        tasks: serializeTrainingTasks(server.todayTasks),
+        tasks: serializeTrainingTasks(archive),
         archivedAt: new Date().toISOString(),
       });
       tx.set(historyRef, toFirestoreData(payload));
@@ -94,7 +146,7 @@ export async function runDayRolloverIfNeeded(
     tx.update(
       stateRef,
       toFirestoreData({
-        todayTasks: [],
+        todayTasks: serializeTrainingTasks(keep),
         lastLoginDate: today,
         updatedAt: serverTimestamp(),
       }),
