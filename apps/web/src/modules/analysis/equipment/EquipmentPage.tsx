@@ -183,6 +183,10 @@ export function EquipmentPage() {
   const [feedbackRating, setFeedbackRating] = useState<EquipmentFeedbackCode>("not-skated");
   const [adjustmentNotes, setAdjustmentNotes] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
+  // The exact draft object that is on record (cloud or this browser's archive). Only generate()
+  // makes a new draft object, so only generating again frees the save button; the status line is
+  // just text and plays no part in the gate, and deleting never touches it.
+  const [savedDraft, setSavedDraft] = useState<Draft | null>(null);
   const [statusKey, setStatusKey] = useState<EquipmentMessageKey>("equipment.status.needChecklist");
   const [statusError, setStatusError] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -299,6 +303,7 @@ export function EquipmentPage() {
     const keepLocal = (message: EquipmentMessageKey) => {
       try {
         setLocalHistory(rememberEquipmentRecord(window.localStorage, uid, record));
+        setSavedDraft(draft);
         setStatusError(false);
         setStatusKey(message);
       } catch (error) {
@@ -317,6 +322,7 @@ export function EquipmentPage() {
     setStatusKey("equipment.status.saving");
     try {
       await saveEquipmentHistoryRecord(db, record);
+      setSavedDraft(draft);
       setStatusKey("equipment.status.saved");
     } catch (error) {
       logActionFailure("equipment", "save", error);
@@ -381,11 +387,6 @@ export function EquipmentPage() {
   };
 
   const advice = ADVICE[draft?.symptomKey ?? "slide"];
-  const draftSaved =
-    statusKey === "equipment.status.saved" ||
-    statusKey === "equipment.status.savedLocal" ||
-    statusKey === "equipment.status.savedLocalAfterFailure";
-
   return (
     <section className="grid gap-6 lg:grid-cols-12">
       <div className="lg:col-span-5">
@@ -607,7 +608,7 @@ export function EquipmentPage() {
           <Button
             variant="outline"
             className="w-full"
-            disabled={!draft || saving || draftSaved}
+            disabled={!draft || saving || (savedDraft !== null && savedDraft === draft)}
             onClick={() => save()}
           >
             {tEquipment(locale, "equipment.action.save")}
