@@ -66,8 +66,11 @@ describe("pace analysis record", () => {
     expect(record.pace.decayPercent).toBe(result.analysis.decayPercent);
     expect(record.pace.trainingEmphasisRatio).toBe("45:55");
     expect(Object.keys(record).sort()).toEqual(
-      ["athleteId", "createdAt", "findings", "id", "ownerUserId", "pace", "provenance"],
+      ["athleteId", "createdAt", "distance", "findings", "id", "ownerUserId", "pace", "provenance"],
     );
+    expect(record.distance).toBe("500");
+    expect(record.pace.splits).toEqual(splits);
+    expect(record.pace.benchmark).toEqual([...benchmark]);
     expect(record).not.toHaveProperty("paceInput");
     expect(record).not.toHaveProperty("video");
     expect(JSON.stringify(record)).not.toMatch(/storage|gs:\/\//);
@@ -103,5 +106,82 @@ describe("pace analysis record", () => {
       expect(record.findings, item.name).toEqual(codes);
       expect(record.pace.findings, item.name).toBe(record.findings);
     }
+  });
+
+  it("stores copies of the splits and the benchmark, not the caller's arrays", () => {
+    const splits = [7.2, 9.3, 9.5, 10.4, 11.2];
+    const benchmark = [8, 10.3, 10.4, 10.5, 10.8];
+    const record = buildPaceAnalysisRecord({
+      id: "pace-500-abc",
+      ownerUserId: "alice",
+      createdAt: "2026-10-19T04:59:13.497Z",
+      distance: "500",
+      splits,
+      benchmark,
+      analysis: analysis({}),
+    });
+    expect(record.pace.splits).not.toBe(splits);
+    expect(record.pace.benchmark).not.toBe(benchmark);
+    splits[0] = 99;
+    benchmark[0] = 99;
+    expect(record.pace.splits[0]).toBe(7.2);
+    expect(record.pace.benchmark[0]).toBe(8);
+  });
+
+  it.each([
+    ["500", 5],
+    ["777", 7],
+    ["1000", 9],
+  ] as const)("accepts exactly the %sm segment count (%i), taken from the distance table", (distance, count) => {
+    expect(pacingDistanceConfigs[distance].labels).toHaveLength(count);
+    const series = Array.from({ length: count }, () => 10);
+    const record = buildPaceAnalysisRecord({
+      id: `pace-${distance}-abc`,
+      ownerUserId: "alice",
+      createdAt: "2026-10-19T04:59:13.497Z",
+      distance,
+      splits: series,
+      benchmark: series,
+      analysis: analysis({}),
+    });
+    expect(record.distance).toBe(distance);
+    expect(record.pace.splits).toHaveLength(count);
+  });
+
+  describe("refuses a record whose inputs do not describe one run", () => {
+    const good = {
+      id: "pace-500-abc",
+      ownerUserId: "alice",
+      createdAt: "2026-10-19T04:59:13.497Z",
+      distance: "500" as const,
+      splits: [1, 1, 1, 1, 1],
+      benchmark: [1, 1, 1, 1, 1],
+      analysis: analysis({}),
+    };
+    const build = (overrides: Record<string, unknown>) =>
+      buildPaceAnalysisRecord({ ...good, ...overrides } as Parameters<typeof buildPaceAnalysisRecord>[0]);
+
+    it("a distance that is not one of the three", () => {
+      expect(() => build({ distance: "800" })).toThrow(/distance/);
+      expect(() => build({ distance: "constructor" })).toThrow(/distance/);
+    });
+
+    it("splits and benchmark of different lengths", () => {
+      expect(() => build({ benchmark: [1, 1, 1, 1] })).toThrow(/benchmark/);
+      expect(() => build({ splits: [1, 1, 1, 1, 1, 1] })).toThrow(/splits/);
+    });
+
+    it("a length that does not match the distance", () => {
+      expect(() => build({ distance: "777" })).toThrow(/7 entries for 777m/);
+      expect(() => build({ distance: "1000", splits: Array(7).fill(1), benchmark: Array(7).fill(1) })).toThrow(
+        /9 entries for 1000m/,
+      );
+    });
+
+    it("an entry that is not a finite number", () => {
+      expect(() => build({ splits: [1, 1, Number.NaN, 1, 1] })).toThrow(/finite/);
+      expect(() => build({ benchmark: [1, 1, 1, Number.POSITIVE_INFINITY, 1] })).toThrow(/finite/);
+      expect(() => build({ splits: [1, "1", 1, 1, 1] })).toThrow(/finite/);
+    });
   });
 });

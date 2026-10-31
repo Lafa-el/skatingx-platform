@@ -13,6 +13,8 @@ type AnalysisRow = {
   kind: "pace" | "biomech";
   id: string;
   createdAt: string;
+  /** Absent in older fixtures, which stand for records saved before distance was stored. */
+  distance?: "500" | "777" | "1000" | null;
   findings: { code: string }[];
   biomech: { avgKnee: number | null; avgLean: number | null } | null;
   pace: {
@@ -328,6 +330,7 @@ describe("analysis hub: states", () => {
         kind: "pace",
         id: "pace-new",
         createdAt: "2026-10-09T00:00:00.000Z",
+        distance: "500",
         findings: [],
         biomech: null,
         pace: { decayPercent: 6.5, stabilityIndexPercent: 72, rating: "needs-work" },
@@ -338,8 +341,67 @@ describe("analysis hub: states", () => {
     expect(pace?.textContent).toContain("需强化");
     expect(pace?.textContent).toContain("稳定指数");
     expect(pace?.textContent).toContain("72%");
-    expect(pace?.textContent).toContain("后程衰减");
+    expect(pace?.textContent).toContain("500m 后程衰减");
     expect(pace?.textContent).toContain("6.5%");
+  });
+
+  it("draws one decay row per distance that has records", () => {
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    const paceRow = (id: string, createdAt: string, distance: "500" | "777" | "1000", decayPercent: number): AnalysisRow => ({
+      kind: "pace",
+      id,
+      createdAt,
+      distance,
+      findings: [],
+      biomech: null,
+      pace: { decayPercent, stabilityIndexPercent: 75, rating: "moderate" },
+    });
+    state.analyses = [
+      paceRow("p1", "2026-10-01T00:00:00.000Z", "1000", 9),
+      paceRow("p2", "2026-10-02T00:00:00.000Z", "500", 4),
+      paceRow("p3", "2026-10-03T00:00:00.000Z", "500", 6),
+    ];
+    const view = render(renderHub());
+    const pace = view.container.querySelector("[data-testid='hub-pace']");
+    const row500 = view.container.querySelector("[data-testid='hub-pace-decay-500']");
+    const row1000 = view.container.querySelector("[data-testid='hub-pace-decay-1000']");
+    expect(row500?.textContent).toContain("500m 后程衰减");
+    expect(row500?.textContent).toContain("6%");
+    expect(row1000?.textContent).toContain("1000m 后程衰减");
+    expect(row1000?.textContent).toContain("9%");
+    expect(view.container.querySelector("[data-testid='hub-pace-decay-777']")).toBeNull();
+    expect(pace?.querySelectorAll("[data-testid^='hub-pace-decay-']")).toHaveLength(2);
+  });
+
+  it("keeps the headline and draws no trend rows when every pace record is from before distance was stored", () => {
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    state.analyses = [
+      {
+        kind: "pace",
+        id: "pace-legacy-1",
+        createdAt: "2026-10-01T00:00:00.000Z",
+        findings: [],
+        biomech: null,
+        pace: { decayPercent: 4, stabilityIndexPercent: 80, rating: "excellent" },
+      },
+      {
+        kind: "pace",
+        id: "pace-legacy-2",
+        createdAt: "2026-10-02T00:00:00.000Z",
+        distance: null,
+        findings: [],
+        biomech: null,
+        pace: { decayPercent: 5, stabilityIndexPercent: 72, rating: "needs-work" },
+      },
+    ];
+    const view = render(renderHub());
+    const pace = view.container.querySelector("[data-testid='hub-pace']");
+    expect(pace?.textContent).toContain("需强化");
+    expect(pace?.textContent).toContain("72%");
+    expect(pace?.textContent).not.toContain("后程衰减");
+    expect(pace?.querySelectorAll("[data-testid^='hub-pace-decay-']")).toHaveLength(0);
   });
 
   it("opens equipment for a review suggestion and does not set a focus", () => {

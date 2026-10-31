@@ -1,5 +1,6 @@
 import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import {
+  pacingDistanceConfigs,
   trainingFeedbackKey,
   type EquipmentHistoryRecord,
   type EquipmentSymptomKey,
@@ -142,6 +143,7 @@ function toAnalysis(row: SavedAnalysisSource): HubAnalysisInput {
     kind: row.kind,
     id: row.id,
     createdAt: row.createdAt,
+    distance: row.distance,
     findings: row.findings,
     avgKnee: row.biomech?.avgKnee ?? null,
     avgLean: row.biomech?.avgLean ?? null,
@@ -540,14 +542,16 @@ function PaceCockpit({ card, locale, onRetry }: { card: HubPaceCard; locale: Loc
                 spark={[]}
               />
             ) : null}
-            {card.decay ? (
-              <MetricReadout
-                label={tAnalysis(locale, "analysis.hub.metric.decay")}
-                value={percentText(card.decay.latest, locale)}
-                delta={card.decay.delta !== null ? formatSigned(card.decay.delta, locale) : null}
-                spark={card.decay.spark}
-              />
-            ) : null}
+            {card.decays.map((decay) => (
+              <div key={decay.distance} data-testid={`hub-pace-decay-${decay.distance}`}>
+                <MetricReadout
+                  label={`${pacingDistanceConfigs[decay.distance].title} ${tAnalysis(locale, "analysis.hub.metric.decay")}`}
+                  value={percentText(decay.latest, locale)}
+                  delta={decay.delta !== null ? formatSigned(decay.delta, locale) : null}
+                  spark={decay.spark}
+                />
+              </div>
+            ))}
           </div>
         )}
       </Card>

@@ -4,9 +4,16 @@ import { onSnapshot, orderBy, query, type Firestore, type Unsubscribe } from "fi
 import { analysesCollectionRef } from "./refs";
 
 export type SavedPaceRating = "excellent" | "needs-work" | "moderate";
+export type SavedPaceDistance = "500" | "777" | "1000";
 
 export type SavedAnalysisSource = FeedbackSource & {
   readonly kind: "pace" | "biomech";
+  /**
+   * Race distance of a pace document. `null` for biomechanics, and for a pace document saved before
+   * the field existed or holding a value outside the three distances (an unknown distance, not an
+   * error: the row stays).
+   */
+  readonly distance: SavedPaceDistance | null;
   /** Set on a biomechanics document. Averages use the same readable-frame rule as the tool. */
   readonly biomech: { readonly avgKnee: number | null; readonly avgLean: number | null } | null;
   /**
@@ -21,6 +28,13 @@ export type SavedAnalysisSource = FeedbackSource & {
 };
 
 const PACE_RATINGS = new Set<SavedPaceRating>(["excellent", "needs-work", "moderate"]);
+const PACE_DISTANCES = new Set<SavedPaceDistance>(["500", "777", "1000"]);
+
+function paceDistance(value: unknown): SavedPaceDistance | null {
+  return typeof value === "string" && PACE_DISTANCES.has(value as SavedPaceDistance)
+    ? (value as SavedPaceDistance)
+    : null;
+}
 
 function findingCodes(value: unknown): { code: string }[] {
   if (!Array.isArray(value)) return [];
@@ -88,6 +102,7 @@ export function savedAnalysisFromDocument(docId: string, data: Record<string, un
   return {
     kind,
     id,
+    distance: kind === "pace" ? paceDistance(data.distance) : null,
     createdAt: data.createdAt,
     findings: findingCodes(data.findings),
     biomech: kind === "biomech" ? biomechAverages(data.poseFrames) : null,
