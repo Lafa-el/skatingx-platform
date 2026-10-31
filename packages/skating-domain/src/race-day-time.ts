@@ -1,3 +1,5 @@
+import type { RaceEntry } from "@skatingx/schema";
+
 import { isRealDateString } from "./race-day-input";
 
 /**
@@ -109,4 +111,41 @@ export function instantToZonedDateTime(
   } catch {
     return null;
   }
+}
+
+/**
+ * Moves an instant to another zone keeping the wall clock: 09:30 in `fromZone` becomes 09:30 on
+ * the same day in `toZone`, so the absolute time changes by the zone difference. Built on the two
+ * functions above, so it shares their rules. Null when the instant or a zone is invalid, or when
+ * the wall time does not exist in `toZone` (the hour skipped by a clock change).
+ */
+export function rezoneInstant(instant: string, fromZone: string, toZone: string): string | null {
+  const wall = instantToZonedDateTime(instant, fromZone);
+  if (!wall) {
+    return null;
+  }
+  return zonedDateTimeToInstant(wall.day, wall.time, toZone);
+}
+
+/**
+ * The schedule changes needed when an event's zone changes and the wall clock stays. Only races
+ * that really change are returned: no time, a time that cannot be recalculated, and a time that
+ * comes out the same (the zones agree on that day) are all left alone, so nothing is rewritten for no reason.
+ */
+export function rezoneRaceSchedules(
+  races: readonly Pick<RaceEntry, "raceId" | "scheduledAt">[],
+  fromZone: string,
+  toZone: string,
+): Array<{ raceId: string; scheduledAt: string }> {
+  const changes: Array<{ raceId: string; scheduledAt: string }> = [];
+  for (const race of races) {
+    if (race.scheduledAt === null) {
+      continue;
+    }
+    const next = rezoneInstant(race.scheduledAt, fromZone, toZone);
+    if (next !== null && next !== race.scheduledAt) {
+      changes.push({ raceId: race.raceId, scheduledAt: next });
+    }
+  }
+  return changes;
 }

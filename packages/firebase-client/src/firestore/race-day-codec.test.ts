@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   encodeRaceCreate,
+  encodeRaceScheduledAt,
   encodeRaceEventCreate,
   encodeRaceEventUpdate,
   encodeRaceResultCreate,
@@ -690,5 +691,30 @@ describe("race summary note: parse", () => {
     expect(reason(parseRaceSummary(null))).toBe("document is not an object");
     expect(reason(parseRaceSummary(stored({ schemaVersion: 2 })))).toBe("unsupported schemaVersion: 2");
     expect(reason(parseRaceSummary(stored({ updatedAt: "x" })))).toBe("missing createdAt or updatedAt");
+  });
+});
+
+describe("encodeRaceScheduledAt", () => {
+  it("encodes only the start time, as an exact Timestamp that reads back as the same ISO string", () => {
+    const iso = "2026-10-24T18:00:00.000Z";
+    const patch = encodeRaceScheduledAt(iso);
+    expect(Object.keys(patch)).toEqual(["scheduledAt"]);
+    expect(patch.scheduledAt).toBeInstanceOf(Timestamp);
+
+    const stored = { ...storedRace(), ...patch };
+    expect(parseRaceEntry("r-1", stored)).toMatchObject({ ok: true, value: { scheduledAt: iso } });
+  });
+
+  it("carries no verification or provenance field, so a confirmed race stays confirmed", () => {
+    const patch = encodeRaceScheduledAt("2026-10-24T18:00:00.000Z");
+    for (const key of ["verification", "verifiedAt", "source", "sourceNote", "updatedAt"]) {
+      expect(patch).not.toHaveProperty(key);
+    }
+    const confirmed = { ...storedRace(), verification: "verified", verifiedAt: NOW, ...patch };
+    expect(parseRaceEntry("r-1", confirmed)).toMatchObject({ ok: true, value: { verification: "verified" } });
+  });
+
+  it("refuses an invalid instant instead of writing a wrong time", () => {
+    expect(() => encodeRaceScheduledAt("not a time")).toThrow(/invalid instant/);
   });
 });

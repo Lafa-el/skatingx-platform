@@ -503,6 +503,15 @@ export function encodeRaceUpdate(input: RaceInput): DocumentData {
   return { ...raceFields(input), ...editedFields(input.sourceNote) };
 }
 
+/**
+ * Only the start time, for recalculating it when the event's zone changes. It deliberately does
+ * not go through `encodeRaceUpdate`: that resets verification to pending, and a recalculated
+ * time is not an edit of what the user confirmed. The caller adds `updatedAt`.
+ */
+export function encodeRaceScheduledAt(iso: string): DocumentData {
+  return { scheduledAt: toInstant(iso) };
+}
+
 function resultFields(input: RaceResultWriteInput): DocumentData {
   return {
     status: input.status,

@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { instantToZonedDateTime, zonedDateTimeToInstant } from "./race-day-time";
+import {
+  instantToZonedDateTime,
+  rezoneInstant,
+  rezoneRaceSchedules,
+  zonedDateTimeToInstant,
+} from "./race-day-time";
 
 const NY = "America/New_York";
+const CHI = "America/Chicago";
 
 describe("zonedDateTimeToInstant", () => {
   it("converts Buffalo wall time (EDT, UTC-4) to a UTC instant", () => {
@@ -65,5 +71,92 @@ describe("instantToZonedDateTime", () => {
   it("returns null for an unreadable instant or zone", () => {
     expect(instantToZonedDateTime("not a date", NY)).toBeNull();
     expect(instantToZonedDateTime("2026-10-24T13:30:00.000Z", "Mars/Base")).toBeNull();
+  });
+});
+
+describe("rezoneInstant", () => {
+  it("keeps the wall clock: 13:00 in New York becomes 13:00 in Chicago, an hour later in absolute time", () => {
+    const fromNy = zonedDateTimeToInstant("2026-10-24", "13:00", NY)!;
+    expect(fromNy).toBe("2026-10-24T17:00:00.000Z");
+    const inChicago = rezoneInstant(fromNy, NY, CHI);
+    expect(inChicago).toBe("2026-10-24T18:00:00.000Z");
+    expect(Date.parse(inChicago!) - Date.parse(fromNy)).toBe(60 * 60 * 1000);
+    expect(instantToZonedDateTime(inChicago!, CHI)).toEqual({ day: "2026-10-24", time: "13:00" });
+  });
+
+  it("goes the other way too (Chicago to New York is an hour earlier)", () => {
+    expect(rezoneInstant("2026-10-24T18:00:00.000Z", CHI, NY)).toBe("2026-10-24T17:00:00.000Z");
+  });
+
+  it("works across the clock change on 2026-11-01 (both zones are on standard time that day)", () => {
+    const fromNy = zonedDateTimeToInstant("2026-11-01", "13:00", NY)!;
+    expect(fromNy).toBe("2026-11-01T18:00:00.000Z");
+    expect(rezoneInstant(fromNy, NY, CHI)).toBe("2026-11-01T19:00:00.000Z");
+  });
+
+  it("can change the day when the zones are far apart", () => {
+    const late = zonedDateTimeToInstant("2026-10-24", "23:30", NY)!;
+    expect(rezoneInstant(late, NY, "Asia/Shanghai")).toBe("2026-10-24T15:30:00.000Z");
+    expect(instantToZonedDateTime("2026-10-24T15:30:00.000Z", "Asia/Shanghai")).toEqual({
+      day: "2026-10-24",
+      time: "23:30",
+    });
+  });
+
+  it("is null for an invalid instant or an invalid zone, on either side", () => {
+    expect(rezoneInstant("not a time", NY, CHI)).toBeNull();
+    expect(rezoneInstant("2026-10-24T17:00:00.000Z", "Mars/Base", CHI)).toBeNull();
+    expect(rezoneInstant("2026-10-24T17:00:00.000Z", NY, "Mars/Base")).toBeNull();
+  });
+
+  it("is null when the wall time does not exist in the new zone (spring-forward gap)", () => {
+    // 02:30 on 2026-03-08 is a real time in Shanghai but is skipped in New York.
+    const shanghai = zonedDateTimeToInstant("2026-03-08", "02:30", "Asia/Shanghai")!;
+    expect(rezoneInstant(shanghai, "Asia/Shanghai", NY)).toBeNull();
+  });
+});
+
+describe("rezoneRaceSchedules", () => {
+  const at = (day: string, time: string, zone: string) => zonedDateTimeToInstant(day, time, zone)!;
+
+  it("returns only the races that change, with the recalculated instant", () => {
+    const changes = rezoneRaceSchedules(
+      [
+        { raceId: "a", scheduledAt: at("2026-10-24", "09:30", NY) },
+        { raceId: "b", scheduledAt: at("2026-10-25", "14:05", NY) },
+      ],
+      NY,
+      CHI,
+    );
+    expect(changes).toEqual([
+      { raceId: "a", scheduledAt: at("2026-10-24", "09:30", CHI) },
+      { raceId: "b", scheduledAt: at("2026-10-25", "14:05", CHI) },
+    ]);
+  });
+
+  it("skips a race with no time", () => {
+    expect(rezoneRaceSchedules([{ raceId: "a", scheduledAt: null }], NY, CHI)).toEqual([]);
+  });
+
+  it("skips a race whose time cannot be recalculated, and still returns the others", () => {
+    const shanghai = at("2026-03-08", "02:30", "Asia/Shanghai");
+    expect(
+      rezoneRaceSchedules(
+        [
+          { raceId: "gap", scheduledAt: shanghai },
+          { raceId: "bad", scheduledAt: "not a time" },
+          { raceId: "fine", scheduledAt: at("2026-03-08", "09:00", "Asia/Shanghai") },
+        ],
+        "Asia/Shanghai",
+        NY,
+      ),
+    ).toEqual([{ raceId: "fine", scheduledAt: at("2026-03-08", "09:00", NY) }]);
+  });
+
+  it("skips a race whose new instant is the same as the old one", () => {
+    // Same absolute offset, so nothing would change: UTC to UTC, or a zone to itself.
+    const instant = "2026-10-24T13:30:00.000Z";
+    expect(rezoneRaceSchedules([{ raceId: "a", scheduledAt: instant }], "UTC", "Etc/UTC")).toEqual([]);
+    expect(rezoneRaceSchedules([{ raceId: "a", scheduledAt: instant }], NY, NY)).toEqual([]);
   });
 });
