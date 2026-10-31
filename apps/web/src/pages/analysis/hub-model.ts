@@ -3,6 +3,7 @@ import {
   trainingFeedbackKey,
   type FeedbackSource,
   type AnalysisTrainingFeedback,
+  type PaceDistance,
 } from "@skatingx/skating-domain";
 
 /**
@@ -11,10 +12,14 @@ import {
  * The pace card headline is the rating and the stability index. Decay is a separate line,
  * present only when that record stored a number.
  * Delta and sparkline exist only when that kind has at least two finite numbers.
+ * Pace trends are kept per race distance: 500m, 777m and 1000m times are not comparable. A pace
+ * record without a distance (saved before the field existed) is in no trend.
  */
 
 export const HUB_SPARK_LIMIT = 8;
 export const HUB_RECENT_LIMIT = 5;
+/** The order the pace trend lines are shown in. */
+export const HUB_PACE_DISTANCES = ["500", "777", "1000"] as const satisfies readonly PaceDistance[];
 
 export type HubPaceRating = "excellent" | "needs-work" | "moderate";
 
@@ -29,6 +34,8 @@ export type HubAnalysisInput = {
   readonly kind: "pace" | "biomech";
   readonly id: string;
   readonly createdAt: string;
+  /** Pace only; `null` when the record has no (or an unknown) distance. */
+  readonly distance: PaceDistance | null;
   readonly findings: readonly { readonly code: string }[];
   readonly avgKnee: number | null;
   readonly avgLean: number | null;
@@ -79,6 +86,7 @@ export type HubAngleCard =
     };
 
 export type HubPaceDecay = {
+  readonly distance: PaceDistance;
   readonly latest: number;
   readonly delta: number | null;
   readonly spark: readonly number[];
@@ -93,14 +101,15 @@ export type HubPaceCard =
       readonly createdAt: string;
       readonly rating: HubPaceRating | null;
       readonly stabilityIndexPercent: number | null;
-      readonly decay: HubPaceDecay | null;
+      /** One trend line per distance that has a stored decay, in 500 / 777 / 1000 order. */
+      readonly decays: readonly HubPaceDecay[];
     }
   | {
       readonly status: "trend";
       readonly createdAt: string;
       readonly rating: HubPaceRating | null;
       readonly stabilityIndexPercent: number | null;
-      readonly decay: HubPaceDecay | null;
+      readonly decays: readonly HubPaceDecay[];
     };
 
 export type HubEquipmentCard =
@@ -275,11 +284,13 @@ function angleCard(lane: HubLane<HubAnalysisInput>): HubAngleCard {
   };
 }
 
-function paceDecay(rows: readonly HubAnalysisInput[]): HubPaceDecay | null {
+/** `rows` is one distance, newest first. */
+function paceDecay(distance: PaceDistance, rows: readonly HubAnalysisInput[]): HubPaceDecay | null {
   const latest = finite(rows[0]?.decayPercent);
   if (latest === null) return null;
   const series = numericSeries(rows.map((row) => row.decayPercent));
   return {
+    distance,
     latest,
     delta: series.kind === "trend" ? series.delta : null,
     spark: series.kind === "trend" ? series.spark : [],
@@ -297,7 +308,13 @@ function paceCard(lane: HubLane<HubAnalysisInput>): HubPaceCard {
     createdAt: latest.createdAt,
     rating: latest.rating,
     stabilityIndexPercent: finite(latest.stabilityIndexPercent),
-    decay: paceDecay(rows),
+    decays: HUB_PACE_DISTANCES.flatMap((distance) => {
+      const decay = paceDecay(
+        distance,
+        rows.filter((row) => row.distance === distance),
+      );
+      return decay ? [decay] : [];
+    }),
   };
   return rows.length === 1 ? { status: "single", ...headline } : { status: "trend", ...headline };
 }

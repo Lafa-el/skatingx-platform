@@ -2,6 +2,7 @@ import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 
 import {
   PACE_ALGORITHM_VERSION,
+  pacingDistanceConfigs,
   type PaceAnalysis,
   type PaceDistance,
 } from "./legacy-pace";
@@ -38,6 +39,11 @@ export interface PaceAnalysisRecord {
   readonly athleteId: typeof DEFAULT_ATHLETE_ID;
   /** ISO-8601 string. Not a Firestore Timestamp. */
   readonly createdAt: string;
+  /**
+   * Which race distance this run is for. Records saved before this field existed omit it; readers
+   * treat that as an unknown distance.
+   */
+  readonly distance: PaceDistance;
   readonly provenance: {
     readonly schemaVersion: "skatingx-analysis-contract-v1";
     readonly algorithmVersion: typeof PACE_ALGORITHM_VERSION;
@@ -48,6 +54,9 @@ export interface PaceAnalysisRecord {
     readonly totalSeconds: number;
     readonly benchmarkTotalSeconds: number;
     readonly stabilityIndexPercent: number;
+    /** The segment times and the benchmark the run was analysed with, one entry per segment. */
+    readonly splits: readonly number[];
+    readonly benchmark: readonly number[];
     /** The decay already computed for this run. Older saved records omit it. */
     readonly decayPercent: number;
     readonly rating: "excellent" | "needs-work" | "moderate";
@@ -73,6 +82,22 @@ export function buildPaceAnalysisRecord(input: {
     throw new Error("Pace analysis createdAt must be an ISO-8601 string.");
   }
 
+  if (!Object.hasOwn(pacingDistanceConfigs, input.distance)) {
+    throw new Error("Pace analysis distance must be 500, 777 or 1000.");
+  }
+  const segmentCount = pacingDistanceConfigs[input.distance].labels.length;
+  for (const [name, values] of [
+    ["splits", input.splits],
+    ["benchmark", input.benchmark],
+  ] as const) {
+    if (values.length !== segmentCount) {
+      throw new Error(`Pace analysis ${name} must have ${segmentCount} entries for ${input.distance}m.`);
+    }
+    if (!values.every((value) => typeof value === "number" && Number.isFinite(value))) {
+      throw new Error(`Pace analysis ${name} must be finite numbers.`);
+    }
+  }
+
   const provenance = {
     schemaVersion: "skatingx-analysis-contract-v1" as const,
     algorithmVersion: PACE_ALGORITHM_VERSION,
@@ -92,6 +117,7 @@ export function buildPaceAnalysisRecord(input: {
     ownerUserId: input.ownerUserId,
     athleteId: DEFAULT_ATHLETE_ID,
     createdAt: input.createdAt,
+    distance: input.distance,
     provenance,
     findings,
     pace: {
@@ -99,6 +125,9 @@ export function buildPaceAnalysisRecord(input: {
       totalSeconds: input.analysis.totalSeconds,
       benchmarkTotalSeconds: input.analysis.benchmarkTotalSeconds,
       stabilityIndexPercent: input.analysis.lacticIndexPercent,
+      // Copies, not the caller's arrays: the page keeps editing its own state.
+      splits: [...input.splits],
+      benchmark: [...input.benchmark],
       decayPercent: input.analysis.decayPercent,
       rating: ratingByLabel[input.analysis.ratingLabel],
       trainingEmphasisRatio: input.analysis.trainingRatio,

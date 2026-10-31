@@ -126,6 +126,13 @@ export interface PaceOutput {
   readonly stabilityIndexPercent: number;
   /** Present on records written after this field. Older documents omit it. */
   readonly decayPercent?: number;
+  /**
+   * Segment times of the run, one per segment of `AnalysisRecord.distance` (5 / 7 / 9).
+   * Present on records written after ADR-005 §11. Older documents omit it.
+   */
+  readonly splits?: readonly number[];
+  /** Benchmark times, same length as `splits`. Present and absent on the same records. */
+  readonly benchmark?: readonly number[];
   readonly rating: "excellent" | "needs-work" | "moderate";
   readonly trainingEmphasisRatio: string;
   readonly findings: readonly AnalysisFinding[];
@@ -241,6 +248,11 @@ export interface AnalysisRecord {
   readonly athleteId: string;
   /** ISO-8601 string. Not a Firestore Timestamp. */
   readonly createdAt: string;
+  /**
+   * Pace records only. Present on records written after ADR-005 §11; older pace documents omit it
+   * and are read as an unknown distance.
+   */
+  readonly distance?: PaceDistance;
   readonly provenance: AnalysisProvenance;
   readonly poseFrames?: readonly PoseFrameOutput[];
   readonly pace?: PaceOutput;

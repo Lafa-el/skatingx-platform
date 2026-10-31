@@ -13,6 +13,7 @@ import {
 
 function analysis(overrides: Partial<HubAnalysisInput> & Pick<HubAnalysisInput, "kind" | "id" | "createdAt">): HubAnalysisInput {
   return {
+    distance: null,
     findings: [],
     avgKnee: null,
     avgLean: null,
@@ -226,7 +227,7 @@ describe("buildHubModel", () => {
       createdAt: "2026-10-09T00:00:00.000Z",
       rating: "needs-work",
       stabilityIndexPercent: 72,
-      decay: null,
+      decays: [],
     });
   });
 
@@ -237,6 +238,7 @@ describe("buildHubModel", () => {
           kind: "pace",
           id: "pace-old",
           createdAt: "2026-10-01T00:00:00.000Z",
+          distance: "500",
           decayPercent: 4,
           stabilityIndexPercent: 80,
           rating: "excellent",
@@ -245,6 +247,7 @@ describe("buildHubModel", () => {
           kind: "pace",
           id: "pace-new",
           createdAt: "2026-10-09T00:00:00.000Z",
+          distance: "500",
           decayPercent: 6.5,
           stabilityIndexPercent: 72,
           rating: "needs-work",
@@ -258,7 +261,7 @@ describe("buildHubModel", () => {
       createdAt: "2026-10-09T00:00:00.000Z",
       rating: "needs-work",
       stabilityIndexPercent: 72,
-      decay: { latest: 6.5, delta: 2.5, spark: [4, 6.5] },
+      decays: [{ distance: "500", latest: 6.5, delta: 2.5, spark: [4, 6.5] }],
     });
   });
 
@@ -269,6 +272,7 @@ describe("buildHubModel", () => {
           kind: "pace",
           id: "pace-old",
           createdAt: "2026-10-01T00:00:00.000Z",
+          distance: "500",
           decayPercent: 4,
           stabilityIndexPercent: 80,
           rating: "excellent",
@@ -277,6 +281,7 @@ describe("buildHubModel", () => {
           kind: "pace",
           id: "pace-new",
           createdAt: "2026-10-09T00:00:00.000Z",
+          distance: "500",
           stabilityIndexPercent: 72,
           rating: "needs-work",
         }),
@@ -287,7 +292,7 @@ describe("buildHubModel", () => {
     expect(model.pace).toMatchObject({
       rating: "needs-work",
       stabilityIndexPercent: 72,
-      decay: null,
+      decays: [],
     });
   });
 
@@ -306,5 +311,68 @@ describe("buildHubModel", () => {
     expect(model.recent.items.map((item) => item.id)).toEqual(["e1", "p3", "p2", "b2", "p1"]);
     expect(model.recent.items).toHaveLength(HUB_RECENT_LIMIT);
     expect(model.equipment).toMatchObject({ status: "ready", symptomKey: "slide", symptomText: "left corner" });
+  });
+});
+
+describe("pace trends are per distance", () => {
+  const pace = (id: string, createdAt: string, distance: HubAnalysisInput["distance"], decayPercent: number | null) =>
+    analysis({ kind: "pace", id, createdAt, distance, decayPercent, stabilityIndexPercent: 70, rating: "moderate" });
+  const build = (rows: HubAnalysisInput[]) =>
+    buildHubModel({ analyses: ready(rows), equipment: ready([]), hidden: new Set() }).pace;
+
+  it("500m and 1000m each get their own latest, delta and sparkline, in 500 / 777 / 1000 order", () => {
+    const card = build([
+      pace("a", "2026-10-01T00:00:00.000Z", "1000", 9),
+      pace("b", "2026-10-02T00:00:00.000Z", "500", 4),
+      pace("c", "2026-10-03T00:00:00.000Z", "1000", 7),
+      pace("d", "2026-10-04T00:00:00.000Z", "500", 6),
+      pace("e", "2026-10-05T00:00:00.000Z", "500", 5),
+    ]);
+    expect(card).toMatchObject({ status: "trend", createdAt: "2026-10-05T00:00:00.000Z" });
+    if (card.status !== "trend") return;
+    expect(card.decays).toEqual([
+      { distance: "500", latest: 5, delta: -1, spark: [4, 6, 5] },
+      { distance: "1000", latest: 7, delta: -2, spark: [9, 7] },
+    ]);
+  });
+
+  it("the headline stays the newest record whatever its distance", () => {
+    const card = build([
+      analysis({ kind: "pace", id: "a", createdAt: "2026-10-01T00:00:00.000Z", distance: "500", decayPercent: 4, rating: "excellent", stabilityIndexPercent: 90 }),
+      analysis({ kind: "pace", id: "b", createdAt: "2026-10-09T00:00:00.000Z", distance: "1000", decayPercent: 8, rating: "needs-work", stabilityIndexPercent: 55 }),
+    ]);
+    expect(card).toMatchObject({ status: "trend", rating: "needs-work", stabilityIndexPercent: 55 });
+  });
+
+  it("a record with no distance is in no group, and its decay is not shown", () => {
+    const card = build([
+      pace("old1", "2026-10-01T00:00:00.000Z", null, 4),
+      pace("old2", "2026-10-02T00:00:00.000Z", null, 5),
+      pace("new", "2026-10-03T00:00:00.000Z", "500", 6),
+    ]);
+    if (card.status !== "trend") throw new Error("expected a trend card");
+    expect(card.decays).toEqual([{ distance: "500", latest: 6, delta: null, spark: [] }]);
+  });
+
+  it("only old records: the headline is there and the trend area is empty", () => {
+    const card = build([pace("old1", "2026-10-01T00:00:00.000Z", null, 4), pace("old2", "2026-10-02T00:00:00.000Z", null, 5)]);
+    expect(card).toMatchObject({ status: "trend", rating: "moderate", stabilityIndexPercent: 70, decays: [] });
+  });
+
+  it("one record in a distance matches what a single record showed before: delta null, no sparkline", () => {
+    const card = build([pace("only", "2026-10-03T00:00:00.000Z", "777", 6.5)]);
+    expect(card).toEqual({
+      status: "single",
+      createdAt: "2026-10-03T00:00:00.000Z",
+      rating: "moderate",
+      stabilityIndexPercent: 70,
+      decays: [{ distance: "777", latest: 6.5, delta: null, spark: [] }],
+    });
+  });
+
+  it("a distance whose newest record stored no decay has no line, even if an older one did", () => {
+    const card = build([pace("a", "2026-10-01T00:00:00.000Z", "500", 4), pace("b", "2026-10-02T00:00:00.000Z", "500", null)]);
+    if (card.status !== "trend") throw new Error("expected a trend card");
+    expect(card.decays).toEqual([]);
   });
 });

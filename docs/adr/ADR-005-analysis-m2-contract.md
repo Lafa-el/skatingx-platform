@@ -116,3 +116,19 @@ Owner 要求给 `athletes/lindsay/equipment/main/records/{recordId}` 加形状�
 `analyses/{analysisId}` 现在接受两种文档，键集合互斥：配速文档带 `pace`，生物力学文档带 `poseFrames`。生物力学的 `algorithmVersion` 必须是 `legacy-biomech-port-1`。`poseFrames` 最多 10 条，等于页面采样上限。每一条只检查 `timeSeconds` 和 `readable`。不对 33 个关键点逐项展开，原因与器材表盘点相同：规则引擎单次最多计算 1000 个表达式。
 
 回滚：把 `validAnalysisRecord` 收回只接受配速键集合。器材路径规则已在 2026-10-19 03:05（EDT）发布，ruleset `a1a0ce47-d467-42bb-a431-d3b5497ff880`，与当时 main 的 `firestore.rules` 一致。本次 `poseFrames` 校验等本片合并后再走备份、发布、diff。合入前不发布。
+
+## 11. 配速记录存距离与分段（2026-10-31）
+
+配速记录以前只存结果（评级、稳定指数、后程衰减），没存是哪个距离、每段多少秒。总览页因此无法把 500m 和 1000m 的衰减分开比，混在一起的趋势没有意义。本片让记录存下它们。
+
+新字段：文档顶层 `distance`（`'500'`、`'777'`、`'1000'`），`pace.splits` 与 `pace.benchmark`（数字列表，各自长度等于该距离的分段数：5、7、9）。分段数的唯一来源是 `pacingDistanceConfigs` 的 `labels`；规则里的 5/7/9 是它的镜像，改距离表时必须同步改规则。落库的是拷贝，不是页面 state 数组的别名。
+
+规则：`validPaceAnalysisRecord` 与 `validPaceOutput` 的 `exactKeys` 都加了新键，所以不带新字段的写入会被拒。新字段做成必填：保存只走 `setDoc` + 新 id，没有重写旧记录的路径，旧记录不会被规则复核。列表按 `validPoseFrames` 的方式按下标展开（先判长度再取元素），不用循环，不碰 1000 个表达式的上限。读侧容忍缺字段：旧记录的 `distance` 读成 `null`，行不丢、不抛错。
+
+趋势：总览页的配速卡标题行仍取最新一条、不分距离。趋势按距离分线，每个距离各算各的 latest / delta / sparkline；`distance` 为 `null` 的旧记录不进任何一组。
+
+风险：规则先于应用发布，新规则对旧应用不友好。旧应用写的配速记录缺 `distance` 与分段，会被新规则拒绝。窗口只在「规则已发布」与「新应用已上线」之间，这段时间不要在应用里保存配速。已存在的记录不受影响，仍可读。
+
+不回填：旧记录无法可靠推断距离。它们留在历史里，只在趋势里排除；以后想标，人工逐条定。
+
+回滚：先回滚应用，再把两处 `exactKeys` 与列表校验删回去；顺序反过来的话，新应用写的记录带新键，会被旧规则拒绝。已写入的新记录读取不受影响。应用回滚后，趋势回到不分距离的单线。已发布的规则要等本片合并前走备份、发布、与 main 的 `firestore.rules` 做 diff，先发 skatingx-prod 与 staging，再合并。本 PR 不发布规则。

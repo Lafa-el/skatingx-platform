@@ -280,12 +280,36 @@ service cloud.firestore {
           && (items.size() < 8 || validFinding(items[7], id));
       }
 
-      function validPaceOutput(pace, id) {
+      // Segments per race distance: 500m has 5, 777m has 7, 1000m has 9.
+      function paceSegmentCount(distance) {
+        return distance == '500' ? 5 : (distance == '777' ? 7 : 9);
+      }
+
+      // Rules have no loop. Nine is the longest distance. Each guard short-circuits on the
+      // list length first, so an index is only read where it exists.
+      function validPaceSeries(items, count) {
+        return items is list
+          && items.size() == count
+          && (items.size() < 1 || items[0] is number)
+          && (items.size() < 2 || items[1] is number)
+          && (items.size() < 3 || items[2] is number)
+          && (items.size() < 4 || items[3] is number)
+          && (items.size() < 5 || items[4] is number)
+          && (items.size() < 6 || items[5] is number)
+          && (items.size() < 7 || items[6] is number)
+          && (items.size() < 8 || items[7] is number)
+          && (items.size() < 9 || items[8] is number);
+      }
+
+      function validPaceOutput(pace, id, distance) {
         return pace is map
           && exactKeys(pace, ['provenance', 'totalSeconds', 'benchmarkTotalSeconds',
-                              'stabilityIndexPercent', 'decayPercent', 'rating',
+                              'stabilityIndexPercent', 'splits', 'benchmark',
+                              'decayPercent', 'rating',
                               'trainingEmphasisRatio', 'findings'])
           && validAnalysisProvenance(pace.provenance)
+          && validPaceSeries(pace.splits, paceSegmentCount(distance))
+          && validPaceSeries(pace.benchmark, paceSegmentCount(distance))
           && pace.totalSeconds is number
           && pace.benchmarkTotalSeconds is number
           && pace.stabilityIndexPercent is int
@@ -306,15 +330,16 @@ service cloud.firestore {
 
       function validPaceAnalysisRecord(id, d) {
         return validId(id)
-          && exactKeys(d, ['id', 'ownerUserId', 'athleteId', 'createdAt',
+          && exactKeys(d, ['id', 'ownerUserId', 'athleteId', 'createdAt', 'distance',
                            'provenance', 'findings', 'pace'])
           && d.id == id
           && d.ownerUserId == userId
           && d.athleteId == 'lindsay'
           && validIsoCreatedAt(d.createdAt)
+          && d.distance in ['500', '777', '1000']
           && validAnalysisProvenance(d.provenance)
           && validFindings(d.findings, id)
-          && validPaceOutput(d.pace, id);
+          && validPaceOutput(d.pace, id, d.distance);
       }
 
       // 10 is MAX_POSE_KEYFRAMES. One predicate per index, not per landmark.
