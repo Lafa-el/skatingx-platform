@@ -40,6 +40,8 @@ const zh = {
 
   "settings.signIn.title": "登录已有账户",
   "settings.signIn.help": "使用已注册的邮箱和密码登录。登录会替换当前会话（访客数据不会自动合并）。",
+  "settings.signIn.confirmGuest":
+    "要登录已有账户吗？登录会替换当前的访客会话：访客数据不会转移到登录后的账户，而且你无法再回到这个访客会话。",
   "settings.signIn.submit": "登录",
   "settings.signIn.busy": "登录中…",
   "settings.signIn.forgot": "忘记密码？",
@@ -137,6 +139,8 @@ const en: Record<SettingsPageKey, string> = {
   "settings.signIn.title": "Sign in to existing account",
   "settings.signIn.help":
     "Use a registered email and password. Signing in replaces the current session (guest data is not merged automatically).",
+  "settings.signIn.confirmGuest":
+    "Sign in to an existing account? Signing in replaces the current guest session: guest data will not be transferred to the account you sign in to, and you will not be able to return to this guest session.",
   "settings.signIn.submit": "Sign in",
   "settings.signIn.busy": "Signing in…",
   "settings.signIn.forgot": "Forgot password?",

@@ -150,6 +150,9 @@ export function SettingsPage() {
 
   async function handleSignInSubmit(event: FormEvent) {
     event.preventDefault();
+    // Only a live guest uid is lost by signing in; a signed-out user has nothing to confirm. Asked
+    // here, on the page (as for sign-out), so a refusal leaves the form and its error untouched.
+    if (isAnonymous && !window.confirm(t("settings.signIn.confirmGuest"))) return;
     setFormBusy(true);
     clearAuthError();
     try {
