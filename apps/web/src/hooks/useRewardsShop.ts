@@ -65,6 +65,16 @@ export function useRewardsShop() {
       },
     );
 
+    // Loading ends only when both listeners have settled (data or failure). Ending it on the
+    // catalog alone let consumers show "no redemptions" while the redemptions were still on the way.
+    let catalogSettled = false;
+    let redemptionsSettled = false;
+    const settleIfBoth = () => {
+      if (!cancelled && catalogSettled && redemptionsSettled) {
+        setLoading(false);
+      }
+    };
+
     const catalogRef = trainingRewardsCatalogRef(db, uid, athleteId);
     const redemptionsRef = trainingRedemptionsCollectionRef(db, uid, athleteId);
 
@@ -77,12 +87,14 @@ export function useRewardsShop() {
             snap.data() as RewardsCatalogDocument | undefined,
           ),
         );
-        setLoading(false);
+        catalogSettled = true;
+        settleIfBoth();
       },
       (err) => {
         if (!cancelled) {
           setErrorNote({ received: err.message });
-          setLoading(false);
+          catalogSettled = true;
+          settleIfBoth();
         }
       },
     );
@@ -96,10 +108,14 @@ export function useRewardsShop() {
           list.push(docSnap.data() as RewardRedemption);
         });
         setRedemptions(list);
+        redemptionsSettled = true;
+        settleIfBoth();
       },
       (err) => {
         if (!cancelled) {
           setErrorNote({ received: err.message });
+          redemptionsSettled = true;
+          settleIfBoth();
         }
       },
     );

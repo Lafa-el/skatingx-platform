@@ -16,6 +16,9 @@ const zh = {
   "dashboard.card.redemption": "最近兑换",
   "dashboard.card.record": "最近纪录",
 
+  // One generic line for a card whose data failed: the technical text is in the page banner.
+  "dashboard.card.loadError": "暂时无法加载",
+
   "dashboard.tasks.hint": "已完成 / 总数",
   "dashboard.streak.one": "{count} 天",
   "dashboard.streak.other": "{count} 天",
@@ -85,6 +88,8 @@ const en: Record<DashboardKey, string> = {
   "dashboard.card.plan": "Plan",
   "dashboard.card.redemption": "Latest redemption",
   "dashboard.card.record": "Latest record",
+
+  "dashboard.card.loadError": "Couldn't load right now",
 
   "dashboard.tasks.hint": "completed / total",
   "dashboard.streak.one": "{count} day",
