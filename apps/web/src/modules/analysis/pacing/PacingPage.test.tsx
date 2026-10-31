@@ -216,4 +216,103 @@ describe("pacing page", () => {
     expect(view.container.textContent).not.toContain("生物力学");
     expect(view.container.textContent).not.toContain("需强化");
   });
+
+  describe("the benchmark is a snapshot taken when the curve is generated", () => {
+    const generated = [8, 10.3, 10.4, 10.5, 10.8];
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+    const benchmarkSeries = () => {
+      const config = state.configs.at(-1) as { data: { datasets: { data: number[] }[] } };
+      return config.data.datasets[0]?.data;
+    };
+    const savedPace = () =>
+      (state.save.mock.calls.at(-1)?.[1] as { pace: { benchmarkTotalSeconds: number; totalSeconds: number } }).pace;
+
+    async function editLap1Benchmark(user: ReturnType<typeof userEvent.setup>, value: string) {
+      const input = screen.getByLabelText("Lap 1");
+      await user.clear(input);
+      await user.type(input, value);
+    }
+
+    it("keeps the chart, the report and a saved record on the generated benchmark when a box is edited", async () => {
+      state.uid = "alice";
+      const user = userEvent.setup();
+      render(<AnalysisPacingPage />);
+      await fillSynthetic500m(user);
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      await waitFor(() => expect(state.configs).toHaveLength(1));
+      expect(benchmarkSeries()).toEqual(generated);
+
+      await editLap1Benchmark(user, "9.00");
+      await settle();
+
+      // No new chart, and the one on screen still plots the benchmark it was generated with.
+      expect(state.configs).toHaveLength(1);
+      expect(benchmarkSeries()).toEqual(generated);
+      expect(screen.getByText(/总成绩 47\.60s，比 Junior D 标杆快 2\.40s/)).toBeTruthy();
+      expect(screen.getByText("需强化")).toBeTruthy();
+      expect(screen.getByText("47%")).toBeTruthy();
+
+      await user.click(screen.getByRole("button", { name: "保存本次配速" }));
+      await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1));
+      expect(savedPace().benchmarkTotalSeconds).toBeCloseTo(50, 5);
+      expect(savedPace().totalSeconds).toBeCloseTo(47.6, 5);
+    });
+
+    it("the reset button only resets the box: the chart waits for the next generate too", async () => {
+      const user = userEvent.setup();
+      render(<AnalysisPacingPage />);
+      await fillSynthetic500m(user);
+      await editLap1Benchmark(user, "9.00");
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      await waitFor(() => expect(state.configs).toHaveLength(1));
+      expect(benchmarkSeries()).toEqual([8, 9, 10.4, 10.5, 10.8]);
+
+      await user.click(screen.getByRole("button", { name: "恢复默认标准" }));
+      await settle();
+      expect((screen.getByLabelText("Lap 1") as HTMLInputElement).value).toBe("10.30");
+      expect(state.configs).toHaveLength(1);
+      expect(benchmarkSeries()).toEqual([8, 9, 10.4, 10.5, 10.8]);
+
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      await waitFor(() => expect(state.configs).toHaveLength(2));
+      expect(benchmarkSeries()).toEqual(generated);
+    });
+
+    it("follows the new benchmark, in the chart and in a saved record, once it is generated again", async () => {
+      state.uid = "alice";
+      const user = userEvent.setup();
+      render(<AnalysisPacingPage />);
+      await fillSynthetic500m(user);
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      await waitFor(() => expect(state.configs).toHaveLength(1));
+
+      await editLap1Benchmark(user, "9.00");
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      await waitFor(() => expect(state.configs).toHaveLength(2));
+      expect(benchmarkSeries()).toEqual([8, 9, 10.4, 10.5, 10.8]);
+      expect(screen.getByText(/总成绩 47\.60s，比 Junior D 标杆快 1\.10s/)).toBeTruthy();
+
+      await user.click(screen.getByRole("button", { name: "保存本次配速" }));
+      await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1));
+      expect(savedPace().benchmarkTotalSeconds).toBeCloseTo(48.7, 5);
+    });
+
+    it("drops the snapshot with the chart when a generate fails", async () => {
+      const user = userEvent.setup();
+      render(<AnalysisPacingPage />);
+      await fillSynthetic500m(user);
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      await waitFor(() => expect(state.configs).toHaveLength(1));
+
+      await editLap1Benchmark(user, "0");
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      expect(screen.getByText("请先填写完整且大于 0 的 Junior D 标准，再生成曲线。")).toBeTruthy();
+      // The failed generate cleared the chart together with the analysis.
+      expect(screen.getByText("输入分段后生成配速衰减曲线")).toBeTruthy();
+
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      expect(screen.getByText("输入分段后生成配速衰减曲线")).toBeTruthy();
+      expect(state.configs).toHaveLength(1);
+    });
+  });
 });

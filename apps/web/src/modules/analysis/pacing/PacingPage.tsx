@@ -58,6 +58,9 @@ export function PacingPage() {
   const [benchmarkText, setBenchmarkText] = useState(() => defaultBenchmark("500"));
   const [analysis, setAnalysis] = useState<PaceAnalysis | null>(null);
   const [chartAthlete, setChartAthlete] = useState<number[] | null>(null);
+  // Snapshot taken at generate time, like `analysis` and `chartAthlete`: editing a benchmark box
+  // changes nothing on screen or in a saved record until the next generate.
+  const [chartBenchmark, setChartBenchmark] = useState<number[] | null>(null);
   const [inputError, setInputError] = useState<PaceMessageKey | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saved" | PaceMessageKey>("idle");
   const [saving, setSaving] = useState(false);
@@ -66,7 +69,6 @@ export function PacingPage() {
     () => pacingDistanceConfigs[distance].labels.map((_, index) => paceSegmentLabel(locale, distance, index)),
     [locale, distance],
   );
-  const benchmarkNumbers = useMemo(() => benchmarkText.map(readNumber), [benchmarkText]);
 
   const switchDistance = (next: PaceDistance) => {
     setDistance(next);
@@ -74,6 +76,7 @@ export function PacingPage() {
     setBenchmarkText(defaultBenchmark(next));
     setAnalysis(null);
     setChartAthlete(null);
+    setChartBenchmark(null);
     setInputError(null);
     setSaveState("idle");
   };
@@ -86,16 +89,18 @@ export function PacingPage() {
     if (!result.ok) {
       setAnalysis(null);
       setChartAthlete(null);
+      setChartBenchmark(null);
       setInputError(inputErrorKey[result.message]);
       return;
     }
     setInputError(null);
     setAnalysis(result.analysis);
     setChartAthlete(splits);
+    setChartBenchmark(benchmark);
   };
 
   const save = async () => {
-    if (!analysis || !chartAthlete) {
+    if (!analysis || !chartAthlete || !chartBenchmark) {
       return;
     }
     if (!uid) {
@@ -115,7 +120,7 @@ export function PacingPage() {
         createdAt: new Date().toISOString(),
         distance,
         splits: chartAthlete,
-        benchmark: benchmarkText.map(readNumber),
+        benchmark: chartBenchmark,
         analysis,
       });
       await savePaceAnalysisRecord(db, record);
@@ -185,10 +190,10 @@ export function PacingPage() {
         <Card title={tPace(locale, "pace.chart.title", { distance: `${distance}m` })}>
           <p className="font-mono text-xs text-brand-navy">{tPace(locale, "pace.badge")}</p>
           <div className="mt-3">
-            {chartAthlete ? (
+            {chartAthlete && chartBenchmark ? (
               <PacingChart
                 labels={labels}
-                benchmark={benchmarkNumbers}
+                benchmark={chartBenchmark}
                 athlete={chartAthlete}
                 benchmarkLabel={tPace(locale, "pace.chart.benchmark")}
                 athleteLabel={tPace(locale, "pace.chart.athlete")}
@@ -197,7 +202,7 @@ export function PacingPage() {
                   tPace(locale, "pace.chart.fallbackLine", {
                     label,
                     benchmarkName: tPace(locale, "pace.chart.canvasBenchmark"),
-                    benchmark: benchmarkNumbers[index]?.toFixed(2) ?? "--",
+                    benchmark: chartBenchmark[index]?.toFixed(2) ?? "--",
                     athleteName: tPace(locale, "pace.chart.canvasAthlete"),
                     athlete: chartAthlete[index]?.toFixed(2) ?? "--",
                   }),
