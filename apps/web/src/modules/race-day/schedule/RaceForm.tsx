@@ -107,7 +107,13 @@ export function RaceForm({
     const scheduled = resolveScheduledAt();
     const trimmedOrder = sortOrder.trim();
     const { value, errors: found } = prepareRaceInput({
-      distanceId: normalizeDistanceId(label).slice(0, RACE_DAY_LIMITS.distanceId),
+      // The distance id is the race's identity (the records sync reads it). Editing the label only
+      // renames what is shown; deriving it again would change the identity and silently drop the
+      // record already synced under the old one. The fallback is only for a stored race without one.
+      distanceId:
+        mode === "edit" && initial?.distanceId
+          ? initial.distanceId
+          : normalizeDistanceId(label).slice(0, RACE_DAY_LIMITS.distanceId),
       label,
       sortOrder: trimmedOrder === "" ? defaultSortOrder : Number(trimmedOrder),
       day: day === "" ? null : day,

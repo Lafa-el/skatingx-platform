@@ -103,6 +103,44 @@ describe("RaceForm", () => {
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ distanceId: "super_1500m", label: "Super 1500m" });
   });
 
+  describe("the distance id when editing", () => {
+    const saved = {
+      distanceId: "500m",
+      label: "500m",
+      sortOrder: 1,
+      day: null,
+      round: null,
+      heat: null,
+      scheduledAt: null,
+      rosterIds: [],
+      sourceNote: "",
+    };
+
+    it("is kept when only the label changes", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", initial: saved });
+      const field = screen.getByLabelText(/项目/);
+      await user.clear(field);
+      await user.type(field, "500m Final");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ distanceId: "500m", label: "500m Final" });
+    });
+
+    it("is kept even when the new label would derive a different one", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", initial: saved });
+      const field = screen.getByLabelText(/项目/);
+      await user.clear(field);
+      await user.type(field, "Super 1500m");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ distanceId: "500m", label: "Super 1500m" });
+    });
+
+    it("falls back to the label for a stored race that has none", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", initial: { ...saved, distanceId: "" } });
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ distanceId: "500m", label: "500m" });
+    });
+  });
+
   it("refuses a time without a day", async () => {
     const { onSubmit, user } = setup();
     await user.type(screen.getByLabelText(/项目/), "500m");
