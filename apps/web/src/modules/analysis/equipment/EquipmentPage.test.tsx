@@ -293,6 +293,89 @@ describe("equipment page", () => {
     });
   });
 
+  describe("the save gate follows the draft, not the status line or the history", () => {
+    const saveButton = () => screen.getByRole("button", { name: "保存记录" }) as HTMLButtonElement;
+    const originalConfirm = window.confirm;
+    const oldRecord = (id: string) =>
+      buildEquipmentHistoryRecord({
+        id,
+        ownerUserId: "user-1",
+        createdAt: "2026-10-19T06:00:00.000Z",
+        symptomKey: "slide",
+        symptomText: "old record",
+        height: "",
+        weight: "40",
+        bladeLength: "",
+        leftRocker: [],
+        rightRocker: [],
+        offsets: { leftFront: "", leftRear: "", rightFront: "", rightRear: "" },
+        bend: { front: "", middle: "", rear: "" },
+        adjustmentType: "unchanged",
+        feedbackRating: "not-skated",
+        adjustmentNotes: "",
+        missingCore: false,
+        ruleHints: [],
+      });
+
+    afterEach(() => {
+      window.confirm = originalConfirm;
+    });
+
+    async function savedWithOneOldRecord(where: "cloud" | "local") {
+      state.uid = "user-1";
+      state.db = {};
+      window.confirm = vi.fn(() => true);
+      if (where === "cloud") {
+        state.records = [oldRecord("old-cloud")];
+      } else {
+        window.localStorage.setItem("skatingx-equipment-history-v1:user-1", JSON.stringify([oldRecord("old-local")]));
+      }
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(screen.getByRole("button", { name: "生成清单" }));
+      await user.click(saveButton());
+      await screen.findByText("已保存到云端器材档案。");
+      expect(saveButton().disabled).toBe(true);
+      return user;
+    }
+
+    it("a failed delete (the status line changes to the delete error) does not free the button", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      state.remove.mockRejectedValueOnce(new Error("cloud delete down"));
+      const user = await savedWithOneOldRecord("cloud");
+
+      await user.click(screen.getByRole("button", { name: "删除记录" }));
+      await screen.findByText("删除失败，请稍后再试。");
+      expect(state.remove).toHaveBeenCalledTimes(1);
+      expect(saveButton().disabled).toBe(true);
+
+      await user.click(saveButton());
+      expect(state.save).toHaveBeenCalledTimes(1);
+    });
+
+    it("a successful delete does not free it either; only generating again does, and that save is not a duplicate", async () => {
+      const user = await savedWithOneOldRecord("cloud");
+
+      await user.click(screen.getByRole("button", { name: "删除记录" }));
+      await waitFor(() => expect(state.remove).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.queryByRole("button", { name: "删除记录" })).toBeNull());
+      expect(saveButton().disabled).toBe(true);
+
+      await user.click(screen.getByRole("button", { name: "生成清单" }));
+      expect(saveButton().disabled).toBe(false);
+    });
+
+    it("deleting an older record from this browser's archive leaves it locked too: the gate is per draft, not per history", async () => {
+      const user = await savedWithOneOldRecord("local");
+
+      await user.click(screen.getByRole("button", { name: "删除记录" }));
+      await waitFor(() => expect(screen.queryByRole("button", { name: "删除记录" })).toBeNull());
+      expect(window.localStorage.getItem("skatingx-equipment-history-v1:user-1")).not.toContain("old-local");
+      expect(saveButton().disabled).toBe(true);
+      expect(state.save).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("saves in this browser when Firebase is not connected", async () => {
     state.uid = "user-1";
     state.db = null;
