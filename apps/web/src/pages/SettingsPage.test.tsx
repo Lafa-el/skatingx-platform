@@ -835,7 +835,8 @@ describe("SettingsPage parent PIN", () => {
     await user.type(screen.getByLabelText("再输入一次"), "2468");
     await user.click(screen.getByRole("button", { name: "保存" }));
     expect(h.update).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert").textContent).toContain("PIN 不正确");
+    // The check hashes the entry first (WebCrypto, async); only the positive result needs waiting.
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("PIN 不正确"));
   });
 
   it("holds the password email and the plan action until the PIN matches, then keeps the session unlocked", async () => {
@@ -851,7 +852,7 @@ describe("SettingsPage parent PIN", () => {
     await user.type(within(dialog).getByLabelText("家长 PIN"), "0000");
     await user.click(within(dialog).getByRole("button", { name: "验证" }));
     expect(h.reset).not.toHaveBeenCalled();
-    expect(within(dialog).getByRole("alert").textContent).toContain("PIN 不正确");
+    await waitFor(() => expect(within(dialog).getByRole("alert").textContent).toContain("PIN 不正确"));
 
     await user.click(within(dialog).getByRole("button", { name: "取消" }));
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -861,7 +862,7 @@ describe("SettingsPage parent PIN", () => {
     expect(screen.queryByText(/这一步不会改你的套餐状态/)).toBeNull();
     await user.type(within(screen.getByRole("dialog")).getByLabelText("家长 PIN"), pin);
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "验证" }));
-    expect(screen.getByText(/这一步不会改你的套餐状态/)).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(/这一步不会改你的套餐状态/)).toBeTruthy());
     expect(h.update).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "修改密码" }));
