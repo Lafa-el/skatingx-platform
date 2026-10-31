@@ -97,11 +97,19 @@ export function filterNewAcademyCandidates(
 ): { toImport: AcademyImportCandidate[]; skipped: number } {
   let skipped = 0;
   const toImport: AcademyImportCandidate[] = [];
+  // Two labels can match the same drill (the matcher is fuzzy by design), and the "already
+  // imported today" check only sees tasks that exist before this batch. `seen` makes the first
+  // candidate win and counts the rest as skipped, as the plan-side filter does.
+  const seen = new Set<string>();
   for (const candidate of candidates) {
-    if (hasAcademyItemImportedToday(todayTasks, candidate.academyItemId)) {
+    if (
+      hasAcademyItemImportedToday(todayTasks, candidate.academyItemId) ||
+      seen.has(candidate.academyItemId)
+    ) {
       skipped += 1;
       continue;
     }
+    seen.add(candidate.academyItemId);
     toImport.push(candidate);
   }
   return { toImport, skipped };

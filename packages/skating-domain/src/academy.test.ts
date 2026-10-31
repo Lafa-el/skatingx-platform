@@ -1,7 +1,13 @@
-import { ACADEMY_STAGES } from "@skatingx/content";
+import { ACADEMY_STAGES, type AcademyItem, type AcademyStage } from "@skatingx/content";
+import type { TrainingTask } from "@skatingx/schema";
 import { describe, expect, it } from "vitest";
 
-import { buildAcademyImportCandidate, matchRoutineTaskLabel } from "./academy";
+import {
+  buildAcademyImportCandidate,
+  filterNewAcademyCandidates,
+  matchRoutineTaskLabel,
+  type AcademyImportCandidate,
+} from "./academy";
 
 const item = ACADEMY_STAGES[0]!.modules[0]!.items[0]!;
 
@@ -114,5 +120,85 @@ describe("matchRoutineTaskLabel: the weekly-plan labels keep their drills", () =
     }
     expect(Object.keys(now)).toHaveLength(63);
     expect(now).toEqual(ROUTINE_MATCHES);
+  });
+});
+
+const candidate = (academyItemId: string): AcademyImportCandidate => ({
+  academyItemId,
+  text: academyItemId,
+  tags: [],
+});
+const importedToday = (academyItemId: string): TrainingTask => ({
+  id: `task-${academyItemId}`,
+  text: academyItemId,
+  source: "academy",
+  academyItemId,
+  completed: false,
+  createdAt: "2026-10-29T09:00:00.000Z",
+});
+
+describe("filterNewAcademyCandidates", () => {
+  it("imports a candidate once per batch: the first wins and the repeat counts as skipped", () => {
+    const a = candidate("item-a");
+    const b = candidate("item-b");
+    const repeat = { ...candidate("item-a"), text: "same drill, other label" };
+    const result = filterNewAcademyCandidates([], [a, b, repeat]);
+    expect(result.toImport).toEqual([a, b]);
+    expect(result.skipped).toBe(1);
+  });
+
+  it("still skips what was imported today first, and counts it once", () => {
+    const result = filterNewAcademyCandidates(
+      [importedToday("item-a")],
+      [candidate("item-a"), candidate("item-a"), candidate("item-b")],
+    );
+    expect(result.toImport.map((c) => c.academyItemId)).toEqual(["item-b"]);
+    expect(result.skipped).toBe(2);
+  });
+
+  it("does not treat a manual or plan task as already imported, and leaves a single import alone", () => {
+    const manual: TrainingTask = { ...importedToday("item-a"), source: "manual", academyItemId: undefined };
+    const result = filterNewAcademyCandidates([manual], [candidate("item-a")]);
+    expect(result.toImport.map((c) => c.academyItemId)).toEqual(["item-a"]);
+    expect(result.skipped).toBe(0);
+  });
+
+  it("an empty batch imports nothing", () => {
+    expect(filterNewAcademyCandidates([importedToday("item-a")], [])).toEqual({ toImport: [], skipped: 0 });
+  });
+});
+
+describe("a weekday routine whose two labels match the same drill", () => {
+  // The two real drills from the 11-16 stage, in their real order, and nothing else: the fuzzy
+  // matcher walks the items in order, and "Static Stretching" contains the keyword "Stretch" that
+  // the second label carries, so both labels land on the first drill.
+  const drill = (id: string, titleZh: string, titleEn: string): AcademyItem => ({
+    ...ACADEMY_STAGES[0]!.modules[0]!.items[0]!,
+    id,
+    titleZh,
+    titleEn,
+  });
+  const stage = {
+    modules: [
+      {
+        items: [
+          drill("drill-static", "静态拉伸（全面柔韧性）", "Static Stretching"),
+          drill("drill-couch", "髋部屈肌深层拉伸（Couch Stretch）", "Couch Stretch (Deep Hip Flexors)"),
+        ],
+      },
+    ],
+  } as unknown as AcademyStage;
+  const labels = ["静态拉伸（全面柔韧性） 15分", "髋部屈肌深层拉伸（Couch Stretch） 2组"];
+
+  it("both labels first-match the same drill (the matcher is unchanged and fuzzy by design)", () => {
+    expect(labels.map((label) => matchRoutineTaskLabel(stage, label)?.id)).toEqual(["drill-static", "drill-static"]);
+  });
+
+  it("the filter then keeps one task and reports the other as skipped", () => {
+    const candidates = labels.map((label) => buildAcademyImportCandidate(matchRoutineTaskLabel(stage, label)!, "zh"));
+    expect(candidates).toHaveLength(2);
+    const result = filterNewAcademyCandidates([], candidates);
+    expect(result.toImport.map((c) => c.academyItemId)).toEqual(["drill-static"]);
+    expect(result.skipped).toBe(1);
   });
 });
