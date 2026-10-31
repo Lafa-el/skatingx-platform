@@ -56,11 +56,27 @@ export async function runDayRolloverIfNeeded(
     return false;
   }
 
-  const previousDate = state.lastLoginDate;
   const stateRef = trainingStateRef(ctx.db, ctx.userId, ctx.athleteId);
+  let rolledOver = false;
 
   await runTransaction(ctx.db, async (tx) => {
-    if (state.todayTasks.length > 0) {
+    // `state` came from a snapshot that may be stale (a task ticked or another device rolled
+    // over since). Only the server copy read here decides what is archived and under which date;
+    // `state` must not be used for any write below.
+    const serverSnap = await tx.get(stateRef);
+    const server = normalizeTrainingState(
+      serverSnap.data() as TrainingState | undefined,
+    );
+
+    // Fail closed: an empty date (including a missing document) or one already at today means
+    // another client archived first, or there is nothing to roll over. Write nothing.
+    if (!server.lastLoginDate || compareDateStrings(today, server.lastLoginDate) <= 0) {
+      rolledOver = false;
+      return;
+    }
+
+    const previousDate = server.lastLoginDate;
+    if (server.todayTasks.length > 0) {
       const historyRef = taskHistoryRef(
         ctx.db,
         ctx.userId,
@@ -69,7 +85,7 @@ export async function runDayRolloverIfNeeded(
       );
       const payload = serializeTaskHistoryDay({
         dateId: previousDate,
-        tasks: serializeTrainingTasks(state.todayTasks),
+        tasks: serializeTrainingTasks(server.todayTasks),
         archivedAt: new Date().toISOString(),
       });
       tx.set(historyRef, toFirestoreData(payload));
@@ -83,9 +99,11 @@ export async function runDayRolloverIfNeeded(
         updatedAt: serverTimestamp(),
       }),
     );
+    // Set on every attempt: the transaction callback can run again after a conflict.
+    rolledOver = true;
   });
 
-  return true;
+  return rolledOver;
 }
 
 export async function addTrainingTask(
