@@ -1,4 +1,5 @@
 import type { RaceEntry } from "@skatingx/schema";
+import { isRealDateString } from "@skatingx/skating-domain";
 
 import type { Locale } from "@/shared/i18n/translator";
 
@@ -30,6 +31,11 @@ export function formatRaceTime(instant: string, locale: Locale, timeZone: string
 
 /** "2026-10-24" -> "Sat, Oct 24" / "10月24日周六". Calendar days have no zone, so UTC is exact. */
 export function formatRaceDay(day: string, locale: Locale): string {
+  // A string that is not a real day is returned as it is: formatting it would roll "2026-02-30"
+  // over into a real but wrong date and show that as if it were the stored one.
+  if (!isRealDateString(day)) {
+    return day;
+  }
   const [year, month, date] = day.split("-").map(Number);
   if (!year || !month || !date) {
     return day;

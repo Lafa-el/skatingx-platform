@@ -1,5 +1,6 @@
 import type { DateString, RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skatingx/schema";
 
+import { isRealDateString } from "./calendar-date";
 import { isConfirmed, sortRaceEntries } from "./race-day";
 import { instantToZonedDateTime } from "./race-day-time";
 
@@ -74,7 +75,10 @@ export function eventPhase(
   if (Number.isNaN(Date.parse(now))) {
     return { kind: "undetermined", reason: "badClock" };
   }
-  const dates = [...new Set(event.dates)].sort();
+  // A date that is not a real calendar day is dropped, as the overview page does: it must not
+  // become the first, last or next day, nor feed `daysUntil` (where `Date.UTC` would roll an
+  // impossible day over into a real but wrong one). Real YYYY-MM-DD sorts as time does.
+  const dates = [...new Set(event.dates.filter(isRealDateString))].sort();
   if (dates.length === 0) {
     return { kind: "undetermined", reason: "noDates" };
   }

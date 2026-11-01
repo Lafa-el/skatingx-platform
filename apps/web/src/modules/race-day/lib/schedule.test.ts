@@ -35,6 +35,18 @@ describe("formatRaceDay", () => {
   it("returns the input for something that is not a date", () => {
     expect(formatRaceDay("soon", "en")).toBe("soon");
   });
+
+  it("returns an impossible day as it is, instead of rolling it over into a real one", () => {
+    for (const bad of ["2026-02-30", "2026-13-99", "2026-00-10", "2026-10-32"]) {
+      expect(formatRaceDay(bad, "en")).toBe(bad);
+      expect(formatRaceDay(bad, "zh")).toBe(bad);
+    }
+  });
+
+  it("the Feb 29 of a leap year is real and formats; of a common year it does not", () => {
+    expect(formatRaceDay("2028-02-29", "en")).toMatch(/29/);
+    expect(formatRaceDay("2026-02-29", "en")).toBe("2026-02-29");
+  });
 });
 
 describe("nextSortOrder", () => {

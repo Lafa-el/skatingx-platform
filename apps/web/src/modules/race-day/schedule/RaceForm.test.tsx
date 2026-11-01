@@ -300,3 +300,130 @@ describe("RaceForm", () => {
     locale.current = "zh";
   });
 });
+
+describe("RaceForm: time zone guards", () => {
+  const INSTANT = "2026-10-24T13:30:00.000Z";
+  const saved = {
+    distanceId: "500m",
+    label: "500m",
+    sortOrder: 0,
+    day: "2026-10-24",
+    round: null,
+    heat: null,
+    scheduledAt: INSTANT as string | null,
+    rosterIds: [],
+    sourceNote: "",
+  };
+  const noZone = { dates: EVENT.dates, timeZone: null };
+  const badZone = { dates: EVENT.dates, timeZone: "Not/AZone" };
+
+  describe("no zone: the stored instant is kept, so the day cannot move away from it", () => {
+    it("editing a race with an instant and only changing the day is refused on the day field", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", event: noZone, initial: saved });
+      await user.selectOptions(screen.getByLabelText("比赛日"), "2026-10-25");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText("时区未知时不能改日期，请先在设置页填写时区")).toBeTruthy();
+      expect(screen.getByLabelText("比赛日").getAttribute("aria-invalid")).toBe("true");
+      await waitFor(() => {
+        expect(document.activeElement).toBe(screen.getByLabelText("比赛日"));
+      });
+    });
+
+    it("clearing the day (unknown) counts as changing it", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", event: noZone, initial: saved });
+      await user.selectOptions(screen.getByLabelText("比赛日"), "");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it("the same edit that leaves the day alone saves and keeps the instant", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", event: noZone, initial: saved });
+      const field = screen.getByLabelText(/项目/);
+      await user.clear(field);
+      await user.type(field, "500m Final");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ label: "500m Final", day: "2026-10-24", scheduledAt: INSTANT });
+    });
+
+    it("a race with no instant may change its day", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", event: noZone, initial: { ...saved, scheduledAt: null } });
+      await user.selectOptions(screen.getByLabelText("比赛日"), "2026-10-25");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ day: "2026-10-25", scheduledAt: null });
+    });
+
+    it("a new race is not limited by it", async () => {
+      const { onSubmit, user } = setup({ event: noZone });
+      await user.type(screen.getByLabelText(/项目/), "500m");
+      await user.selectOptions(screen.getByLabelText("比赛日"), "2026-10-25");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ day: "2026-10-25", scheduledAt: null });
+    });
+  });
+
+  describe("an invalid zone name: nothing can be saved, so no stored instant is lost", () => {
+    it("editing a race with an instant and saving without touching the time is refused on the time field", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", event: badZone, initial: saved });
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText("赛事时区无效，请先在设置页修复时区")).toBeTruthy();
+      expect(screen.getByLabelText(/开始时间/).getAttribute("aria-invalid")).toBe("true");
+    });
+
+    it("the time box cannot be filled, just as with no zone", () => {
+      setup({ mode: "edit", event: badZone, initial: saved });
+      expect((screen.getByLabelText(/开始时间/) as HTMLInputElement).disabled).toBe(true);
+      expect((screen.getByLabelText(/开始时间/) as HTMLInputElement).value).toBe("");
+    });
+
+    it("a new race is refused too", async () => {
+      const { onSubmit, user } = setup({ event: badZone });
+      await user.type(screen.getByLabelText(/项目/), "500m");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText("赛事时区无效，请先在设置页修复时区")).toBeTruthy();
+    });
+
+    it("the refusal is translated to English", async () => {
+      locale.current = "en";
+      try {
+        const { onSubmit, user } = setup({ mode: "edit", event: badZone, initial: saved });
+        await user.click(screen.getByRole("button", { name: "Save" }));
+        expect(onSubmit).not.toHaveBeenCalled();
+        expect(
+          screen.getByText("The event's time zone is invalid. Fix it on the Setup page before editing races."),
+        ).toBeTruthy();
+      } finally {
+        locale.current = "zh";
+      }
+    });
+
+    it("the no-zone day refusal is translated to English", async () => {
+      locale.current = "en";
+      try {
+        const { user } = setup({ mode: "edit", event: noZone, initial: saved });
+        await user.selectOptions(screen.getByLabelText("Race day"), "2026-10-25");
+        await user.click(screen.getByRole("button", { name: "Save" }));
+        expect(screen.getByText("Cannot change the day without a time zone. Set it on the Setup page first.")).toBeTruthy();
+      } finally {
+        locale.current = "zh";
+      }
+    });
+  });
+
+  describe("a valid zone behaves as before", () => {
+    it("changing the day and the time converts the instant in the event's zone", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", initial: saved });
+      await user.selectOptions(screen.getByLabelText("比赛日"), "2026-10-25");
+      setValue(screen.getByLabelText(/开始时间/), "10:15");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ day: "2026-10-25", scheduledAt: "2026-10-25T14:15:00.000Z" });
+    });
+
+    it("the time box stays enabled", () => {
+      setup({ mode: "edit", initial: saved });
+      expect((screen.getByLabelText(/开始时间/) as HTMLInputElement).disabled).toBe(false);
+    });
+  });
+});

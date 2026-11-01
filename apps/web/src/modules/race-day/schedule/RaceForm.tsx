@@ -52,6 +52,9 @@ export function RaceForm({
   const locale = useLocale();
   const formRef = useRef<HTMLFormElement>(null);
   const { timeZone } = event;
+  // Every instant conversion returns null for a zone name the runtime does not know, so any fixed
+  // instant works as a probe. Reuses the domain helper instead of a second zone check.
+  const zoneValid = timeZone === null || instantToZonedDateTime("2026-01-01T00:00:00.000Z", timeZone) !== null;
 
   const [label, setLabel] = useState(initial?.label ?? "");
   const [day, setDay] = useState(initial?.day ?? "");
@@ -102,6 +105,28 @@ export function RaceForm({
   function handleSubmit(submitEvent: FormEvent<HTMLFormElement>) {
     submitEvent.preventDefault();
     if (saving) {
+      return;
+    }
+    // Both gates refuse instead of repairing quietly: a time dropped by a save cannot be got back,
+    // and a day that no longer matches its stored instant is hard to find afterwards.
+    const focusFirstProblem = () => {
+      queueMicrotask(() => {
+        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      });
+    };
+    // With an unknown zone name the time box cannot be filled or converted, so saving would either
+    // clear the stored instant or never match it. Refused for new and edited races alike.
+    if (timeZone !== null && !zoneValid) {
+      setErrors(new Map([["time", "raceDay.form.error.badTimeZone"]]));
+      focusFirstProblem();
+      return;
+    }
+    // Without a zone the stored instant is kept as is (see `resolveScheduledAt`), so moving the
+    // race to another day would leave an instant that belongs to the old one. A new race, or an
+    // edited one with no instant, has nothing to contradict.
+    if (mode === "edit" && timeZone === null && initial?.scheduledAt && day !== (initial.day ?? "")) {
+      setErrors(new Map([["day", "raceDay.form.error.dayNeedsZone"]]));
+      focusFirstProblem();
       return;
     }
     const scheduled = resolveScheduledAt();
@@ -190,7 +215,7 @@ export function RaceForm({
             ? t(locale, "raceDay.form.race.timeZoneIs", { zone: timeZone })
             : t(locale, "raceDay.form.race.timeNeedsZone")
         }
-        disabled={saving || !timeZone}
+        disabled={saving || !timeZone || !zoneValid}
       />
 
       <TextField
