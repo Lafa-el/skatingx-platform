@@ -58,6 +58,38 @@ describe("numericSeries", () => {
     expect(numericSeries([4, null])).toEqual({ kind: "trend", latest: 4, delta: null, spark: [] });
     expect(numericSeries([null, null])).toEqual({ kind: "trend", latest: null, delta: null, spark: [] });
   });
+
+  it("does not draw across a gap: a missing middle value leaves no line, as it leaves no delta", () => {
+    expect(numericSeries([50, null, 40])).toEqual({ kind: "trend", latest: 50, delta: null, spark: [] });
+  });
+
+  it("does not end the line on an older value when the latest is missing", () => {
+    expect(numericSeries([null, 40, 50])).toEqual({ kind: "trend", latest: null, delta: null, spark: [] });
+  });
+
+  it("draws only the run that ends at the latest value, and stops at the first gap", () => {
+    expect(numericSeries([50, 40, null, 30])).toEqual({ kind: "trend", latest: 50, delta: 10, spark: [40, 50] });
+  });
+
+  it("is unchanged for a series with no gap", () => {
+    expect(numericSeries([50, 40, 30])).toEqual({ kind: "trend", latest: 50, delta: 10, spark: [30, 40, 50] });
+  });
+
+  it("looks for the gap only inside the newest eight", () => {
+    const series = numericSeries([9, 8, 7, 6, 5, 4, 3, 2, null, 1]);
+    expect(series).toMatchObject({ kind: "trend", spark: [2, 3, 4, 5, 6, 7, 8, 9] });
+  });
+
+  it("has a line exactly when it has a delta", () => {
+    const cases: (number | null)[][] = [
+      [1, 2], [1, null], [null, 2], [null, null], [1, 2, null], [1, null, 3], [null, 2, 3], [1, 2, null, 4], [1, 2, 3, null, 5, 6],
+    ];
+    for (const newestFirst of cases) {
+      const series = numericSeries(newestFirst);
+      if (series.kind !== "trend") throw new Error("expected a trend");
+      expect(series.spark.length > 0).toBe(series.delta !== null);
+    }
+  });
 });
 
 describe("buildHubModel", () => {

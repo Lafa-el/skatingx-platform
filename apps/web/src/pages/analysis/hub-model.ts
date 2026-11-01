@@ -204,7 +204,10 @@ function byNewest<T extends { readonly id: string; readonly createdAt: string }>
  * `newestFirst` is one kind of record, newest at index 0.
  * Zero records is empty. One record is the value only. Two or more is a trend:
  * delta is latest minus the one before it, and only when both are finite numbers.
- * The sparkline is the newest eight finite numbers, oldest on the left.
+ * The sparkline ends at the latest value and does not cross a gap: it is the unbroken run of finite
+ * numbers from the latest backwards (within the newest eight), oldest on the left. With the latest
+ * value missing, or fewer than two points in the run, there is no line. So it is drawn exactly when
+ * delta exists, and a gap never joins two points that are not neighbours.
  */
 export function numericSeries(newestFirst: readonly (number | null)[]): NumericSeries {
   if (newestFirst.length === 0) return { kind: "empty" };
@@ -212,11 +215,10 @@ export function numericSeries(newestFirst: readonly (number | null)[]): NumericS
   if (newestFirst.length === 1) return { kind: "single", latest };
   const previous = finite(newestFirst[1]);
   const delta = latest !== null && previous !== null ? latest - previous : null;
-  const spark = newestFirst
-    .slice(0, HUB_SPARK_LIMIT)
-    .map((value) => finite(value))
-    .filter((value): value is number => value !== null)
-    .reverse();
+  const recent = newestFirst.slice(0, HUB_SPARK_LIMIT).map((value) => finite(value));
+  const firstGap = recent.indexOf(null);
+  const run = (firstGap === -1 ? recent : recent.slice(0, firstGap)) as number[];
+  const spark = run.reverse();
   return { kind: "trend", latest, delta, spark: spark.length >= 2 ? spark : [] };
 }
 
