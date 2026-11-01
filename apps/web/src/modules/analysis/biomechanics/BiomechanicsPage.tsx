@@ -135,6 +135,9 @@ export function BiomechanicsPage() {
   // The exact samples array that was last saved. appendKeyframe always returns a new array, so any
   // new keyframe breaks the equality and frees the button; unchanged samples stay locked.
   const [savedSamples, setSavedSamples] = useState<readonly PoseKeyframeSample[] | null>(null);
+  // The samples array the user has been asked to confirm saving. Same identity trick as savedSamples:
+  // adding or removing a sample makes a new array, so the confirmation lapses and is asked again.
+  const [confirmingSamples, setConfirmingSamples] = useState<readonly PoseKeyframeSample[] | null>(null);
   const [clock, setClock] = useState("00:00");
   const [duration, setDuration] = useState("00:00");
   // null = the browser has not said yet. A chosen file is not proof of a playable video: only the
@@ -478,6 +481,19 @@ export function BiomechanicsPage() {
       });
   };
 
+  // Saving stays allowed with no readable frame (that is itself information about the clip), but it
+  // takes a second click so it is not done by accident. The count is the page's own aggregate.
+  const needsConfirm = samples.length > 0 && aggregate.readable === 0;
+  const confirmingSave = needsConfirm && confirmingSamples === samples;
+
+  const onSaveClick = () => {
+    if (needsConfirm && !confirmingSave) {
+      setConfirmingSamples(samples);
+      return;
+    }
+    void save().finally(() => setConfirmingSamples(null));
+  };
+
   const save = async () => {
     if (!uid) {
       setStatus("biomech.status.signedOut");
@@ -795,9 +811,9 @@ export function BiomechanicsPage() {
               </p>
               <Button
                 disabled={samples.length === 0 || saving || (savedSamples !== null && savedSamples === samples)}
-                onClick={() => void save()}
+                onClick={onSaveClick}
               >
-                {tBiomech(locale, "biomech.action.save")}
+                {tBiomech(locale, confirmingSave ? "biomech.action.confirmSaveNoReadable" : "biomech.action.save")}
               </Button>
               {status ? <p className="text-sm text-brand-navy">{tBiomech(locale, status)}</p> : null}
               {locked ? <p className="sr-only">{tBiomech(locale, "biomech.lock")}</p> : null}

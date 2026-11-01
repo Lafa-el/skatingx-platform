@@ -148,6 +148,7 @@ function toAnalysis(row: SavedAnalysisSource): HubAnalysisInput {
     findings: row.findings,
     avgKnee: row.biomech?.avgKnee ?? null,
     avgLean: row.biomech?.avgLean ?? null,
+    readableFrames: row.biomech?.readableFrames ?? null,
     decayPercent: row.pace?.decayPercent ?? null,
     stabilityIndexPercent: row.pace?.stabilityIndexPercent ?? null,
     rating: row.pace?.rating ?? null,
@@ -457,6 +458,11 @@ function SuggestionCard({
   );
 }
 
+/** Derived from the readable-frame count on read; never a stored field, so older records carry it too. */
+function NoReadableFramesBadge({ locale }: { locale: Locale }) {
+  return <StatusTag tone="pending">{tAnalysis(locale, "analysis.hub.badge.noReadableFrames")}</StatusTag>;
+}
+
 function AngleCockpit({ card, locale, onRetry }: { card: HubAngleCard; locale: Locale; onRetry: () => void }) {
   return (
     <div data-testid="hub-biomech" data-status={card.status}>
@@ -477,6 +483,7 @@ function AngleCockpit({ card, locale, onRetry }: { card: HubAngleCard; locale: L
           />
         ) : card.status === "single" ? (
           <div className="grid gap-3">
+            {card.noReadableFrames ? <NoReadableFramesBadge locale={locale} /> : null}
             <MetricReadout
               label={tAnalysis(locale, "analysis.hub.metric.lean")}
               value={angleText(card.avgLean, locale)}
@@ -492,6 +499,7 @@ function AngleCockpit({ card, locale, onRetry }: { card: HubAngleCard; locale: L
           </div>
         ) : (
           <div className="grid gap-3">
+            {card.noReadableFrames ? <NoReadableFramesBadge locale={locale} /> : null}
             <MetricReadout
               label={tAnalysis(locale, "analysis.hub.metric.lean")}
               value={angleText(card.lean.latest, locale)}
@@ -656,6 +664,7 @@ function RecentList({ recent, locale }: { recent: ReturnType<typeof buildHubMode
                   <StatusTag tone="brand">{tAnalysis(locale, stickerKey(item.kind))}</StatusTag>
                   <span className="text-sm text-brand-navy/80">{formatWhen(locale, item.createdAt)}</span>
                   <span className="sx-numeric text-lg text-brand-flame">{headline(item, locale)}</span>
+                  {item.kind === "biomech" && item.noReadableFrames ? <NoReadableFramesBadge locale={locale} /> : null}
                 </Link>
               </li>
             ))}

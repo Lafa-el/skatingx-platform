@@ -32,6 +32,34 @@ function ready<T>(records: readonly T[]): HubLane<T> {
   return { status: "ready", records };
 }
 
+describe("the no-readable-frames flag", () => {
+  const bio = (id: string, createdAt: string, readableFrames: number | null | undefined) =>
+    analysis({ kind: "biomech", id, createdAt, readableFrames });
+
+  it("is set only by an explicit 0 count, never by empty averages", () => {
+    const zero = buildHubModel({ analyses: ready([bio("a", "2026-10-01T00:00:00.000Z", 0)]), equipment: ready([]), hidden: new Set() });
+    expect(zero.biomech).toMatchObject({ status: "single", noReadableFrames: true });
+    expect(zero.recent).toMatchObject({ status: "ready", items: [{ kind: "biomech", noReadableFrames: true }] });
+
+    for (const count of [3, null, undefined]) {
+      const model = buildHubModel({ analyses: ready([bio("a", "2026-10-01T00:00:00.000Z", count)]), equipment: ready([]), hidden: new Set() });
+      expect(model.biomech).toMatchObject({ noReadableFrames: false }); // averages are null here too
+      expect(model.recent).toMatchObject({ items: [{ noReadableFrames: false }] });
+    }
+  });
+
+  it("the card follows the newest record; each history row follows its own", () => {
+    const model = buildHubModel({
+      analyses: ready([bio("old", "2026-10-01T00:00:00.000Z", 0), bio("new", "2026-10-08T00:00:00.000Z", 2)]),
+      equipment: ready([]),
+      hidden: new Set(),
+    });
+    expect(model.biomech).toMatchObject({ status: "trend", noReadableFrames: false });
+    if (model.recent.status !== "ready") throw new Error("expected ready");
+    expect(model.recent.items.map((item) => (item.kind === "biomech" ? item.noReadableFrames : null))).toEqual([false, true]);
+  });
+});
+
 describe("numericSeries", () => {
   it("is empty with no records, and a single record has no delta or sparkline", () => {
     expect(numericSeries([])).toEqual({ kind: "empty" });

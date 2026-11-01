@@ -16,7 +16,7 @@ type AnalysisRow = {
   /** Absent in older fixtures, which stand for records saved before distance was stored. */
   distance?: "500" | "777" | "1000" | null;
   findings: { code: string }[];
-  biomech: { avgKnee: number | null; avgLean: number | null } | null;
+  biomech: { avgKnee: number | null; avgLean: number | null; readableFrames?: number } | null;
   pace: {
     decayPercent: number | null;
     stabilityIndexPercent?: number | null;
@@ -210,6 +210,94 @@ describe("analysis hub: states", () => {
     expect(screen.getByText("42°")).toBeTruthy();
     expect(screen.queryByText("与上一次相差")).toBeNull();
     expect(document.querySelector("#hub-biomech polyline, [data-testid='hub-biomech'] polyline")).toBeNull();
+  });
+
+  describe("the no-readable-frames mark on biomechanics", () => {
+    const BADGE = "无有效帧";
+    const bio = (id: string, createdAt: string, readableFrames: number, avg: number | null) => ({
+      kind: "biomech" as const,
+      id,
+      createdAt,
+      findings: [],
+      biomech: { avgKnee: avg, avgLean: avg, readableFrames },
+      pace: null,
+    });
+    const inside = (view: ReturnType<typeof render>, testId: string) =>
+      view.container.querySelector(`[data-testid='${testId}']`)?.textContent ?? "";
+
+    it("a record with 0 readable frames is marked on the card and in the history row, next to its (missing) values", () => {
+      state.analysesMode = "ready";
+      state.equipmentMode = "ready";
+      state.analyses = [bio("bio-0", "2026-10-18T00:00:00.000Z", 0, null)];
+      const view = render(renderHub());
+      expect(inside(view, "hub-biomech")).toContain(BADGE);
+      expect(inside(view, "hub-recent")).toContain(BADGE);
+      expect(inside(view, "hub-biomech")).toContain("—"); // the missing values are still shown, not replaced
+      expect(inside(view, "hub-recent")).toContain("— · —");
+    });
+
+    it("a record with readable frames has no mark anywhere", () => {
+      state.analysesMode = "ready";
+      state.equipmentMode = "ready";
+      state.analyses = [bio("bio-3", "2026-10-18T00:00:00.000Z", 3, 100)];
+      const view = render(renderHub());
+      expect(view.container.textContent).not.toContain(BADGE);
+    });
+
+    it("the card follows the latest record, and the older unreadable record keeps its mark in the history", () => {
+      state.analysesMode = "ready";
+      state.equipmentMode = "ready";
+      state.analyses = [
+        bio("bio-old", "2026-10-01T00:00:00.000Z", 0, null),
+        bio("bio-new", "2026-10-08T00:00:00.000Z", 4, 100),
+      ];
+      const view = render(renderHub());
+      expect(inside(view, "hub-biomech")).not.toContain(BADGE);
+      expect(inside(view, "hub-recent").split(BADGE)).toHaveLength(2); // exactly one row marked
+
+      state.analyses = [
+        bio("bio-old", "2026-10-01T00:00:00.000Z", 4, 100),
+        bio("bio-new", "2026-10-08T00:00:00.000Z", 0, null),
+      ];
+      view.unmount();
+      const again = render(renderHub());
+      expect(inside(again, "hub-biomech")).toContain(BADGE);
+    });
+
+    it("a record without a count (not known) is not marked, and a pace record never is", () => {
+      state.analysesMode = "ready";
+      state.equipmentMode = "ready";
+      state.analyses = [
+        {
+          kind: "biomech",
+          id: "bio-unknown",
+          createdAt: "2026-10-18T00:00:00.000Z",
+          findings: [],
+          biomech: { avgKnee: null, avgLean: null },
+          pace: null,
+        },
+        {
+          kind: "pace",
+          id: "pace-1",
+          createdAt: "2026-10-19T00:00:00.000Z",
+          findings: [],
+          biomech: null,
+          pace: { decayPercent: 4, rating: "moderate" },
+        },
+      ];
+      const view = render(renderHub());
+      expect(view.container.textContent).not.toContain(BADGE);
+    });
+
+    it("shows the English mark in English", () => {
+      state.locale = "en";
+      state.analysesMode = "ready";
+      state.equipmentMode = "ready";
+      state.analyses = [bio("bio-0", "2026-10-18T00:00:00.000Z", 0, null)];
+      const view = render(renderHub());
+      expect(inside(view, "hub-biomech")).toContain("No readable frames");
+      expect(inside(view, "hub-recent")).toContain("No readable frames");
+    });
   });
 
   it("draws a delta and a sparkline only when a kind has two records", () => {

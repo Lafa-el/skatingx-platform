@@ -244,6 +244,7 @@ describe("biomechanics page", () => {
     });
 
     it("is disabled with no keyframe, locks after a successful save, and a new keyframe frees it", async () => {
+      state.forcedAngles = { lean: 12, knee: 100 }; // readable frames: one click saves, no confirmation
       const { user, takeKeyframe } = await started();
       expect(saveButton().disabled).toBe(true);
 
@@ -269,6 +270,7 @@ describe("biomechanics page", () => {
     it("stays clickable when the save fails, and can be retried", async () => {
       const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
       state.save.mockRejectedValueOnce(new Error("cloud down"));
+      state.forcedAngles = { lean: 12, knee: 100 };
       const { user, takeKeyframe } = await started();
       await takeKeyframe();
 
@@ -281,6 +283,95 @@ describe("biomechanics page", () => {
       expect(state.save).toHaveBeenCalledTimes(2);
       expect(saveButton().disabled).toBe(true);
       log.mockRestore();
+    });
+  });
+
+  describe("saving a session with no readable frame", () => {
+    const SAVE = "保存本次分析";
+    const CONFIRM = "确认保存（无有效帧）";
+    const button = (name: string) => screen.getByRole("button", { name }) as HTMLButtonElement;
+
+    it("the first click only asks: nothing is written and no saved state shows; the second click saves", async () => {
+      const { user, takeKeyframe } = await started(); // frames that could not be read
+      await takeKeyframe();
+
+      await user.click(button(SAVE));
+      expect(button(CONFIRM)).toBeTruthy();
+      expect(button(CONFIRM).disabled).toBe(false);
+      expect(state.save).not.toHaveBeenCalled();
+      expect(screen.queryByText("已保存这次分析。")).toBeNull();
+
+      await user.click(button(CONFIRM));
+      await screen.findByText("已保存这次分析。");
+      expect(state.save).toHaveBeenCalledTimes(1);
+      expect(button(SAVE).disabled).toBe(true); // the saved lock, and the confirmation is gone
+    });
+
+    it("a new keyframe lapses the confirmation: it has to be confirmed again", async () => {
+      const { user, takeKeyframe } = await started();
+      await takeKeyframe();
+      await user.click(button(SAVE));
+      expect(button(CONFIRM)).toBeTruthy();
+
+      await takeKeyframe();
+      expect(screen.getByText("2 / 10")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: CONFIRM })).toBeNull();
+
+      await user.click(button(SAVE));
+      expect(state.save).not.toHaveBeenCalled();
+      expect(button(CONFIRM)).toBeTruthy();
+    });
+
+    it("clearing the samples lapses the confirmation and disables the button again", async () => {
+      const { user, takeKeyframe } = await started();
+      await takeKeyframe();
+      await user.click(button(SAVE));
+      await user.click(screen.getByRole("button", { name: "清空" }));
+      expect(button(SAVE).disabled).toBe(true);
+      expect(state.save).not.toHaveBeenCalled();
+    });
+
+    it("a failed save lifts the confirmation, so a retry asks again", async () => {
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      state.save.mockRejectedValueOnce(new Error("cloud down"));
+      const { user, takeKeyframe } = await started();
+      await takeKeyframe();
+      await user.click(button(SAVE));
+      await user.click(button(CONFIRM));
+      await screen.findByText("云端保存失败。");
+      expect(state.save).toHaveBeenCalledTimes(1);
+
+      expect(screen.queryByRole("button", { name: CONFIRM })).toBeNull();
+      await user.click(button(SAVE));
+      expect(state.save).toHaveBeenCalledTimes(1);
+      await user.click(button(CONFIRM));
+      await screen.findByText("已保存这次分析。");
+      expect(state.save).toHaveBeenCalledTimes(2);
+      log.mockRestore();
+    });
+
+    it("with at least one readable frame a single click saves, with no confirmation", async () => {
+      state.forcedAngles = { lean: 12, knee: 100 };
+      const { user, takeKeyframe } = await started();
+      await takeKeyframe();
+      await user.click(button(SAVE));
+      await screen.findByText("已保存这次分析。");
+      expect(state.save).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("button", { name: CONFIRM })).toBeNull();
+    });
+
+    it("a frame that is readable but misses an angle still counts as not readable here (the page's own aggregate)", async () => {
+      state.forcedAngles = { lean: null, knee: 45 };
+      const { user, takeKeyframe } = await started();
+      await takeKeyframe();
+      await user.click(button(SAVE));
+      expect(state.save).not.toHaveBeenCalled();
+      expect(button(CONFIRM)).toBeTruthy();
+    });
+
+    it("has a Chinese and an English label", () => {
+      expect(tBiomech("zh", "biomech.action.confirmSaveNoReadable")).toBe(CONFIRM);
+      expect(tBiomech("en", "biomech.action.confirmSaveNoReadable")).toBe("Save anyway (no readable frames)");
     });
   });
 

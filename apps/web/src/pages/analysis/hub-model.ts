@@ -39,6 +39,11 @@ export type HubAnalysisInput = {
   readonly findings: readonly { readonly code: string }[];
   readonly avgKnee: number | null;
   readonly avgLean: number | null;
+  /**
+   * Biomechanics only: how many saved frames were readable. Absent or null = not known, which is never
+   * treated as zero (only an explicit 0 marks a record as having no readable frames).
+   */
+  readonly readableFrames?: number | null;
   readonly decayPercent: number | null;
   readonly stabilityIndexPercent: number | null;
   readonly rating: HubPaceRating | null;
@@ -77,12 +82,16 @@ export type HubAngleCard =
       readonly createdAt: string;
       readonly avgLean: number | null;
       readonly avgKnee: number | null;
+      /** True only when the latest record explicitly has zero readable frames. */
+      readonly noReadableFrames: boolean;
     }
   | {
       readonly status: "trend";
       readonly createdAt: string;
       readonly lean: HubMetric;
       readonly knee: HubMetric;
+      /** True only when the latest record explicitly has zero readable frames. */
+      readonly noReadableFrames: boolean;
     };
 
 export type HubPaceDecay = {
@@ -136,6 +145,7 @@ export type HubRecentItem =
       readonly createdAt: string;
       readonly avgLean: number | null;
       readonly avgKnee: number | null;
+      readonly noReadableFrames: boolean;
     }
   | {
       readonly kind: "pace";
@@ -184,6 +194,10 @@ export type HubModel = {
 
 function finite(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function hasNoReadableFrames(row: HubAnalysisInput): boolean {
+  return row.readableFrames === 0;
 }
 
 function savedAt(createdAt: string): number {
@@ -276,13 +290,20 @@ function angleCard(lane: HubLane<HubAnalysisInput>): HubAngleCard {
   const latest = rows[0];
   if (!latest) return { status: "empty" };
   if (rows.length === 1) {
-    return { status: "single", createdAt: latest.createdAt, avgLean: finite(latest.avgLean), avgKnee: finite(latest.avgKnee) };
+    return {
+      status: "single",
+      createdAt: latest.createdAt,
+      avgLean: finite(latest.avgLean),
+      avgKnee: finite(latest.avgKnee),
+      noReadableFrames: hasNoReadableFrames(latest),
+    };
   }
   return {
     status: "trend",
     createdAt: latest.createdAt,
     lean: metricFrom(numericSeries(rows.map((row) => row.avgLean))),
     knee: metricFrom(numericSeries(rows.map((row) => row.avgKnee))),
+    noReadableFrames: hasNoReadableFrames(latest),
   };
 }
 
@@ -335,7 +356,14 @@ function equipmentCard(lane: HubLane<HubEquipmentInput>): HubEquipmentCard {
 }
 
 function biomechItem(row: HubAnalysisInput): HubRecentItem {
-  return { kind: "biomech", id: row.id, createdAt: row.createdAt, avgLean: finite(row.avgLean), avgKnee: finite(row.avgKnee) };
+  return {
+    kind: "biomech",
+    id: row.id,
+    createdAt: row.createdAt,
+    avgLean: finite(row.avgLean),
+    avgKnee: finite(row.avgKnee),
+    noReadableFrames: hasNoReadableFrames(row),
+  };
 }
 
 function paceItem(row: HubAnalysisInput): HubRecentItem {
