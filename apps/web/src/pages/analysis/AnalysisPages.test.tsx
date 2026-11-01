@@ -41,6 +41,9 @@ const state = vi.hoisted(() => ({
   equipmentMode: "hold" as "hold" | "ready" | "error",
   analyses: [] as AnalysisRow[],
   equipment: [] as EquipmentRow[],
+  // Documents each snapshot left out whole, as the subscription reports them.
+  analysesDropped: 0,
+  equipmentDropped: 0,
   // Settings as the page reads them: the default names the athlete, a test can leave it out or change it.
   settings: { activeAthleteId: "lindsay" } as { activeAthleteId?: string } | null,
   // The athlete id each equipment subscription was opened for.
@@ -85,10 +88,10 @@ vi.mock("@skatingx/firebase-client", () => ({
   subscribeToSavedAnalyses: (
     _db: unknown,
     _uid: unknown,
-    onData: (rows: AnalysisRow[]) => void,
+    onData: (rows: AnalysisRow[], dropped: number) => void,
     onError: (error: unknown) => void,
   ) => {
-    if (state.analysesMode === "ready") onData(state.analyses);
+    if (state.analysesMode === "ready") onData(state.analyses, state.analysesDropped);
     if (state.analysesMode === "error") onError(new Error("read"));
     return () => undefined;
   },
@@ -96,11 +99,11 @@ vi.mock("@skatingx/firebase-client", () => ({
     _db: unknown,
     _uid: unknown,
     athlete: unknown,
-    onData: (rows: EquipmentRow[]) => void,
+    onData: (rows: EquipmentRow[], dropped: number) => void,
     onError: (error: unknown) => void,
   ) => {
     state.equipmentAthletes.push(athlete);
-    if (state.equipmentMode === "ready") onData(state.equipment);
+    if (state.equipmentMode === "ready") onData(state.equipment, state.equipmentDropped);
     if (state.equipmentMode === "error") onError(new Error("read"));
     return () => undefined;
   },
@@ -133,6 +136,8 @@ afterEach(() => {
   state.equipmentMode = "hold";
   state.analyses = [];
   state.equipment = [];
+  state.analysesDropped = 0;
+  state.equipmentDropped = 0;
   state.settings = { activeAthleteId: "lindsay" };
   state.equipmentAthletes = [];
   sessionStorage.clear();
@@ -210,6 +215,75 @@ describe("analysis hub: states", () => {
     expect(screen.getByText("42°")).toBeTruthy();
     expect(screen.queryByText("与上一次相差")).toBeNull();
     expect(document.querySelector("#hub-biomech polyline, [data-testid='hub-biomech'] polyline")).toBeNull();
+  });
+
+  describe("an empty lane whose source had documents it could not read", () => {
+    const NOTE = "有部分记录无法读取";
+    const inside = (view: ReturnType<typeof render>, testId: string) =>
+      view.container.querySelector(`[data-testid='${testId}']`)?.textContent ?? "";
+
+    it("the biomechanics, pace and equipment cards each add the note to their usual empty text and link", () => {
+      readyEmpty();
+      state.analysesDropped = 2;
+      state.equipmentDropped = 1;
+      const view = render(renderHub());
+      for (const [testId, body, cta] of [
+        ["hub-biomech", "还没有可显示的动作分析。", "去做动作分析"],
+        ["hub-pace", "还没有可显示的配速。", "去记配速"],
+        ["hub-equipment", "还没有可显示的装备记录。", "去记装备"],
+      ] as const) {
+        expect(inside(view, testId)).toContain(NOTE);
+        expect(inside(view, testId)).toContain(body); // the plain text stays
+        expect(inside(view, testId)).toContain(cta); // and so does the link
+      }
+    });
+
+    it("each note follows its own source: unreadable analyses do not mark the equipment card", () => {
+      readyEmpty();
+      state.analysesDropped = 1;
+      const view = render(renderHub());
+      expect(inside(view, "hub-biomech")).toContain(NOTE);
+      expect(inside(view, "hub-pace")).toContain(NOTE);
+      expect(inside(view, "hub-equipment")).not.toContain(NOTE);
+    });
+
+    it("nothing dropped: the empty lanes have no note", () => {
+      readyEmpty();
+      const view = render(renderHub());
+      expect(view.container.textContent).not.toContain(NOTE);
+      expect(inside(view, "hub-biomech")).toContain("还没有可显示的动作分析。");
+    });
+
+    it("a lane that has records gets no note, only the empty case is told apart", () => {
+      state.analysesMode = "ready";
+      state.equipmentMode = "ready";
+      state.analysesDropped = 3;
+      state.analyses = [
+        { kind: "biomech", id: "b1", createdAt: "2026-10-18T00:00:00.000Z", findings: [], biomech: { avgKnee: 108, avgLean: 42 }, pace: null },
+      ];
+      const view = render(renderHub());
+      expect(inside(view, "hub-biomech")).not.toContain(NOTE);
+      expect(inside(view, "hub-pace")).toContain(NOTE); // pace is still empty
+    });
+
+    it("a failed read keeps the existing error and retry, with no note on top", () => {
+      state.analysesMode = "error";
+      state.equipmentMode = "error";
+      state.analysesDropped = 5;
+      state.equipmentDropped = 5;
+      const view = render(renderHub());
+      expect(screen.getByRole("button", { name: "重试生物力学" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "重试装备" })).toBeTruthy();
+      expect(view.container.textContent).not.toContain(NOTE);
+    });
+
+    it("shows the English note in English", () => {
+      state.locale = "en";
+      readyEmpty();
+      state.equipmentDropped = 1;
+      const view = render(renderHub());
+      expect(inside(view, "hub-equipment")).toContain("Some records could not be read");
+    });
   });
 
   describe("an equipment record whose findings were never stored", () => {

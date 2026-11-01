@@ -271,6 +271,12 @@ export function EquipmentPage() {
   const [cloudHistory, setCloudHistory] = useState<readonly EquipmentHistoryRecord[]>([]);
   const [localHistory, setLocalHistory] = useState<readonly EquipmentHistoryRecord[]>([]);
   const [synced, setSynced] = useState(false);
+  // A failed read is not an empty history: the error shows (with a retry) next to whatever data is
+  // already on screen, and an empty history only reads as "nothing saved" when the read worked.
+  const [syncFailed, setSyncFailed] = useState(false);
+  const [syncAttempt, setSyncAttempt] = useState(0);
+  // Documents of the latest cloud snapshot that were left out whole because they could not be read.
+  const [cloudDropped, setCloudDropped] = useState(0);
   const [compareA, setCompareA] = useState("");
   const [compareB, setCompareB] = useState("");
   const [comparison, setComparison] = useState<string[] | null>(null);
@@ -297,6 +303,8 @@ export function EquipmentPage() {
     if (!uid) {
       setCloudHistory([]);
       setSynced(false);
+      setSyncFailed(false);
+      setCloudDropped(0);
       return;
     }
     const db = getFirestoreDb();
@@ -304,23 +312,27 @@ export function EquipmentPage() {
       setSynced(false);
       return;
     }
+    setSyncFailed(false);
     const unsubscribe = subscribeToEquipmentHistory(
       db,
       uid,
       athleteId,
-      (records) => {
+      (records, dropped) => {
         setCloudHistory(records);
+        setCloudDropped(dropped);
         setSynced(true);
+        setSyncFailed(false);
       },
       (error) => {
         logActionFailure("equipment", "subscribe", error);
         setSynced(false);
+        setSyncFailed(true);
       },
     );
     return () => {
       unsubscribe();
     };
-  }, [uid, athleteId]);
+  }, [uid, athleteId, syncAttempt]);
 
   const unrecorded = tEquipment(locale, "equipment.history.unrecorded");
 
@@ -834,12 +846,28 @@ export function EquipmentPage() {
 
         <Card title={tEquipment(locale, "equipment.history.title")}>
           <p>{tEquipment(locale, "equipment.history.body")}</p>
+          {syncFailed ? (
+            <div className="mt-3 grid gap-3">
+              <ErrorNotice>{tEquipment(locale, "equipment.history.syncFailed")}</ErrorNotice>
+              <Button type="button" variant="outline" onClick={() => setSyncAttempt((attempt) => attempt + 1)}>
+                {tEquipment(locale, "equipment.history.retry")}
+              </Button>
+            </div>
+          ) : null}
           {synced ? <p className="mt-2 font-semibold">{tEquipment(locale, "equipment.history.cloud")}</p> : null}
           {localOnly.length > 0 ? (
             <p className="mt-2 font-semibold">{tEquipment(locale, "equipment.history.local")}</p>
           ) : null}
           {history.length === 0 ? (
-            <p className="mt-3">{tEquipment(locale, "equipment.history.empty")}</p>
+            // Empty after a failed read says "failed" above, not "nothing saved"; empty after a good read
+            // with unreadable documents says so, and only a good read of nothing shows the plain empty text.
+            syncFailed ? null : cloudDropped > 0 ? (
+              <p role="status" className="mt-3">
+                {tEquipment(locale, "equipment.history.partialUnreadable")}
+              </p>
+            ) : (
+              <p className="mt-3">{tEquipment(locale, "equipment.history.empty")}</p>
+            )
           ) : (
             <ul className="mt-3 grid gap-3 md:grid-cols-2">
               {history.map((record) => (

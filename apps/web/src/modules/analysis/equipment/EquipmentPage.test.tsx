@@ -16,6 +16,9 @@ const state = vi.hoisted(() => ({
   remove: vi.fn((_db: unknown, _uid: unknown, _athlete: unknown, _id: unknown) => Promise.resolve()),
   unsubscribe: vi.fn(),
   records: [] as unknown[],
+  // What the history listener does: deliver the records (with the count of documents it left out), or fail.
+  dropped: 0,
+  mode: "ok" as "ok" | "error",
   // Settings as the page reads them: empty names no athlete.
   settings: {} as { activeAthleteId?: string } | null,
   // The athlete id each history subscription was opened for.
@@ -38,10 +41,12 @@ vi.mock("@skatingx/firebase-client", () => ({
     _db: unknown,
     _uid: unknown,
     athlete: unknown,
-    onRecords: (records: readonly unknown[]) => void,
+    onRecords: (records: readonly unknown[], dropped: number) => void,
+    onError: (error: unknown) => void,
   ) => {
     state.subscribed.push(athlete);
-    onRecords(state.records);
+    if (state.mode === "error") onError(new Error("read"));
+    else onRecords(state.records, state.dropped);
     return state.unsubscribe;
   },
 }));
@@ -75,6 +80,8 @@ beforeEach(() => {
   state.uid = null;
   state.db = null;
   state.records = [];
+  state.dropped = 0;
+  state.mode = "ok";
   state.settings = {};
   state.subscribed = [];
   state.save.mockReset();
@@ -94,6 +101,114 @@ const renderPage = () =>
       <AnalysisEquipmentPage />
     </MemoryRouter>,
   );
+
+describe("the history when the cloud read fails or documents cannot be read", () => {
+  const EMPTY = "还没有保存过器材记录";
+  const FAILED = "云端历史同步失败";
+  const PARTIAL = "有部分记录无法读取";
+  const signedIn = () => {
+    state.uid = "user-1";
+    state.db = {};
+  };
+  const record = (id: string, symptomText: string) =>
+    buildEquipmentHistoryRecord({
+      id,
+      ownerUserId: "user-1",
+      createdAt: "2026-10-19T06:00:00.000Z",
+      symptomKey: "slide",
+      symptomText,
+      height: "",
+      weight: "40",
+      bladeLength: "",
+      leftRocker: [],
+      rightRocker: [],
+      offsets: { leftFront: "", leftRear: "", rightFront: "", rightRear: "" },
+      bend: { front: "", middle: "", rear: "" },
+      adjustmentType: "unchanged",
+      feedbackRating: "not-skated",
+      adjustmentNotes: "",
+      missingCore: false,
+      ruleHints: [],
+    });
+
+  it("a failed read shows the error and a retry, and not the 'nothing saved' text", () => {
+    signedIn();
+    state.mode = "error";
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    renderPage();
+    expect(screen.getByRole("alert").textContent).toContain(FAILED);
+    expect(screen.getByRole("button", { name: "重新同步" })).toBeTruthy();
+    expect(screen.queryByText(new RegExp(EMPTY))).toBeNull();
+    expect(screen.queryByText("云端同步")).toBeNull(); // not claimed as synced
+    expect(log).toHaveBeenCalled(); // the diagnostic is still logged
+  });
+
+  it("retry subscribes again, and a good read clears the banner", async () => {
+    signedIn();
+    state.mode = "error";
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const user = userEvent.setup();
+    renderPage();
+    expect(state.subscribed).toHaveLength(1);
+
+    state.mode = "ok";
+    await user.click(screen.getByRole("button", { name: "重新同步" }));
+
+    expect(state.subscribed).toHaveLength(2);
+    expect(state.unsubscribe).toHaveBeenCalledTimes(1); // the failed listener was released first
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: "重新同步" })).toBeNull();
+    expect(screen.getByText("云端同步")).toBeTruthy();
+    expect(screen.getByText(new RegExp(EMPTY))).toBeTruthy(); // a good read of nothing is plain empty
+  });
+
+  it("the error shows next to records that are already on screen (this browser's archive)", () => {
+    signedIn();
+    window.localStorage.setItem(
+      "skatingx-equipment-history-v1:user-1",
+      JSON.stringify([record("old-local", "旧记录")]),
+    );
+    state.mode = "error";
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    renderPage();
+    expect(screen.getByRole("alert").textContent).toContain(FAILED);
+    expect(screen.getByText("旧记录")).toBeTruthy();
+  });
+
+  it("an empty history with unreadable documents says so, instead of the plain empty text", () => {
+    signedIn();
+    state.dropped = 2;
+    renderPage();
+    expect(screen.getByText(PARTIAL)).toBeTruthy();
+    expect(screen.queryByText(new RegExp(EMPTY))).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("an empty history with nothing dropped keeps the plain empty text", () => {
+    signedIn();
+    renderPage();
+    expect(screen.getByText(new RegExp(EMPTY))).toBeTruthy();
+    expect(screen.queryByText(PARTIAL)).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("a history with records has no unreadable note, whatever was dropped", () => {
+    signedIn();
+    state.dropped = 2;
+    state.records = [record("e1", "有记录")];
+    renderPage();
+    expect(screen.getByText("有记录")).toBeTruthy();
+    expect(screen.queryByText(PARTIAL)).toBeNull();
+  });
+
+  it("has an English line for each new message", () => {
+    state.locale = "en";
+    signedIn();
+    state.dropped = 1;
+    renderPage();
+    expect(screen.getByText("Some records could not be read")).toBeTruthy();
+  });
+});
 
 describe("equipment page", () => {
   it("builds an incomplete checklist from an empty form, and a reviewable one once weight and a centre reading exist", async () => {

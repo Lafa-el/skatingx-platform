@@ -40,12 +40,17 @@ export function equipmentHistoryFromDocument(data: unknown): EquipmentHistoryRec
 /**
  * One equipment-history listener. The legacy profile and check-in listeners are not opened here.
  * The caller must use the returned function on unmount.
+ *
+ * `dropped` counts the documents of this snapshot that were left out whole (not an object, or no string
+ * `id` / `createdAt`). It is worked out again for every snapshot, never summed over time, and a record
+ * kept after its `findings` were normalised is not counted. It lets a caller tell "no records" from
+ * "records that could not be read".
  */
 export function subscribeToEquipmentHistory(
   db: Firestore,
   userId: string,
   athleteId: string,
-  onRecords: (records: readonly EquipmentHistoryRecord[]) => void,
+  onRecords: (records: readonly EquipmentHistoryRecord[], dropped: number) => void,
   onError: (error: unknown) => void,
 ): () => void {
   const history = query(
@@ -60,7 +65,7 @@ export function subscribeToEquipmentHistory(
         const record = equipmentHistoryFromDocument(entry.data());
         return record ? [record] : [];
       });
-      onRecords(records);
+      onRecords(records, snapshot.docs.length - records.length);
     },
     onError,
   );

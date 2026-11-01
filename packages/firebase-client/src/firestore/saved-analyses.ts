@@ -121,11 +121,16 @@ export function savedAnalysisFromDocument(docId: string, data: Record<string, un
 /**
  * Read the saved pace and biomechanics documents. This does not write.
  * The caller unsubscribes when the page goes away.
+ *
+ * `dropped` counts the documents of this snapshot that were left out whole (no string `createdAt`, or
+ * not exactly one of pace / poseFrames). It is worked out again for every snapshot, never summed over
+ * time, and it does not count fields that were normalised while the record was kept. It exists so a
+ * caller can tell "no records" from "records that could not be read".
  */
 export function subscribeToSavedAnalyses(
   db: Firestore,
   userId: string,
-  onData: (sources: readonly SavedAnalysisSource[]) => void,
+  onData: (sources: readonly SavedAnalysisSource[], dropped: number) => void,
   onError: (error: unknown) => void,
 ): Unsubscribe {
   const saved = query(analysesCollectionRef(db, userId), orderBy("createdAt", "desc"));
@@ -133,11 +138,13 @@ export function subscribeToSavedAnalyses(
     saved,
     (snapshot) => {
       const sources: SavedAnalysisSource[] = [];
+      let dropped = 0;
       for (const entry of snapshot.docs) {
         const source = savedAnalysisFromDocument(entry.id, entry.data());
         if (source) sources.push(source);
+        else dropped += 1;
       }
-      onData(sources);
+      onData(sources, dropped);
     },
     onError,
   );
