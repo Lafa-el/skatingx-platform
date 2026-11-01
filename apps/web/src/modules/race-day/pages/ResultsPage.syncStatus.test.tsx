@@ -308,14 +308,55 @@ describe("result row sync status: eventual consistency", () => {
     expect(lines(container)).toEqual([]);
   });
 
-  it("shows nothing, and logs once, when the records cannot be read", () => {
+  it("says the state is unknown, never waiting or recorded, and logs once, when the records cannot be read", () => {
     setup({});
     const { container } = renderPage();
     act(() => h.onError?.({ code: "permission-denied" }));
-    expect(lines(container)).toEqual([]);
+    expect(lines(container)).toEqual([expect.stringMatching(/^纪录读取失败，同步状态未知重试同步/)]);
     expect(screen.queryByText("等待同步")).toBeNull();
     expect(screen.queryByText(/已记入纪录/)).toBeNull();
     expect(console.error).toHaveBeenCalledTimes(1);
+  });
+
+  it("an unconfirmed row shows no sync line when the records cannot be read", () => {
+    setup({ results: [result("lindsay", { verification: "pending", verifiedAt: null })] });
+    const { container } = renderPage();
+    act(() => h.onError?.({ code: "permission-denied" }));
+    expect(lines(container)).toEqual([]);
+  });
+
+  it("the retry rebuilds the records read: the old listener is released, a new one starts, and the row turns recorded", async () => {
+    setup({});
+    const { container, user } = renderPage();
+    act(() => h.onError?.({ code: "unavailable" }));
+    expect(h.subscribed).toBe(1);
+    expect(h.unsubscribed).toBe(0);
+
+    await user.click(within(container).getByRole("button", { name: /重试同步/ }));
+    expect(h.unsubscribed).toBe(1);
+    expect(h.subscribed).toBe(2);
+    // The new read has not answered yet: nothing is shown, and no retry prompt is left behind.
+    expect(lines(container)).toEqual([]);
+
+    act(() => h.onData?.(reconciledEntries()));
+    expect(lines(container)).toEqual(["已记入纪录（500m）"]);
+  });
+
+  it("a read that fails again after the retry shows the unknown state again", async () => {
+    setup({});
+    const { container, user } = renderPage();
+    act(() => h.onError?.({ code: "unavailable" }));
+    await user.click(within(container).getByRole("button", { name: /重试同步/ }));
+    act(() => h.onError?.({ code: "unavailable" }));
+    expect(lines(container)).toEqual([expect.stringMatching(/^纪录读取失败，同步状态未知重试同步/)]);
+  });
+
+  it("the unknown state is translated to English", () => {
+    locale.current = "en";
+    setup({});
+    const { container } = renderPage();
+    act(() => h.onError?.({ code: "unavailable" }));
+    expect(lines(container)).toEqual([expect.stringMatching(/^Records could not be read, so the sync state is unknownRetry sync/)]);
   });
 
   it("still shows a reason that does not need the records, when they cannot be read", () => {

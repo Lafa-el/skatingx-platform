@@ -29,9 +29,10 @@ type ResultListProps = {
 const NO_SYNC: ReadonlyMap<string, ResultSyncInfo> = new Map();
 
 const NOT_RECORDED_KEY: Record<
-  "unmapped-distance" | "no-date" | "no-athlete" | "wrong-athlete" | "removed-from-race",
+  "unmapped-distance" | "no-date" | "no-athlete" | "wrong-athlete" | "removed-from-race" | "unknown",
   RaceDayMessageKey
 > = {
+  unknown: "raceDay.results.sync.unknown",
   "unmapped-distance": "raceDay.results.sync.unmappedDistance",
   "no-date": "raceDay.results.sync.noDate",
   "no-athlete": "raceDay.results.sync.noAthlete",
@@ -237,6 +238,18 @@ function SyncLine({
       <p className={quiet} data-sync="waiting">
         {t(locale, "raceDay.results.sync.waiting")}
       </p>
+    );
+  }
+  if (status.kind === "unknown" && failed && onRetry) {
+    // The records could not be read: the same retry layout as a failed sync, with its own text.
+    return (
+      <div role="status" data-sync="unknown" className="mt-2 flex flex-wrap items-center gap-2 text-sm text-brand-navy">
+        <span>{t(locale, NOT_RECORDED_KEY.unknown)}</span>
+        <button type="button" disabled={busy} className={SECONDARY_BUTTON} onClick={onRetry}>
+          {t(locale, "raceDay.results.sync.retry")}
+          {suffix}
+        </button>
+      </div>
     );
   }
   return (

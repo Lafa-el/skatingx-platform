@@ -59,13 +59,21 @@ export function ResultsPage() {
   );
 
   // Read-only: what the records sync did with each confirmed row, and whether it last failed.
-  const syncInfo = useResultSyncInfo({
+  // `statusAttempt` rebuilds the records read when the user retries after it failed.
+  const [statusAttempt, setStatusAttempt] = useState(0);
+  const { byResultId: syncInfo, recordsReadFailed } = useResultSyncInfo({
     event: activeEvent ?? null,
     races: races.items,
     roster: roster.items,
     results: results.items,
+    refreshKey: statusAttempt,
   });
   const recordSync = useRaceRecordSyncState();
+  // One retry for both: restart the sync (a dead roster listener) and re-read the records.
+  function retrySync() {
+    recordSync.retry();
+    setStatusAttempt((value) => value + 1);
+  }
 
   const heading = <h1 className="text-2xl font-bold text-brand-navy">{t(locale, "raceDay.tab.results")}</h1>;
 
@@ -277,8 +285,8 @@ export function ResultsPage() {
                     .then(afterWrite);
                 }}
                 sync={syncInfo}
-                syncFailed={recordSync.failed}
-                onRetrySync={recordSync.retry}
+                syncFailed={recordSync.failed || recordsReadFailed}
+                onRetrySync={retrySync}
               />
             )}
           </section>
