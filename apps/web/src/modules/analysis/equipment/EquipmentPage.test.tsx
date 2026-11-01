@@ -649,3 +649,101 @@ describe("a form changed after the checklist was generated", () => {
     ).toBeTruthy();
   });
 });
+
+describe("numbers are checked before a checklist is generated", () => {
+  const saveButton = () => screen.getByRole("button", { name: "保存记录" }) as HTMLButtonElement;
+  const weight = () => screen.getByLabelText("运动员体重 (kg)") as HTMLInputElement;
+  const generate = (user: ReturnType<typeof userEvent.setup>) =>
+    user.click(screen.getByRole("button", { name: "生成清单" }));
+  const rocker = (container: HTMLElement, side: "left" | "right", point: number) =>
+    container.querySelector(`[id="equip-rocker-${side}-${point}"]`) as HTMLInputElement;
+
+  it("a weight that is not a number refuses to generate, names the weight, and builds no report", async () => {
+    state.uid = "user-1";
+    state.db = {};
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(weight(), "abc");
+    await generate(user);
+
+    expect((await screen.findByRole("alert")).textContent).toBe("“运动员体重 (kg)”不是数字，请改成数字再生成。");
+    expect(screen.queryByText("可提交教练复核")).toBeNull();
+    expect(screen.queryByText("记录不完整")).toBeNull();
+    expect(saveButton().disabled).toBe(true);
+
+    await user.clear(weight());
+    await user.type(weight(), "40");
+    await user.type(screen.getAllByLabelText("0")[0]!, "12");
+    await generate(user);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText("可提交教练复核")).toBeTruthy();
+    expect(saveButton().disabled).toBe(false);
+  });
+
+  it("a refused generate leaves the checklist already on screen, and the save of it, alone", async () => {
+    state.uid = "user-1";
+    state.db = {};
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(weight(), "40");
+    await user.type(screen.getAllByLabelText("0")[0]!, "12");
+    await generate(user);
+    expect(screen.getByText("可提交教练复核")).toBeTruthy();
+
+    await user.type(weight(), "x");
+    await generate(user);
+    expect(screen.getByRole("alert")).toBeTruthy();
+    // The old checklist is still shown; the stale-form rule keeps it from being saved as it is.
+    expect(screen.getByText("可提交教练复核")).toBeTruthy();
+    expect(saveButton().disabled).toBe(true);
+    expect(state.save).not.toHaveBeenCalled();
+  });
+
+  it("an offset such as 约2mm names that offset field, and 内2mm is still accepted", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByLabelText("右脚 Front Offset"), "约2mm");
+    await generate(user);
+    expect((await screen.findByRole("alert")).textContent).toBe("“右脚 Front Offset”不是数字，请改成数字再生成。");
+
+    await user.clear(screen.getByLabelText("右脚 Front Offset"));
+    await user.type(screen.getByLabelText("右脚 Front Offset"), "内2mm");
+    await generate(user);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("a rocker reading that is not a number names the foot and the point, with a sign", async () => {
+    const user = userEvent.setup();
+    const view = renderPage();
+    await user.type(rocker(view.container, "left", 3), "x");
+    await generate(user);
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "“左脚 Radius/Rocker 读数 +3”不是数字，请改成数字再生成。",
+    );
+
+    await user.clear(rocker(view.container, "left", 3));
+    await user.type(rocker(view.container, "right", -4), "1-2");
+    await generate(user);
+    expect(screen.getByRole("alert").textContent).toBe("“右脚 Radius/Rocker 读数 -4”不是数字，请改成数字再生成。");
+  });
+
+  it("a bend value that is not a number names that bend field", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByLabelText("中段 Bend"), "22mm?");
+    await generate(user);
+    expect((await screen.findByRole("alert")).textContent).toBe("“中段 Bend”不是数字，请改成数字再生成。");
+  });
+
+  it("says it in English too", async () => {
+    state.locale = "en";
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByLabelText("Athlete weight (kg)"), "abc");
+    await user.click(screen.getByRole("button", { name: "Build the checklist" }));
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "Athlete weight (kg) is not a number. Enter a number, then generate again.",
+    );
+  });
+});
+

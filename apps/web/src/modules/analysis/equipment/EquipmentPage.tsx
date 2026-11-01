@@ -2,12 +2,14 @@ import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import {
   buildEquipmentChecklist,
   buildEquipmentHistoryRecord,
+  findInvalidEquipmentNumber,
   formatDecimalDisplay,
   type EquipmentAdjustmentCode,
   type EquipmentFeedbackCode,
   type EquipmentGaugePoint,
   type EquipmentHistoryRecord,
   type EquipmentSymptomKey,
+  type InvalidEquipmentNumber,
 } from "@skatingx/skating-domain";
 import {
   deleteEquipmentHistoryRecord,
@@ -24,7 +26,7 @@ import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { tAnalysis } from "@/shared/i18n/analysis-messages";
 import { tEquipment, type EquipmentMessageKey } from "@/shared/i18n/equipment-messages";
-import type { Locale } from "@/shared/i18n/translator";
+import type { Locale, TranslationParams } from "@/shared/i18n/translator";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 import { forgetEquipmentRecord, mergeEquipmentHistory, readEquipmentArchive, rememberEquipmentRecord } from "./equipment-archive";
@@ -178,6 +180,27 @@ function draftIsStale(draft: Draft | null, fields: DraftFields): boolean {
   );
 }
 
+const INVALID_FIELD_KEYS = {
+  weight: "equipment.field.weight",
+  height: "equipment.field.height",
+  leftFront: "equipment.offset.leftFront",
+  leftRear: "equipment.offset.leftRear",
+  rightFront: "equipment.offset.rightFront",
+  rightRear: "equipment.offset.rightRear",
+  bendFront: "equipment.bend.front",
+  bendMiddle: "equipment.bend.middle",
+  bendRear: "equipment.bend.rear",
+} as const satisfies Record<string, EquipmentMessageKey>;
+
+/** The name the form shows for the field the checklist refused, with the point for a rocker reading. */
+function invalidFieldLabel(locale: Locale, invalid: InvalidEquipmentNumber): string {
+  if (invalid.field === "leftRocker" || invalid.field === "rightRocker") {
+    const side = tEquipment(locale, invalid.field === "leftRocker" ? "equipment.rocker.left" : "equipment.rocker.right");
+    return `${side} ${invalid.point > 0 ? "+" : ""}${invalid.point}`;
+  }
+  return tEquipment(locale, INVALID_FIELD_KEYS[invalid.field]);
+}
+
 function pointName(locale: Locale, point: number): string {
   const shown = point > 0 ? `+${point}` : String(point);
   const key = Math.abs(point) >= 9 ? "equipment.rocker.optional" : "equipment.rocker.point";
@@ -242,6 +265,8 @@ export function EquipmentPage() {
   const [savedDraft, setSavedDraft] = useState<Draft | null>(null);
   const [statusKey, setStatusKey] = useState<EquipmentMessageKey>("equipment.status.needChecklist");
   const [statusError, setStatusError] = useState(false);
+  // Values for the placeholders of the status text (the field named by invalidNumber).
+  const [statusParams, setStatusParams] = useState<TranslationParams | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [cloudHistory, setCloudHistory] = useState<readonly EquipmentHistoryRecord[]>([]);
   const [localHistory, setLocalHistory] = useState<readonly EquipmentHistoryRecord[]>([]);
@@ -316,6 +341,22 @@ export function EquipmentPage() {
   });
 
   const generate = () => {
+    // Before anything is built: text that is not a number must not reach the checklist, where it
+    // would be read as a different number or as missing. The old draft, if any, stays as it was.
+    const invalid = findInvalidEquipmentNumber({
+      weight,
+      height,
+      leftRocker,
+      rightRocker,
+      offsets,
+      bend,
+    });
+    if (invalid) {
+      setStatusError(true);
+      setStatusKey("equipment.status.invalidNumber");
+      setStatusParams({ field: invalidFieldLabel(locale, invalid) });
+      return;
+    }
     const left = readingsOf(leftRocker);
     const right = readingsOf(rightRocker);
     const offsetValues = {
@@ -350,6 +391,7 @@ export function EquipmentPage() {
     });
     setStatusError(false);
     setStatusKey("equipment.status.ready");
+    setStatusParams(undefined);
   };
 
   const save = async () => {
@@ -691,10 +733,10 @@ export function EquipmentPage() {
           </Button>
         </div>
         {statusError ? (
-          <ErrorNotice className="mt-3">{tEquipment(locale, statusKey)}</ErrorNotice>
+          <ErrorNotice className="mt-3">{tEquipment(locale, statusKey, statusParams)}</ErrorNotice>
         ) : (
           <p className="mt-3 text-center text-sm text-brand-navy/80" role="status">
-            {tEquipment(locale, statusKey)}
+            {tEquipment(locale, statusKey, statusParams)}
           </p>
         )}
       </div>
