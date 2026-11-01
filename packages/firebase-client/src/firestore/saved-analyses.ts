@@ -14,8 +14,16 @@ export type SavedAnalysisSource = FeedbackSource & {
    * error: the row stays).
    */
   readonly distance: SavedPaceDistance | null;
-  /** Set on a biomechanics document. Averages use the same readable-frame rule as the tool. */
-  readonly biomech: { readonly avgKnee: number | null; readonly avgLean: number | null } | null;
+  /**
+   * Set on a biomechanics document. Averages and the readable-frame count use the same rule as the tool
+   * (`aggregateKeyframes`). `readableFrames` is derived on read, never stored; it is what a "no readable
+   * frames" mark has to test, rather than inferring it from two empty averages.
+   */
+  readonly biomech: {
+    readonly avgKnee: number | null;
+    readonly avgLean: number | null;
+    readonly readableFrames: number;
+  } | null;
   /**
    * Set on a pace document. `decayPercent` is present only when the saved document
    * already stores that number. The stability index is returned under its own name.
@@ -67,13 +75,13 @@ function frameToSample(frame: unknown): PoseKeyframeSample | null {
   };
 }
 
-function biomechAverages(frames: unknown): { avgKnee: number | null; avgLean: number | null } {
+function biomechAverages(frames: unknown): NonNullable<SavedAnalysisSource["biomech"]> {
   const samples = Array.isArray(frames) ? frames.flatMap((frame) => {
     const sample = frameToSample(frame);
     return sample ? [sample] : [];
   }) : [];
   const aggregate = aggregateKeyframes(samples);
-  return { avgKnee: aggregate.avgKnee, avgLean: aggregate.avgLean };
+  return { avgKnee: aggregate.avgKnee, avgLean: aggregate.avgLean, readableFrames: aggregate.readable };
 }
 
 function paceDetail(pace: unknown): NonNullable<SavedAnalysisSource["pace"]> {

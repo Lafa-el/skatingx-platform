@@ -1,3 +1,4 @@
+import { aggregateKeyframes } from "@skatingx/skating-domain";
 import { describe, expect, it } from "vitest";
 
 import { savedAnalysisFromDocument } from "./saved-analyses";
@@ -17,10 +18,67 @@ describe("savedAnalysisFromDocument", () => {
     expect(source).toMatchObject({
       kind: "biomech",
       id: "bio-1",
-      biomech: { avgKnee: 110, avgLean: 45 },
+      biomech: { avgKnee: 110, avgLean: 45, readableFrames: 2 },
       pace: null,
       findings: [{ code: "biomech.knee.high" }],
     });
+  });
+
+  it("counts readable frames: all unreadable gives 0 and two empty averages, from the explicit count", () => {
+    const source = savedAnalysisFromDocument("doc-u", {
+      id: "bio-u",
+      createdAt: "2026-10-10T00:00:00.000Z",
+      findings: [{ code: "biomech.frame.unreadable" }],
+      poseFrames: [
+        { readable: false, kneeAngleDegrees: null, leanAngleDegrees: null },
+        { readable: false, kneeAngleDegrees: 90, leanAngleDegrees: 30 },
+        // readable but missing an angle: not readable by the tool's rule either
+        { readable: true, kneeAngleDegrees: 100, leanAngleDegrees: null },
+      ],
+    });
+    expect(source?.biomech).toEqual({ avgKnee: null, avgLean: null, readableFrames: 0 });
+  });
+
+  it("a mixed session: the count and the averages agree with aggregateKeyframes", () => {
+    const frames = [
+      { timeSeconds: 1, readable: true, kneeAngleDegrees: 100, leanAngleDegrees: 40 },
+      { timeSeconds: 2, readable: false, kneeAngleDegrees: null, leanAngleDegrees: null },
+      { timeSeconds: 3, readable: true, kneeAngleDegrees: 120, leanAngleDegrees: 50 },
+      { timeSeconds: 4, readable: true, kneeAngleDegrees: null, leanAngleDegrees: 45 },
+    ];
+    const source = savedAnalysisFromDocument("doc-m", {
+      id: "bio-m",
+      createdAt: "2026-10-10T00:00:00.000Z",
+      findings: [],
+      poseFrames: frames,
+    });
+    const tool = aggregateKeyframes(
+      frames.map((frame) => ({
+        timeSeconds: frame.timeSeconds,
+        readable: frame.readable,
+        unreadableReason: null,
+        kneeAngle: frame.kneeAngleDegrees,
+        leanAngle: frame.leanAngleDegrees,
+        pelvisHeight: null,
+        recoveryRate: null,
+        supportSide: "unknown" as const,
+        supportConfidence: null,
+        manual: false,
+        issue: null,
+      })),
+    );
+    expect(source?.biomech).toEqual({ avgKnee: tool.avgKnee, avgLean: tool.avgLean, readableFrames: tool.readable });
+    expect(source?.biomech).toEqual({ avgKnee: 110, avgLean: 45, readableFrames: 2 });
+  });
+
+  it("a pace document has no biomech block", () => {
+    const source = savedAnalysisFromDocument("doc-p", {
+      id: "pace-x",
+      createdAt: "2026-10-10T00:00:00.000Z",
+      findings: [],
+      pace: { rating: "moderate" },
+    });
+    expect(source?.biomech).toBeNull();
   });
 
   it("reads a stored decay and does not substitute the stability index", () => {
