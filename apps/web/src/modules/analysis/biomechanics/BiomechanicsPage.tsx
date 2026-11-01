@@ -9,7 +9,6 @@ import {
   formatFixed,
   lockTarget,
   mapLandmarksFromCrop,
-  resetAnalysisSession,
   rotatePoint,
   samplePoseFrame,
   shouldSendPoseFrame,
@@ -284,16 +283,6 @@ export function BiomechanicsPage() {
   const reset = () => {
     runRef.current += 1;
     window.clearTimeout(warmupTimerRef.current);
-    const session = resetAnalysisSession({
-      started,
-      objectUrl,
-      keyframes: samples.map((sample) => ({ id: String(sample.timeSeconds) })),
-      kneeDisplay: live.kneeDisplay,
-      leanDisplay: live.leanDisplay,
-      pelvisDisplay: live.pelvisDisplay,
-      recoveryDisplay: live.recoveryDisplay,
-      poseInstanceOpen: engineRef.current !== null,
-    });
     cancelAnimationFrame(loopRef.current);
     if (objectUrl) URL.revokeObjectURL(objectUrl);
     const video = videoRef.current;
@@ -320,11 +309,12 @@ export function BiomechanicsPage() {
     setModel("loading-engine");
     setClock("00:00");
     setDuration("00:00");
-    if (session.poseClosed) {
-      void releasePoseEngine().catch((error: unknown) => {
-        logActionFailure("biomechanics", "close", error);
-      });
-    }
+    // Unconditional: while a warmup is still running engineRef is null, yet the load is under way.
+    // Releasing bumps the engine's generation so that load is superseded instead of finishing and
+    // being kept for a page that has already reset.
+    void releasePoseEngine().catch((error: unknown) => {
+      logActionFailure("biomechanics", "close", error);
+    });
   };
 
   const clearWarmupTimer = () => {
@@ -347,7 +337,12 @@ export function BiomechanicsPage() {
           setModel(STAGE_PHASE[stage]);
         },
       });
-      if (expired || run !== runRef.current) {
+      // A handle from an older round is not ours to close: engine.close() releases the shared kept
+      // instance, which by now is either already closed by the reset / retry / unmount that ended
+      // that round, or is being reused by the newer round. Closing it would close the new engine.
+      if (run !== runRef.current) return false;
+      // Expired but still the current round: this instance belongs to us and nobody else will close it.
+      if (expired) {
         await engine.close();
         return false;
       }
@@ -412,8 +407,20 @@ export function BiomechanicsPage() {
       setFeedback("biomech.feedback.needTarget");
       return;
     }
+    // Every refusal happens before pausing or setting pending: sendCurrent returns silently when the
+    // engine, canvas or frame is missing, and a pending flag left behind would turn the next
+    // unrelated frame result into a keyframe the user never asked for.
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !engineRef.current || !sendRef.current || model !== "ready" || video.readyState < 2) {
+      setFeedback("biomech.feedback.engineNotReady");
+      return;
+    }
+    // Refused, not queued: the frame on screen would have moved on by the time an earlier send ends,
+    // so a queued sample would record a different frame than the one the user chose.
+    if (inFlightRef.current) {
+      setFeedback("biomech.feedback.sendInFlight");
+      return;
+    }
     video.pause();
     setPaused(true);
     cancelAnimationFrame(loopRef.current);
@@ -422,18 +429,16 @@ export function BiomechanicsPage() {
       setFeedbackSide(modeRef.current === "left" ? "biomech.support.left" : "biomech.support.right");
     }
     pendingRef.current = true;
-    if (!inFlightRef.current) {
-      inFlightRef.current = true;
-      void sendCurrent()
-        .catch((error: unknown) => {
-          logActionFailure("biomechanics", "sample", error);
-          pendingRef.current = false;
-          setFeedback("biomech.unreadable.send");
-        })
-        .finally(() => {
-          inFlightRef.current = false;
-        });
-    }
+    inFlightRef.current = true;
+    void sendCurrent()
+      .catch((error: unknown) => {
+        logActionFailure("biomechanics", "sample", error);
+        pendingRef.current = false;
+        setFeedback("biomech.unreadable.send");
+      })
+      .finally(() => {
+        inFlightRef.current = false;
+      });
   };
 
   const save = async () => {

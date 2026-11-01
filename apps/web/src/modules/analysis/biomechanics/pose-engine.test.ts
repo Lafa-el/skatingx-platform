@@ -12,7 +12,14 @@ import {
 class FakePose {
   static sends = 0;
   static hang = false;
+  /** When set, send() waits for it, so a test can act while a warmup is in flight. */
+  static gate: Promise<void> | null = null;
+  static instances: FakePose[] = [];
   closed = false;
+
+  constructor() {
+    FakePose.instances.push(this);
+  }
 
   setOptions(): void {}
 
@@ -21,7 +28,7 @@ class FakePose {
   send(): Promise<void> {
     FakePose.sends += 1;
     if (FakePose.hang) return new Promise(() => undefined);
-    return Promise.resolve();
+    return FakePose.gate ?? Promise.resolve();
   }
 
   close(): Promise<void> {
@@ -32,6 +39,8 @@ class FakePose {
 
 afterEach(async () => {
   FakePose.hang = false;
+  FakePose.gate = null;
+  FakePose.instances = [];
   FakePose.sends = 0;
   delete (window as unknown as { Pose?: unknown }).Pose;
   vi.useRealTimers();
@@ -81,5 +90,47 @@ describe("pose engine warmup", () => {
     expect(urls.some((url) => url.endsWith("/pose_solution_simd_wasm_bin.wasm"))).toBe(true);
     expect(urls.some((url) => url.endsWith("/pose_landmark_full.tflite"))).toBe(true);
     expect(urls.some((url) => url.endsWith("/pose_solution_packed_assets.data"))).toBe(true);
+  });
+
+  describe("who owns the kept instance", () => {
+    it("a release during warmup supersedes that load: it rejects, closes its own instance and keeps nothing", async () => {
+      (window as unknown as { Pose: typeof FakePose }).Pose = FakePose;
+      vi.spyOn(console, "info").mockImplementation(() => undefined);
+      let open = () => undefined as void;
+      FakePose.gate = new Promise<void>((resolve) => {
+        open = resolve;
+      });
+      const rejected = loadPoseEngine(() => undefined).then(
+        () => "resolved",
+        (error: unknown) => (error instanceof Error ? error.message : "unknown"),
+      );
+      await vi.waitFor(() => expect(FakePose.sends).toBe(1));
+
+      await releasePoseEngine(); // nothing is kept yet: only the generation moves on
+      open();
+
+      expect(await rejected).toBe("pose-warmup-superseded");
+      expect(FakePose.instances).toHaveLength(1);
+      expect(FakePose.instances[0]?.closed).toBe(true);
+
+      // Nothing was kept, so the next load builds a fresh instance instead of reusing a closed one.
+      FakePose.gate = null;
+      await loadPoseEngine(() => undefined);
+      expect(FakePose.instances).toHaveLength(2);
+      expect(FakePose.instances[1]?.closed).toBe(false);
+    });
+
+    it("close() on any handle releases the one kept instance, which is why a stale handle must not be closed", async () => {
+      (window as unknown as { Pose: typeof FakePose }).Pose = FakePose;
+      vi.spyOn(console, "info").mockImplementation(() => undefined);
+      const stale = await loadPoseEngine(() => undefined);
+      await releasePoseEngine();
+      await loadPoseEngine(() => undefined);
+      expect(FakePose.instances.map((instance) => instance.closed)).toEqual([true, false]);
+
+      await stale.close();
+
+      expect(FakePose.instances.map((instance) => instance.closed)).toEqual([true, true]);
+    });
   });
 });
