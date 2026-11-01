@@ -5,6 +5,7 @@ import {
   type RecordsActorContext,
 } from "@skatingx/firebase-client";
 import type { TimeEntrySource } from "@skatingx/schema";
+import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -28,7 +29,7 @@ export function useTrainingRecordActions() {
       : tRecords(language, errorNote.key)
     : null;
 
-  const athleteId = settings?.activeAthleteId ?? "lindsay";
+  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
 
   const getContext = useCallback(
     (): RecordsActorContext => ({ ...requireActor(uid), athleteId }),

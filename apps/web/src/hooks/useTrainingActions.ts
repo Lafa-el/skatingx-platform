@@ -3,6 +3,7 @@ import {
   deleteTrainingTask,
   toggleTrainingTask,
 } from "@skatingx/firebase-client";
+import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -31,7 +32,7 @@ export function useTrainingActions() {
       : tTrainingTasks(language, errorNote.key)
     : null;
 
-  const athleteId = settings?.activeAthleteId ?? "lindsay";
+  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
 
   const withActor = useCallback(
     async <T,>(

@@ -1,5 +1,5 @@
 import { setPlanFocus } from "@skatingx/firebase-client";
-import { todayDateString } from "@skatingx/schema";
+import { DEFAULT_ATHLETE_ID, todayDateString } from "@skatingx/schema";
 import { mondayOfWeek, normalizeTrainingState, type PlanFocus } from "@skatingx/skating-domain";
 import { useCallback, useState } from "react";
 
@@ -48,7 +48,7 @@ export function usePlanFocus(): readonly [PlanFocus | null, (focus: PlanFocus) =
   const { data: settings } = useUserSettings();
   const { data: raw, loading } = useTrainingState();
   const [failed, setFailed] = useState(false);
-  const athleteId = settings?.activeAthleteId ?? "lindsay";
+  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
 
   const state = raw ? normalizeTrainingState(raw) : null;
   const stored = state?.planFocus ?? null;

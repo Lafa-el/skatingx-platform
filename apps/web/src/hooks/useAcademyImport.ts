@@ -10,6 +10,7 @@ import {
 } from "@skatingx/skating-domain";
 import type { AcademyItem, AcademyStage, WeekdayKey } from "@skatingx/content";
 import { getWeekdayRoutineItems } from "@skatingx/content";
+import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -79,7 +80,7 @@ export function useAcademyImport() {
   const [errorNote, setErrorNote] = useState<ImportErrorNote | null>(null);
   const [lastResult, setLastResult] = useState<AcademyImportResult | null>(null);
 
-  const athleteId = settings?.activeAthleteId ?? "lindsay";
+  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
   const language = useLocale();
   const actionError = errorNote
     ? "received" in errorNote

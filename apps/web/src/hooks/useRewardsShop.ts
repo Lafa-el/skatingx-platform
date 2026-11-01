@@ -9,6 +9,7 @@ import type {
   RewardRedemption,
   RewardsCatalogDocument,
 } from "@skatingx/schema";
+import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { onSnapshot } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 
@@ -27,7 +28,7 @@ type ShopErrorNote = { key: ShopMessageKey } | { received: string };
 export function useRewardsShop() {
   const { uid } = useAuth();
   const { data: settings } = useUserSettings();
-  const athleteId = settings?.activeAthleteId ?? "lindsay";
+  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
 
   const [catalog, setCatalog] = useState<RewardsCatalogDocument | null>(null);
   const [redemptions, setRedemptions] = useState<RewardRedemption[]>([]);
