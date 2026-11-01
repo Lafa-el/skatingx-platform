@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent } from "@testing-library/react";
 
 import { AnalysisBiomechanicsPage } from "@/pages/analysis/AnalysisBiomechanicsPage";
+import { tBiomech } from "@/shared/i18n/biomech-messages";
 import { act, render, screen, userEvent, waitFor } from "@/test/dom";
 import { legacyColourClasses } from "@/test/legacyLook";
 
@@ -63,7 +64,7 @@ afterEach(() => {
   state.uid = "user-1";
   state.db = {};
   state.save.mockClear();
-  state.load.mockClear();
+  state.load.mockReset(); // also drops any mockImplementationOnce a failing test never consumed
   // A test may leave the engine waiting for ever (the warmup timeout one); the next must not inherit it.
   state.load.mockImplementation(state.loadEngine);
   state.release.mockClear();
@@ -73,9 +74,12 @@ afterEach(() => {
   vi.restoreAllMocks(); // the stage's bounding-box stub and the console spy
 });
 
-/** Starts the page, locks a target and takes one keyframe: the engine's callback delivers the frame. */
-async function started() {
-  const user = userEvent.setup();
+/**
+ * happy-dom has no decoded frames and no 2D canvas. The video gets a readyState, and only the hidden
+ * send canvas gets a context (a loose stand-in: the page only draws a frame into it), so the page's
+ * own paint canvas stays context-less as before.
+ */
+function stubBrowser(readyState: number) {
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
     left: 0,
     top: 0,
@@ -87,19 +91,51 @@ async function started() {
     y: 0,
     toJSON: () => ({}),
   });
+  vi.spyOn(HTMLMediaElement.prototype, "readyState", "get").mockReturnValue(readyState);
+  // A paused video stops the page's frame loop at its first tick, so only the sample under test sends.
+  vi.spyOn(HTMLMediaElement.prototype, "paused", "get").mockReturnValue(true);
+  const sendContext = { drawImage: vi.fn() };
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (this: HTMLCanvasElement) {
+    return (this.classList.contains("hidden") ? sendContext : null) as never;
+  });
+}
+
+const deliver = (onResults: (landmarks: unknown) => void) => act(() => onResults(null));
+
+/** Uploads a clip, starts the analysis and clicks the skater. Optionally waits for the model. */
+async function begin({ waitReady = true, readyState = 4 } = {}) {
+  const user = userEvent.setup();
+  stubBrowser(readyState);
   const view = render(<AnalysisBiomechanicsPage />);
   const input = document.querySelector("input[type=file]") as HTMLInputElement;
   await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
   await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
-  await screen.findByText(/就绪并缓存在本地/);
+  if (waitReady) await screen.findByText(/就绪并缓存在本地/);
   const stage = view.container.querySelector("video")!.parentElement!;
   fireEvent.click(stage, { clientX: 80, clientY: 45 });
-  const onResults = state.load.mock.calls[0]![0];
+  return { user, view, onResults: () => state.load.mock.calls[0]![0] as (landmarks: unknown) => void };
+}
+
+/** Starts the page, locks a target and takes one keyframe: the engine's callback delivers the frame. */
+async function started() {
+  const { user, onResults } = await begin();
   const takeKeyframe = async () => {
     await user.click(screen.getByRole("button", { name: "采样当前帧" }));
-    act(() => onResults(null));
+    deliver(onResults());
   };
   return { user, takeKeyframe };
+}
+
+function deferred<T = void>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+function fakeEngine(send: () => Promise<void> | void = () => undefined) {
+  return { send: vi.fn(send), close: vi.fn(() => state.release()) };
 }
 
 describe("biomechanics page", () => {
@@ -286,5 +322,221 @@ describe("the keyframe rows when an angle is missing", () => {
     await keyframeWith(0, 45);
     expect(rowText()).toContain("倾角 0°，膝角 45°");
     expect(rowText()).not.toContain("--");
+  });
+});
+
+describe("sampling is refused before it changes anything", () => {
+  const sampleButton = () => screen.getByRole("button", { name: "采样当前帧" });
+  const NOT_READY = /引擎或视频画面还没准备好/;
+  const IN_FLIGHT = /上一帧还在计算/;
+
+  it("with no engine yet: says so, does not pause, and the next frame result is not taken as a sample", async () => {
+    state.load.mockImplementation(() => new Promise(() => undefined));
+    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause");
+    const { user, onResults } = await begin({ waitReady: false });
+
+    await user.click(sampleButton());
+
+    expect(screen.getByText(NOT_READY)).toBeTruthy();
+    expect(screen.getByText("0 / 10")).toBeTruthy();
+    expect(pause).not.toHaveBeenCalled();
+    deliver(onResults()); // a pending flag left behind would turn this frame into a keyframe
+    expect(screen.getByText("0 / 10")).toBeTruthy();
+  });
+
+  it("with a video frame not decoded yet: says so, sends nothing, and a later result is not taken", async () => {
+    const engine = fakeEngine();
+    state.load.mockImplementation(() => Promise.resolve(engine));
+    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause");
+    const { user, onResults } = await begin({ readyState: 1 });
+
+    await user.click(sampleButton());
+
+    expect(screen.getByText(NOT_READY)).toBeTruthy();
+    expect(pause).not.toHaveBeenCalled();
+    expect(engine.send).not.toHaveBeenCalled();
+    deliver(onResults());
+    expect(screen.getByText("0 / 10")).toBeTruthy();
+  });
+
+  it("while a send is in flight: refuses outright, does not queue, and the original send yields one keyframe", async () => {
+    const first = deferred();
+    const engine = fakeEngine(() => first.promise);
+    state.load.mockImplementation(() => Promise.resolve(engine));
+    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause");
+    const { user, onResults } = await begin();
+
+    await user.click(sampleButton());
+    expect(engine.send).toHaveBeenCalledTimes(1);
+    expect(pause).toHaveBeenCalledTimes(1);
+
+    await user.click(sampleButton());
+    expect(screen.getByText(IN_FLIGHT)).toBeTruthy();
+    expect(engine.send).toHaveBeenCalledTimes(1);
+    expect(pause).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      first.resolve();
+      await first.promise;
+    });
+    deliver(onResults());
+    expect(screen.getByText("1 / 10")).toBeTruthy();
+    deliver(onResults()); // nothing is pending any more, nothing was queued
+    expect(screen.getByText("1 / 10")).toBeTruthy();
+
+    await user.click(sampleButton()); // the refusal did not wedge the next sample
+    expect(engine.send).toHaveBeenCalledTimes(2);
+  });
+
+  it("with the target locked, the engine ready and nothing in flight: one send, one keyframe", async () => {
+    const engine = fakeEngine();
+    state.load.mockImplementation(() => Promise.resolve(engine));
+    const { user, onResults } = await begin();
+
+    await user.click(sampleButton());
+    expect(engine.send).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(NOT_READY)).toBeNull();
+    expect(screen.queryByText(IN_FLIGHT)).toBeNull();
+
+    deliver(onResults());
+    expect(screen.getByText("1 / 10")).toBeTruthy();
+    expect(screen.getByText(/等待计算结果/)).toBeTruthy();
+  });
+
+  it("still asks for a target first, and a failed send still clears pending", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const engine = fakeEngine(() => Promise.reject(new Error("send failed")));
+    state.load.mockImplementation(() => Promise.resolve(engine));
+    stubBrowser(4);
+    const user = userEvent.setup();
+    render(<AnalysisBiomechanicsPage />);
+    await user.upload(document.querySelector("input[type=file]") as HTMLInputElement, new File(["v"], "clip.mp4", { type: "video/mp4" }));
+    await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
+    await screen.findByText(/就绪并缓存在本地/);
+
+    await user.click(sampleButton()); // no target locked yet
+    expect(screen.getByText(/请先点击目标运动员/)).toBeTruthy();
+    expect(engine.send).not.toHaveBeenCalled();
+
+    fireEvent.click(document.querySelector("video")!.parentElement!, { clientX: 80, clientY: 45 });
+    await user.click(sampleButton());
+    await screen.findByText(/当前帧分析失败/);
+    deliver(state.load.mock.calls[0]![0] as (landmarks: unknown) => void);
+    expect(screen.getByText("0 / 10")).toBeTruthy();
+    log.mockRestore();
+  });
+
+  it("has a Chinese and an English line for each new refusal", () => {
+    for (const key of ["biomech.feedback.engineNotReady", "biomech.feedback.sendInFlight"] as const) {
+      const zh = tBiomech("zh", key);
+      const en = tBiomech("en", key);
+      expect(zh.length).toBeGreaterThan(0);
+      expect(en.length).toBeGreaterThan(0);
+      expect(en).not.toBe(zh);
+      expect(en).not.toBe(key);
+    }
+  });
+});
+
+describe("a warmup from an older round never closes the newer engine", () => {
+  const resetButton = () => screen.getByRole("button", { name: "替换或重置测试视频" });
+  const startButton = () => screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" });
+  const clip = () => new File(["video"], "clip.mp4", { type: "video/mp4" });
+  const fileInput = () => document.querySelector("input[type=file]") as HTMLInputElement;
+
+  it("reset during warmup then an immediate restart: the old warmup finishing leaves the new engine open and usable", async () => {
+    const older = deferred<ReturnType<typeof fakeEngine>>();
+    const newer = deferred<ReturnType<typeof fakeEngine>>();
+    const engineA = fakeEngine();
+    const engineB = fakeEngine();
+    state.load.mockImplementationOnce(() => older.promise).mockImplementationOnce(() => newer.promise);
+    stubBrowser(4);
+    const user = userEvent.setup();
+    const view = render(<AnalysisBiomechanicsPage />);
+
+    await user.upload(fileInput(), clip());
+    await user.click(startButton());
+    expect(state.load).toHaveBeenCalledTimes(1);
+
+    state.release.mockClear();
+    await user.click(resetButton());
+    expect(state.release).toHaveBeenCalledTimes(1); // released although no engine existed yet
+
+    await user.upload(fileInput(), clip());
+    await user.click(startButton());
+    expect(state.load).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      newer.resolve(engineB);
+      await newer.promise;
+    });
+    await screen.findByText(/就绪并缓存在本地/);
+
+    const releasedSoFar = state.release.mock.calls.length;
+    await act(async () => {
+      older.resolve(engineA);
+      await older.promise;
+    });
+
+    expect(engineA.close).not.toHaveBeenCalled();
+    expect(engineB.close).not.toHaveBeenCalled();
+    expect(state.release).toHaveBeenCalledTimes(releasedSoFar);
+    expect(screen.getByText(/就绪并缓存在本地/)).toBeTruthy();
+
+    fireEvent.click(view.container.querySelector("video")!.parentElement!, { clientX: 80, clientY: 45 });
+    await user.click(screen.getByRole("button", { name: "采样当前帧" }));
+    expect(engineB.send).toHaveBeenCalledTimes(1);
+    deliver(state.load.mock.calls[1]![0] as (landmarks: unknown) => void);
+    expect(screen.getByText("1 / 10")).toBeTruthy();
+  });
+
+  describe("after the operational timeout", () => {
+    async function expiredWarmup() {
+      const pending = deferred<ReturnType<typeof fakeEngine>>();
+      state.load.mockImplementation(() => pending.promise);
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      render(<AnalysisBiomechanicsPage />);
+      await act(async () => {
+        fireEvent.change(fileInput(), { target: { files: [clip()] } });
+      });
+      await act(async () => {
+        fireEvent.click(startButton());
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(screen.getByText(/模型脚本加载失败/)).toBeTruthy();
+      return pending;
+    }
+
+    it("an expired warmup whose round has since changed does not call close", async () => {
+      const pending = await expiredWarmup();
+      const engine = fakeEngine();
+
+      await act(async () => {
+        fireEvent.click(resetButton());
+      });
+      state.release.mockClear();
+      await act(async () => {
+        pending.resolve(engine);
+        await pending.promise;
+      });
+
+      expect(engine.close).not.toHaveBeenCalled();
+      expect(state.release).not.toHaveBeenCalled();
+    });
+
+    it("an expired warmup in the current round closes its own instance, once, and stays failed", async () => {
+      const pending = await expiredWarmup();
+      const engine = fakeEngine();
+
+      await act(async () => {
+        pending.resolve(engine);
+        await pending.promise;
+      });
+
+      expect(engine.close).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(/模型脚本加载失败/)).toBeTruthy();
+      expect(screen.queryByText(/就绪并缓存在本地/)).toBeNull();
+    });
   });
 });
