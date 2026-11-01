@@ -137,10 +137,13 @@ export function BiomechanicsPage() {
   const [savedSamples, setSavedSamples] = useState<readonly PoseKeyframeSample[] | null>(null);
   const [clock, setClock] = useState("00:00");
   const [duration, setDuration] = useState("00:00");
+  // null = the browser has not said yet. A chosen file is not proof of a playable video: only the
+  // video element's own metadata (with a video track) or error event is, so the start gate waits.
+  const [videoDecodable, setVideoDecodable] = useState<boolean | null>(null);
 
   const ready = assessVideoInput({
     byteLength: fileName ? 1 : 0,
-    decodable: fileName !== null,
+    decodable: videoDecodable === true,
   });
   const db = getFirestoreDb();
   const syncKey: BiomechMessageKey = !db
@@ -275,9 +278,32 @@ export function BiomechanicsPage() {
     const next = URL.createObjectURL(file);
     setObjectUrl(next);
     setFileName(file.name);
+    setVideoDecodable(null); // the previous file's verdict says nothing about this one
+    // The previous file's failure line must not outlive it; other feedback lines are left alone.
+    setFeedback((current) => (current === "biomech.feedback.videoUnplayable" ? "biomech.feedback.waiting" : current));
     setStarted(false);
     const video = videoRef.current;
     if (video) video.src = next;
+  };
+
+  const onVideoMetadata = () => {
+    const video = videoRef.current;
+    if (!video || !objectUrl) return;
+    // Audio-only files (or a codec the browser can play only as sound) also reach loadedmetadata, with
+    // no picture to analyse: videoWidth is 0 when there is no decoded video track.
+    if (video.videoWidth > 0) {
+      setVideoDecodable(true);
+      return;
+    }
+    setVideoDecodable(false);
+    setFeedback("biomech.feedback.videoUnplayable");
+  };
+
+  const onVideoError = () => {
+    // Clearing the element's src (reset) is not a failure of a file the user chose.
+    if (!objectUrl) return;
+    setVideoDecodable(false);
+    setFeedback("biomech.feedback.videoUnplayable");
   };
 
   const reset = () => {
@@ -298,6 +324,7 @@ export function BiomechanicsPage() {
     engineRef.current = null;
     setObjectUrl(null);
     setFileName(null);
+    setVideoDecodable(null);
     setStarted(false);
     setPaused(true);
     setLocked(false);
@@ -363,10 +390,19 @@ export function BiomechanicsPage() {
     const video = videoRef.current;
     if (!video || run !== runRef.current) return;
     video.playbackRate = Number(speed);
+    let playFailed = false;
     await video.play().catch((error: unknown) => {
+      playFailed = true;
       logActionFailure("biomechanics", "play", error);
     });
     if (run !== runRef.current) return;
+    if (playFailed) {
+      // Falling back to the start state (paused stays true, no loop): carrying on would show a pause
+      // button and a ready model while nothing is analysed, and the frame loop exits on a paused video.
+      setStarted(false);
+      setFeedback("biomech.feedback.videoUnplayable");
+      return;
+    }
     setPaused(false);
     startLoop();
   };
@@ -381,6 +417,7 @@ export function BiomechanicsPage() {
     const run = runRef.current;
     setStarted(true);
     setStatus(null);
+    setFeedback((current) => (current === "biomech.feedback.videoUnplayable" ? "biomech.feedback.waiting" : current));
     const readyEngine = await beginWarmup(run);
     if (!readyEngine) return;
     await playStarted(run);
@@ -505,6 +542,13 @@ export function BiomechanicsPage() {
               </Button>
             )}
             <p className="text-xs text-brand-navy/70">{tBiomech(locale, "biomech.upload.hint")}</p>
+            {/* The telemetry card (which also shows feedback) is hidden until started, and both failures
+                leave the page not started, so the line is repeated here where the user is looking. */}
+            {!started && feedback === "biomech.feedback.videoUnplayable" ? (
+              <p role="alert" className="text-sm font-semibold text-brand-navy">
+                {tBiomech(locale, "biomech.feedback.videoUnplayable")}
+              </p>
+            ) : null}
 
             <div className="grid gap-3 rounded-control border border-brand-navy/15 p-3">
               <div className="flex items-center justify-between gap-3">
@@ -596,7 +640,15 @@ export function BiomechanicsPage() {
                   setLocked(true);
                 }}
               >
-                <video ref={videoRef} className="h-full w-full object-contain" playsInline muted src={objectUrl ?? undefined} />
+                <video
+                  ref={videoRef}
+                  className="h-full w-full object-contain"
+                  playsInline
+                  muted
+                  src={objectUrl ?? undefined}
+                  onLoadedMetadata={onVideoMetadata}
+                  onError={onVideoError}
+                />
                 <canvas ref={paintRef} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
                 <p className="sr-only">{tBiomech(locale, "biomech.viewport")}</p>
               </div>

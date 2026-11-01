@@ -60,6 +60,8 @@ vi.mock("@/modules/analysis/biomechanics/pose-engine", () => ({
 }));
 
 afterEach(() => {
+  Reflect.deleteProperty(HTMLVideoElement.prototype, "videoWidth");
+  Reflect.deleteProperty(HTMLVideoElement.prototype, "videoHeight");
   state.locale = "zh";
   state.uid = "user-1";
   state.db = {};
@@ -100,6 +102,21 @@ function stubBrowser(readyState: number) {
   });
 }
 
+// happy-dom's video element has no videoWidth / videoHeight at all, so they are defined on the prototype
+// (removed again after each test). 0 is what a browser reports for a file with no video track.
+function stubVideoSize(width: number, height: number) {
+  Object.defineProperty(HTMLVideoElement.prototype, "videoWidth", { configurable: true, get: () => width });
+  Object.defineProperty(HTMLVideoElement.prototype, "videoHeight", { configurable: true, get: () => height });
+}
+
+/** The browser has read the chosen file's metadata: it has a video track of this width unless told otherwise. */
+function metadataArrives(width = 640) {
+  stubVideoSize(width, width > 0 ? 360 : 0);
+  act(() => {
+    fireEvent.loadedMetadata(document.querySelector("video")!);
+  });
+}
+
 const deliver = (onResults: (landmarks: unknown) => void) => act(() => onResults(null));
 
 /** Uploads a clip, starts the analysis and clicks the skater. Optionally waits for the model. */
@@ -109,6 +126,7 @@ async function begin({ waitReady = true, readyState = 4 } = {}) {
   const view = render(<AnalysisBiomechanicsPage />);
   const input = document.querySelector("input[type=file]") as HTMLInputElement;
   await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
+  metadataArrives();
   await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
   if (waitReady) await screen.findByText(/就绪并缓存在本地/);
   const stage = view.container.querySelector("video")!.parentElement!;
@@ -163,6 +181,7 @@ describe("biomechanics page", () => {
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     const file = new File(["video"], "clip.mp4", { type: "video/mp4" });
     await user.upload(input, file);
+    metadataArrives();
     const start = screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" });
     expect(start.hasAttribute("disabled")).toBe(false);
     expect(state.load).not.toHaveBeenCalled();
@@ -186,6 +205,7 @@ describe("biomechanics page", () => {
     const view = render(<AnalysisBiomechanicsPage />);
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
+    metadataArrives();
     await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
     await screen.findByText(/就绪并缓存在本地/);
     await user.click(screen.getByRole("button", { name: "替换或重置测试视频" }));
@@ -272,6 +292,7 @@ describe("biomechanics page", () => {
     await act(async () => {
       fireEvent.change(input, { target: { files: [new File(["video"], "clip.mp4", { type: "video/mp4" })] } });
     });
+    metadataArrives();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
     });
@@ -411,6 +432,7 @@ describe("sampling is refused before it changes anything", () => {
     const user = userEvent.setup();
     render(<AnalysisBiomechanicsPage />);
     await user.upload(document.querySelector("input[type=file]") as HTMLInputElement, new File(["v"], "clip.mp4", { type: "video/mp4" }));
+    metadataArrives();
     await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
     await screen.findByText(/就绪并缓存在本地/);
 
@@ -455,6 +477,7 @@ describe("a warmup from an older round never closes the newer engine", () => {
     const view = render(<AnalysisBiomechanicsPage />);
 
     await user.upload(fileInput(), clip());
+    metadataArrives();
     await user.click(startButton());
     expect(state.load).toHaveBeenCalledTimes(1);
 
@@ -463,6 +486,7 @@ describe("a warmup from an older round never closes the newer engine", () => {
     expect(state.release).toHaveBeenCalledTimes(1); // released although no engine existed yet
 
     await user.upload(fileInput(), clip());
+    metadataArrives();
     await user.click(startButton());
     expect(state.load).toHaveBeenCalledTimes(2);
     await act(async () => {
@@ -498,6 +522,7 @@ describe("a warmup from an older round never closes the newer engine", () => {
       await act(async () => {
         fireEvent.change(fileInput(), { target: { files: [clip()] } });
       });
+      metadataArrives();
       await act(async () => {
         fireEvent.click(startButton());
       });
@@ -537,6 +562,128 @@ describe("a warmup from an older round never closes the newer engine", () => {
       expect(engine.close).toHaveBeenCalledTimes(1);
       expect(screen.getByText(/模型脚本加载失败/)).toBeTruthy();
       expect(screen.queryByText(/就绪并缓存在本地/)).toBeNull();
+    });
+  });
+});
+
+describe("the start gate waits for a video that can be decoded", () => {
+  const UNPLAYABLE = "视频无法播放，请换一个视频文件再试";
+  const clip = (name = "clip.mp4") => new File(["video"], name, { type: "video/mp4" });
+  const fileInput = () => document.querySelector("input[type=file]") as HTMLInputElement;
+  const startButton = () => screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" });
+  const waitingButton = () => screen.getByRole("button", { name: "请先上传视频" });
+
+  async function chosen() {
+    const user = userEvent.setup();
+    stubBrowser(4);
+    render(<AnalysisBiomechanicsPage />);
+    await user.upload(fileInput(), clip());
+    return user;
+  }
+
+  it("a chosen file alone keeps the start button disabled until the video reports a video track", async () => {
+    await chosen();
+    expect(waitingButton().hasAttribute("disabled")).toBe(true);
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    metadataArrives();
+    expect(startButton().hasAttribute("disabled")).toBe(false);
+  });
+
+  it("an error event disables the start button and shows the unplayable line where the user can see it", async () => {
+    await chosen();
+    act(() => {
+      fireEvent.error(document.querySelector("video")!);
+    });
+    expect(waitingButton().hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("alert").textContent).toBe(UNPLAYABLE);
+  });
+
+  it("metadata with no video track (width 0, e.g. an audio-only file) is treated as an error", async () => {
+    await chosen();
+    metadataArrives(0);
+    expect(waitingButton().hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("alert").textContent).toBe(UNPLAYABLE);
+  });
+
+  it("a new file resets the verdict to unknown: the old pass does not carry over, and the old failure line goes", async () => {
+    const user = await chosen();
+    metadataArrives();
+    expect(startButton().hasAttribute("disabled")).toBe(false);
+
+    await user.upload(fileInput(), clip("second.mp4"));
+    expect(waitingButton().hasAttribute("disabled")).toBe(true); // metadata of the new file not here yet
+
+    act(() => {
+      fireEvent.error(document.querySelector("video")!);
+    });
+    expect(screen.getByRole("alert")).toBeTruthy();
+
+    await user.upload(fileInput(), clip("third.mp4"));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(waitingButton().hasAttribute("disabled")).toBe(true);
+    metadataArrives();
+    expect(startButton().hasAttribute("disabled")).toBe(false);
+  });
+
+  it("removing the file resets the verdict, and clearing the element's src is not reported as an error", async () => {
+    const user = await chosen();
+    metadataArrives();
+    await user.click(screen.getByRole("button", { name: "移除视频" }));
+    act(() => {
+      fireEvent.error(document.querySelector("video")!); // what a cleared src can raise
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(waitingButton().hasAttribute("disabled")).toBe(true);
+  });
+
+  it("has a Chinese and an English line for the unplayable video", () => {
+    expect(tBiomech("zh", "biomech.feedback.videoUnplayable")).toBe(UNPLAYABLE);
+    expect(tBiomech("en", "biomech.feedback.videoUnplayable")).toBe("This video can't be played. Try another video file.");
+  });
+
+  describe("when play() is refused after the start", () => {
+    const pauseButton = () => screen.queryByRole("button", { name: "暂停" });
+
+    it("falls back to the start state with the error, never starts the loop, and a second start can retry", async () => {
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const frames = vi.spyOn(window, "requestAnimationFrame");
+      const play = vi.spyOn(HTMLMediaElement.prototype, "play");
+      play.mockRejectedValueOnce(new DOMException("blocked", "NotSupportedError"));
+      const user = await chosen();
+      metadataArrives();
+
+      await user.click(startButton());
+      await screen.findByRole("alert");
+
+      expect(screen.getByRole("alert").textContent).toBe(UNPLAYABLE);
+      expect(startButton().hasAttribute("disabled")).toBe(false); // back to the start state, still usable
+      expect(screen.queryByRole("button", { name: "替换或重置测试视频" })).toBeNull();
+      expect(pauseButton()).toBeNull(); // paused stayed true: no pause button shown for a video that is not playing
+      expect(frames).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalled(); // the developer-facing record is kept
+
+      play.mockResolvedValue(undefined);
+      await user.click(startButton());
+      await screen.findByRole("button", { name: "替换或重置测试视频" });
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(pauseButton()).toBeTruthy();
+      expect(frames).toHaveBeenCalledTimes(1);
+      log.mockRestore();
+    });
+
+    it("a play() that succeeds behaves as before: pause button, loop running, no error", async () => {
+      const frames = vi.spyOn(window, "requestAnimationFrame");
+      const user = await chosen();
+      metadataArrives();
+
+      await user.click(startButton());
+      await screen.findByText(/就绪并缓存在本地/);
+
+      expect(pauseButton()).toBeTruthy();
+      expect(frames).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.queryByText(UNPLAYABLE)).toBeNull();
     });
   });
 });
