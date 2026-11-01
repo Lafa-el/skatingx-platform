@@ -11,9 +11,9 @@ import {
 } from "@skatingx/skating-domain";
 import {
   getDoc,
+  runTransaction,
   serverTimestamp,
   setDoc,
-  updateDoc,
   type Firestore,
 } from "firebase/firestore";
 
@@ -83,6 +83,11 @@ export function readDistanceRecordsDocument(
   };
 }
 
+// The three manual writes below are transactions, like the race-result reconcile in
+// race-record-sync.ts. Both rewrite a distance document's whole entries array, so outside a
+// transaction a manual edit built from an older read would erase a race_ entry the reconcile had
+// just committed. Firestore reruns a transaction whose document changed under it, so every attempt
+// recomputes from the current array. Reads, computation and writes all stay inside the callback.
 export async function addTimeEntry(
   ctx: RecordsActorContext,
   distanceId: string,
@@ -95,48 +100,50 @@ export async function addTimeEntry(
   },
 ): Promise<TimeEntry> {
   const ref = trainingRecordRef(ctx.db, ctx.userId, ctx.athleteId, distanceId);
-  const snap = await getDoc(ref);
-  const existing = readDistanceRecordsDocument(
-    distanceId,
-    label,
-    snap.data() as DistanceRecordsDocument | undefined,
-  );
-  const ids = new Set(existing.entries.map((e) => e.id));
-  const nowIso = new Date().toISOString();
-  const entry = serializeTimeEntry(
-    normalizeTimeEntry({
-      id: createTimeEntryId(ids),
-      date: input.date,
-      timeSeconds: input.timeSeconds,
-      source: input.source ?? "manual",
-      note: input.note,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    }),
-  );
-
-  const entries = serializeTimeEntries([...existing.entries, entry]);
-
-  if (snap.exists()) {
-    await updateDoc(
-      ref,
-      toFirestoreData({
-        entries,
-        updatedAt: serverTimestamp(),
+  return runTransaction(ctx.db, async (tx) => {
+    const snap = await tx.get(ref);
+    const existing = readDistanceRecordsDocument(
+      distanceId,
+      label,
+      snap.data() as DistanceRecordsDocument | undefined,
+    );
+    const ids = new Set(existing.entries.map((e) => e.id));
+    const nowIso = new Date().toISOString();
+    const entry = serializeTimeEntry(
+      normalizeTimeEntry({
+        id: createTimeEntryId(ids),
+        date: input.date,
+        timeSeconds: input.timeSeconds,
+        source: input.source ?? "manual",
+        note: input.note,
+        createdAt: nowIso,
+        updatedAt: nowIso,
       }),
     );
-  } else {
-    await setDoc(
-      ref,
-      toFirestoreData({
-        ...emptyDistanceDoc(distanceId, label),
-        entries,
-        updatedAt: serverTimestamp(),
-      }),
-    );
-  }
 
-  return entry;
+    const entries = serializeTimeEntries([...existing.entries, entry]);
+
+    if (snap.exists()) {
+      tx.update(
+        ref,
+        toFirestoreData({
+          entries,
+          updatedAt: serverTimestamp(),
+        }),
+      );
+    } else {
+      tx.set(
+        ref,
+        toFirestoreData({
+          ...emptyDistanceDoc(distanceId, label),
+          entries,
+          updatedAt: serverTimestamp(),
+        }),
+      );
+    }
+
+    return entry;
+  });
 }
 
 export async function updateTimeEntry(
@@ -152,42 +159,44 @@ export async function updateTimeEntry(
   },
 ): Promise<void> {
   const ref = trainingRecordRef(ctx.db, ctx.userId, ctx.athleteId, distanceId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    throw new Error("Distance record document not found.");
-  }
+  await runTransaction(ctx.db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) {
+      throw new Error("Distance record document not found.");
+    }
 
-  const existing = readDistanceRecordsDocument(
-    distanceId,
-    label,
-    snap.data() as DistanceRecordsDocument | undefined,
-  );
-  const nowIso = new Date().toISOString();
-  const entries = serializeTimeEntries(
-    existing.entries.map((entry) => {
-      if (entry.id !== entryId) {
-        return entry;
-      }
-      return serializeTimeEntry(
-        normalizeTimeEntry({
-          ...entry,
-          date: patch.date,
-          timeSeconds: patch.timeSeconds,
-          source: patch.source ?? entry.source,
-          note: patch.note,
-          updatedAt: nowIso,
-        }),
-      );
-    }),
-  );
+    const existing = readDistanceRecordsDocument(
+      distanceId,
+      label,
+      snap.data() as DistanceRecordsDocument | undefined,
+    );
+    const nowIso = new Date().toISOString();
+    const entries = serializeTimeEntries(
+      existing.entries.map((entry) => {
+        if (entry.id !== entryId) {
+          return entry;
+        }
+        return serializeTimeEntry(
+          normalizeTimeEntry({
+            ...entry,
+            date: patch.date,
+            timeSeconds: patch.timeSeconds,
+            source: patch.source ?? entry.source,
+            note: patch.note,
+            updatedAt: nowIso,
+          }),
+        );
+      }),
+    );
 
-  await updateDoc(
-    ref,
-    toFirestoreData({
-      entries,
-      updatedAt: serverTimestamp(),
-    }),
-  );
+    tx.update(
+      ref,
+      toFirestoreData({
+        entries,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
 }
 
 export async function deleteTimeEntry(
@@ -197,25 +206,27 @@ export async function deleteTimeEntry(
   entryId: string,
 ): Promise<void> {
   const ref = trainingRecordRef(ctx.db, ctx.userId, ctx.athleteId, distanceId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    return;
-  }
+  await runTransaction(ctx.db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) {
+      return;
+    }
 
-  const existing = readDistanceRecordsDocument(
-    distanceId,
-    label,
-    snap.data() as DistanceRecordsDocument | undefined,
-  );
-  const entries = serializeTimeEntries(
-    existing.entries.filter((entry) => entry.id !== entryId),
-  );
+    const existing = readDistanceRecordsDocument(
+      distanceId,
+      label,
+      snap.data() as DistanceRecordsDocument | undefined,
+    );
+    const entries = serializeTimeEntries(
+      existing.entries.filter((entry) => entry.id !== entryId),
+    );
 
-  await updateDoc(
-    ref,
-    toFirestoreData({
-      entries,
-      updatedAt: serverTimestamp(),
-    }),
-  );
+    tx.update(
+      ref,
+      toFirestoreData({
+        entries,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
 }
