@@ -20,6 +20,9 @@ function analysis(overrides: Partial<HubAnalysisInput> & Pick<HubAnalysisInput, 
     decayPercent: null,
     stabilityIndexPercent: null,
     rating: null,
+    totalSeconds: null,
+    benchmarkTotalSeconds: null,
+    trainingEmphasisRatio: null,
     ...overrides,
   };
 }
@@ -327,6 +330,9 @@ describe("buildHubModel", () => {
       createdAt: "2026-10-09T00:00:00.000Z",
       rating: "needs-work",
       stabilityIndexPercent: 72,
+      totalSeconds: null,
+      benchmarkTotalSeconds: null,
+      trainingEmphasisRatio: null,
       decays: [],
     });
   });
@@ -361,6 +367,9 @@ describe("buildHubModel", () => {
       createdAt: "2026-10-09T00:00:00.000Z",
       rating: "needs-work",
       stabilityIndexPercent: 72,
+      totalSeconds: null,
+      benchmarkTotalSeconds: null,
+      trainingEmphasisRatio: null,
       decays: [{ distance: "500", latest: 6.5, delta: 2.5, spark: [4, 6.5] }],
     });
   });
@@ -466,6 +475,9 @@ describe("pace trends are per distance", () => {
       createdAt: "2026-10-03T00:00:00.000Z",
       rating: "moderate",
       stabilityIndexPercent: 70,
+      totalSeconds: null,
+      benchmarkTotalSeconds: null,
+      trainingEmphasisRatio: null,
       decays: [{ distance: "777", latest: 6.5, delta: null, spark: [] }],
     });
   });
@@ -474,5 +486,72 @@ describe("pace trends are per distance", () => {
     const card = build([pace("a", "2026-10-01T00:00:00.000Z", "500", 4), pace("b", "2026-10-02T00:00:00.000Z", "500", null)]);
     if (card.status !== "trend") throw new Error("expected a trend card");
     expect(card.decays).toEqual([]);
+  });
+});
+
+describe("the pace totals a saved record carries", () => {
+  const stored = (overrides: Partial<HubAnalysisInput> = {}) =>
+    analysis({
+      kind: "pace",
+      id: "p-new",
+      createdAt: "2026-10-20T00:00:00.000Z",
+      distance: "500",
+      rating: "excellent",
+      stabilityIndexPercent: 90,
+      totalSeconds: 52.34,
+      benchmarkTotalSeconds: 50.1,
+      trainingEmphasisRatio: "60:40",
+      ...overrides,
+    });
+  const build = (rows: HubAnalysisInput[]) => buildHubModel({ analyses: ready(rows), equipment: ready([]), hidden: new Set() });
+
+  it("the latest pace record puts all three on the card, single or trend", () => {
+    expect(build([stored()]).pace).toMatchObject({
+      status: "single",
+      totalSeconds: 52.34,
+      benchmarkTotalSeconds: 50.1,
+      trainingEmphasisRatio: "60:40",
+    });
+    const older = stored({ id: "p-old", createdAt: "2026-10-01T00:00:00.000Z", totalSeconds: 60, benchmarkTotalSeconds: 59, trainingEmphasisRatio: "50:50" });
+    expect(build([older, stored()]).pace).toMatchObject({
+      status: "trend",
+      totalSeconds: 52.34,
+      benchmarkTotalSeconds: 50.1,
+      trainingEmphasisRatio: "60:40",
+    });
+  });
+
+  it("the card takes them from the newest record, not an older one that has them", () => {
+    const newest = stored({ id: "p-latest", createdAt: "2026-10-25T00:00:00.000Z", totalSeconds: null, benchmarkTotalSeconds: null, trainingEmphasisRatio: null });
+    expect(build([stored(), newest]).pace).toMatchObject({
+      status: "trend",
+      totalSeconds: null,
+      benchmarkTotalSeconds: null,
+      trainingEmphasisRatio: null,
+    });
+  });
+
+  it("a number that is not finite is null on the card and in the list", () => {
+    const model = build([stored({ totalSeconds: Number.NaN, benchmarkTotalSeconds: Number.POSITIVE_INFINITY })]);
+    expect(model.pace).toMatchObject({ totalSeconds: null, benchmarkTotalSeconds: null });
+    if (model.recent.status !== "ready") throw new Error("expected recent items");
+    expect(model.recent.items[0]).toMatchObject({ kind: "pace", totalSeconds: null });
+  });
+
+  it("a list item and the tool's latest item carry the total, and not the benchmark or the ratio", () => {
+    const model = build([stored()]);
+    if (model.recent.status !== "ready") throw new Error("expected recent items");
+    const item = model.recent.items[0];
+    expect(item).toMatchObject({ kind: "pace", id: "p-new", totalSeconds: 52.34 });
+    expect(item).not.toHaveProperty("benchmarkTotalSeconds");
+    expect(item).not.toHaveProperty("trainingEmphasisRatio");
+    expect(model.tools.pace).toMatchObject({ status: "ready", item: { kind: "pace", totalSeconds: 52.34 } });
+  });
+
+  it("a record saved without them is null everywhere (guard)", () => {
+    const model = build([analysis({ kind: "pace", id: "old", createdAt: "2026-10-01T00:00:00.000Z", distance: "500", rating: "moderate", stabilityIndexPercent: 70 })]);
+    expect(model.pace).toMatchObject({ status: "single", totalSeconds: null, benchmarkTotalSeconds: null, trainingEmphasisRatio: null });
+    if (model.recent.status !== "ready") throw new Error("expected recent items");
+    expect(model.recent.items[0]).toMatchObject({ kind: "pace", totalSeconds: null });
   });
 });

@@ -27,11 +27,17 @@ export type SavedAnalysisSource = FeedbackSource & {
   /**
    * Set on a pace document. `decayPercent` is present only when the saved document
    * already stores that number. The stability index is returned under its own name.
+   * `totalSeconds`, `benchmarkTotalSeconds` and `trainingEmphasisRatio` are what the writer stored
+   * (the rules require all three); each is `null` when the document lacks it or holds a value of the
+   * wrong shape. The ratio is the stored string as is (1 to 16 characters, as the rules allow).
    */
   readonly pace: {
     readonly decayPercent: number | null;
     readonly stabilityIndexPercent: number | null;
     readonly rating: SavedPaceRating | null;
+    readonly totalSeconds: number | null;
+    readonly benchmarkTotalSeconds: number | null;
+    readonly trainingEmphasisRatio: string | null;
   } | null;
 };
 
@@ -86,7 +92,14 @@ function biomechAverages(frames: unknown): NonNullable<SavedAnalysisSource["biom
 
 function paceDetail(pace: unknown): NonNullable<SavedAnalysisSource["pace"]> {
   if (!pace || typeof pace !== "object") {
-    return { decayPercent: null, stabilityIndexPercent: null, rating: null };
+    return {
+      decayPercent: null,
+      stabilityIndexPercent: null,
+      rating: null,
+      totalSeconds: null,
+      benchmarkTotalSeconds: null,
+      trainingEmphasisRatio: null,
+    };
   }
   const row = pace as Record<string, unknown>;
   const rating = typeof row.rating === "string" && PACE_RATINGS.has(row.rating as SavedPaceRating)
@@ -96,6 +109,14 @@ function paceDetail(pace: unknown): NonNullable<SavedAnalysisSource["pace"]> {
     decayPercent: finiteNumber(row.decayPercent),
     stabilityIndexPercent: finiteNumber(row.stabilityIndexPercent),
     rating,
+    totalSeconds: finiteNumber(row.totalSeconds),
+    benchmarkTotalSeconds: finiteNumber(row.benchmarkTotalSeconds),
+    trainingEmphasisRatio:
+      typeof row.trainingEmphasisRatio === "string" &&
+      row.trainingEmphasisRatio.length >= 1 &&
+      row.trainingEmphasisRatio.length <= 16
+        ? row.trainingEmphasisRatio
+        : null,
   };
 }
 

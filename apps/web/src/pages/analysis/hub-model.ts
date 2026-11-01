@@ -10,7 +10,8 @@ import {
 /**
  * View model for the analysis hub. It does not read or write.
  * A missing decay stays missing: it is not zero, and the stability index is not copied into it.
- * The pace card headline is the rating and the stability index. Decay is a separate line,
+ * The pace card headline is the rating and the stability index, with the stored total, benchmark total
+ * and training emphasis beside them (each `null` when that record has none). Decay is a separate line,
  * present only when that record stored a number.
  * Delta and sparkline exist only when that kind has at least two finite numbers.
  * Pace trends are kept per race distance: 500m, 777m and 1000m times are not comparable. A pace
@@ -48,6 +49,10 @@ export type HubAnalysisInput = {
   readonly decayPercent: number | null;
   readonly stabilityIndexPercent: number | null;
   readonly rating: HubPaceRating | null;
+  /** Pace only: what the writer stored. `null` for a record that has none of them (saved before, or malformed). */
+  readonly totalSeconds: number | null;
+  readonly benchmarkTotalSeconds: number | null;
+  readonly trainingEmphasisRatio: string | null;
 };
 
 export type HubEquipmentInput = {
@@ -111,6 +116,9 @@ export type HubPaceCard =
       readonly createdAt: string;
       readonly rating: HubPaceRating | null;
       readonly stabilityIndexPercent: number | null;
+      readonly totalSeconds: number | null;
+      readonly benchmarkTotalSeconds: number | null;
+      readonly trainingEmphasisRatio: string | null;
       /** One trend line per distance that has a stored decay, in 500 / 777 / 1000 order. */
       readonly decays: readonly HubPaceDecay[];
     }
@@ -119,6 +127,9 @@ export type HubPaceCard =
       readonly createdAt: string;
       readonly rating: HubPaceRating | null;
       readonly stabilityIndexPercent: number | null;
+      readonly totalSeconds: number | null;
+      readonly benchmarkTotalSeconds: number | null;
+      readonly trainingEmphasisRatio: string | null;
       readonly decays: readonly HubPaceDecay[];
     };
 
@@ -155,6 +166,8 @@ export type HubRecentItem =
       readonly decayPercent: number | null;
       readonly stabilityIndexPercent: number | null;
       readonly rating: HubPaceRating | null;
+      /** Only the total feeds the list title; the benchmark and the ratio are card lines. */
+      readonly totalSeconds: number | null;
     }
   | {
       readonly kind: "equipment";
@@ -338,6 +351,9 @@ function paceCard(lane: HubLane<HubAnalysisInput>): HubPaceCard {
     createdAt: latest.createdAt,
     rating: latest.rating,
     stabilityIndexPercent: finite(latest.stabilityIndexPercent),
+    totalSeconds: finite(latest.totalSeconds),
+    benchmarkTotalSeconds: finite(latest.benchmarkTotalSeconds),
+    trainingEmphasisRatio: latest.trainingEmphasisRatio ?? null,
     decays: HUB_PACE_DISTANCES.flatMap((distance) => {
       const decay = paceDecay(
         distance,
@@ -381,6 +397,7 @@ function paceItem(row: HubAnalysisInput): HubRecentItem {
     decayPercent: finite(row.decayPercent),
     stabilityIndexPercent: finite(row.stabilityIndexPercent),
     rating: row.rating,
+    totalSeconds: finite(row.totalSeconds),
   };
 }
 
