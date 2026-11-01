@@ -34,6 +34,10 @@ const roster = (rosterId: string, over: Partial<RaceRosterEntry> = {}): RaceRost
 
 const me = roster("lindsay", { isSelf: true, athleteRefId: "lindsay" });
 
+// A result only counts when its person is on the race's roster, so by default every self row the
+// tests build below is on every race; the removed-from-race cases override this.
+const ON_ROSTER = ["lindsay", "lindsay-2", "lindsay-b", "a-self", "b-self", "sam"];
+
 const race = (raceId: string, distanceId: string, over: Partial<RaceEntry> = {}): RaceEntry => ({
   ...provenance,
   ...audit,
@@ -45,7 +49,7 @@ const race = (raceId: string, distanceId: string, over: Partial<RaceEntry> = {})
   round: null,
   heat: null,
   scheduledAt: null,
-  rosterIds: [],
+  rosterIds: ON_ROSTER,
   ...over,
 });
 
@@ -217,10 +221,90 @@ describe("planRaceRecords: what should exist", () => {
     expect(p.skipped).toEqual([]);
   });
 
-  it("plans nothing when the self row is not linked to an athlete or to the current one", () => {
-    const unlinked = roster("lindsay", { isSelf: true, athleteRefId: null });
-    expect(plan(sources([source({ roster: [unlinked] })])).desired).toEqual([]);
-    expect(plan(sources([source()]), "someone-else").desired).toEqual([]);
+  describe("what counts: the self row is linked to this athlete and is on the race's roster", () => {
+    const two = [result("500m-1", "lindsay"), result("1000m-1", "lindsay"), result("500m-1", "sam")];
+    const races = [race("500m-1", "500m"), race("1000m-1", "1000m")];
+    const sam = roster("sam", { isFollowed: true });
+
+    it("counts a linked self row that is on the roster", () => {
+      const p = plan(sources([source({ races, roster: [me, sam], results: two })]));
+      expect(p.desired.map((d) => d.raceId).sort()).toEqual(["1000m-1", "500m-1"]);
+      expect(p.skipped).toEqual([]);
+    });
+
+    it("an unlinked self row: every own result is skipped as not-linked and nothing is planned", () => {
+      const unlinked = roster("lindsay", { isSelf: true, athleteRefId: null });
+      const p = plan(sources([source({ races, roster: [unlinked, sam], results: two })]));
+      expect(p.desired).toEqual([]);
+      expect(p.skipped).toEqual([
+        { eventId: EVENT, resultId: "500m-1_lindsay", reason: "not-linked" },
+        { eventId: EVENT, resultId: "1000m-1_lindsay", reason: "not-linked" },
+      ]);
+    });
+
+    it("a self row linked to someone else: every own result is skipped as wrong-athlete", () => {
+      const p = plan(sources([source({ races, roster: [me, sam], results: two })]), "someone-else");
+      expect(p.desired).toEqual([]);
+      expect(p.skipped).toEqual([
+        { eventId: EVENT, resultId: "500m-1_lindsay", reason: "wrong-athlete" },
+        { eventId: EVENT, resultId: "1000m-1_lindsay", reason: "wrong-athlete" },
+      ]);
+    });
+
+    it("no self row: nothing to sync, so nothing planned and nothing skipped", () => {
+      const p = plan(sources([source({ races, roster: [sam], results: two })]));
+      expect(p.desired).toEqual([]);
+      expect(p.skipped).toEqual([]);
+    });
+
+    it("a self row removed from one race's roster: that race is skipped, the other still counts", () => {
+      const p = plan(
+        sources([
+          source({
+            races: [race("500m-1", "500m", { rosterIds: ["sam"] }), race("1000m-1", "1000m")],
+            roster: [me, sam],
+            results: two,
+          }),
+        ]),
+      );
+      expect(p.desired.map((d) => d.raceId)).toEqual(["1000m-1"]);
+      expect(p.skipped).toEqual([{ eventId: EVENT, resultId: "500m-1_lindsay", reason: "removed-from-race" }]);
+    });
+
+    it("the removal is checked after the result itself, so an unconfirmed result keeps saying not-confirmed", () => {
+      const p = plan(
+        sources([
+          source({
+            races: [race("500m-1", "500m", { rosterIds: [] })],
+            results: [result("500m-1", "lindsay", { verification: "pending" })],
+          }),
+        ]),
+      );
+      expect(p.skipped).toEqual([{ eventId: EVENT, resultId: "500m-1_lindsay", reason: "not-confirmed" }]);
+    });
+
+    it("an entry already recorded for a result removed from the roster is deleted by the reconcile", () => {
+      const live = planRaceRecords({ sources: sources([source()]), athleteId: "lindsay" });
+      const stored = reconcileRaceEntries({
+        existing: [],
+        desired: live.desired,
+        canRemoveEntriesOf: live.canRemoveEntriesOf,
+        nowIso: NOW,
+      }).entries;
+      expect(stored).toHaveLength(1);
+
+      const removed = planRaceRecords({
+        sources: sources([source({ races: [race("500m-1", "500m", { rosterIds: [] })] })]),
+        athleteId: "lindsay",
+      });
+      const after = reconcileRaceEntries({
+        existing: stored,
+        desired: removed.desired,
+        canRemoveEntriesOf: removed.canRemoveEntriesOf,
+        nowIso: NOW,
+      });
+      expect(after).toMatchObject({ removed: 1, entries: [] });
+    });
   });
 
   it("with several self rows, uses the first by id like the summary page", () => {

@@ -15,6 +15,7 @@ function setup(props: Partial<React.ComponentProps<typeof RosterForm>> = {}) {
     <RosterForm
       mode="create"
       selfAthleteId="lindsay"
+      otherSelfExists={false}
       saving={false}
       submitErrorKey={null}
       onSubmit={onSubmit}
@@ -81,6 +82,120 @@ describe("RosterForm", () => {
     await user.click(screen.getByLabelText("这是我自己的运动员"));
     await user.click(screen.getByRole("button", { name: "保存" }));
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ isSelf: true, athleteRefId: "lindsay" });
+  });
+
+  describe("marking the self row", () => {
+    const stored = (over: Partial<NonNullable<React.ComponentProps<typeof RosterForm>["initial"]>> = {}) => ({
+      displayName: "Lindsay",
+      bib: "134",
+      division: "Wings",
+      isSelf: true,
+      isFollowed: true,
+      athleteRefId: "lindsay",
+      sourceNote: "",
+      ...over,
+    });
+    const selfBox = () => screen.getByLabelText("这是我自己的运动员") as HTMLInputElement;
+
+    it("another self row exists: marking this one is refused, shows why, and does not submit", async () => {
+      const { onSubmit, user } = setup({ otherSelfExists: true });
+      await fillValid(user);
+      await user.click(selfBox());
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText("已经有一位本人运动员，先取消原来的再标记")).toBeTruthy();
+      expect(selfBox().getAttribute("aria-invalid")).toBe("true");
+      await waitFor(() => {
+        expect(document.activeElement).toBe(selfBox());
+      });
+    });
+
+    it("another self row exists: a row that is not marked still saves", async () => {
+      const { onSubmit, user } = setup({ otherSelfExists: true });
+      await fillValid(user);
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ isSelf: false, athleteRefId: null });
+    });
+
+    it("settings not loaded (no athlete id): marking self is refused and does not submit", async () => {
+      const { onSubmit, user } = setup({ selfAthleteId: null });
+      await fillValid(user);
+      await user.click(selfBox());
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText("设置还没加载好，稍后再标记本人")).toBeTruthy();
+    });
+
+    it("settings not loaded: a row that is not self still saves", async () => {
+      const { onSubmit, user } = setup({ selfAthleteId: null });
+      await fillValid(user);
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ isSelf: false, athleteRefId: null });
+    });
+
+    it("editing a self row and only renaming keeps the stored link", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", initial: stored() });
+      const name = screen.getByLabelText(/姓名/);
+      await user.clear(name);
+      await user.type(name, "Lindsay W");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ displayName: "Lindsay W", isSelf: true, athleteRefId: "lindsay" });
+    });
+
+    it.each([["someone-else"], [null]])(
+      "keeps a stored link of %s instead of re-linking to the active athlete",
+      async (athleteRefId) => {
+        const { onSubmit, user } = setup({ mode: "edit", initial: stored({ athleteRefId }) });
+        await user.type(screen.getByLabelText(/姓名/), "!");
+        await user.click(screen.getByRole("button", { name: "保存" }));
+        expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ isSelf: true, athleteRefId });
+      },
+    );
+
+    it.each([
+      [{ selfAthleteId: null }, "Settings are still loading. Mark yourself once they are ready."],
+      [{ otherSelfExists: true }, "There is already a self row. Unmark it before marking another."],
+    ])("the refusal for %o is translated to English", async (props, message) => {
+      locale.current = "en";
+      try {
+        // An existing, valid row that is not self, so only the self gate can refuse it.
+        const { onSubmit, user } = setup({
+          mode: "edit",
+          initial: stored({ isSelf: false, athleteRefId: null }),
+          ...props,
+        });
+        await user.click(screen.getByLabelText("This is my own athlete"));
+        await user.click(screen.getByRole("button", { name: "Save" }));
+        expect(onSubmit).not.toHaveBeenCalled();
+        expect(screen.getByText(message)).toBeTruthy();
+      } finally {
+        locale.current = "zh";
+      }
+    });
+
+    // Re-linking a stored null therefore takes two saves: unmark and save, then edit again and mark
+    // (the last test of this group).
+    it("unmarking and marking again inside one form ends where it started, so the stored null stays", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", initial: stored({ athleteRefId: null }) });
+      await user.click(selfBox());
+      await user.click(selfBox());
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ isSelf: true, athleteRefId: null });
+    });
+
+    it("unmarking a self row clears the link", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", initial: stored() });
+      await user.click(selfBox());
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ isSelf: false, athleteRefId: null });
+    });
+
+    it("editing a row that is not self and marking it links it to the active athlete", async () => {
+      const { onSubmit, user } = setup({ mode: "edit", initial: stored({ isSelf: false, athleteRefId: null }) });
+      await user.click(selfBox());
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ isSelf: true, athleteRefId: "lindsay" });
+    });
   });
 
   it("keeps leading zeros in the bib", async () => {
