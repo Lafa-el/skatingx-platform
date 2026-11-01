@@ -187,6 +187,54 @@ describe("legacy pace calculation", () => {
   });
 });
 
+describe("pace calculation: the lists must be the length of the distance", () => {
+  const SPLITS_MESSAGE = "请输入完整且大于 0 的圈速数据后再生成曲线。";
+  const BENCHMARK_MESSAGE = "请先填写完整且大于 0 的 Junior D 标准，再生成曲线。";
+  const splits500 = [7.2, 9.3, 9.5, 10.4, 11.2];
+  const benchmark500 = [8, 10.3, 10.4, 10.5, 10.8];
+
+  it("empty lists are incomplete, not a result of NaN rated 优秀", () => {
+    expect(calculatePacingAnalysis("500", [], [])).toEqual({ ok: false, message: SPLITS_MESSAGE });
+  });
+
+  it("two splits are refused too", () => {
+    expect(calculatePacingAnalysis("500", [9, 10], benchmark500)).toEqual({ ok: false, message: SPLITS_MESSAGE });
+  });
+
+  it("one segment too few or too many in the splits is refused", () => {
+    expect(calculatePacingAnalysis("500", splits500.slice(0, 4), benchmark500)).toEqual({ ok: false, message: SPLITS_MESSAGE });
+    expect(calculatePacingAnalysis("500", [...splits500, 11.5], benchmark500)).toEqual({ ok: false, message: SPLITS_MESSAGE });
+  });
+
+  it("right splits with a benchmark of the wrong length name the benchmark", () => {
+    expect(calculatePacingAnalysis("500", splits500, [])).toEqual({ ok: false, message: BENCHMARK_MESSAGE });
+    expect(calculatePacingAnalysis("500", splits500, benchmark500.slice(0, 4))).toEqual({ ok: false, message: BENCHMARK_MESSAGE });
+    expect(calculatePacingAnalysis("500", splits500, [...benchmark500, 10.8])).toEqual({ ok: false, message: BENCHMARK_MESSAGE });
+  });
+
+  it("when both are wrong the splits are named", () => {
+    expect(calculatePacingAnalysis("500", [], benchmark500.slice(0, 3))).toEqual({ ok: false, message: SPLITS_MESSAGE });
+  });
+
+  it.each([
+    ["500", 5],
+    ["777", 7],
+    ["1000", 9],
+  ] as const)("%sm takes exactly %i segments", (distance, count) => {
+    const series = Array.from({ length: count }, () => 10);
+    expect(calculatePacingAnalysis(distance, series, series).ok).toBe(true);
+    expect(calculatePacingAnalysis(distance, series.slice(1), series)).toEqual({ ok: false, message: SPLITS_MESSAGE });
+    expect(calculatePacingAnalysis(distance, series, [...series, 10])).toEqual({ ok: false, message: BENCHMARK_MESSAGE });
+  });
+
+  it("a complete input still gives a number, never NaN", () => {
+    const result = calculatePacingAnalysis("500", splits500, benchmark500);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(Number.isNaN(result.analysis.decayPercent)).toBe(false);
+  });
+});
+
 describe("legacy equipment checklist", () => {
   it("locks the rule hints for a synthetic gauge card", () => {
     const checklist = buildEquipmentChecklist({
