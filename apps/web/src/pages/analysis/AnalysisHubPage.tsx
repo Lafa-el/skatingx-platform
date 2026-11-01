@@ -25,7 +25,7 @@ import { tAnalysis, type AnalysisMessageKey } from "@/shared/i18n/analysis-messa
 import { tEquipment, type EquipmentMessageKey } from "@/shared/i18n/equipment-messages";
 import { formatCalendarDate } from "@/shared/i18n/format";
 import { tPace, type PaceMessageKey } from "@/shared/i18n/pacing-messages";
-import { tPlan, type PlanMessageKey } from "@/shared/i18n/plan-messages";
+import { tPlan } from "@/shared/i18n/plan-messages";
 import type { Locale } from "@/shared/i18n/translator";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
@@ -48,12 +48,6 @@ const TOOL_ROUTE = {
   pace: "/analysis/pacing",
   equipment: "/analysis/equipment",
 } as const;
-
-const FOCUS_TITLE: Record<PlanFocus, PlanMessageKey> = {
-  lean: "plan.focus.lean.title",
-  bounce: "plan.focus.bounce.title",
-  endurance: "plan.focus.endurance.title",
-};
 
 const RATING_KEY: Record<HubPaceRating, PaceMessageKey> = {
   excellent: "pace.rating.excellent",
@@ -304,7 +298,7 @@ export function AnalysisHubPage() {
     writeHiddenFeedback(next);
   };
 
-  const model = buildHubModel({ analyses, equipment, hidden });
+  const model = buildHubModel({ analyses, equipment, hidden, currentFocus: focus });
 
   return (
     <div className="grid gap-6">
@@ -446,11 +440,6 @@ function SuggestionCard({
         {item.type === "set-focus" && saveFailed ? (
           <p role="status" className="mt-3 font-semibold">
             {tPlan(locale, "plan.focus.saveFailed")}
-          </p>
-        ) : null}
-        {item.type === "set-focus" && focus === item.focus ? (
-          <p role="status" className="mt-3 font-semibold">
-            {tAnalysis(locale, "analysis.hub.feedback.accepted", { focus: tPlan(locale, FOCUS_TITLE[item.focus]) })}
           </p>
         ) : null}
       </Card>

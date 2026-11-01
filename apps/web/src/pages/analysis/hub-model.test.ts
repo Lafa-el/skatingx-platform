@@ -32,6 +32,46 @@ function ready<T>(records: readonly T[]): HubLane<T> {
   return { status: "ready", records };
 }
 
+describe("the focus that is already set", () => {
+  const rows = [
+    analysis({ kind: "pace", id: "pace-1", createdAt: "2026-10-20T00:00:00.000Z", findings: [{ code: "pace.decay.back-half" }] }),
+    analysis({ kind: "biomech", id: "bio-1", createdAt: "2026-10-19T00:00:00.000Z", findings: [{ code: "biomech.lean.high" }] }),
+  ];
+  const build = (currentFocus?: "bounce" | "lean" | "endurance" | null) =>
+    buildHubModel({ analyses: ready(rows), equipment: ready([]), hidden: new Set(), currentFocus }).suggestion;
+
+  it("filters the first suggestion and moves on to the next", () => {
+    expect(build(null)).toMatchObject({ status: "ready", feedback: { focus: "bounce", analysisId: "pace-1" } });
+    expect(build("bounce")).toMatchObject({ status: "ready", feedback: { focus: "lean", analysisId: "bio-1" } });
+  });
+
+  it("with the only suggestion's focus set, there is no suggestion left", () => {
+    const only = buildHubModel({ analyses: ready([rows[0]!]), equipment: ready([]), hidden: new Set(), currentFocus: "bounce" });
+    expect(only.suggestion).toEqual({ status: "none" });
+  });
+
+  it("not passing a focus behaves as null: nothing is filtered", () => {
+    expect(build()).toEqual(build(null));
+    expect(build()).toMatchObject({ status: "ready", feedback: { focus: "bounce" } });
+  });
+
+  it("hidden suggestions are still dropped after the focus filter, in the same way as before", () => {
+    const hidden = new Set([trainingFeedbackKey({ type: "set-focus", focus: "lean", sourceKind: "biomech", analysisId: "bio-1", createdAt: "x" })]);
+    const model = buildHubModel({ analyses: ready(rows), equipment: ready([]), hidden, currentFocus: "bounce" });
+    expect(model.suggestion).toEqual({ status: "none" });
+  });
+
+  it("an equipment review is still offered when the focus filter has removed the analysis cards", () => {
+    const model = buildHubModel({
+      analyses: ready([rows[0]!]),
+      equipment: ready([equipment({ id: "e1", createdAt: "2026-10-21T00:00:00.000Z", findings: [{ code: "equipment.symptom.slide" }] })]),
+      hidden: new Set(),
+      currentFocus: "bounce",
+    });
+    expect(model.suggestion).toMatchObject({ status: "ready", feedback: { type: "review-equipment", analysisId: "e1" } });
+  });
+});
+
 describe("the no-readable-frames flag", () => {
   const bio = (id: string, createdAt: string, readableFrames: number | null | undefined) =>
     analysis({ kind: "biomech", id, createdAt, readableFrames });

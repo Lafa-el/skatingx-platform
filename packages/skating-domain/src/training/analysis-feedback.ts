@@ -92,8 +92,18 @@ function hasEquipmentSymptom(source: FeedbackSource): boolean {
 /**
  * Suggestions from the latest pace record, the latest biomechanics record, and
  * the latest equipment record. Older records of the same kind do not contribute.
+ *
+ * `currentFocus` is this week's plan focus. A set-focus suggestion for the focus that is already set
+ * is not derived: accepting only writes the focus (it does not hide the card), so without this the
+ * suggestion would stay for as long as the latest record keeps its finding. Same rule as the race
+ * week suggestion. The filter is inside the derivation so that the first card a caller takes is the
+ * next one, not an empty hero. `null` (no focus this week) filters nothing. Equipment review cards
+ * have no focus and are never filtered. Focus is per week: next week's focus brings it back.
  */
-export function deriveTrainingFeedback(sources: readonly FeedbackSource[]): readonly AnalysisTrainingFeedback[] {
+export function deriveTrainingFeedback(
+  sources: readonly FeedbackSource[],
+  currentFocus: PlanFocus | null,
+): readonly AnalysisTrainingFeedback[] {
   const latest = latestFeedbackSourceByKind(sources);
   const cards: AnalysisTrainingFeedback[] = [];
   const pace = latest.pace;
@@ -125,7 +135,7 @@ export function deriveTrainingFeedback(sources: readonly FeedbackSource[]): read
       createdAt: equipment.createdAt,
     });
   }
-  return cards;
+  return cards.filter((card) => !(card.type === "set-focus" && card.focus === currentFocus));
 }
 
 export function trainingFeedbackKey(feedback: TrainingFeedback): string {

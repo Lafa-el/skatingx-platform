@@ -32,7 +32,7 @@ describe("analysis feedback", () => {
         id: "equip-1",
         findings: [{ code: "equipment.symptom.slide" }],
       }),
-    ]);
+    ], null);
 
     expect(cards).toEqual([
       {
@@ -66,7 +66,7 @@ describe("analysis feedback", () => {
           id: "pace-excellent",
           findings: [],
         }),
-      ]),
+      ], null),
     ).toEqual([]);
   });
 
@@ -74,7 +74,7 @@ describe("analysis feedback", () => {
     expect(
       deriveTrainingFeedback([
         source({ kind: "biomech", id: "bio-1", findings: [{ code: "biomech.frame.unreadable" }] }),
-      ]),
+      ], null),
     ).toEqual([]);
   });
 
@@ -108,7 +108,7 @@ describe("analysis feedback", () => {
 
     expect(latestFeedbackSourceByKind(sources).pace?.id).toBe("pace-new");
     expect(latestFeedbackSourceByKind(sources).biomech?.id).toBe("bio-new");
-    expect(deriveTrainingFeedback(sources)).toEqual([]);
+    expect(deriveTrainingFeedback(sources, null)).toEqual([]);
   });
 
   it("breaks a same-timestamp tie by id so the choice does not depend on list order", () => {
@@ -116,7 +116,44 @@ describe("analysis feedback", () => {
       source({ kind: "equipment", id: "equip-a", findings: [{ code: "equipment.symptom.ankle" }] }),
       source({ kind: "equipment", id: "equip-b", findings: [{ code: "equipment.symptom.boot-out" }] }),
     ];
-    expect(deriveTrainingFeedback(sources)[0]?.analysisId).toBe("equip-b");
-    expect(deriveTrainingFeedback([...sources].reverse())[0]?.analysisId).toBe("equip-b");
+    expect(deriveTrainingFeedback(sources, null)[0]?.analysisId).toBe("equip-b");
+    expect(deriveTrainingFeedback([...sources].reverse(), null)[0]?.analysisId).toBe("equip-b");
+  });
+});
+
+describe("the focus that is already set", () => {
+  const sources = [
+    source({ kind: "pace", id: "pace-1", findings: [{ code: "pace.decay.back-half" }] }),
+    source({ kind: "biomech", id: "bio-1", findings: [{ code: "biomech.lean.high" }] }),
+    source({ kind: "equipment", id: "equip-1", findings: [{ code: "equipment.symptom.slide" }] }),
+  ];
+  const kinds = (focus: Parameters<typeof deriveTrainingFeedback>[1]) =>
+    deriveTrainingFeedback(sources, focus).map((card) => (card.type === "set-focus" ? card.focus : card.type));
+
+  it("with bounce set, the pace card goes and the biomechanics card stays", () => {
+    expect(kinds("bounce")).toEqual(["lean", "review-equipment"]);
+  });
+
+  it("with lean set, the biomechanics card goes and the pace card stays", () => {
+    expect(kinds("lean")).toEqual(["bounce", "review-equipment"]);
+  });
+
+  it("with no focus this week, nothing is filtered", () => {
+    expect(kinds(null)).toEqual(["bounce", "lean", "review-equipment"]);
+  });
+
+  it("with endurance set, the analysis cards are not affected (they never suggest it)", () => {
+    expect(kinds("endurance")).toEqual(["bounce", "lean", "review-equipment"]);
+  });
+
+  it("the equipment review card is never filtered, whatever the focus", () => {
+    for (const focus of [null, "bounce", "lean", "endurance"] as const) {
+      expect(kinds(focus)).toContain("review-equipment");
+    }
+  });
+
+  it("the first card after filtering is the next one, so a caller taking the first gets a successor, not nothing", () => {
+    expect(deriveTrainingFeedback(sources, "bounce")[0]).toMatchObject({ focus: "lean", analysisId: "bio-1" });
+    expect(deriveTrainingFeedback(sources.slice(0, 1), "bounce")).toEqual([]);
   });
 });
