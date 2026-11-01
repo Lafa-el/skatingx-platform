@@ -233,6 +233,16 @@ describe("result row sync status: the five states", () => {
     expect(lines(container)).toEqual(["未记入：没有关联本人运动员"]);
   });
 
+  it("a race whose day is not one of the event's days is listed and says it is not recorded (zh, en)", () => {
+    setup({ races: [race({ day: "2026-11-30" })] });
+    const zh = renderPage();
+    expect(lines(zh.container)).toEqual(["未记入：比赛日不在赛事日期内"]);
+    zh.unmount();
+    locale.current = "en";
+    const en = renderPage();
+    expect(lines(en.container)).toEqual(["Not recorded: the race day is not one of the event's days"]);
+  });
+
   it("an own row linked to a different athlete says so, without waiting for the records", () => {
     setup({ roster: [person("lindsay", { isSelf: true, athleteRefId: "someone-else" }), ann] });
     const { container } = renderPage();

@@ -1,6 +1,6 @@
 import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skatingx/schema";
 
-import { isConfirmed } from "./race-day";
+import { effectiveRaceDay, isConfirmed } from "./race-day";
 import { isRealDateString, RACE_DAY_LIMITS } from "./race-day-input";
 import { createRaceRecordEntryId, parseRaceRecordEntryId } from "./race-record-entry-id";
 
@@ -74,7 +74,8 @@ export type RaceRecordSkipReason =
   | "no-date"
   | "not-linked"
   | "wrong-athlete"
-  | "removed-from-race";
+  | "removed-from-race"
+  | "not-in-dates";
 
 export type SkippedRaceResult = { eventId: string; resultId: string; reason: RaceRecordSkipReason };
 
@@ -94,18 +95,6 @@ export function selfRosterEntry(roster: readonly RaceRosterEntry[]): RaceRosterE
   return selves[0] ?? null;
 }
 
-/**
- * The day a race was run, never guessed: the race's own day, or the event's only day. A race
- * without a day in a multi-day event is skipped rather than assigned to a day.
- */
-function raceDay(race: RaceEntry, event: Pick<RaceEvent, "dates">): string | null {
-  if (race.day !== null && isRealDateString(race.day)) {
-    return race.day;
-  }
-  const days = [...new Set(event.dates.filter(isRealDateString))];
-  return race.day === null && days.length === 1 ? (days[0] ?? null) : null;
-}
-
 function isRecordableTime(seconds: number | null): seconds is number {
   return seconds !== null && Number.isFinite(seconds) && seconds > 0 && seconds <= RACE_DAY_LIMITS.resultTimeMaxSeconds;
 }
@@ -121,6 +110,13 @@ function isRecordableTime(seconds: number | null): seconds is number {
  * - History is kept: the Results page still shows a result whose person was removed from the
  *   race, with a marker, and `updateRace` never deletes results. Only the record entry goes: it
  *   is no longer in `desired`, so the reconcile removes it like any other stale `race_` entry.
+ *
+ * Which day a race counts on is decided by `effectiveRaceDay`, the same rule the summary uses:
+ * the event's `dates` are the authority. A race whose day is a real date outside them is skipped
+ * as "not-in-dates"; one with no usable day (null in a multi-day event, or an impossible date
+ * string) as "no-date"; a null day in a one-day event takes that day. The Schedule page still
+ * lists such a race (it is where the day is fixed); it just does not count, and an entry already
+ * recorded for it goes through the same reconcile removal as any other stale `race_` entry.
  */
 export function planRaceRecords(input: { sources: RaceRecordSources; athleteId: string }): RaceRecordPlan {
   const { sources, athleteId } = input;
@@ -176,9 +172,10 @@ export function planRaceRecords(input: { sources: RaceRecordSources; athleteId: 
         skip("unmapped-distance");
         continue;
       }
-      const day = raceDay(race, source.event);
+      const day = effectiveRaceDay(race, source.event.dates);
       if (!day) {
-        skip("no-date");
+        // A real day outside the event's dates is told apart from a missing or impossible one.
+        skip(race.day !== null && isRealDateString(race.day) ? "not-in-dates" : "no-date");
         continue;
       }
       const entryId = createRaceRecordEntryId(eventId, race.raceId);

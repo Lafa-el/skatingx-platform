@@ -10,6 +10,7 @@ import {
   countByVerification,
   createPendingProvenance,
   createRaceResultId,
+  effectiveRaceDay,
   groupRaceEntriesByDay,
   isConfirmed,
   isValidRaceDayId,
@@ -268,6 +269,8 @@ describe("schedule ordering", () => {
 
 describe("buildRaceSummary", () => {
   const self = { rosterId: "self", displayName: "Test Skater", bib: "000", division: "Test Division" };
+  // One event day, so a race with no day of its own is on that day and counts.
+  const dates = ["2026-10-24"];
   const races = [
     race({ raceId: "a", label: "500m", distanceId: "500m", sortOrder: 1 }),
     race({ raceId: "b", label: "500m", distanceId: "500m", sortOrder: 2 }),
@@ -276,13 +279,67 @@ describe("buildRaceSummary", () => {
   ];
 
   it("reports the algorithm version", () => {
-    expect(buildRaceSummary({ self, races, results: [] }).summaryVersion).toBe(
+    expect(buildRaceSummary({ self, races, dates, results: [] }).summaryVersion).toBe(
       RACE_SUMMARY_VERSION,
     );
+    expect(RACE_SUMMARY_VERSION).toBe("race-summary/2");
+  });
+
+  describe("only races on an effective race day count (the event's dates are the authority)", () => {
+    const multi = ["2026-10-24", "2026-10-25"];
+    const mixed = [
+      race({ raceId: "in", day: "2026-10-24", sortOrder: 1 }),
+      race({ raceId: "out", day: "2026-11-30", sortOrder: 2 }),
+      race({ raceId: "dirty", day: "2026-02-30", sortOrder: 3 }),
+      race({ raceId: "none", day: null, sortOrder: 4 }),
+    ];
+    const results = mixed.map((r) => markVerified(result({ raceId: r.raceId, timeSeconds: 50 }), NOW));
+
+    it("multi-day event: a real day outside the dates, an impossible day and a null day are all left out", () => {
+      const summary = buildRaceSummary({ self, races: mixed, dates: multi, results });
+      expect(summary.items.map((i) => i.raceId)).toEqual(["in"]);
+      expect(summary.racesTotal).toBe(1);
+      expect(summary.racesWithResult).toBe(1);
+      expect(summary.racesFinished).toBe(1);
+    });
+
+    it("all six figures leave the excluded races out, the fastest time and pending count included", () => {
+      const fast = [
+        ...mixed,
+        race({ raceId: "fast-out", day: "2026-11-30", sortOrder: 5 }),
+        race({ raceId: "pending-out", day: "2026-11-30", sortOrder: 6 }),
+      ];
+      const summary = buildRaceSummary({
+        self,
+        races: fast,
+        dates: multi,
+        results: [
+          markVerified(result({ raceId: "in", timeSeconds: 52 }), NOW),
+          markVerified(result({ raceId: "fast-out", timeSeconds: 40 }), NOW),
+          result({ raceId: "pending-out", timeSeconds: 41 }),
+        ],
+      });
+      expect(summary.racesTotal).toBe(1);
+      expect(summary.racesWithResult).toBe(1);
+      expect(summary.racesFinished).toBe(1);
+      expect(summary.pendingResultCount).toBe(0);
+      expect(summary.fastestConfirmedSeconds).toBe(52);
+      expect(summary.items).toHaveLength(1);
+    });
+
+    it("one-day event: a null day is that day and counts; a real day outside it does not", () => {
+      const summary = buildRaceSummary({ self, races: mixed, dates: ["2026-10-24"], results });
+      expect(summary.items.map((i) => i.raceId)).toEqual(["in", "none"]);
+    });
+
+    it("an event whose only date is impossible has no effective day for anything", () => {
+      const summary = buildRaceSummary({ self, races: mixed, dates: ["2026-02-30"], results });
+      expect(summary.items).toEqual([]);
+    });
   });
 
   it("handles the empty state: no results yet", () => {
-    const summary = buildRaceSummary({ self, races, results: [] });
+    const summary = buildRaceSummary({ self, races, dates, results: [] });
     expect(summary.racesTotal).toBe(3);
     expect(summary.racesWithResult).toBe(0);
     expect(summary.racesFinished).toBe(0);
@@ -292,7 +349,7 @@ describe("buildRaceSummary", () => {
   });
 
   it("only includes races the athlete is entered in", () => {
-    const summary = buildRaceSummary({ self, races, results: [] });
+    const summary = buildRaceSummary({ self, races, dates, results: [] });
     expect(summary.items.map((i) => i.raceId)).toEqual(["a", "b", "c"]);
   });
 
@@ -300,6 +357,7 @@ describe("buildRaceSummary", () => {
     const summary = buildRaceSummary({
       self,
       races,
+      dates,
       results: [
         result({ raceId: "a", timeSeconds: 50.1 }),
         result({ raceId: "b", timeSeconds: 49.8 }),
@@ -314,6 +372,7 @@ describe("buildRaceSummary", () => {
     const summary = buildRaceSummary({
       self,
       races,
+      dates,
       results: [
         // Fastest overall is pending, so it must not count.
         result({ raceId: "a", timeSeconds: 48.0 }),
@@ -330,6 +389,7 @@ describe("buildRaceSummary", () => {
     const summary = buildRaceSummary({
       self,
       races,
+      dates,
       results: [
         markVerified(
           result({ raceId: "a", status: "DNF", timeSeconds: null }),
@@ -347,6 +407,7 @@ describe("buildRaceSummary", () => {
     const summary = buildRaceSummary({
       self,
       races,
+      dates,
       results: [result({ raceId: "a", rosterId: "someone-else", timeSeconds: 40 })],
     });
     expect(summary.racesWithResult).toBe(0);
@@ -356,6 +417,7 @@ describe("buildRaceSummary", () => {
     const summary = buildRaceSummary({
       self,
       races,
+      dates,
       results: [
         result({ raceId: "a", timeSeconds: 50.1 }),
         result({ raceId: "b", status: "DQ", timeSeconds: null }),
@@ -370,9 +432,35 @@ describe("buildRaceSummary", () => {
   });
 
   it("does not mutate its inputs", () => {
-    const input = { self, races: [...races], results: [result({ raceId: "a" })] };
+    const input = { self, races: [...races], dates, results: [result({ raceId: "a" })] };
     const before = JSON.stringify(input);
     buildRaceSummary(input);
     expect(JSON.stringify(input)).toBe(before);
+  });
+});
+
+describe("effectiveRaceDay", () => {
+  const dates = ["2026-10-24", "2026-10-25"];
+
+  it("a real day inside the dates is itself, outside them null", () => {
+    expect(effectiveRaceDay({ day: "2026-10-25" }, dates)).toBe("2026-10-25");
+    expect(effectiveRaceDay({ day: "2026-10-26" }, dates)).toBeNull();
+  });
+
+  it("a null day is the event's only real day, never guessed among several", () => {
+    expect(effectiveRaceDay({ day: null }, ["2026-10-24"])).toBe("2026-10-24");
+    expect(effectiveRaceDay({ day: null }, ["2026-10-24", "2026-10-24"])).toBe("2026-10-24");
+    expect(effectiveRaceDay({ day: null }, dates)).toBeNull();
+    expect(effectiveRaceDay({ day: null }, [])).toBeNull();
+  });
+
+  it("an impossible event date is not a day: it neither admits a race nor counts as the only day", () => {
+    expect(effectiveRaceDay({ day: "2026-02-30" }, ["2026-02-30"])).toBeNull();
+    expect(effectiveRaceDay({ day: null }, ["2026-02-30"])).toBeNull();
+    expect(effectiveRaceDay({ day: null }, ["2026-02-30", "2026-10-24"])).toBe("2026-10-24");
+  });
+
+  it("an impossible race day has none, even in a one-day event", () => {
+    expect(effectiveRaceDay({ day: "2026-13-99" }, ["2026-10-24"])).toBeNull();
   });
 });

@@ -53,7 +53,7 @@ const result = (raceId: string, over: Partial<RaceResult> = {}): RaceResult => (
 });
 
 function setup(races: RaceEntry[], results: RaceResult[]) {
-  const summary = buildRaceSummary({ self: me, races, results });
+  const summary = buildRaceSummary({ self: me, races, results, dates: ["2026-10-24"] });
   render(<SummaryCard summary={summary} raceNumbers={raceNumberById(races)} />);
 }
 
@@ -62,7 +62,7 @@ describe("SummaryCard", () => {
     setup([race("r1", 1, "500m")], []);
     expect(screen.getByRole("heading", { name: "Test Skater 的比赛总结" })).toBeTruthy();
     expect(screen.getByText("号码 000 · Test Division")).toBeTruthy();
-    expect(screen.getByText("汇总规则版本：race-summary/1")).toBeTruthy();
+    expect(screen.getByText("汇总规则版本：race-summary/2")).toBeTruthy();
   });
 
   it("with no results says so, and shows no pending banner and no confirmed claim", () => {

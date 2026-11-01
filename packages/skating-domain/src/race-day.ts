@@ -8,6 +8,7 @@ import type {
   Timestamp,
 } from "@skatingx/schema";
 
+import { isRealDateString } from "./calendar-date";
 import { isValidRaceDayId } from "./race-day-id";
 
 /**
@@ -185,12 +186,40 @@ export function groupRaceEntriesByDay(races: readonly RaceEntry[]): RaceDayGroup
 
 // --- summary ---------------------------------------------------------------------
 
-/** Bump when the shape or rules of `buildRaceSummary` change, so old results stay explainable. */
-export const RACE_SUMMARY_VERSION = "race-summary/1";
+/**
+ * Bump when the shape or rules of `buildRaceSummary` change, so old results stay explainable.
+ * /2: a race counts only on an effective race day (`effectiveRaceDay`), i.e. one of the event's dates.
+ */
+export const RACE_SUMMARY_VERSION = "race-summary/2";
+
+/**
+ * The one rule for which day a race counts on. The event's `dates` are the authority: the summary
+ * and the records sync both ask this, and the Today page already works from `dates` alone.
+ *
+ * - `race.day` is a real date: it counts only if it is one of the event's real dates, else null.
+ * - `race.day` is null and the event has exactly one real date: that date (the race cannot be
+ *   anywhere else). With several dates a null day is never guessed.
+ * - Anything else (an impossible date string, null in a multi-day event) has no effective day.
+ *
+ * The Schedule page deliberately still lists every race, such a race included: it is where the
+ * day gets fixed. Only what is counted (summary, records) goes by this rule.
+ */
+export function effectiveRaceDay(race: Pick<RaceEntry, "day">, dates: readonly string[]): string | null {
+  const valid = [...new Set(dates.filter(isRealDateString))];
+  if (race.day !== null && isRealDateString(race.day)) {
+    return valid.includes(race.day) ? race.day : null;
+  }
+  if (race.day === null && valid.length === 1) {
+    return valid[0] ?? null;
+  }
+  return null;
+}
 
 export type RaceSummaryInput = {
   self: Pick<RaceRosterEntry, "rosterId" | "displayName" | "bib" | "division">;
   races: readonly RaceEntry[];
+  /** The event's dates; a race counts only on an effective race day (see `effectiveRaceDay`). */
+  dates: readonly string[];
   results: readonly RaceResult[];
   /** Personal best seconds by `distanceId`, if available. Context only; never auto-written. */
   personalBestSecondsByDistanceId?: Readonly<Record<string, number>>;
@@ -235,7 +264,9 @@ export function buildRaceSummary(input: RaceSummaryInput): RaceSummary {
   }
 
   const items: RaceSummaryItem[] = sortRaceEntries(input.races)
-    .filter((race) => race.rosterIds.includes(input.self.rosterId))
+    .filter(
+      (race) => race.rosterIds.includes(input.self.rosterId) && effectiveRaceDay(race, input.dates) !== null,
+    )
     .map((race) => {
       const result = resultByRaceId.get(race.raceId);
       const pb = input.personalBestSecondsByDistanceId?.[race.distanceId];

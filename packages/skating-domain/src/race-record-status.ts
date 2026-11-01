@@ -24,6 +24,8 @@ export type ResultSyncStatus =
   | { readonly kind: "no-athlete" }
   | { readonly kind: "wrong-athlete" }
   | { readonly kind: "removed-from-race" }
+  /** The race's day is a real date, but not one of the event's days. */
+  | { readonly kind: "not-in-dates" }
   /** The row would be recorded, but the records could not be read, so whether it is is unknown. */
   | { readonly kind: "unknown" };
 
@@ -84,8 +86,9 @@ function planFor(
  *     the answer is on its way;
  *   - the read failed (`recordsReadFailed` true): the row says "unknown", because nothing is
  *     coming and silence would look the same as "no sync needed".
- *   Reasons that do not depend on the records (unmapped distance, no date, no athlete, wrong
- *   athlete, removed from the race) are shown either way and are never replaced by "unknown".
+ *   Reasons that do not depend on the records (unmapped distance, no date, day not in the
+ *   event's dates, no athlete, wrong athlete, removed from the race) are shown either way and
+ *   are never replaced by "unknown".
  */
 export function deriveResultSyncInfo(input: {
   event: Pick<RaceEvent, "eventId" | "name" | "dates">;
@@ -148,7 +151,7 @@ export function deriveResultSyncInfo(input: {
     }
 
     const reason = skippedByResultId.get(row.resultId);
-    if (reason === "unmapped-distance" || reason === "no-date") {
+    if (reason === "unmapped-distance" || reason === "no-date" || reason === "not-in-dates") {
       byResultId.set(row.resultId, { status: { kind: reason }, confirmHint: false });
     } else if (reason === "not-linked" || reason === "wrong-athlete") {
       // The plan reports a link problem for every own row, DNS / DNF / DQ included; those rows

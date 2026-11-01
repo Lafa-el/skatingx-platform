@@ -170,7 +170,7 @@ describe("summary notes written by the repository are accepted by the real rules
 
     const summary = await summaryOf(ctx, eventId);
     expect(summary).toMatchObject({
-      summaryVersion: "race-summary/1",
+      summaryVersion: "race-summary/2",
       coachNote: "Fast start, tired late",
       schemaVersion: 1,
     });

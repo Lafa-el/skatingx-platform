@@ -16,6 +16,8 @@ import { fieldErrorKeys } from "../lib/form-errors";
 type EventFormProps = {
   mode: "create" | "edit";
   initial?: RaceEventInput;
+  /** Days that races of this event are scheduled on (distinct, non-empty). Empty for a new event. */
+  usedDays: readonly string[];
   saving: boolean;
   submitErrorKey: RaceDayMessageKey | null;
   onSubmit: (values: RaceEventInput) => void;
@@ -32,7 +34,7 @@ const TIME_ZONE_SUGGESTIONS = [
   "Asia/Shanghai",
 ];
 
-export function EventForm({ mode, initial, saving, submitErrorKey, onSubmit, onCancel }: EventFormProps) {
+export function EventForm({ mode, initial, usedDays, saving, submitErrorKey, onSubmit, onCancel }: EventFormProps) {
   const locale = useLocale();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -67,6 +69,19 @@ export function EventForm({ mode, initial, saving, submitErrorKey, onSubmit, onC
         formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
       });
       return;
+    }
+    // The event's dates are what races count against (summary, records), so a day that still has
+    // races on it must not just disappear. Compared on the normalized dates, so a format
+    // difference alone never blocks. A new event has no races, hence only edit mode checks.
+    if (mode === "edit" && initial) {
+      const removed = initial.dates.filter((day) => !value.dates.includes(day));
+      if (usedDays.some((day) => removed.includes(day))) {
+        setErrors(new Map([["dates", "raceDay.setup.event.datesInUse"]]));
+        queueMicrotask(() => {
+          formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+        });
+        return;
+      }
     }
     setErrors(new Map());
     onSubmit(value);

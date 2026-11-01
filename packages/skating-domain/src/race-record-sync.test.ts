@@ -340,6 +340,57 @@ describe("planRaceRecords: what should exist", () => {
       expect(p.skipped[0]?.reason).toBe("no-date");
     });
 
+    it("a real day that is not one of the event's dates is skipped as not-in-dates", () => {
+      const p = plan(sources([source({ races: [race("500m-1", "500m", { day: "2026-11-30" })] })]));
+      expect(p.desired).toEqual([]);
+      expect(p.skipped).toEqual([{ eventId: EVENT, resultId: "500m-1_lindsay", reason: "not-in-dates" }]);
+    });
+
+    it("an impossible day, or a null day in a multi-day event, stays no-date", () => {
+      for (const day of ["2026-02-30", null]) {
+        const p = plan(sources([source({ races: [race("500m-1", "500m", { day })] })]));
+        expect(p.desired).toEqual([]);
+        expect(p.skipped[0]?.reason).toBe("no-date");
+      }
+    });
+
+    it("a day inside the dates is planned as before, and so is a null day in a one-day event", () => {
+      const inside = plan(sources([source({ races: [race("500m-1", "500m", { day: "2026-10-25" })] })]));
+      expect(inside.desired[0]?.date).toBe("2026-10-25");
+      const oneDay = plan(
+        sources([
+          source({
+            event: { eventId: EVENT, name: "Buffalo", dates: ["2026-10-24"] },
+            races: [race("500m-1", "500m", { day: null })],
+          }),
+        ]),
+      );
+      expect(oneDay.desired[0]?.date).toBe("2026-10-24");
+    });
+
+    it("an entry already recorded for a race whose day is outside the dates is deleted by the reconcile", () => {
+      const live = planRaceRecords({ sources: sources([source()]), athleteId: "lindsay" });
+      const stored = reconcileRaceEntries({
+        existing: [],
+        desired: live.desired,
+        canRemoveEntriesOf: live.canRemoveEntriesOf,
+        nowIso: NOW,
+      }).entries;
+      expect(stored).toHaveLength(1);
+
+      const moved = planRaceRecords({
+        sources: sources([source({ races: [race("500m-1", "500m", { day: "2026-11-30" })] })]),
+        athleteId: "lindsay",
+      });
+      const after = reconcileRaceEntries({
+        existing: stored,
+        desired: moved.desired,
+        canRemoveEntriesOf: moved.canRemoveEntriesOf,
+        nowIso: NOW,
+      });
+      expect(after).toMatchObject({ removed: 1, entries: [] });
+    });
+
     it("does not accept a day that is not a real date", () => {
       const p = plan(sources([source({ races: [race("500m-1", "500m", { day: "2026-02-30" })] })]));
       expect(p.desired).toEqual([]);
