@@ -52,7 +52,7 @@ function readNumber(raw: string): number {
 
 export function PacingPage() {
   const locale = useLocale();
-  const { uid } = useAuth();
+  const { uid, loading: authLoading } = useAuth();
   const [distance, setDistance] = useState<PaceDistance>("500");
   const [athleteText, setAthleteText] = useState(() => blankSplits("500"));
   const [benchmarkText, setBenchmarkText] = useState(() => defaultBenchmark("500"));
@@ -100,6 +100,11 @@ export function PacingPage() {
   };
 
   const save = async () => {
+    // While auth is still resolving, uid is empty for a signed-in user too, so "signed out" would be
+    // the wrong reason. The button is disabled then; this guard only covers a call that gets past it.
+    if (authLoading) {
+      return;
+    }
     if (!analysis || !chartAthlete || !chartBenchmark) {
       return;
     }
@@ -279,7 +284,7 @@ export function PacingPage() {
             key, so it stays clickable. */}
         <Button
           className="w-full md:w-auto"
-          disabled={!analysis || saving || saveState === "saved"}
+          disabled={!analysis || saving || saveState === "saved" || authLoading}
           onClick={() => void save()}
         >
           {tPace(locale, "pace.action.save")}
