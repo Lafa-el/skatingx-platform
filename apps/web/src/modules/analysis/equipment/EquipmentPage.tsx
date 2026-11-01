@@ -128,6 +128,56 @@ function readingsOf(values: Record<string, string>): EquipmentGaugePoint[] {
   });
 }
 
+/** The form as the fields hold it now: the inputs `generate()` turns into a draft. */
+type DraftFields = {
+  symptomKey: EquipmentSymptomKey;
+  symptomText: string;
+  height: string;
+  weight: string;
+  bladeLength: string;
+  leftRocker: Record<string, string>;
+  rightRocker: Record<string, string>;
+  offsets: Record<keyof EquipmentHistoryRecord["offsets"], string>;
+  bend: Record<keyof EquipmentHistoryRecord["bend"], string>;
+  adjustmentType: EquipmentAdjustmentCode;
+  feedbackRating: EquipmentFeedbackCode;
+  adjustmentNotes: string;
+};
+
+function sameReadings(a: readonly EquipmentGaugePoint[], b: readonly EquipmentGaugePoint[]): boolean {
+  return a.length === b.length && a.every((entry, index) => entry.point === b[index]?.point && entry.value === b[index]?.value);
+}
+
+/**
+ * Whether the form no longer matches the checklist it was generated from. `save()` writes the
+ * draft, not the fields, so a changed form would be saved as its old values. The comparison is made
+ * the way `generate()` reads the form (trimmed text, rocker readings without empty points), so
+ * typing a trailing space or touching an empty gauge point is not a change. `missingCore` and
+ * `ruleHints` are computed at generate time and are not inputs.
+ */
+function draftIsStale(draft: Draft | null, fields: DraftFields): boolean {
+  if (!draft) return false;
+  return (
+    draft.symptomKey !== fields.symptomKey ||
+    draft.adjustmentType !== fields.adjustmentType ||
+    draft.feedbackRating !== fields.feedbackRating ||
+    draft.symptomText !== fields.symptomText.trim() ||
+    draft.height !== fields.height.trim() ||
+    draft.weight !== fields.weight.trim() ||
+    draft.bladeLength !== fields.bladeLength.trim() ||
+    draft.adjustmentNotes !== fields.adjustmentNotes.trim() ||
+    draft.offsets.leftFront !== fields.offsets.leftFront.trim() ||
+    draft.offsets.leftRear !== fields.offsets.leftRear.trim() ||
+    draft.offsets.rightFront !== fields.offsets.rightFront.trim() ||
+    draft.offsets.rightRear !== fields.offsets.rightRear.trim() ||
+    draft.bend.front !== fields.bend.front.trim() ||
+    draft.bend.middle !== fields.bend.middle.trim() ||
+    draft.bend.rear !== fields.bend.rear.trim() ||
+    !sameReadings(draft.leftRocker, readingsOf(fields.leftRocker)) ||
+    !sameReadings(draft.rightRocker, readingsOf(fields.rightRocker))
+  );
+}
+
 function pointName(locale: Locale, point: number): string {
   const shown = point > 0 ? `+${point}` : String(point);
   const key = Math.abs(point) >= 9 ? "equipment.rocker.optional" : "equipment.rocker.point";
@@ -248,6 +298,22 @@ export function EquipmentPage() {
   }, [uid, athleteId]);
 
   const unrecorded = tEquipment(locale, "equipment.history.unrecorded");
+
+  // Computed at render, from the fields as they are now: no state, so no onChange can forget it.
+  const draftStale = draftIsStale(draft, {
+    symptomKey,
+    symptomText,
+    height,
+    weight,
+    bladeLength,
+    leftRocker,
+    rightRocker,
+    offsets,
+    bend,
+    adjustmentType,
+    feedbackRating,
+    adjustmentNotes,
+  });
 
   const generate = () => {
     const left = readingsOf(leftRocker);
@@ -601,17 +667,24 @@ export function EquipmentPage() {
           />
         </div>
 
+        {draftStale ? (
+          <Notice tone="pending" role="status" className="mt-4">
+            {tEquipment(locale, "equipment.status.staleDraft")}
+          </Notice>
+        ) : null}
+
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Button className="w-full" onClick={generate}>
             {tEquipment(locale, "equipment.action.generate")}
           </Button>
           {/* Once the draft is on record (cloud, or this browser's archive) saving again would only
               write a second copy under a new id; generating again frees the button. Only
-              saveFailed, where nothing was written, stays clickable. */}
+              saveFailed, where nothing was written, stays clickable. A form changed after generating
+              also holds it: the draft is the old snapshot (see draftIsStale). */}
           <Button
             variant="outline"
             className="w-full"
-            disabled={!draft || saving || (savedDraft !== null && savedDraft === draft)}
+            disabled={!draft || saving || (savedDraft !== null && savedDraft === draft) || draftStale}
             onClick={() => save()}
           >
             {tEquipment(locale, "equipment.action.save")}
