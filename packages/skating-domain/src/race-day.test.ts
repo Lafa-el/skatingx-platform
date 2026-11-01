@@ -282,7 +282,7 @@ describe("buildRaceSummary", () => {
     expect(buildRaceSummary({ self, races, dates, results: [] }).summaryVersion).toBe(
       RACE_SUMMARY_VERSION,
     );
-    expect(RACE_SUMMARY_VERSION).toBe("race-summary/2");
+    expect(RACE_SUMMARY_VERSION).toBe("race-summary/3");
   });
 
   describe("only races on an effective race day count (the event's dates are the authority)", () => {
@@ -324,6 +324,7 @@ describe("buildRaceSummary", () => {
       expect(summary.racesFinished).toBe(1);
       expect(summary.pendingResultCount).toBe(0);
       expect(summary.fastestConfirmedSeconds).toBe(52);
+      expect(summary.fastestConfirmedDistanceId).toBe("500m");
       expect(summary.items).toHaveLength(1);
     });
 
@@ -345,6 +346,7 @@ describe("buildRaceSummary", () => {
     expect(summary.racesFinished).toBe(0);
     expect(summary.pendingResultCount).toBe(0);
     expect(summary.fastestConfirmedSeconds).toBeNull();
+    expect(summary.fastestConfirmedDistanceId).toBeNull();
     expect(summary.items.every((i) => i.status === null && !i.confirmed)).toBe(true);
   });
 
@@ -365,6 +367,7 @@ describe("buildRaceSummary", () => {
     });
     expect(summary.pendingResultCount).toBe(2);
     expect(summary.fastestConfirmedSeconds).toBeNull();
+    expect(summary.fastestConfirmedDistanceId).toBeNull();
     expect(summary.items.filter((i) => i.confirmed)).toHaveLength(0);
   });
 
@@ -381,6 +384,7 @@ describe("buildRaceSummary", () => {
       ],
     });
     expect(summary.fastestConfirmedSeconds).toBe(49.8);
+    expect(summary.fastestConfirmedDistanceId).toBe("500m");
     expect(summary.pendingResultCount).toBe(1);
     expect(summary.racesWithResult).toBe(3);
   });
@@ -401,6 +405,84 @@ describe("buildRaceSummary", () => {
     expect(summary.racesFinished).toBe(1);
     expect(summary.racesWithResult).toBe(2);
     expect(summary.fastestConfirmedSeconds).toBe(50);
+    expect(summary.fastestConfirmedDistanceId).toBe("500m");
+  });
+
+  describe("fastest confirmed distance", () => {
+    it("for a multi-distance event, carries the distance of the fastest confirmed finish", () => {
+      const summary = buildRaceSummary({
+        self,
+        races: [
+          race({ raceId: "r500", label: "500m", distanceId: "500m", sortOrder: 1 }),
+          race({ raceId: "r1000", label: "1000m", distanceId: "1000m", sortOrder: 2 }),
+          race({ raceId: "r1500", label: "1500m", distanceId: "1500m", sortOrder: 3 }),
+        ],
+        dates,
+        results: [
+          markVerified(result({ raceId: "r500", timeSeconds: 48 }), NOW),
+          markVerified(result({ raceId: "r1000", timeSeconds: 97 }), NOW),
+          markVerified(result({ raceId: "r1500", timeSeconds: 150 }), NOW),
+        ],
+      });
+      expect(summary.fastestConfirmedSeconds).toBe(48);
+      expect(summary.fastestConfirmedDistanceId).toBe("500m");
+    });
+
+    it("ties keep the first race in schedule order", () => {
+      const summary = buildRaceSummary({
+        self,
+        races: [
+          race({ raceId: "later", distanceId: "1000m", sortOrder: 2, day: "2026-10-24" }),
+          race({ raceId: "earlier", distanceId: "500m", sortOrder: 1, day: "2026-10-24" }),
+        ],
+        dates,
+        results: [
+          markVerified(result({ raceId: "later", timeSeconds: 50 }), NOW),
+          markVerified(result({ raceId: "earlier", timeSeconds: 50 }), NOW),
+        ],
+      });
+      expect(summary.fastestConfirmedSeconds).toBe(50);
+      expect(summary.fastestConfirmedDistanceId).toBe("500m");
+    });
+
+    it("single-distance races still report that distance", () => {
+      const summary = buildRaceSummary({
+        self,
+        races: [race({ raceId: "only", distanceId: "500m", day: "2026-10-24" })],
+        dates,
+        results: [markVerified(result({ raceId: "only", timeSeconds: 49.5 }), NOW)],
+      });
+      expect(summary.fastestConfirmedSeconds).toBe(49.5);
+      expect(summary.fastestConfirmedDistanceId).toBe("500m");
+    });
+
+    it("no confirmed finish means both fastest fields are null", () => {
+      const summary = buildRaceSummary({
+        self,
+        races: [race({ raceId: "only", distanceId: "500m", day: "2026-10-24" })],
+        dates,
+        results: [result({ raceId: "only", timeSeconds: 49.5 })],
+      });
+      expect(summary.fastestConfirmedSeconds).toBeNull();
+      expect(summary.fastestConfirmedDistanceId).toBeNull();
+    });
+
+    it("the fastest pending time is still ignored", () => {
+      const summary = buildRaceSummary({
+        self,
+        races: [
+          race({ raceId: "pending-fast", distanceId: "500m", day: "2026-10-24" }),
+          race({ raceId: "confirmed-slower", distanceId: "1000m", day: "2026-10-24", sortOrder: 2 }),
+        ],
+        dates,
+        results: [
+          result({ raceId: "pending-fast", timeSeconds: 40 }),
+          markVerified(result({ raceId: "confirmed-slower", timeSeconds: 50 }), NOW),
+        ],
+      });
+      expect(summary.fastestConfirmedSeconds).toBe(50);
+      expect(summary.fastestConfirmedDistanceId).toBe("1000m");
+    });
   });
 
   it("ignores results that belong to another athlete", () => {

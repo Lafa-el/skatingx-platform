@@ -297,7 +297,7 @@ describe("SummaryPage card", () => {
       { ...result("me", { timeSeconds: 99, verification: "verified" }), raceId: "race-2", resultId: "race-2_me" },
     ]);
     renderPage();
-    const fastest = screen.getByText("最快完赛时间（仅统计已确认成绩）").closest("div") as HTMLElement;
+    const fastest = screen.getByText("最快完赛时间（500m，仅统计已确认成绩）").closest("div") as HTMLElement;
     expect(within(fastest).getByText("1:39.00")).toBeTruthy();
     expect(screen.getByTestId("pending-banner").textContent).toContain("1 项成绩仍待确认");
   });

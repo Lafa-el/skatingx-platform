@@ -28,9 +28,15 @@ const me: RaceRosterEntry = {
   athleteRefId: null,
   ...prov,
 };
-const race = (raceId: string, sortOrder: number, label: string, rosterIds = ["me"]): RaceEntry => ({
+const race = (
+  raceId: string,
+  sortOrder: number,
+  label: string,
+  rosterIds = ["me"],
+  distanceId = "500m",
+): RaceEntry => ({
   raceId,
-  distanceId: "500m",
+  distanceId,
   label,
   sortOrder,
   day: "2026-10-24",
@@ -62,7 +68,7 @@ describe("SummaryCard", () => {
     setup([race("r1", 1, "500m")], []);
     expect(screen.getByRole("heading", { name: "Test Skater 的比赛总结" })).toBeTruthy();
     expect(screen.getByText("号码 000 · Test Division")).toBeTruthy();
-    expect(screen.getByText("汇总规则版本：race-summary/2")).toBeTruthy();
+    expect(screen.getByText("汇总规则版本：race-summary/3")).toBeTruthy();
   });
 
   it("with no results says so, and shows no pending banner and no confirmed claim", () => {
@@ -85,15 +91,15 @@ describe("SummaryCard", () => {
     expect(screen.queryByText("已录入的成绩都已确认。")).toBeNull();
   });
 
-  it("fastest counts only confirmed results", () => {
+  it("fastest counts only confirmed results and shows its distance in the label", () => {
     setup(
-      [race("r1", 1, "500m"), race("r2", 2, "1000m")],
+      [race("r1", 1, "500m", ["me"], "500m"), race("r2", 2, "1000m", ["me"], "1000m")],
       [
         result("r1", { timeSeconds: 40.0 }),
         result("r2", { timeSeconds: 50.5, verification: "verified", verifiedAt: "2026-10-24T12:00:00.000Z" }),
       ],
     );
-    const fastest = screen.getByText("最快完赛时间（仅统计已确认成绩）").closest("div") as HTMLElement;
+    const fastest = screen.getByText("最快完赛时间（1000m，仅统计已确认成绩）").closest("div") as HTMLElement;
     expect(within(fastest).getByText("50.50")).toBeTruthy();
     expect(within(fastest).queryByText("40.00")).toBeNull();
     expect(screen.getByTestId("pending-banner").textContent).toContain("1 项成绩仍待确认");
@@ -104,6 +110,14 @@ describe("SummaryCard", () => {
     const fastest = screen.getByText("最快完赛时间（仅统计已确认成绩）").closest("div") as HTMLElement;
     expect(within(fastest).getByText("暂无已确认的完赛成绩")).toBeTruthy();
     expect(within(fastest).queryByText("40.00")).toBeNull();
+  });
+
+  it("uses the distance id itself when that distance is not in the default list", () => {
+    setup(
+      [race("r1", 1, "Super 1500m", ["me"], "super_1500m")],
+      [result("r1", { timeSeconds: 110, verification: "verified", verifiedAt: "2026-10-24T12:00:00.000Z" })],
+    );
+    expect(screen.getByText("最快完赛时间（super_1500m，仅统计已确认成绩）")).toBeTruthy();
   });
 
   it("when every result is confirmed says so and shows no pending banner", () => {

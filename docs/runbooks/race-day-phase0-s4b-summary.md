@@ -16,7 +16,7 @@ No ADR was needed: S4b changes no schema and no Security Rules. The `summaries` 
 | Pending count | The most prominent element when above zero: "N 项成绩仍待确认", with a line saying pending results may still change. |
 | Fastest time | Counts **confirmed** finished results only. With none: "暂无已确认的完赛成绩". Pending times are listed per race but never become the headline number. |
 | No PB comparison | `buildRaceSummary` is called without a personal best. Nothing is compared, ranked or suggested. |
-| Wording | A footer says the card is a factual summary of entered data with no training, medical or technical advice, and shows the rule version (`race-summary/2`). |
+| Wording | A footer says the card is a factual summary of entered data with no training, medical or technical advice, and shows the rule version (`race-summary/3`). |
 | Note content | Plain text, up to 2000 characters. A note of only spaces or invisible characters is treated as empty. |
 | Save | Create when no summary document exists, update when it does (chosen from the live document). Each save sets `generatedAt` and `updatedAt` from the server and records `summaryVersion`. Saving an empty note on an existing document keeps the document with no text. |
 | Save disabled | While the text equals what is saved (ignoring surrounding spaces and invisible characters), and while a write is in progress. |
@@ -44,7 +44,7 @@ Use made-up names and note text only. Do this in Chinese and in English, on a ph
 4. **Fastest time.** With only pending results: "暂无已确认的完赛成绩". Mark one result confirmed on the Results tab: the fastest time shows that result only, even if a pending one is faster.
 5. Add a second athlete as followed with a result: the card and counts do not change.
 6. Mark a second athlete as yours: the card shows the first one and a message naming it.
-7. The footer shows the disclaimer and `汇总规则版本:race-summary/2`. No advice, "AI" or "biomechanics" wording anywhere.
+7. The footer shows the disclaimer and `汇总规则版本:race-summary/3`. No advice, "AI" or "biomechanics" wording anywhere.
 
 **PRO on, note**
 
