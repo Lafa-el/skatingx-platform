@@ -90,6 +90,61 @@ describe("eventPhase", () => {
     expect(eventPhase(messy, "2026-10-16T12:00:00.000Z")).toMatchObject({ kind: "before", firstDay: "2026-10-24" });
   });
 
+  describe("dates that are not real calendar days", () => {
+    // "2026-02-30" sorts before every real October day and "2026-13-99" after, so they would be the
+    // first and last day if they were not dropped.
+    const dirty = { dates: ["2026-13-99", "2026-10-24", "2026-02-30", "2026-10-25"], timeZone: NY };
+
+    it("never become the first day, and daysUntil counts from the real first day", () => {
+      expect(eventPhase(dirty, "2026-10-16T12:00:00.000Z")).toEqual({
+        kind: "before",
+        today: "2026-10-16",
+        firstDay: "2026-10-24",
+        daysUntil: 8,
+      });
+    });
+
+    it("never become the last day", () => {
+      expect(eventPhase(dirty, "2026-11-02T12:00:00.000Z")).toEqual({
+        kind: "after",
+        today: "2026-11-02",
+        lastDay: "2026-10-25",
+      });
+    });
+
+    it("never become the next day", () => {
+      const gap = { dates: ["2026-02-30", "2026-10-24", "2026-10-26", "2026-13-99"], timeZone: NY };
+      expect(eventPhase(gap, "2026-10-25T16:00:00.000Z")).toEqual({
+        kind: "between",
+        today: "2026-10-25",
+        nextDay: "2026-10-26",
+      });
+    });
+
+    it("still find today among the real days", () => {
+      expect(eventPhase(dirty, SAT_NOON)).toEqual({ kind: "today", today: "2026-10-24" });
+    });
+
+    it("leave nothing to go on when every date is dirty", () => {
+      expect(eventPhase({ dates: ["2026-02-30", "2026-13-99", "soon"], timeZone: NY }, SAT_NOON)).toEqual({
+        kind: "undetermined",
+        reason: "noDates",
+      });
+    });
+
+    it("do not turn a day before an all-dirty event into a view", () => {
+      const view = buildTodayView({
+        event: { dates: ["2026-02-30"], timeZone: NY },
+        races: [],
+        results: [],
+        self: null,
+        now: SAT_NOON,
+      });
+      expect(view.phase).toEqual({ kind: "undetermined", reason: "noDates" });
+      expect(view.shownDay).toBeNull();
+    });
+  });
+
   it("does not guess when the zone, dates or clock are unusable", () => {
     expect(eventPhase({ ...event, timeZone: null }, SAT_NOON)).toEqual({ kind: "undetermined", reason: "noTimeZone" });
     expect(eventPhase({ ...event, timeZone: "Not/AZone" }, SAT_NOON)).toEqual({
