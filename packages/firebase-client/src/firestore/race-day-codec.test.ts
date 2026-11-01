@@ -625,7 +625,7 @@ describe("race summary note: encode", () => {
     expect(keys(data)).toEqual(
       ["coachNote", "createdAt", "generatedAt", "schemaVersion", "summaryVersion", "updatedAt"].sort(),
     );
-    expect(data).toMatchObject({ summaryVersion: "race-summary/1", schemaVersion: 1, coachNote: note.coachNote });
+    expect(data).toMatchObject({ summaryVersion: "race-summary/2", schemaVersion: 1, coachNote: note.coachNote });
     expect(Object.values(data)).not.toContain(undefined);
   });
 
@@ -649,7 +649,7 @@ describe("race summary note: encode", () => {
 
 describe("race summary note: parse", () => {
   const stored = (over: Record<string, unknown> = {}) => ({
-    summaryVersion: "race-summary/1",
+    summaryVersion: "race-summary/2",
     generatedAt: NOW,
     coachNote: "note",
     schemaVersion: 1,
@@ -662,7 +662,7 @@ describe("race summary note: parse", () => {
     const parsed = parseRaceSummary(materialize(encodeRaceSummaryCreate({ coachNote: "hello" })));
     expect(parsed).toMatchObject({
       ok: true,
-      value: { summaryVersion: "race-summary/1", coachNote: "hello", generatedAt: NOW_ISO },
+      value: { summaryVersion: "race-summary/2", coachNote: "hello", generatedAt: NOW_ISO },
     });
   });
 

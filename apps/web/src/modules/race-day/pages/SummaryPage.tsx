@@ -57,9 +57,12 @@ function SummaryContent() {
   const rowAction = useSubmitState("deleteSummary");
 
   const { self, selfCount } = useMemo(() => pickSelfAthlete(roster.items), [roster.items]);
+  // The selected event's dates decide which races count (the same event the picker shows).
+  const eventDates = activeEvent?.dates;
   const summary = useMemo(
-    () => (self ? buildRaceSummary({ self, races: races.items, results: results.items }) : null),
-    [self, races.items, results.items],
+    () =>
+      self ? buildRaceSummary({ self, races: races.items, results: results.items, dates: eventDates ?? [] }) : null,
+    [self, races.items, results.items, eventDates],
   );
   const numbers = useMemo(() => raceNumberById(races.items), [races.items]);
 

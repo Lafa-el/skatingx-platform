@@ -24,6 +24,7 @@ const h = vi.hoisted(() => {
     athlete: { athleteId: "lindsay", loading: false },
     events: null as unknown,
     roster: null as unknown,
+    races: null as unknown,
     rosterCalls: [] as (string | null)[],
     actions: null as unknown,
     syncFailed: false,
@@ -35,6 +36,7 @@ const h = vi.hoisted(() => {
 vi.mock("../hooks/useRaceDayData", () => ({
   useRaceDayContext: () => h.ctx,
   useRaceEvents: () => h.events,
+  useRaces: () => h.races,
   useRoster: (_ctx: unknown, eventId: string | null) => {
     h.rosterCalls.push(eventId);
     return h.roster;
@@ -121,6 +123,7 @@ beforeEach(() => {
   h.athlete = { athleteId: "lindsay", loading: false };
   h.events = ready([event()]);
   h.roster = ready([rosterEntry()]);
+  h.races = ready([]);
   h.rosterCalls = [];
   h.actions = makeActions();
   h.syncFailed = false;
@@ -265,6 +268,35 @@ describe("SetupPage event", () => {
     });
     expect(actions().updateEvent.mock.calls[0]?.[0]).toBe("buffalo-abc123");
     expect(actions().updateEvent.mock.calls[0]?.[1]).toMatchObject({ name: "Buffalo 2026" });
+  });
+
+  describe("editing the event's dates while races are scheduled", () => {
+    const raceOn = (day: string | null, raceId = "r1") =>
+      ({ raceId, day, label: "500m", distanceId: "500m", sortOrder: 0, rosterIds: [] }) as never;
+
+    it("refuses to remove a day that a race is on", async () => {
+      h.races = ready([raceOn("2026-10-25")]);
+      const user = userEvent.setup();
+      render(<SetupPage />);
+      await user.click(screen.getAllByRole("button", { name: /^编辑/ })[0]!);
+      await user.click(screen.getByRole("button", { name: "移除第 2 天" }));
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(actions().updateEvent).not.toHaveBeenCalled();
+      expect(screen.getByText("还有比赛在被删的日期上，先改期或删除再改赛事日期")).toBeTruthy();
+    });
+
+    it("removes a day that no race is on; races with no day do not count as using one", async () => {
+      h.races = ready([raceOn("2026-10-24"), raceOn(null, "r2")]);
+      const user = userEvent.setup();
+      render(<SetupPage />);
+      await user.click(screen.getAllByRole("button", { name: /^编辑/ })[0]!);
+      await user.click(screen.getByRole("button", { name: "移除第 2 天" }));
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      await waitFor(() => {
+        expect(actions().updateEvent).toHaveBeenCalledTimes(1);
+      });
+      expect(actions().updateEvent.mock.calls[0]?.[1]).toMatchObject({ dates: ["2026-10-24"] });
+    });
   });
 
   it("with several events, a selector switches the roster to the chosen event", async () => {

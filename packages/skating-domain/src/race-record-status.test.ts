@@ -114,6 +114,19 @@ describe("deriveResultSyncInfo: confirmed own rows", () => {
     expect(statusOf(d, "weird-1_lindsay")).toEqual({ kind: "unmapped-distance" });
   });
 
+  it("a race day outside the event's dates: a visible not-in-dates row", () => {
+    const d = derive({ races: [race("500m-1", "500m", { day: "2026-11-30" })] });
+    expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "not-in-dates" });
+    expect(d.unexpected).toEqual([]);
+  });
+
+  it("not-in-dates does not depend on the records, and an unconfirmed row shows no sync line", () => {
+    const outside = [race("500m-1", "500m", { day: "2026-11-30" })];
+    expect(statusOf(derive({ races: outside, recorded: null }), "500m-1_lindsay")).toEqual({ kind: "not-in-dates" });
+    const pendingRow = derive({ races: outside, results: [row("500m-1", "lindsay", pending)] });
+    expect(pendingRow.byResultId.get("500m-1_lindsay")).toEqual({ status: null, confirmHint: false });
+  });
+
   it("no date: a race without a day in a multi-day event", () => {
     const d = derive({ races: [race("500m-1", "500m", { day: null })] });
     expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "no-date" });

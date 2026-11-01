@@ -68,6 +68,7 @@ export {
   countByVerification,
   createPendingProvenance,
   createRaceResultId,
+  effectiveRaceDay,
   groupRaceEntriesByDay,
   isConfirmed,
   isValidRaceDayId,

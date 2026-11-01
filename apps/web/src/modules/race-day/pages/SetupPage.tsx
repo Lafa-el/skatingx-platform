@@ -17,7 +17,7 @@ import {
 } from "../components/fields";
 import { useSelectedEvent } from "../hooks/useActiveEvent";
 import { useRaceDayActions } from "../hooks/useRaceDayActions";
-import { useRaceDayContext, useRaceEvents, useRoster } from "../hooks/useRaceDayData";
+import { useRaceDayContext, useRaceEvents, useRaces, useRoster } from "../hooks/useRaceDayData";
 import { useSubmitState } from "../hooks/useSubmitState";
 import { t } from "../i18n/messages";
 import { loadErrorMessageKey } from "../lib/errors";
@@ -61,6 +61,7 @@ export function SetupPage() {
   const { athleteId, loading: athleteLoading } = useActiveAthlete();
   const { sortedEvents, activeEvent, selectEvent: setStoredId } = useSelectedEvent(events.items, locale);
   const roster = useRoster(ctx, activeEvent?.eventId ?? null);
+  const races = useRaces(ctx, activeEvent?.eventId ?? null);
 
   const [eventPanel, setEventPanel] = useState<"closed" | "create" | "edit">("closed");
   const [rosterPanel, setRosterPanel] = useState<RosterPanel>({ kind: "closed" });
@@ -109,6 +110,9 @@ export function SetupPage() {
 
   const invalidCount = events.invalid.length + roster.invalid.length;
   const showEventForm = sortedEvents.length === 0 || eventPanel !== "closed";
+  // The days races are scheduled on, so editing the event's dates cannot strand one. Until the races
+  // are read this is empty and the check cannot refuse anything: it is not guessed.
+  const usedDays = [...new Set(races.items.map((race) => race.day).filter((day): day is string => day !== null && day !== ""))];
 
   async function handleCreateEvent(values: RaceEventInput) {
     const result = await eventSubmit.submit(async () => {
@@ -288,6 +292,7 @@ export function SetupPage() {
               key={`edit-${activeEvent.eventId}`}
               mode="edit"
               initial={eventToInput(activeEvent)}
+              usedDays={usedDays}
               saving={eventSubmit.saving}
               submitErrorKey={eventSubmit.errorKey}
               onSubmit={(values) => {
@@ -301,6 +306,7 @@ export function SetupPage() {
             <EventForm
               key="create"
               mode="create"
+              usedDays={[]}
               saving={eventSubmit.saving}
               submitErrorKey={eventSubmit.errorKey}
               onSubmit={(values) => {

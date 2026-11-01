@@ -70,6 +70,7 @@ const zh = {
   "raceDay.setup.event.edit": "编辑赛事",
   "raceDay.setup.event.current": "当前赛事",
   "raceDay.setup.event.dates": "比赛日期：{dates}",
+  "raceDay.setup.event.datesInUse": "还有比赛在被删的日期上，先改期或删除再改赛事日期",
   "raceDay.setup.event.deleteWarning": "删除赛事会同时删除它的运动员名单、赛程和所有成绩，以及视频记录，无法恢复。视频文件本身不受影响。",
   "raceDay.form.event.name": "赛事名称",
   "raceDay.form.event.dates": "比赛日期",
@@ -165,6 +166,7 @@ const zh = {
   "raceDay.form.error.badTimeZone": "赛事时区无效，请先在设置页修复时区",
   "raceDay.form.error.dayNeedsZone": "时区未知时不能改日期，请先在设置页填写时区",
   "raceDay.results.sync.unknown": "纪录读取失败，同步状态未知",
+  "raceDay.results.sync.notInDates": "未记入：比赛日不在赛事日期内",
   "raceDay.results.sync.wrongAthlete": "未记入：本人行关联的不是当前运动员",
   "raceDay.results.sync.removedFromRace": "未记入：已从这场比赛的名单移除",
   "raceDay.results.sync.failed": "同步暂时没有成功。",
@@ -324,6 +326,8 @@ const en: Record<ModuleKey, string> = {
   "raceDay.setup.event.edit": "Edit event",
   "raceDay.setup.event.current": "Current event",
   "raceDay.setup.event.dates": "Dates: {dates}",
+  "raceDay.setup.event.datesInUse":
+    "Some races are still scheduled on a removed day. Move or delete them before changing the event dates.",
   "raceDay.setup.event.deleteWarning":
     "Deleting an event also deletes its roster, schedule, all results and video records. This cannot be undone. The video files themselves are not affected.",
   "raceDay.form.event.name": "Event name",
@@ -422,6 +426,7 @@ const en: Record<ModuleKey, string> = {
   "raceDay.form.error.badTimeZone": "The event's time zone is invalid. Fix it on the Setup page before editing races.",
   "raceDay.form.error.dayNeedsZone": "Cannot change the day without a time zone. Set it on the Setup page first.",
   "raceDay.results.sync.unknown": "Records could not be read, so the sync state is unknown",
+  "raceDay.results.sync.notInDates": "Not recorded: the race day is not one of the event's days",
   "raceDay.results.sync.wrongAthlete": "Not recorded: this row is linked to a different athlete",
   "raceDay.results.sync.removedFromRace": "Not recorded: removed from this race's roster",
   "raceDay.results.sync.failed": "Syncing did not complete.",

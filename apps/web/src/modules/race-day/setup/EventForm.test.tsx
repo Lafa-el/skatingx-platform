@@ -13,6 +13,7 @@ function setup(props: Partial<React.ComponentProps<typeof EventForm>> = {}) {
   render(
     <EventForm
       mode="create"
+      usedDays={[]}
       saving={false}
       submitErrorKey={null}
       onSubmit={onSubmit}
@@ -116,5 +117,67 @@ describe("EventForm", () => {
     expect((screen.getByRole("button", { name: "保存中…" }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByLabelText(/赛事名称/) as HTMLInputElement).disabled).toBe(true);
     expect((screen.getByLabelText(/第 1 天/) as HTMLInputElement).disabled).toBe(true);
+  });
+});
+
+describe("EventForm: editing the dates of an event that has races", () => {
+  const initial = {
+    name: "Buffalo",
+    dates: ["2026-10-24", "2026-10-25"],
+    timeZone: "America/New_York",
+    venue: null,
+    sourceNote: "",
+  };
+
+  it("refuses to drop a day that a race is scheduled on, on the dates field", async () => {
+    const { onSubmit, user } = setup({ mode: "edit", initial, usedDays: ["2026-10-25"] });
+    await user.click(screen.getByRole("button", { name: "移除第 2 天" }));
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("还有比赛在被删的日期上，先改期或删除再改赛事日期")).toBeTruthy();
+    expect(screen.getByLabelText(/第 1 天/).getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("refuses to replace a used day with another one", async () => {
+    const { onSubmit, user } = setup({ mode: "edit", initial, usedDays: ["2026-10-24"] });
+    setDate(/第 1 天/, "2026-10-23");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("saves when the removed day has no race on it", async () => {
+    const { onSubmit, user } = setup({ mode: "edit", initial, usedDays: ["2026-10-24"] });
+    await user.click(screen.getByRole("button", { name: "移除第 2 天" }));
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ dates: ["2026-10-24"] });
+  });
+
+  it("saves when nothing is removed, even with races on every day", async () => {
+    const a = setup({ mode: "edit", initial, usedDays: ["2026-10-24", "2026-10-25"] });
+    await a.user.click(screen.getByRole("button", { name: "保存" }));
+    expect(a.onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("with no known races (not loaded) nothing is refused", async () => {
+    const { onSubmit, user } = setup({ mode: "edit", initial, usedDays: [] });
+    await user.click(screen.getByRole("button", { name: "移除第 2 天" }));
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("adding a day is never refused", async () => {
+    const { onSubmit, user } = setup({ mode: "edit", initial, usedDays: ["2026-10-24", "2026-10-25"] });
+    await user.click(screen.getByRole("button", { name: "添加一天" }));
+    setDate(/第 3 天/, "2026-10-26");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ dates: ["2026-10-24", "2026-10-25", "2026-10-26"] });
+  });
+
+  it("a new event is not limited by it, whatever usedDays says", async () => {
+    const { onSubmit, user } = setup({ mode: "create", usedDays: ["2026-10-25"] });
+    await user.type(screen.getByLabelText(/赛事名称/), "New");
+    setDate(/第 1 天/, "2026-11-01");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });
