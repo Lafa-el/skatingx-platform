@@ -157,3 +157,45 @@ describe("the focus that is already set", () => {
     expect(deriveTrainingFeedback(sources.slice(0, 1), "bounce")).toEqual([]);
   });
 });
+
+describe("an equipment record whose findings carry no symptom code", () => {
+  const equipment = (over: Partial<FeedbackSource>) => source({ kind: "equipment", id: "equip-1", ...over });
+  const review = (sources: FeedbackSource[]) => deriveTrainingFeedback(sources, null).filter((card) => card.type === "review-equipment");
+
+  it("an empty findings list with a known symptom key still gives the review card", () => {
+    expect(review([equipment({ findings: [], symptomKey: "slide" })])).toEqual([
+      { type: "review-equipment", sourceKind: "equipment", analysisId: "equip-1", createdAt: "2026-10-20T12:00:00.000Z" },
+    ]);
+  });
+
+  it("every one of the six symptom keys is known", () => {
+    for (const symptomKey of ["slide", "boot-out", "unstable", "ankle", "release", "asymmetry"]) {
+      expect(review([equipment({ findings: [], symptomKey })])).toHaveLength(1);
+    }
+  });
+
+  it("an empty list with no symptom key gives nothing", () => {
+    expect(review([equipment({ findings: [] })])).toEqual([]);
+  });
+
+  it("an empty list with an unknown symptom key gives nothing, including names from the prototype chain", () => {
+    for (const symptomKey of ["unknown", "", "constructor", "toString", "__proto__", "hasOwnProperty"]) {
+      expect(review([equipment({ findings: [], symptomKey })])).toEqual([]);
+    }
+  });
+
+  it("findings that already hold a symptom code still give the card, with no symptom key (as before)", () => {
+    expect(review([equipment({ findings: [{ code: "equipment.symptom.ankle" }] })])).toHaveLength(1);
+  });
+
+  it("findings with some other code and a known key give the card: the condition is no symptom code, not an empty list", () => {
+    expect(review([equipment({ findings: [{ code: "equipment.note.other" }], symptomKey: "unstable" })])).toHaveLength(1);
+  });
+
+  it("other kinds are not touched by a symptom key", () => {
+    const withKey = (kind: "pace" | "biomech") => deriveTrainingFeedback([source({ kind, id: "x", findings: [], symptomKey: "slide" })], null);
+    expect(withKey("pace")).toEqual([]);
+    expect(withKey("biomech")).toEqual([]);
+  });
+});
+

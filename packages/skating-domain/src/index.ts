@@ -253,6 +253,7 @@ export {
   EQUIPMENT_ALGORITHM_VERSION,
   equipmentAdjustmentCodes,
   equipmentFeedbackCodes,
+  equipmentSymptomCode,
   equipmentSymptomKeys,
   type EquipmentAdjustmentCode,
   type EquipmentFeedbackCode,

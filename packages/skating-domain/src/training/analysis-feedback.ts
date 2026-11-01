@@ -1,3 +1,4 @@
+import { equipmentSymptomCode } from "../analysis/equipment-record";
 import type { PlanFocus } from "./plan-template";
 
 /**
@@ -14,6 +15,12 @@ export type FeedbackSource = {
   readonly id: string;
   readonly createdAt: string;
   readonly findings: readonly { readonly code: string }[];
+  /**
+   * Equipment sources only. The recorded symptom, used when `findings` carries no symptom code: records
+   * saved before findings were stored have none, and by the time they get here a missing or malformed
+   * list has already become an empty one.
+   */
+  readonly symptomKey?: string;
 };
 
 /** Suggestions that come from a saved analysis or equipment record. */
@@ -86,7 +93,11 @@ function hasCode(source: FeedbackSource, codes: ReadonlySet<string>): boolean {
 }
 
 function hasEquipmentSymptom(source: FeedbackSource): boolean {
-  return source.findings.some((finding) => finding.code.startsWith("equipment.symptom."));
+  if (source.findings.some((finding) => finding.code.startsWith("equipment.symptom."))) return true;
+  // No symptom code in the list. A recorded symptom is still a symptom: the symptom card shows it
+  // from symptomKey, so the suggestion to act on it must not depend on findings being stored. An
+  // absent or unknown key gives nothing to go on, so no suggestion.
+  return source.symptomKey !== undefined && equipmentSymptomCode(source.symptomKey) !== undefined;
 }
 
 /**

@@ -260,6 +260,7 @@ function feedbackOf(
       id: row.id,
       createdAt: row.createdAt,
       findings: row.findings,
+      symptomKey: row.symptomKey,
     })),
   ];
 }
