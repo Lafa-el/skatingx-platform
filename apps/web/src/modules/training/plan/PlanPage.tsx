@@ -214,7 +214,7 @@ export function PlanPage() {
       ? history
       : { key: historyKey, status: "loading", days: new Map() };
   const days = focus ? planDays(focus) : [];
-  const suggestions = deriveTrainingFeedback(sources).filter((item) => !hidden.has(trainingFeedbackKey(item)));
+  const suggestions = deriveTrainingFeedback(sources, focus).filter((item) => !hidden.has(trainingFeedbackKey(item)));
   const title = focus ? tPlan(locale, FOCUS_TITLE[focus]) : tPlan(locale, "plan.week.choose");
   // Race week suggestion: derived on every render and never stored. Until this week's focus is known
   // it is held back, because "no focus yet" would read as "not endurance" and could suggest it again.

@@ -4,6 +4,7 @@ import {
   type FeedbackSource,
   type AnalysisTrainingFeedback,
   type PaceDistance,
+  type PlanFocus,
 } from "@skatingx/skating-domain";
 
 /**
@@ -263,22 +264,27 @@ function feedbackOf(
   ];
 }
 
-function visibleFeedback(sources: readonly FeedbackSource[], hidden: ReadonlySet<string>): AnalysisTrainingFeedback[] {
-  return deriveTrainingFeedback(sources).filter((item) => !hidden.has(trainingFeedbackKey(item)));
+function visibleFeedback(
+  sources: readonly FeedbackSource[],
+  hidden: ReadonlySet<string>,
+  currentFocus: PlanFocus | null,
+): AnalysisTrainingFeedback[] {
+  return deriveTrainingFeedback(sources, currentFocus).filter((item) => !hidden.has(trainingFeedbackKey(item)));
 }
 
 function suggestionOf(
   analyses: HubLane<HubAnalysisInput>,
   equipment: HubLane<HubEquipmentInput>,
   hidden: ReadonlySet<string>,
+  currentFocus: PlanFocus | null,
 ): HubSuggestion {
   if (analyses.status === "loading") return { status: "loading" };
   if (analyses.status === "error") return { status: "error" };
-  const leading = visibleFeedback(feedbackOf(analyses.records, []), hidden)[0];
+  const leading = visibleFeedback(feedbackOf(analyses.records, []), hidden, currentFocus)[0];
   if (leading) return { status: "ready", feedback: leading };
   if (equipment.status === "loading") return { status: "loading" };
   if (equipment.status === "error") return { status: "error" };
-  const first = visibleFeedback(feedbackOf(analyses.records, equipment.records), hidden)[0];
+  const first = visibleFeedback(feedbackOf(analyses.records, equipment.records), hidden, currentFocus)[0];
   return first ? { status: "ready", feedback: first } : { status: "none" };
 }
 
@@ -431,6 +437,8 @@ export function buildHubModel(input: {
   readonly analyses: HubLane<HubAnalysisInput>;
   readonly equipment: HubLane<HubEquipmentInput>;
   readonly hidden: ReadonlySet<string>;
+  /** This week's plan focus. Omitted or null = none set, nothing is filtered out. */
+  readonly currentFocus?: PlanFocus | null;
 }): HubModel {
   const biomech = angleCard(input.analyses);
   const pace = paceCard(input.analyses);
@@ -445,7 +453,7 @@ export function buildHubModel(input: {
       : undefined;
   const newestEquipment = input.equipment.status === "ready" ? byNewest(input.equipment.records)[0] : undefined;
   return {
-    suggestion: suggestionOf(input.analyses, input.equipment, input.hidden),
+    suggestion: suggestionOf(input.analyses, input.equipment, input.hidden, input.currentFocus ?? null),
     biomech,
     pace,
     equipment,

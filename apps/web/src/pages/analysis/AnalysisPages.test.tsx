@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 
 import { HIDDEN_FEEDBACK_KEY } from "@/modules/training/plan/plan-session";
 import { legacyColourClasses } from "@/test/legacyLook";
-import { render, screen, userEvent } from "@/test/dom";
+import { render, screen, userEvent, waitFor } from "@/test/dom";
 
 import { AnalysisHubPage } from "./AnalysisHubPage";
 
@@ -328,7 +328,7 @@ describe("analysis hub: states", () => {
     expect(screen.queryByTestId("hub-suggestion")).toBeTruthy();
   });
 
-  it("accepts with the same plan focus and ignores with the same hidden key", async () => {
+  it("accepts with the same plan focus, and the accepted suggestion is gone (no inferred 'accepted' line)", async () => {
     state.analysesMode = "ready";
     state.equipmentMode = "ready";
     state.analyses = [
@@ -347,11 +347,52 @@ describe("analysis hub: states", () => {
     await user.click(screen.getByRole("button", { name: "接受" }));
     expect(state.setPlanFocus).toHaveBeenCalledWith({ db: {}, userId: "user-1", athleteId: "lindsay" }, "bounce");
     expect(state.training.value).toMatchObject({ planFocus: "bounce" });
-    expect(await screen.findByText(/已设为本周重点：速度窗口与500m配速/)).toBeTruthy();
+    // The focus store updates asynchronously, so wait for the absence instead of reading it once.
+    await waitFor(() => expect(screen.queryByTestId("hub-suggestion")).toBeNull());
+    expect(screen.queryByText(/已设为本周重点/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "接受" })).toBeNull();
+  });
 
+  it("ignores with the same hidden key", async () => {
+    paceSuggestion();
+    const user = userEvent.setup();
+    render(renderHub());
     await user.click(screen.getByRole("button", { name: "忽略" }));
     expect(screen.queryByTestId("hub-suggestion")).toBeNull();
     expect(JSON.parse(sessionStorage.getItem(HIDDEN_FEEDBACK_KEY) ?? "[]")).toEqual(["set-focus:pace:pace-1"]);
+  });
+
+  it("after accepting one focus, the hero moves on to the next suggestion instead of going empty", async () => {
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    state.analyses = [
+      {
+        kind: "pace",
+        id: "pace-1",
+        createdAt: "2026-10-20T00:00:00.000Z",
+        findings: [{ code: "pace.decay.back-half" }],
+        biomech: null,
+        pace: { decayPercent: 6.5, rating: "needs-work" },
+      },
+      {
+        kind: "biomech",
+        id: "bio-1",
+        createdAt: "2026-10-19T00:00:00.000Z",
+        findings: [{ code: "biomech.lean.high" }],
+        biomech: { avgKnee: 100, avgLean: 55, readableFrames: 3 },
+        pace: null,
+      },
+    ];
+    const user = userEvent.setup();
+    render(renderHub());
+    expect(screen.getByText("将本周侧重设为「速度窗口与500m配速」。")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "接受" }));
+
+    expect(screen.queryByText("将本周侧重设为「速度窗口与500m配速」。")).toBeNull();
+    expect(screen.getByText("将本周侧重设为「技术基础与弯道控制」。")).toBeTruthy();
+    expect(screen.getByText(/来自生物力学分析 bio-1/)).toBeTruthy();
+    expect(screen.queryByText(/已设为本周重点/)).toBeNull();
   });
 
   const paceSuggestion = () => {
@@ -369,16 +410,26 @@ describe("analysis hub: states", () => {
     ];
   };
 
-  it("shows a focus saved earlier this week as already accepted, without a click", async () => {
+  it("a focus saved earlier this week (set on the plan page, say) removes that suggestion, with no 'accepted' line", async () => {
     paceSuggestion();
     const { mondayOfWeek } = await import("@skatingx/skating-domain");
     const { todayDateString } = await import("@skatingx/schema");
     state.training.value = { planFocus: "bounce", planFocusWeek: mondayOfWeek(todayDateString()), todayTasks: [] };
     render(renderHub());
-    expect(screen.getByText(/已设为本周重点：速度窗口与500m配速/)).toBeTruthy();
+    expect(screen.queryByTestId("hub-suggestion")).toBeNull();
+    expect(screen.queryByText(/已设为本周重点/)).toBeNull();
   });
 
-  it("does not treat a focus from an earlier week as accepted", () => {
+  it("a different focus set this week does not remove the suggestion for another focus", async () => {
+    paceSuggestion();
+    const { mondayOfWeek } = await import("@skatingx/skating-domain");
+    const { todayDateString } = await import("@skatingx/schema");
+    state.training.value = { planFocus: "lean", planFocusWeek: mondayOfWeek(todayDateString()), todayTasks: [] };
+    render(renderHub());
+    expect(screen.getByRole("button", { name: "接受" })).toBeTruthy();
+  });
+
+  it("does not treat a focus from an earlier week as accepted: the suggestion is back", () => {
     paceSuggestion();
     state.training.value = { planFocus: "bounce", planFocusWeek: "2020-01-06", todayTasks: [] };
     render(renderHub());

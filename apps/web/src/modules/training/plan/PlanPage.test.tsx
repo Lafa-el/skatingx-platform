@@ -472,6 +472,44 @@ describe("plan suggestions", () => {
     expect(screen.getByRole("heading", { name: /第 1 周周期微循环：速度窗口与500m配速/ })).toBeTruthy();
   });
 
+  it("an adopted suggestion leaves the page, and the next suggestion stays; a manual pick of the same focus does the same", async () => {
+    const user = userEvent.setup({ advanceTimers: () => undefined });
+    renderPage();
+    act(() => {
+      state.onAnalyses?.([
+        { kind: "pace", id: "pace-1", createdAt: "2026-10-20T12:00:00.000Z", findings: [{ code: "pace.decay.back-half" }] },
+        { kind: "biomech", id: "bio-1", createdAt: "2026-10-19T12:00:00.000Z", findings: [{ code: "biomech.lean.high" }] },
+      ]);
+    });
+    expect(screen.getByText("将本周侧重设为『速度窗口与500m配速』")).toBeTruthy();
+    expect(screen.getByText("将本周侧重设为『技术基础与弯道控制』")).toBeTruthy();
+
+    await user.click(screen.getAllByRole("button", { name: "采纳" })[0]!);
+
+    expect(screen.queryByText("将本周侧重设为『速度窗口与500m配速』")).toBeNull();
+    expect(screen.getByText("将本周侧重设为『技术基础与弯道控制』")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "采纳" })).toHaveLength(1); // no second adoption of the same focus
+    expect(screen.queryByText(/已设为本周重点/)).toBeNull();
+
+    // Choosing the other focus by hand removes its suggestion in the same way. Only one focus is set at
+    // a time, so the first suggestion is offered again: it is no longer the focus in force.
+    await user.click(screen.getByRole("button", { name: /技术基础与弯道控制/ }));
+    expect(screen.queryByText("将本周侧重设为『技术基础与弯道控制』")).toBeNull();
+    expect(screen.getByText("将本周侧重设为『速度窗口与500m配速』")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "采纳" })).toHaveLength(1);
+    expect(screen.queryByText(/已设为本周重点/)).toBeNull();
+  });
+
+  it("an equipment review stays whatever the focus", async () => {
+    const user = userEvent.setup({ advanceTimers: () => undefined });
+    renderPage();
+    act(() => {
+      state.onEquipment?.([{ id: "equip-1", createdAt: "2026-10-20T12:00:00.000Z", findings: [{ code: "equipment.symptom.slide" }] }]);
+    });
+    await user.click(screen.getByRole("button", { name: /速度窗口与500m配速/ }));
+    expect(screen.getByRole("link", { name: "打开器材页" })).toBeTruthy();
+  });
+
   it("hides an ignored suggestion for this session and does not write", async () => {
     const user = userEvent.setup({ advanceTimers: () => undefined });
     renderPage();
