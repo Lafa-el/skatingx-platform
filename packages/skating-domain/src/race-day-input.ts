@@ -33,7 +33,7 @@ export const RACE_DAY_LIMITS = {
   videoExternalUrl: 2048,
   videoStoredWhere: 200,
   videoNote: 1000,
-  /** Version string stored with a summary document (`race-summary/2`). */
+  /** Version string stored with a summary document (`race-summary/3`). */
   summaryVersion: 40,
   summaryCoachNote: 2000,
   sourceNote: 500,

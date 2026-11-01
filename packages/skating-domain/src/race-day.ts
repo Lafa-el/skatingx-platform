@@ -189,8 +189,9 @@ export function groupRaceEntriesByDay(races: readonly RaceEntry[]): RaceDayGroup
 /**
  * Bump when the shape or rules of `buildRaceSummary` change, so old results stay explainable.
  * /2: a race counts only on an effective race day (`effectiveRaceDay`), i.e. one of the event's dates.
+ * /3: the fastest confirmed finish also records which distance that fastest time belongs to.
  */
-export const RACE_SUMMARY_VERSION = "race-summary/2";
+export const RACE_SUMMARY_VERSION = "race-summary/3";
 
 /**
  * The one rule for which day a race counts on. The event's `dates` are the authority: the summary
@@ -249,6 +250,8 @@ export type RaceSummary = {
   pendingResultCount: number;
   /** Fastest finished time among CONFIRMED results only; `null` if none are confirmed. */
   fastestConfirmedSeconds: number | null;
+  /** The distance of `fastestConfirmedSeconds`; null when there is no confirmed finished time. */
+  fastestConfirmedDistanceId: string | null;
 };
 
 /**
@@ -256,6 +259,7 @@ export type RaceSummary = {
  * It makes no coaching, medical or biomechanical claim (ADR-001 D6).
  */
 export function buildRaceSummary(input: RaceSummaryInput): RaceSummary {
+  const raceById = new Map(input.races.map((race) => [race.raceId, race]));
   const resultByRaceId = new Map<string, RaceResult>();
   for (const result of input.results) {
     if (result.rosterId === input.self.rosterId) {
@@ -288,12 +292,18 @@ export function buildRaceSummary(input: RaceSummaryInput): RaceSummary {
     });
 
   const ownResults = items.filter((item) => item.status !== null);
-  const confirmedFinished = items
-    .filter(
-      (item) =>
-        item.confirmed && item.status === "finished" && item.timeSeconds !== null,
-    )
-    .map((item) => item.timeSeconds as number);
+  let fastestConfirmedSeconds: number | null = null;
+  let fastestConfirmedDistanceId: string | null = null;
+  for (const item of items) {
+    if (!item.confirmed || item.status !== "finished" || item.timeSeconds === null) {
+      continue;
+    }
+    // `items` follows sortRaceEntries order, so ties keep the first race deterministically.
+    if (fastestConfirmedSeconds === null || item.timeSeconds < fastestConfirmedSeconds) {
+      fastestConfirmedSeconds = item.timeSeconds;
+      fastestConfirmedDistanceId = raceById.get(item.raceId)?.distanceId ?? null;
+    }
+  }
 
   return {
     summaryVersion: RACE_SUMMARY_VERSION,
@@ -307,7 +317,7 @@ export function buildRaceSummary(input: RaceSummaryInput): RaceSummary {
     racesWithResult: ownResults.length,
     racesFinished: items.filter((item) => item.status === "finished").length,
     pendingResultCount: ownResults.filter((item) => !item.confirmed).length,
-    fastestConfirmedSeconds:
-      confirmedFinished.length > 0 ? Math.min(...confirmedFinished) : null,
+    fastestConfirmedSeconds,
+    fastestConfirmedDistanceId,
   };
 }

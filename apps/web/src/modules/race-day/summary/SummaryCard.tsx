@@ -1,3 +1,4 @@
+import { DEFAULT_TRAINING_DISTANCES } from "@skatingx/schema";
 import type { RaceSummary } from "@skatingx/skating-domain";
 import { formatResultTime } from "@skatingx/skating-domain";
 import { Notice } from "@skatingx/ui";
@@ -20,6 +21,12 @@ type SummaryCardProps = {
 export function SummaryCard({ summary, raceNumbers }: SummaryCardProps) {
   const locale = useLocale();
   const { athlete, items } = summary;
+
+  const fastestDistance =
+    summary.fastestConfirmedDistanceId === null
+      ? null
+      : DEFAULT_TRAINING_DISTANCES.find((distance) => distance.distanceId === summary.fastestConfirmedDistanceId)?.label ??
+        summary.fastestConfirmedDistanceId;
 
   return (
     <article aria-labelledby="summary-card-title" className="space-y-4 rounded-card border border-brand-navy/10 bg-white p-4 shadow-card">
@@ -58,7 +65,11 @@ export function SummaryCard({ summary, raceNumbers }: SummaryCardProps) {
         <Stat label={t(locale, "raceDay.summary.stat.withResult")} value={String(summary.racesWithResult)} />
         <Stat label={t(locale, "raceDay.summary.stat.finished")} value={String(summary.racesFinished)} />
         <Stat
-          label={t(locale, "raceDay.summary.stat.fastest")}
+          label={
+            summary.fastestConfirmedSeconds === null
+              ? t(locale, "raceDay.summary.stat.fastest")
+              : t(locale, "raceDay.summary.stat.fastestDistance", { distance: fastestDistance ?? "—" })
+          }
           value={summary.fastestConfirmedSeconds === null ? null : formatResultTime(summary.fastestConfirmedSeconds)}
           emptyText={t(locale, "raceDay.summary.stat.fastestNone")}
         />
