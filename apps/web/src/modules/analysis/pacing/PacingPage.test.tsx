@@ -8,6 +8,7 @@ import { legacyColourClasses } from "@/test/legacyLook";
 const state = vi.hoisted(() => ({
   locale: "zh" as "zh" | "en",
   uid: null as string | null,
+  authLoading: false,
   db: {} as object | null,
   save: vi.fn((_db: unknown, _record: unknown) => Promise.resolve()),
   configs: [] as unknown[],
@@ -16,7 +17,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
 vi.mock("@/app/providers/AuthProvider", () => ({
-  useAuth: () => ({ uid: state.uid, loading: false, firebaseReady: Boolean(state.uid) }),
+  useAuth: () => ({ uid: state.uid, loading: state.authLoading, firebaseReady: Boolean(state.uid) }),
 }));
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => state.db,
@@ -58,6 +59,7 @@ describe("pacing page", () => {
   beforeEach(() => {
     state.locale = "zh";
     state.uid = null;
+    state.authLoading = false;
     state.db = {};
     state.save.mockReset();
     state.configs.length = 0;
@@ -204,6 +206,56 @@ describe("pacing page", () => {
     await user.click(screen.getByRole("button", { name: "保存本次配速" }));
     expect(screen.getByRole("alert").textContent).toBe("请先登录后再保存。");
     expect(state.save).not.toHaveBeenCalled();
+  });
+
+  describe("saving while sign-in is still being resolved", () => {
+    const saveButton = () => screen.getByRole("button", { name: "保存本次配速" }) as HTMLButtonElement;
+    const generate = async (user: ReturnType<typeof userEvent.setup>) => {
+      await fillSynthetic500m(user);
+      await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+      await waitFor(() => expect(state.configs).toHaveLength(1));
+    };
+
+    it("keeps the save button disabled, blames nothing, and writes nothing; generating still works", async () => {
+      state.authLoading = true;
+      state.uid = null;
+      const user = userEvent.setup();
+      render(<AnalysisPacingPage />);
+      await generate(user);
+      expect(saveButton().disabled).toBe(true);
+
+      await user.click(saveButton());
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.queryByText("请先登录后再保存。")).toBeNull();
+      expect(state.save).not.toHaveBeenCalled();
+    });
+
+    it("frees the button when sign-in resolves to a user, and then saves", async () => {
+      state.authLoading = true;
+      const user = userEvent.setup();
+      const view = render(<AnalysisPacingPage />);
+      await generate(user);
+      expect(saveButton().disabled).toBe(true);
+
+      state.authLoading = false;
+      state.uid = "alice";
+      view.rerender(<AnalysisPacingPage />);
+      expect(saveButton().disabled).toBe(false);
+      await user.click(saveButton());
+      await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1));
+    });
+
+    it("sign-in resolved with nobody: saving still says so", async () => {
+      state.authLoading = false;
+      state.uid = null;
+      const user = userEvent.setup();
+      render(<AnalysisPacingPage />);
+      await generate(user);
+      expect(saveButton().disabled).toBe(false);
+      await user.click(saveButton());
+      expect(screen.getByRole("alert").textContent).toBe("请先登录后再保存。");
+      expect(state.save).not.toHaveBeenCalled();
+    });
   });
 
   it("uses the English draft and does not show the Chinese rating label", async () => {
