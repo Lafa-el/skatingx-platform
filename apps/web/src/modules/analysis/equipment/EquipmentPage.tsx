@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { tAnalysis } from "@/shared/i18n/analysis-messages";
 import { tEquipment, type EquipmentMessageKey } from "@/shared/i18n/equipment-messages";
@@ -170,6 +171,8 @@ function formatWhen(locale: Locale, iso: string): string {
 export function EquipmentPage() {
   const locale = useLocale();
   const { uid } = useAuth();
+  const { data: settings } = useUserSettings();
+  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
   const [symptomKey, setSymptomKey] = useState<EquipmentSymptomKey>("slide");
   const [symptomText, setSymptomText] = useState("");
   const [weight, setWeight] = useState("");
@@ -229,7 +232,7 @@ export function EquipmentPage() {
     const unsubscribe = subscribeToEquipmentHistory(
       db,
       uid,
-      DEFAULT_ATHLETE_ID,
+      athleteId,
       (records) => {
         setCloudHistory(records);
         setSynced(true);
@@ -242,7 +245,7 @@ export function EquipmentPage() {
     return () => {
       unsubscribe();
     };
-  }, [uid]);
+  }, [uid, athleteId]);
 
   const unrecorded = tEquipment(locale, "equipment.history.unrecorded");
 
@@ -359,7 +362,7 @@ export function EquipmentPage() {
       return;
     }
     try {
-      await deleteEquipmentHistoryRecord(db, uid, DEFAULT_ATHLETE_ID, recordId);
+      await deleteEquipmentHistoryRecord(db, uid, athleteId, recordId);
       setCloudHistory((current) => current.filter((record) => record.id !== recordId));
     } catch (error) {
       logActionFailure("equipment", "delete", error);

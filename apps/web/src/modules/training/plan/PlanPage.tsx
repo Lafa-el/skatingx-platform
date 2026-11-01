@@ -151,7 +151,7 @@ export function PlanPage() {
     const stopEquipment = subscribeToEquipmentHistory(
       db,
       uid,
-      DEFAULT_ATHLETE_ID,
+      athleteId,
       (rows) => {
         equipment = rows.flatMap((record) => {
           if (typeof record.id !== "string" || typeof record.createdAt !== "string") return [];
@@ -177,7 +177,7 @@ export function PlanPage() {
       stopAnalyses();
       stopEquipment();
     };
-  }, [uid]);
+  }, [uid, athleteId]);
 
   const today = todayDateString();
   const monday = mondayOfWeek(today);

@@ -23,6 +23,10 @@ const state = vi.hoisted(() => ({
     | null,
   onEquipment: null as ((rows: { id: string; createdAt: string; findings?: { code: string }[] }[]) => void) | null,
   stopFeedback: vi.fn(),
+  // Settings as the page reads them: the default names the athlete, a test can leave it out or change it.
+  settings: { activeAthleteId: "lindsay" } as { activeAthleteId?: string } | null,
+  // The athlete id each equipment subscription was opened for.
+  equipmentAthletes: [] as unknown[],
   // The week's earlier days, read from the day archive.
   history: null as {
     args: unknown[];
@@ -74,7 +78,7 @@ vi.mock("@/app/providers/FirestoreProvider", async () => {
       loading: state.training.loading,
       error: state.training.error,
     }),
-    useUserSettings: () => ({ data: { activeAthleteId: "lindsay" }, loading: false, error: null }),
+    useUserSettings: () => ({ data: state.settings, loading: false, error: null }),
   };
 });
 // Only what the page may use. It has no check-in function to call: touching one would throw here.
@@ -116,9 +120,10 @@ vi.mock("@skatingx/firebase-client", () => ({
   subscribeToEquipmentHistory: (
     _db: unknown,
     _uid: unknown,
-    _athlete: unknown,
+    athlete: unknown,
     onData: (rows: { id: string; createdAt: string; findings?: { code: string }[] }[]) => void,
   ) => {
+    state.equipmentAthletes.push(athlete);
     state.onEquipment = onData;
     onData([]);
     return state.stopFeedback;
@@ -150,6 +155,8 @@ afterEach(() => {
   state.setPlanFocusFails = false;
   state.onAnalyses = null;
   state.onEquipment = null;
+  state.settings = { activeAthleteId: "lindsay" };
+  state.equipmentAthletes = [];
   state.history = null;
   state.stopFeedback.mockClear();
   sessionStorage.clear();
@@ -513,5 +520,40 @@ describe("plan suggestions", () => {
     expect(link.getAttribute("href")).toBe("/analysis/equipment");
     expect(screen.queryByRole("button", { name: "采纳" })).toBeNull();
     expect(screen.getByRole("button", { name: /技术基础与弯道控制/ }).getAttribute("aria-pressed")).toBe("false");
+  });
+});
+
+describe("plan page: which athlete the equipment feedback is read for", () => {
+  it("reads the equipment history of the athlete in settings", () => {
+    state.settings = { activeAthleteId: "athlete-9" };
+    renderPage();
+    expect(state.equipmentAthletes).toEqual(["athlete-9"]);
+  });
+
+  it("reads the default athlete when settings name none", () => {
+    state.settings = {};
+    renderPage();
+    expect(state.equipmentAthletes).toEqual(["lindsay"]);
+  });
+
+  it("reads the default athlete when settings are not available", () => {
+    state.settings = null;
+    renderPage();
+    expect(state.equipmentAthletes).toEqual(["lindsay"]);
+  });
+
+  it("moves the equipment subscription to the new athlete when settings change, and releases the old one", () => {
+    const view = renderPage();
+    expect(state.equipmentAthletes).toEqual(["lindsay"]);
+    state.stopFeedback.mockClear();
+    state.settings = { activeAthleteId: "athlete-9" };
+    view.rerender(
+      <MemoryRouter>
+        <TrainingPlanPage />
+      </MemoryRouter>,
+    );
+    expect(state.equipmentAthletes).toEqual(["lindsay", "athlete-9"]);
+    // Analyses and equipment share one cleanup: both stops ran once.
+    expect(state.stopFeedback).toHaveBeenCalledTimes(2);
   });
 });

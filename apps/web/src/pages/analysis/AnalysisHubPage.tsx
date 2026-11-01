@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { readHiddenFeedback, usePlanFocus, writeHiddenFeedback } from "@/modules/training/plan/plan-session";
 import { tAnalysis, type AnalysisMessageKey } from "@/shared/i18n/analysis-messages";
@@ -235,6 +236,8 @@ function EmptyLane({ body, cta, to }: { body: string; cta: string; to: string })
 export function AnalysisHubPage() {
   const locale = useLocale();
   const { uid, loading: authLoading } = useAuth();
+  const { data: settings } = useUserSettings();
+  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
   const [analyses, setAnalyses] = useState<HubLane<HubAnalysisInput>>({ status: "loading" });
   const [equipment, setEquipment] = useState<HubLane<HubEquipmentInput>>({ status: "loading" });
   const [analysesAttempt, setAnalysesAttempt] = useState(0);
@@ -272,7 +275,7 @@ export function AnalysisHubPage() {
     return subscribeToEquipmentHistory(
       db,
       uid,
-      DEFAULT_ATHLETE_ID,
+      athleteId,
       (rows) => setEquipment({ status: "ready", records: rows.flatMap((row) => {
         const mapped = toEquipment(row);
         return mapped ? [mapped] : [];
@@ -282,7 +285,7 @@ export function AnalysisHubPage() {
         setEquipment({ status: "error" });
       },
     );
-  }, [uid, equipmentAttempt]);
+  }, [uid, equipmentAttempt, athleteId]);
 
   const retryAnalyses = () => {
     setAnalyses({ status: "loading" });
