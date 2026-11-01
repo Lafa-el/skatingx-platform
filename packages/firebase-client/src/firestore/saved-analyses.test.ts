@@ -10,9 +10,9 @@ describe("savedAnalysisFromDocument", () => {
       createdAt: "2026-10-10T00:00:00.000Z",
       findings: [{ code: "biomech.knee.high" }],
       poseFrames: [
-        { readable: true, kneeAngleDegrees: 100, leanAngleDegrees: 40 },
-        { readable: true, kneeAngleDegrees: 120, leanAngleDegrees: 50 },
-        { readable: false, kneeAngleDegrees: 200, leanAngleDegrees: 200 },
+        { timeSeconds: 1, readable: true, kneeAngleDegrees: 100, leanAngleDegrees: 40 },
+        { timeSeconds: 2, readable: true, kneeAngleDegrees: 120, leanAngleDegrees: 50 },
+        { timeSeconds: 3, readable: false, kneeAngleDegrees: 200, leanAngleDegrees: 200 },
       ],
     });
     expect(source).toMatchObject({
@@ -30,10 +30,10 @@ describe("savedAnalysisFromDocument", () => {
       createdAt: "2026-10-10T00:00:00.000Z",
       findings: [{ code: "biomech.frame.unreadable" }],
       poseFrames: [
-        { readable: false, kneeAngleDegrees: null, leanAngleDegrees: null },
-        { readable: false, kneeAngleDegrees: 90, leanAngleDegrees: 30 },
+        { timeSeconds: 1, readable: false, kneeAngleDegrees: null, leanAngleDegrees: null },
+        { timeSeconds: 2, readable: false, kneeAngleDegrees: 90, leanAngleDegrees: 30 },
         // readable but missing an angle: not readable by the tool's rule either
-        { readable: true, kneeAngleDegrees: 100, leanAngleDegrees: null },
+        { timeSeconds: 3, readable: true, kneeAngleDegrees: 100, leanAngleDegrees: null },
       ],
     });
     expect(source?.biomech).toEqual({ avgKnee: null, avgLean: null, readableFrames: 0 });
@@ -199,3 +199,27 @@ describe("savedAnalysisFromDocument", () => {
     expect(source).toMatchObject({ kind: "biomech", distance: null });
   });
 });
+
+  it("passes the stored frame fields through, and drops a frame whose time is not a finite number", () => {
+    const source = savedAnalysisFromDocument("doc-f", {
+      id: "bio-f",
+      createdAt: "2026-10-10T00:00:00.000Z",
+      findings: [],
+      poseFrames: [
+        {
+          timeSeconds: 1.5,
+          readable: true,
+          unreadableReason: "no-pose",
+          kneeAngleDegrees: 100,
+          leanAngleDegrees: 40,
+          pelvisHeightRatio: 0.42,
+          recoveryRate: 1.2,
+          supportLeg: { side: "left", confidencePercent: 80, manual: true },
+        },
+        { timeSeconds: "1", readable: true, kneeAngleDegrees: 200, leanAngleDegrees: 90 },
+        { readable: true, kneeAngleDegrees: 200, leanAngleDegrees: 90 },
+      ],
+    });
+    expect(source?.biomech).toEqual({ avgKnee: 100, avgLean: 40, readableFrames: 1 });
+  });
+

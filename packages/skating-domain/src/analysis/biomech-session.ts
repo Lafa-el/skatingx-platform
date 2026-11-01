@@ -69,7 +69,7 @@ export function poseSendSize(cropPixels: { readonly width: number; readonly heig
   readonly width: number;
   readonly height: number;
 } {
-  const scale = Math.min(1, LEGACY_POSE_LIMITS.maxAnalysisEdgePx / Math.max(1, cropPixels.width));
+  const scale = Math.min(1, LEGACY_POSE_LIMITS.maxAnalysisEdgePx / Math.max(1, cropPixels.width, cropPixels.height));
   return {
     width: Math.max(1, Math.round(cropPixels.width * scale)),
     height: Math.max(1, Math.round(cropPixels.height * scale)),
@@ -227,7 +227,7 @@ function manualKnee(
   if (visibility < 0.35) {
     return { kneeAngle: calculateAngle(hip, knee, ankle), readable: false, side: mode, confidence: Math.round(visibility * 100) };
   }
-  return { kneeAngle: calculateAngle(hip, knee, ankle), readable: true, side: mode, confidence: 100 };
+  return { kneeAngle: calculateAngle(hip, knee, ankle), readable: true, side: mode, confidence: Math.min(99, Math.round(visibility * 100)) };
 }
 
 export function appendKeyframe(

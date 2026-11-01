@@ -1,7 +1,7 @@
 import { buildEquipmentHistoryRecord, type EquipmentHistoryRecord } from "@skatingx/skating-domain";
 import { describe, expect, it } from "vitest";
 
-import { equipmentArchiveKey, mergeEquipmentHistory, rememberEquipmentRecord } from "./equipment-archive";
+import { equipmentArchiveKey, mergeEquipmentHistory, readEquipmentArchive, rememberEquipmentRecord } from "./equipment-archive";
 
 function memory(): Storage {
   const data = new Map<string, string>();
@@ -59,3 +59,16 @@ describe("equipment browser archive", () => {
     expect(storage.getItem("blaze-equipment-history-v1")).toBeNull();
   });
 });
+
+describe("isArchiveRecord keeps only a complete local row", () => {
+  it("drops a stored row that has no offsets, and keeps a complete one", () => {
+    const storage = memory();
+    const complete = record("equip-ok", "2026-10-19T06:00:00.000Z");
+    const broken = { id: "equip-bad", createdAt: "2026-10-19T06:00:00.000Z", symptomKey: "slide", athleteId: "lindsay" };
+    storage.setItem(equipmentArchiveKey("user-1"), JSON.stringify([broken, complete]));
+    const read = readEquipmentArchive(storage, "user-1");
+    expect(read.map((row) => row.id)).toEqual(["equip-ok"]);
+    expect(read[0]?.offsets.leftFront).toBe("");
+  });
+});
+

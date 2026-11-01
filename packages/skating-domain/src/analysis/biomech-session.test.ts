@@ -26,6 +26,7 @@ describe("biomechanics sampling", () => {
   it("caps the canvas sent to Pose at 640 on the long side of the crop", () => {
     expect(poseSendSize({ width: 1280, height: 720 })).toEqual({ width: 640, height: 360 });
     expect(poseSendSize({ width: 400, height: 300 })).toEqual({ width: 400, height: 300 });
+    expect(poseSendSize({ width: 720, height: 1280 })).toEqual({ width: 360, height: 640 });
   });
 
   it("keeps a wide crop until a target is locked", () => {
@@ -109,3 +110,27 @@ describe("biomechanics sampling", () => {
     expect(record).not.toHaveProperty("pace");
   });
 });
+
+  it("manual knee confidence is capped at 99 when every landmark is fully visible", () => {
+    const withVisibility = (visibility: number) => ({
+      11: { ...readablePoints[11], visibility },
+      12: { ...readablePoints[12], visibility },
+      23: { ...readablePoints[23], visibility },
+      24: { ...readablePoints[24], visibility },
+      25: { ...readablePoints[25], visibility },
+      26: { ...readablePoints[26], visibility },
+      27: { ...readablePoints[27], visibility },
+      28: { ...readablePoints[28], visibility },
+    });
+    const at = (points: typeof readablePoints) =>
+      samplePoseFrame({
+        tracking: emptyTrackingState(),
+        support: emptySupportTracker(),
+        landmarks: landmarksFromPoints(points),
+        timeSeconds: 1,
+        supportMode: "left",
+      }).sample;
+    expect(at(withVisibility(1)).supportConfidence).toBe(99);
+    expect(at(withVisibility(0.5)).supportConfidence).toBe(50);
+  });
+

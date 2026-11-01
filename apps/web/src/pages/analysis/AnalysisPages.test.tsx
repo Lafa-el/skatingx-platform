@@ -834,3 +834,60 @@ describe("analysis hub: the pace totals a saved record stores", () => {
     expect(recent).toContain("左脚打滑");
   });
 });
+
+describe("analysis hub: unparseable dates stay out, and unknown symptoms use the other-feedback line", () => {
+  it("a record whose createdAt is not a date is not on the card or in the list", () => {
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    state.analyses = [
+      {
+        kind: "biomech",
+        id: "bad-date",
+        createdAt: "not-a-date",
+        findings: [],
+        biomech: { avgKnee: 100, avgLean: 20, readableFrames: 2 },
+        pace: null,
+      },
+      {
+        kind: "biomech",
+        id: "good",
+        createdAt: "2026-10-09T00:00:00.000Z",
+        findings: [],
+        biomech: { avgKnee: 110, avgLean: 15, readableFrames: 2 },
+        pace: null,
+      },
+    ];
+    const { container } = render(renderHub());
+    const bio = container.querySelector("[data-testid='hub-biomech']")?.textContent ?? "";
+    expect(bio).toContain("15°");
+    expect(bio).toContain("110°");
+    expect(bio).not.toContain("20°");
+    const recent = container.querySelector("[data-testid='hub-recent']")?.textContent ?? "";
+    expect(recent).toContain("15°");
+    expect(recent).not.toContain("20°");
+  });
+
+  it("an unknown symptom with text uses the other-feedback line; a known key stays; empty text stays empty", () => {
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    state.equipment = [
+      { id: "eq-1", createdAt: "2026-10-09T00:00:00.000Z", symptomKey: "mystery", symptomText: "左脚发软" },
+    ];
+    const first = render(renderHub());
+    expect(first.container.querySelector("[data-testid='hub-equipment']")?.textContent).toContain("其它反馈 · 左脚发软");
+    first.unmount();
+
+    state.equipment = [
+      { id: "eq-2", createdAt: "2026-10-09T00:00:00.000Z", symptomKey: "slide", symptomText: "弯道咬冰不足，弯中有向外侧滑的感觉。" },
+    ];
+    const known = render(renderHub());
+    expect(known.container.querySelector("[data-testid='hub-equipment']")?.textContent).toContain("弯道咬冰不足");
+    expect(known.container.querySelector("[data-testid='hub-equipment']")?.textContent).not.toContain("其它反馈");
+    known.unmount();
+
+    state.equipment = [{ id: "eq-3", createdAt: "2026-10-09T00:00:00.000Z", symptomKey: "mystery", symptomText: "" }];
+    const empty = render(renderHub());
+    expect(empty.container.querySelector("[data-testid='hub-equipment']")?.textContent).toContain("未记录具体反馈");
+    expect(empty.container.querySelector("[data-testid='hub-equipment']")?.textContent).not.toContain("其它反馈");
+  });
+});

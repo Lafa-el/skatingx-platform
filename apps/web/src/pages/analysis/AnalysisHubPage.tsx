@@ -114,9 +114,13 @@ function ratingText(rating: HubPaceRating | null, locale: Locale): string {
 
 function equipmentSummary(symptomKey: string, symptomText: string, locale: Locale): string {
   const focusKey = symptomKey in SYMPTOM_FOCUS ? SYMPTOM_FOCUS[symptomKey as EquipmentSymptomKey] : null;
-  const focus = focusKey ? tEquipment(locale, focusKey) : tEquipment(locale, "equipment.symptom.empty");
-  const text = symptomText.trim() || tEquipment(locale, "equipment.symptom.empty");
-  return tAnalysis(locale, "analysis.hub.equipment.summary", { focus, text });
+  const text = symptomText.trim();
+  const focus = focusKey
+    ? tEquipment(locale, focusKey)
+    : text
+      ? tEquipment(locale, "equipment.symptom.other")
+      : tEquipment(locale, "equipment.symptom.empty");
+  return tAnalysis(locale, "analysis.hub.equipment.summary", { focus, text: text || tEquipment(locale, "equipment.symptom.empty") });
 }
 
 function headline(item: HubRecentItem, locale: Locale): string {
@@ -149,7 +153,8 @@ function stickerKey(kind: HubRecentItem["kind"]): AnalysisMessageKey {
   return "analysis.hub.cockpit.equipment";
 }
 
-function toAnalysis(row: SavedAnalysisSource): HubAnalysisInput {
+function toAnalysis(row: SavedAnalysisSource): HubAnalysisInput | null {
+  if (Number.isNaN(Date.parse(row.createdAt))) return null;
   return {
     kind: row.kind,
     id: row.id,
@@ -170,6 +175,7 @@ function toAnalysis(row: SavedAnalysisSource): HubAnalysisInput {
 
 function toEquipment(row: EquipmentHistoryRecord): HubEquipmentInput | null {
   if (typeof row.id !== "string" || row.id.length === 0 || typeof row.createdAt !== "string") return null;
+  if (Number.isNaN(Date.parse(row.createdAt))) return null;
   return {
     id: row.id,
     createdAt: row.createdAt,
@@ -284,7 +290,10 @@ export function AnalysisHubPage() {
       uid,
       (rows, dropped) => {
         setAnalysesDropped(dropped);
-        setAnalyses({ status: "ready", records: rows.map(toAnalysis) });
+        setAnalyses({ status: "ready", records: rows.flatMap((row) => {
+          const mapped = toAnalysis(row);
+          return mapped ? [mapped] : [];
+        }) });
       },
       (error) => {
         logActionFailure("analysis-hub", "read-analyses", error);

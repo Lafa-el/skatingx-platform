@@ -185,3 +185,35 @@ describe("pace analysis record", () => {
     });
   });
 });
+
+  it("writes the same findings on the record and inside pace", () => {
+    const record = recordFor(analysis({ decayPercent: 12, benchmarkDecayPercent: 5, totalSeconds: 52, benchmarkTotalSeconds: 50 }));
+    expect(record.findings).toEqual(record.pace.findings);
+    expect(record.findings.length).toBeGreaterThan(0);
+  });
+
+  it("rejects a date-only createdAt and accepts toISOString()", () => {
+    expect(() =>
+      buildPaceAnalysisRecord({
+        id: "pace-500-abc",
+        ownerUserId: "alice",
+        createdAt: "2026-10-19",
+        distance: "500",
+        splits: [1, 1, 1, 1, 1],
+        benchmark: [1, 1, 1, 1, 1],
+        analysis: analysis({}),
+      }),
+    ).toThrow(/ISO-8601/);
+    expect(() =>
+      buildPaceAnalysisRecord({
+        id: "pace-500-abc",
+        ownerUserId: "alice",
+        createdAt: new Date("2026-10-19T04:59:13.497Z").toISOString(),
+        distance: "500",
+        splits: [1, 1, 1, 1, 1],
+        benchmark: [1, 1, 1, 1, 1],
+        analysis: analysis({}),
+      }),
+    ).not.toThrow();
+  });
+

@@ -21,6 +21,18 @@ function writeStored(eventId: string): void {
   }
 }
 
+/**
+ * Forgets the remembered event. Called after the remembered event was deleted, so the stale id does
+ * not linger in storage (the page already falls back to the first event without it).
+ */
+export function clearStoredActiveEventId(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.warn("[race-day] cannot clear the event choice", error instanceof Error ? error.name : "unknown");
+  }
+}
+
 /** Remembers which event the user is working on, across reloads. Not shared between devices. */
 export function useActiveEventId(): { storedId: string | null; setStoredId: (id: string) => void } {
   const [storedId, setStored] = useState<string | null>(readStored);

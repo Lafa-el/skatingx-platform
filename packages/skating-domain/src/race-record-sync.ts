@@ -1,5 +1,6 @@
 import type { RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skatingx/schema";
 
+import { compareText } from "./compare-text";
 import { effectiveRaceDay, isConfirmed } from "./race-day";
 import { isRealDateString, RACE_DAY_LIMITS } from "./race-day-input";
 import { createRaceRecordEntryId, parseRaceRecordEntryId } from "./race-record-entry-id";
@@ -91,7 +92,7 @@ export type RaceRecordPlan = {
 
 /** The user's own roster row. Several are possible; the first by id wins, as on the summary page. */
 export function selfRosterEntry(roster: readonly RaceRosterEntry[]): RaceRosterEntry | null {
-  const selves = roster.filter((entry) => entry.isSelf).sort((a, b) => a.rosterId.localeCompare(b.rosterId));
+  const selves = roster.filter((entry) => entry.isSelf).sort((a, b) => compareText(a.rosterId, b.rosterId));
   return selves[0] ?? null;
 }
 

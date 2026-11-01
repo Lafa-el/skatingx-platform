@@ -22,7 +22,7 @@ export function formatPaceReport(
     title,
     pattern: labels.join(" / "),
     total: analysis.totalSeconds.toFixed(2),
-    gapWord: tPace(locale, gap >= 0 ? "pace.report.slower" : "pace.report.faster"),
+    gapWord: tPace(locale, gap === 0 ? "pace.report.even" : gap > 0 ? "pace.report.slower" : "pace.report.faster"),
     gap: Math.abs(gap).toFixed(2),
     early: analysis.earlyAverageSeconds.toFixed(2),
     late: analysis.lateAverageSeconds.toFixed(2),

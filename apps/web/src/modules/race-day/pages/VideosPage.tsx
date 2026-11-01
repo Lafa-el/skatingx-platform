@@ -122,6 +122,7 @@ function VideosContent() {
 
   const invalidCount =
     events.invalid.length + races.invalid.length + roster.invalid.length + videos.invalid.length;
+  const caching = [events, races, roster, videos].some((list) => list.fromCache === true);
   const loading = races.status === "loading" || roster.status === "loading" || videos.status === "loading";
   const failed = [races, roster, videos].find((list) => list.status === "error");
 
@@ -170,6 +171,7 @@ function VideosContent() {
       {invalidCount > 0 ? (
         <FormMessage tone="info">{t(locale, "raceDay.state.invalidHidden", { count: invalidCount })}</FormMessage>
       ) : null}
+      {caching ? <FormMessage tone="info">{t(locale, "raceDay.sync.caching")}</FormMessage> : null}
 
       <EventPicker
         events={sortedEvents}

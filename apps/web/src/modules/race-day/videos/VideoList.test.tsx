@@ -194,6 +194,26 @@ describe("VideoList", () => {
     expect(screen.getByRole("button", { name: /^编辑/ })).toBeTruthy();
   });
 
+  it("an orphan record (its race is gone) has no go-to-analysis link, a record with a race still has one", () => {
+    render(
+      <MemoryRouter>
+        <VideoList
+          eventId="buffalo-1"
+          groups={buildVideoGroups([video({ videoId: "ok", label: "Has race" }), video({ videoId: "orphan", label: "Orphan", raceId: "gone" })], [race1], [ann])}
+          busy={false}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    const links = screen.getAllByRole("link", { name: /^去分析/ });
+    expect(links).toHaveLength(1);
+    expect(links[0]?.getAttribute("href")).toBe("/analysis/biomechanics?raceVideo=buffalo-1.ok");
+    // The orphan stays visible and editable.
+    expect(screen.getByText("Orphan")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /^编辑/ })).toHaveLength(2);
+  });
+
   it("hides the go-to-analysis link while a delete is being confirmed", async () => {
     const { user } = setup([video()]);
     await user.click(screen.getByRole("button", { name: /^删除/ }));

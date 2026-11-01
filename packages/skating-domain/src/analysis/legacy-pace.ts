@@ -19,6 +19,8 @@ export const pacingDistanceConfigs = {
   "1000": {
     title: "1000m",
     labels: ["起跑圈", "第1圈", "第2圈", "第3圈", "第4圈", "第5圈", "第6圈", "第7圈", "冲刺圈"],
+    // Negative split: later main laps are faster, so the benchmark decay is about −3.45%.
+    // The +3 rating gate is then around −0.45% absolute. That is consistent, not a sign error.
     defaults: [14.1, 11.6, 11.6, 11.6, 11.5, 11.3, 11.1, 11.3, 10.9],
     focus: "有氧-无氧衔接、配速稳定性、末段抗疲劳",
   },

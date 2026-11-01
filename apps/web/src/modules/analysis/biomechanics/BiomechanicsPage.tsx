@@ -9,6 +9,7 @@ import {
   formatFixed,
   lockTarget,
   mapLandmarksFromCrop,
+  MAX_POSE_KEYFRAMES,
   rotatePoint,
   samplePoseFrame,
   shouldSendPoseFrame,
@@ -53,9 +54,10 @@ const SUPPORT = [
   { value: "right", key: "biomech.support.right" },
 ] as const satisfies readonly { value: SupportOverride; key: BiomechMessageKey }[];
 
-type ModelPhase = "loading-engine" | "loading-model" | "initializing" | "ready" | "failed";
+type ModelPhase = "idle" | "loading-engine" | "loading-model" | "initializing" | "ready" | "failed";
 
 const MODEL_KEY: Record<ModelPhase, BiomechMessageKey> = {
+  idle: "biomech.console.idle",
   "loading-engine": "biomech.console.loadingEngine",
   "loading-model": "biomech.console.loadingModel",
   initializing: "biomech.console.initializing",
@@ -125,7 +127,7 @@ export function BiomechanicsPage() {
   const [supportMode, setSupportMode] = useState<SupportOverride>("auto");
   const [speed, setSpeed] = useState("0.25");
   const [locked, setLocked] = useState(false);
-  const [model, setModel] = useState<ModelPhase>("loading-engine");
+  const [model, setModel] = useState<ModelPhase>("idle");
   const [live, setLive] = useState<PoseFrameMetrics>(BLANK_METRICS);
   const [samples, setSamples] = useState<readonly PoseKeyframeSample[]>([]);
   const [feedback, setFeedback] = useState<BiomechMessageKey>("biomech.feedback.waiting");
@@ -219,6 +221,7 @@ export function BiomechanicsPage() {
     if (!pendingRef.current) return;
     pendingRef.current = false;
     setSamples((current) => appendKeyframe(current, result.sample));
+    setStatus((current) => (current === "biomech.status.saved" ? null : current));
     setFeedback("biomech.feedback.waiting");
   };
 
@@ -336,7 +339,7 @@ export function BiomechanicsPage() {
     setSupportMode("auto");
     modeRef.current = "auto";
     setFeedback("biomech.feedback.waiting");
-    setModel("loading-engine");
+    setModel("idle");
     setClock("00:00");
     setDuration("00:00");
     // Unconditional: while a warmup is still running engineRef is null, yet the load is under way.
@@ -690,9 +693,14 @@ export function BiomechanicsPage() {
                 >
                   {paused ? tBiomech(locale, "biomech.play") : tBiomech(locale, "biomech.pause")}
                 </Button>
-                <Button variant="outline" onClick={sample}>
+                <Button variant="outline" onClick={sample} disabled={samples.length >= MAX_POSE_KEYFRAMES}>
                   {tBiomech(locale, "biomech.sample")}
                 </Button>
+                {samples.length >= MAX_POSE_KEYFRAMES ? (
+                  <p role="status" className="col-span-full text-sm text-brand-navy/80">
+                    {tBiomech(locale, "biomech.keyframes.full")}
+                  </p>
+                ) : null}
                 <Button
                   variant="outline"
                   onClick={() => {

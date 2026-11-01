@@ -56,6 +56,28 @@ describe("subscribeToRaceRecordEntries", () => {
     expect((seen[0] as { id: string }[]).map((e) => e.id)).toEqual(["race_buffalo-1_500m-1", "race_buffalo-1_super-1"]);
   });
 
+  it("marks each entry with the id of the document it was found in", () => {
+    const seen: unknown[] = [];
+    subscribeToRaceRecordEntries({ db: {} as never, userId: "u1", athleteId: "lindsay" }, (e) => seen.push(e), () => undefined);
+    snap.onNext?.({
+      docs: [
+        docOf("500m", [{ id: "race_buffalo-1_500m-1", timeSeconds: 48.1, source: "race" }]),
+        // A copy of the same entry in the wrong document, and an entry that already claims another one.
+        docOf("1000m", [
+          { id: "race_buffalo-1_500m-1", timeSeconds: 48.1, source: "race" },
+          { id: "race_buffalo-1_1000m-1", timeSeconds: 95, recordDistanceId: "500m" },
+        ]),
+      ],
+    });
+    const entries = seen[0] as { id: string; recordDistanceId: string; timeSeconds: number }[];
+    expect(entries.map((e) => [e.id, e.recordDistanceId])).toEqual([
+      ["race_buffalo-1_500m-1", "500m"],
+      ["race_buffalo-1_500m-1", "1000m"],
+      ["race_buffalo-1_1000m-1", "1000m"],
+    ]);
+    expect(entries[0]?.timeSeconds).toBe(48.1);
+  });
+
   it("reports an error as its code only", () => {
     const errors: unknown[] = [];
     subscribeToRaceRecordEntries({ db: {} as never, userId: "u1", athleteId: "a" }, () => undefined, (e) => errors.push(e));

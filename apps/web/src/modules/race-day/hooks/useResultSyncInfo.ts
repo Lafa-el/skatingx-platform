@@ -32,8 +32,14 @@ export function useResultSyncInfo(input: {
   results: readonly RaceResult[];
   /** Changing it restarts the records subscription (a retry after a failed read). */
   refreshKey?: number;
+  /**
+   * Some of the lists above came from the local cache only. Such a list may lack a result or a race
+   * that exists on the server, so a row built from it must not pass for "recorded" or "waiting":
+   * it takes the same "unknown" branch as a failed records read (which this does not report as one).
+   */
+  inputsFromCache?: boolean;
 }): { byResultId: ReadonlyMap<string, ResultSyncInfo>; recordsReadFailed: boolean } {
-  const { refreshKey = 0 } = input;
+  const { refreshKey = 0, inputsFromCache = false } = input;
   const ctx = useRaceDayContext();
   const { athleteId } = useActiveAthlete();
   const userId = ctx?.userId ?? null;
@@ -80,9 +86,9 @@ export function useResultSyncInfo(input: {
       results: input.results,
       athleteId,
       recorded,
-      recordsReadFailed,
+      recordsReadFailed: recordsReadFailed || inputsFromCache,
     });
-  }, [input.event, input.races, input.roster, input.results, athleteId, read, key, recordsReadFailed]);
+  }, [input.event, input.races, input.roster, input.results, athleteId, read, key, recordsReadFailed, inputsFromCache]);
 
   // States that should not exist are logged for developers, by reason only (an id can carry a name).
   const logged = useRef(new Set<string>());

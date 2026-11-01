@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen, userEvent, waitFor } from "@/test/dom";
 
+import { RaceRecordSyncContext } from "../hooks/raceRecordSyncState";
 import type { ListState } from "../hooks/useRaceDayData";
 import { SchedulePage } from "./SchedulePage";
 
@@ -278,6 +279,52 @@ describe("SchedulePage races", () => {
     renderPage();
     expect((screen.getByLabelText("当前赛事") as HTMLSelectElement).value).toBe("buffalo-1");
     expect(h.racesCalls.at(-1)).toBe("buffalo-1");
+  });
+});
+
+describe("SchedulePage after a race delete", () => {
+  const PENDING = "纪录同步失败，已删比赛的成绩可能仍在纪录中";
+  const withSync = (failed: boolean, retry = vi.fn()) => (
+    <MemoryRouter>
+      <RaceRecordSyncContext.Provider value={{ failed, retry }}>
+        <SchedulePage />
+      </RaceRecordSyncContext.Provider>
+    </MemoryRouter>
+  );
+  const deleteRace = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole("button", { name: /^删除 500m #1/ }));
+    await user.click(screen.getByRole("button", { name: /确认删除 500m #1/ }));
+  };
+
+  it("a delete that went through, with the records sync failed, shows the pending line and a retry through the sync", async () => {
+    const retry = vi.fn();
+    const user = userEvent.setup();
+    render(withSync(true, retry));
+    expect(screen.queryByText(PENDING)).toBeNull();
+    await deleteRace(user);
+    expect(await screen.findByText(PENDING)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "重试同步" }));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("the line goes when the sync is clean again", async () => {
+    const user = userEvent.setup();
+    const view = render(withSync(true));
+    await deleteRace(user);
+    expect(await screen.findByText(PENDING)).toBeTruthy();
+    view.rerender(withSync(false));
+    expect(screen.queryByText(PENDING)).toBeNull();
+  });
+
+  it("a failed delete does not set it, and a healthy sync shows nothing (guard)", async () => {
+    actions().deleteRace.mockRejectedValue(Object.assign(new Error("x"), { code: "unavailable" }));
+    const user = userEvent.setup();
+    render(withSync(true));
+    await deleteRace(user);
+    await waitFor(() => {
+      expect(actions().deleteRace).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText(PENDING)).toBeNull();
   });
 });
 

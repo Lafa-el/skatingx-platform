@@ -11,6 +11,7 @@ const zh = {
   "plan.title": "Junior D 阶段训练模板",
   "plan.intro": "按赛季冰龄与长期发展原则生成周计划：技术质量优先，控制训练量，保留恢复与多样化身体发展。",
   "plan.focus.label": "本周训练侧重",
+  "plan.focus.nextDayNote": "侧重切换后，今日已生成的任务不变，次日起生效",
   "plan.focus.lean.title": "技术基础与弯道控制",
   "plan.focus.lean.detail": "Junior D 推荐：姿态、压刃、交叉步节奏",
   "plan.focus.lean.summary":
@@ -273,6 +274,7 @@ const en: Record<PlanKey, string> = {
   "plan.intro":
     "A week built from the season and long-term development: technique first, volume kept in check, with recovery and other movement left in.",
   "plan.focus.label": "This week's focus",
+  "plan.focus.nextDayNote": "After switching focus, today's generated tasks stay unchanged; the new focus applies from tomorrow.",
   "plan.focus.lean.title": "Technique and corner control",
   "plan.focus.lean.detail": "Junior D: posture, edges, and crossover rhythm",
   "plan.focus.lean.summary":

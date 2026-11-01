@@ -61,8 +61,16 @@ export interface PaceAnalysisRecord {
     readonly decayPercent: number;
     readonly rating: "excellent" | "needs-work" | "moderate";
     readonly trainingEmphasisRatio: PaceAnalysis["trainingRatio"];
+    /**
+     * Same list as the top-level `findings`. The rules require both copies; readers
+     * use only the top-level list.
+     */
     readonly findings: readonly { readonly code: string; readonly analysisId: string }[];
   };
+  /**
+   * Authority: readers use this list. `pace.findings` is the same values again
+   * because the rules require both copies. Neither is deleted.
+   */
   readonly findings: readonly { readonly code: "pace.decay.back-half" | "pace.total.versus-benchmark"; readonly analysisId: string }[];
 }
 
@@ -78,7 +86,8 @@ export function buildPaceAnalysisRecord(input: {
   if (!analysisIdPattern.test(input.id) || input.id.length > 64) {
     throw new Error("Pace analysis id is not a valid Firestore id.");
   }
-  if (Number.isNaN(Date.parse(input.createdAt))) {
+  // Same shape as firestore.rules `validIsoCreatedAt`. Date.parse would accept a date-only string.
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(input.createdAt)) {
     throw new Error("Pace analysis createdAt must be an ISO-8601 string.");
   }
 

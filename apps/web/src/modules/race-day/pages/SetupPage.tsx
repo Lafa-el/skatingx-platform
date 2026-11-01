@@ -8,6 +8,7 @@ import { useParentPinGuard } from "@/hooks/useParentPinGuard";
 
 import { EventPicker } from "../components/EventPicker";
 import { VerificationBadge } from "../components/VerificationBadge";
+import { CleanupPendingNotice } from "../components/CleanupPendingNotice";
 import { WriteNotices } from "../components/WriteNotices";
 import {
   DANGER_BUTTON,
@@ -15,7 +16,7 @@ import {
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
 } from "../components/fields";
-import { useSelectedEvent } from "../hooks/useActiveEvent";
+import { clearStoredActiveEventId, useSelectedEvent } from "../hooks/useActiveEvent";
 import { useRaceDayActions } from "../hooks/useRaceDayActions";
 import { useRaceDayContext, useRaceEvents, useRaces, useRoster } from "../hooks/useRaceDayData";
 import { useSubmitState } from "../hooks/useSubmitState";
@@ -67,6 +68,8 @@ export function SetupPage() {
   const [rosterPanel, setRosterPanel] = useState<RosterPanel>({ kind: "closed" });
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(false);
   const [queued, setQueued] = useState(false);
+  // A delete went through in this visit: if the records sync then fails, say the results may linger.
+  const [deleteDone, setDeleteDone] = useState(false);
 
   const eventSubmit = useSubmitState("saveEvent");
   const rosterSubmit = useSubmitState("saveRoster");
@@ -146,6 +149,8 @@ export function SetupPage() {
   async function handleDeleteEvent(eventId: string) {
     const result = await rowAction.submit(() => actions!.deleteEvent(eventId));
     if (afterWrite(result)) {
+      clearStoredActiveEventId();
+      setDeleteDone(true);
       setConfirmDeleteEvent(false);
       setRosterPanel({ kind: "closed" });
     }
@@ -171,6 +176,7 @@ export function SetupPage() {
         queued={queued}
         actionErrorKey={rowAction.errorKey}
       />
+      <CleanupPendingNotice deleteDone={deleteDone} />
       {invalidCount > 0 ? (
         <FormMessage tone="info">{t(locale, "raceDay.state.invalidHidden", { count: invalidCount })}</FormMessage>
       ) : null}
@@ -366,7 +372,11 @@ export function SetupPage() {
                 guardParentPin("deleteAthlete", () => {
                   void rowAction
                     .submit(() => actions.deleteRoster(activeEvent.eventId, entry.rosterId))
-                    .then(afterWrite);
+                    .then((outcome) => {
+                      if (afterWrite(outcome)) {
+                        setDeleteDone(true);
+                      }
+                    });
                 });
               }}
             />

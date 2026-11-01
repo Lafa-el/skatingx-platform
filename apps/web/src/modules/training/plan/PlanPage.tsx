@@ -320,6 +320,7 @@ export function PlanPage() {
         </header>
         <div className="grid gap-3">
           <p className="text-sm font-semibold text-brand-navy">{tPlan(locale, "plan.focus.label")}</p>
+          {focus ? <p className="text-sm text-brand-navy/70">{tPlan(locale, "plan.focus.nextDayNote")}</p> : null}
           {focusStatus.staleFocus ? (
             <div className="grid gap-2 rounded-card border border-brand-navy/15 p-3">
               <p className="text-sm text-brand-navy">

@@ -225,6 +225,16 @@ describe("training plan page", () => {
     expect(screen.getByRole("button", { name: /速度窗口与500m配速/ }).getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("shows the next-day note only when a focus is set", () => {
+    const NOTE = "侧重切换后，今日已生成的任务不变，次日起生效";
+    const empty = renderPage();
+    expect(screen.queryByText(NOTE)).toBeNull();
+    empty.unmount();
+    setTraining({ planFocus: "lean", planFocusWeek: thisMonday(), todayTasks: [] });
+    renderPage();
+    expect(screen.getByText(NOTE)).toBeTruthy();
+  });
+
   it("does not call a state that has not arrived 'nothing chosen'", () => {
     state.training.loading = true;
     renderPage();

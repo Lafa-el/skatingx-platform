@@ -1,3 +1,4 @@
+export { compareText } from "./compare-text";
 export { compareDateStrings, previousDateString, todayDateString } from "./dates";
 export { calculateStreakDays } from "./streak";
 export { clampPointsDeltas, type PointsLedgerDraft } from "./points-ledger";

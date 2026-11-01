@@ -421,7 +421,10 @@ export function startRaceRecordSync(
  * whose `entries` is not an array, are left out; nothing is written or changed.
  *
  * The raw stored fields are passed on (not normalised): the page compares them with what the
- * sync would write, using the same test the sync uses.
+ * sync would write, using the same test the sync uses. Each entry also carries
+ * `recordDistanceId`, the id of the document it was found in (the document id is the distance id):
+ * an entry with the same id and values sitting in another distance's document is not the one the
+ * sync keeps, so the page must be able to tell it apart.
  */
 export function subscribeToRaceRecordEntries(
   ctx: RecordsActorContext,
@@ -445,7 +448,7 @@ export function subscribeToRaceRecordEntries(
             typeof (entry as { id?: unknown }).id === "string" &&
             parseRaceRecordEntryId((entry as { id: string }).id) !== null
           ) {
-            found.push(entry as Readonly<Record<string, unknown>>);
+            found.push({ ...(entry as Record<string, unknown>), recordDistanceId: docSnap.id });
           }
         }
       }

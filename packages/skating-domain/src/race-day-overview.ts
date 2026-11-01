@@ -1,5 +1,6 @@
 import type { DateString, RaceEntry, RaceEvent, RaceResult, RaceRosterEntry } from "@skatingx/schema";
 
+import { compareText } from "./compare-text";
 import { isRealDateString } from "./race-day-input";
 import { eventPhase } from "./race-day-today";
 
@@ -35,11 +36,6 @@ export type OverviewEvents<E extends OverviewEvent> = {
   next: OverviewEventPick<E> | null;
   previous: OverviewEventPick<E> | null;
 };
-
-/** Code-unit order, so the same ids sort the same way on every device and locale. */
-function compareText(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
 
 /**
  * The codec only checks that `dates` is a string array, so anything that is not a real calendar

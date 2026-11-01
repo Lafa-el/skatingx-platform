@@ -104,7 +104,9 @@ export function VideoList({ eventId, groups, busy, onEdit, onDelete }: VideoList
                         <>
                           {/* A plain link: the Analysis page shows this record as context and the user
                               picks the file there. Only the two ids travel (ADR-010). */}
-                          {analysisHref ? (
+                          {/* A record whose race is gone is shown, but not offered for analysis: the analysis
+                              page needs the race to show it as context. */}
+                          {analysisHref && group.race !== null ? (
                             <Link to={analysisHref} className={SECONDARY_BUTTON}>
                               {t(locale, "raceDay.videos.item.analyze")}
                               {suffix}

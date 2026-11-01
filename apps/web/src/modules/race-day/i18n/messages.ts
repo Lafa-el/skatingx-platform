@@ -38,6 +38,7 @@ const zh = {
   "raceDay.state.queued": "已保存在本机，联网后会自动同步。",
   "raceDay.state.syncFailed": "有一项修改未能同步到服务器，已被撤销。请检查后重新录入。",
   "raceDay.state.invalidHidden": "有 {count} 条数据无法读取，已隐藏。",
+  "raceDay.sync.caching": "正在同步…",
 
   "raceDay.error.savePermission": "没有权限保存。请重新登录后再试。",
   "raceDay.error.saveNetwork": "未能保存。请检查网络后再试。",
@@ -171,6 +172,7 @@ const zh = {
   "raceDay.results.sync.removedFromRace": "未记入：已从这场比赛的名单移除",
   "raceDay.results.sync.failed": "同步暂时没有成功。",
   "raceDay.results.sync.retry": "重试同步",
+  "raceDay.records.cleanupPending": "纪录同步失败，已删比赛的成绩可能仍在纪录中",
   "raceDay.results.sync.confirmHint": "确认后会记入纪录页",
   "raceDay.schedule.deleteWarning": "删除这场比赛会同时删除它的所有成绩和视频记录，无法恢复。视频文件本身不受影响。",
   "raceDay.setup.roster.deleteWarning": "删除运动员会同时删除他/她的所有成绩和视频记录，并把他/她从各场比赛中移除，无法恢复。视频文件本身不受影响。",
@@ -296,6 +298,7 @@ const en: Record<ModuleKey, string> = {
   "raceDay.state.syncFailed":
     "One change could not be synced to the server and was undone. Please check and enter it again.",
   "raceDay.state.invalidHidden": "{count} item(s) could not be read and are hidden.",
+  "raceDay.sync.caching": "Syncing…",
 
   "raceDay.error.savePermission": "You do not have permission to save. Please sign in again and retry.",
   "raceDay.error.saveNetwork": "Could not save. Please check your connection and retry.",
@@ -433,6 +436,7 @@ const en: Record<ModuleKey, string> = {
   "raceDay.results.sync.removedFromRace": "Not recorded: removed from this race's roster",
   "raceDay.results.sync.failed": "Syncing did not complete.",
   "raceDay.results.sync.retry": "Retry sync",
+  "raceDay.records.cleanupPending": "Records sync failed; deleted race results may still be in your records",
   "raceDay.results.sync.confirmHint": "Once confirmed, it is added to the records page",
   "raceDay.schedule.deleteWarning": "Deleting this race also deletes all of its results and video records. This cannot be undone. The video files themselves are not affected.",
   "raceDay.setup.roster.deleteWarning": "Deleting an athlete also deletes all of their results and video records, and removes them from every race. This cannot be undone. The video files themselves are not affected.",

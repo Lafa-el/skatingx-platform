@@ -115,6 +115,10 @@ function NextBlock({ next, locale }: { next: RaceOverviewNext; locale: Locale })
       ) : null}
       {detail === "error" ? (
         <p className="text-sm text-status-danger">{tDashboard(locale, "dashboard.race.next.error")}</p>
+      ) : detail === "loading" ? (
+        <p role="status" className="text-sm text-brand-navy/70">
+          {tDashboard(locale, "dashboard.race.next.loading")}
+        </p>
       ) : null}
       <p className="pt-1">
         <Link to="/race-day" className={LINK_CLASS}>

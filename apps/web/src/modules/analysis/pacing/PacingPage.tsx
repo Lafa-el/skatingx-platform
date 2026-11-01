@@ -45,9 +45,20 @@ function defaultBenchmark(distance: PaceDistance): string[] {
   return pacingDistanceConfigs[distance].defaults.map((value) => value.toFixed(2));
 }
 
-function readNumber(raw: string): number {
+/** Race-day times keep 3 decimals; the same rounding is applied here before generate. */
+export function readNumber(raw: string): number {
   const value = Number(raw);
-  return Number.isFinite(value) ? value : 0;
+  if (!Number.isFinite(value)) return 0;
+  const trimmed = raw.trim();
+  // Binary floats make 1.2345.toFixed(3) === "1.234". Round the decimal string half-up instead.
+  const match = trimmed.match(/^([+-]?)(\d+)\.(\d+)$/);
+  if (!match) return value;
+  const [, sign = "", whole = "0", frac = ""] = match;
+  if (frac.length <= 3) return value;
+  let head = Number(frac.slice(0, 3));
+  if ((frac[3] ?? "0") >= "5") head += 1;
+  if (head >= 1000) return Number(`${sign}${Number(whole) + 1}`);
+  return Number(`${sign}${whole}.${String(head).padStart(3, "0")}`);
 }
 
 export function PacingPage() {
