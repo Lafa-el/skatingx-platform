@@ -37,7 +37,8 @@ const race = (raceId: string, distanceId: string, over: Partial<RaceEntry> = {})
   round: null,
   heat: null,
   scheduledAt: null,
-  rosterIds: [],
+  // Everyone the tests below use is on the race; the removed-from-race cases override this.
+  rosterIds: ["lindsay", "ann", "zed", "amy"],
   ...over,
 });
 
@@ -127,10 +128,10 @@ describe("deriveResultSyncInfo: confirmed own rows", () => {
     expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "waiting" });
   });
 
-  it("self row with no athlete: said at once, without waiting for the plan", () => {
-    const d = derive({ roster: [person("lindsay", { isSelf: true, athleteRefId: null })] });
+  it("self row with no athlete: no-athlete, which is the plan's own not-linked reason", () => {
+    const unlinked = person("lindsay", { isSelf: true, athleteRefId: null });
+    const d = derive({ roster: [unlinked] });
     expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "no-athlete" });
-    // The plan really does skip this event silently, which is why it is decided here.
     expect(
       planRaceRecords({
         athleteId: "lindsay",
@@ -139,7 +140,7 @@ describe("deriveResultSyncInfo: confirmed own rows", () => {
             {
               event: EVENT,
               races: [race("500m-1", "500m")],
-              roster: [person("lindsay", { isSelf: true, athleteRefId: null })],
+              roster: [unlinked],
               results: [row("500m-1", "lindsay")],
               complete: true,
             },
@@ -148,7 +149,45 @@ describe("deriveResultSyncInfo: confirmed own rows", () => {
           unknownEventIds: [],
         },
       }).skipped,
-    ).toEqual([]);
+    ).toEqual([{ eventId: EVENT_ID, resultId: "500m-1_lindsay", reason: "not-linked" }]);
+  });
+
+  it("self row linked to another athlete: a visible wrong-athlete row", () => {
+    const d = derive({ athleteId: "mia" });
+    expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "wrong-athlete" });
+  });
+
+  it("self row no longer on the race's roster: a visible removed-from-race row, the result stays listed", () => {
+    const d = derive({ races: [race("500m-1", "500m", { rosterIds: ["ann"] })] });
+    expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "removed-from-race" });
+    expect(d.unexpected).toEqual([]);
+  });
+
+  it("a removed-from-race row is not 'recorded' even when an old entry is still stored", () => {
+    const d = derive({
+      races: [race("500m-1", "500m", { rosterIds: [] })],
+      recorded: new Map([stored("500m-1")]),
+    });
+    expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "removed-from-race" });
+  });
+
+  it("link problems show for a finished confirmed row only: DNS, DNF, DQ and unconfirmed rows stay quiet", () => {
+    for (const [roster, athleteId] of [
+      [[person("lindsay", { isSelf: true, athleteRefId: null })], "lindsay"],
+      [[me], "mia"],
+    ] as const) {
+      const d = derive({
+        roster: [...roster],
+        athleteId,
+        results: [
+          row("500m-1", "lindsay", { status: "DNS", timeSeconds: null }),
+          row("1000m-1", "lindsay", pending),
+        ],
+        races: [race("500m-1", "500m"), race("1000m-1", "1000m")],
+      });
+      expect(statusOf(d, "500m-1_lindsay")).toBeNull();
+      expect(d.byResultId.get("1000m-1_lindsay")).toEqual({ status: null, confirmHint: false });
+    }
   });
 
   it("no-athlete does not depend on the records being read", () => {
@@ -181,11 +220,6 @@ describe("deriveResultSyncInfo: confirmed own rows", () => {
     const noRace = derive({ races: [], results: [row("gone-1", "lindsay")] });
     expect(statusOf(noRace, "gone-1_lindsay")).toBeNull();
     expect(noRace.unexpected).toEqual([{ resultId: "gone-1_lindsay", reason: "race-missing" }]);
-  });
-
-  it("another athlete's self row is not this athlete's to sync: nothing", () => {
-    const d = derive({ athleteId: "mia" });
-    expect(d.byResultId.size).toBe(0);
   });
 
   it("no self row: nothing", () => {
@@ -255,6 +289,14 @@ describe("deriveResultSyncInfo: the confirm hint", () => {
     ).toBe(false);
     expect(hint(derive({ results: [row("500m-1", "ann", pending)] }), "500m-1_ann")).toBe(false);
     expect(hint(derive({ athleteId: "mia", results: [row("500m-1", "lindsay", pending)] }), "500m-1_lindsay")).toBe(false);
+  });
+
+  it("not shown when the self row was removed from the race's roster: confirming would not record it", () => {
+    const d = derive({
+      races: [race("500m-1", "500m", { rosterIds: ["ann"] })],
+      results: [row("500m-1", "lindsay", pending)],
+    });
+    expect(d.byResultId.get("500m-1_lindsay")).toEqual({ status: null, confirmHint: false });
   });
 
   it("not shown on a confirmed row", () => {

@@ -21,7 +21,9 @@ export type ResultSyncStatus =
   | { readonly kind: "waiting" }
   | { readonly kind: "unmapped-distance" }
   | { readonly kind: "no-date" }
-  | { readonly kind: "no-athlete" };
+  | { readonly kind: "no-athlete" }
+  | { readonly kind: "wrong-athlete" }
+  | { readonly kind: "removed-from-race" };
 
 export type ResultSyncInfo = {
   /** Shown on a confirmed row; null shows nothing. */
@@ -68,9 +70,11 @@ function planFor(
  * Status of every row of ONE event for the athlete who is active now.
  *
  * - Only the self row is a sync subject; rows of other people get nothing.
- * - A self row that points at no athlete is reported without waiting for the plan, because the
- *   plan skips the whole event silently in that case.
- * - A self row that points at another athlete is not this athlete's to sync: nothing shown.
+ * - A self row that points at no athlete, or at another athlete, is reported from the plan's
+ *   skipped reasons ("not-linked" -> no-athlete, "wrong-athlete" -> wrong-athlete). Like the
+ *   other reasons, a confirmed finished row shows it; an unconfirmed row shows no sync line.
+ * - A self row that is no longer on the race's roster shows "removed-from-race". The result
+ *   itself stays in the list (history); it just does not count toward the records.
  * - `recorded` is the entries found in the active athlete's records, or null while they are not
  *   known (loading or unreadable). Then a row that would be recorded shows nothing: it must not
  *   pass for "recorded" or "waiting" on a guess. Reasons that do not depend on the records
@@ -94,18 +98,6 @@ export function deriveResultSyncInfo(input: {
     return result;
   }
   const own = results.filter((row) => row.rosterId === self.rosterId);
-
-  if (self.athleteRefId === null) {
-    for (const row of own) {
-      if (isConfirmed(row) && row.status === "finished") {
-        byResultId.set(row.resultId, { status: { kind: "no-athlete" }, confirmHint: false });
-      }
-    }
-    return result;
-  }
-  if (self.athleteRefId !== athleteId) {
-    return result;
-  }
 
   const plan = planFor(event, races, roster, results, athleteId);
   const desiredByEntryId = new Map<string, DesiredRaceRecord>(plan.desired.map((entry) => [entry.entryId, entry]));
@@ -147,6 +139,17 @@ export function deriveResultSyncInfo(input: {
     const reason = skippedByResultId.get(row.resultId);
     if (reason === "unmapped-distance" || reason === "no-date") {
       byResultId.set(row.resultId, { status: { kind: reason }, confirmHint: false });
+    } else if (reason === "not-linked" || reason === "wrong-athlete") {
+      // The plan reports a link problem for every own row, DNS / DNF / DQ included; those rows
+      // have no time to record and never showed a sync line, so they still do not.
+      if (row.status === "finished") {
+        byResultId.set(row.resultId, {
+          status: { kind: reason === "not-linked" ? "no-athlete" : "wrong-athlete" },
+          confirmHint: false,
+        });
+      }
+    } else if (reason === "removed-from-race") {
+      byResultId.set(row.resultId, { status: { kind: "removed-from-race" }, confirmHint: false });
     } else if (reason === "invalid-time" || reason === "race-missing") {
       unexpected.push({ resultId: row.resultId, reason });
       byResultId.set(row.resultId, NOTHING);

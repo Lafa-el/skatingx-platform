@@ -28,10 +28,15 @@ type ResultListProps = {
 
 const NO_SYNC: ReadonlyMap<string, ResultSyncInfo> = new Map();
 
-const NOT_RECORDED_KEY: Record<"unmapped-distance" | "no-date" | "no-athlete", RaceDayMessageKey> = {
+const NOT_RECORDED_KEY: Record<
+  "unmapped-distance" | "no-date" | "no-athlete" | "wrong-athlete" | "removed-from-race",
+  RaceDayMessageKey
+> = {
   "unmapped-distance": "raceDay.results.sync.unmappedDistance",
   "no-date": "raceDay.results.sync.noDate",
   "no-athlete": "raceDay.results.sync.noAthlete",
+  "wrong-athlete": "raceDay.results.sync.wrongAthlete",
+  "removed-from-race": "raceDay.results.sync.removedFromRace",
 };
 
 /** The record's own name for a distance ("500m", "1500m"); an unknown id is shown as it is. */

@@ -222,7 +222,7 @@ const race500: RaceEntry = {
   round: null,
   heat: null,
   scheduledAt: null,
-  rosterIds: [],
+  rosterIds: ["lindsay"],
 };
 const result500: RaceResult = {
   ...prov,

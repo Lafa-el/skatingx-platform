@@ -71,7 +71,10 @@ export type RaceRecordSkipReason =
   | "invalid-time"
   | "race-missing"
   | "unmapped-distance"
-  | "no-date";
+  | "no-date"
+  | "not-linked"
+  | "wrong-athlete"
+  | "removed-from-race";
 
 export type SkippedRaceResult = { eventId: string; resultId: string; reason: RaceRecordSkipReason };
 
@@ -110,6 +113,14 @@ function isRecordableTime(seconds: number | null): seconds is number {
 /**
  * Which record entries should exist for `athleteId`, given everything read from Race Day.
  * Only the athlete's own confirmed, finished, mappable results with a known day qualify.
+ *
+ * What counts ("own" is the self row of `selfRosterEntry`):
+ * - A result counts toward the records (and so PBs) only when two things hold: the self row is
+ *   linked to this athlete (`athleteRefId === athleteId`) and the self row is on that race's
+ *   `rosterIds`. Missing either one and it does not count; the reason is reported in `skipped`.
+ * - History is kept: the Results page still shows a result whose person was removed from the
+ *   race, with a marker, and `updateRace` never deletes results. Only the record entry goes: it
+ *   is no longer in `desired`, so the reconcile removes it like any other stale `race_` entry.
  */
 export function planRaceRecords(input: { sources: RaceRecordSources; athleteId: string }): RaceRecordPlan {
   const { sources, athleteId } = input;
@@ -119,7 +130,17 @@ export function planRaceRecords(input: { sources: RaceRecordSources; athleteId: 
   for (const source of sources.events) {
     const self = selfRosterEntry(source.roster);
     const eventId = source.event.eventId;
-    if (!self || self.athleteRefId === null || self.athleteRefId !== athleteId) {
+    if (!self) {
+      // Nobody to sync, so there are no entries to report either.
+      continue;
+    }
+    if (self.athleteRefId === null || self.athleteRefId !== athleteId) {
+      const reason = self.athleteRefId === null ? "not-linked" : "wrong-athlete";
+      for (const result of source.results) {
+        if (result.rosterId === self.rosterId) {
+          skipped.push({ eventId, resultId: result.resultId, reason });
+        }
+      }
       continue;
     }
     const racesById = new Map(source.races.map((race) => [race.raceId, race]));
@@ -144,6 +165,10 @@ export function planRaceRecords(input: { sources: RaceRecordSources; athleteId: 
       const race = racesById.get(result.raceId);
       if (!race) {
         skip("race-missing");
+        continue;
+      }
+      if (!race.rosterIds.includes(self.rosterId)) {
+        skip("removed-from-race");
         continue;
       }
       const recordDistanceId = mapRaceDistanceToRecordDistance(race.distanceId);

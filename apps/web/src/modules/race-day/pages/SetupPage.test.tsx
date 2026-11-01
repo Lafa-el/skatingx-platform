@@ -11,7 +11,7 @@ import { SetupPage } from "./SetupPage";
 
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => "zh" }));
 vi.mock("@/app/providers/FirestoreProvider", () => ({
-  useActiveAthlete: () => ({ athleteId: "lindsay" }),
+  useActiveAthlete: () => h.athlete,
   useUserSettings: () => h.userSettings,
 }));
 vi.mock("@/app/providers/AuthProvider", () => ({
@@ -21,6 +21,7 @@ vi.mock("@/app/providers/AuthProvider", () => ({
 const h = vi.hoisted(() => {
   return {
     ctx: { db: {}, userId: "u1" } as unknown,
+    athlete: { athleteId: "lindsay", loading: false },
     events: null as unknown,
     roster: null as unknown,
     rosterCalls: [] as (string | null)[],
@@ -117,6 +118,7 @@ function installMemoryStorage() {
 beforeEach(() => {
   installMemoryStorage();
   h.ctx = { db: {}, userId: "u1" };
+  h.athlete = { athleteId: "lindsay", loading: false };
   h.events = ready([event()]);
   h.roster = ready([rosterEntry()]);
   h.rosterCalls = [];
@@ -353,6 +355,68 @@ describe("SetupPage roster", () => {
     });
     expect(actions().updateRoster.mock.calls[0]?.slice(0, 2)).toEqual(["buffalo-abc123", "lindsay-1"]);
     expect(actions().updateRoster.mock.calls[0]?.[2]).toMatchObject({ bib: "135" });
+  });
+
+  describe("marking the self row", () => {
+    async function fillNewRow(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole("button", { name: "添加运动员" }));
+      await user.type(screen.getByLabelText(/姓名/), "Amy");
+      await user.type(screen.getByLabelText(/号码/), "7");
+      await user.type(screen.getByLabelText(/组别/), "Wings");
+      await user.click(screen.getByLabelText("这是我自己的运动员"));
+      await user.click(screen.getByRole("button", { name: "保存" }));
+    }
+
+    it("a new row cannot be marked as self while the roster already has a self row", async () => {
+      const user = userEvent.setup();
+      render(<SetupPage />);
+      await fillNewRow(user);
+      expect(actions().createRoster).not.toHaveBeenCalled();
+      expect(screen.getByText("已经有一位本人运动员，先取消原来的再标记")).toBeTruthy();
+    });
+
+    it("the self row being edited does not count as 'another' self row", async () => {
+      const user = userEvent.setup();
+      render(<SetupPage />);
+      await user.click(screen.getByRole("button", { name: /编辑 Lindsay/ }));
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      await waitFor(() => {
+        expect(actions().updateRoster).toHaveBeenCalledTimes(1);
+      });
+      expect(actions().updateRoster.mock.calls[0]?.[2]).toMatchObject({ isSelf: true, athleteRefId: "lindsay" });
+    });
+
+    it("editing another row cannot mark it as self while a different row already is", async () => {
+      h.roster = ready([rosterEntry(), rosterEntry({ rosterId: "amy-1", displayName: "Amy", isSelf: false, athleteRefId: null })]);
+      const user = userEvent.setup();
+      render(<SetupPage />);
+      await user.click(screen.getByRole("button", { name: /编辑 Amy/ }));
+      await user.click(screen.getByLabelText("这是我自己的运动员"));
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      expect(actions().updateRoster).not.toHaveBeenCalled();
+      expect(screen.getByText("已经有一位本人运动员，先取消原来的再标记")).toBeTruthy();
+    });
+
+    it("with no self row yet, a new row can be marked and is linked to the active athlete", async () => {
+      h.roster = ready([rosterEntry({ isSelf: false, athleteRefId: null })]);
+      const user = userEvent.setup();
+      render(<SetupPage />);
+      await fillNewRow(user);
+      await waitFor(() => {
+        expect(actions().createRoster).toHaveBeenCalledTimes(1);
+      });
+      expect(actions().createRoster.mock.calls[0]?.[1]).toMatchObject({ isSelf: true, athleteRefId: "lindsay" });
+    });
+
+    it("while the athlete settings are loading, marking self is refused instead of linking a default id", async () => {
+      h.roster = ready([]);
+      h.athlete = { athleteId: "lindsay", loading: true };
+      const user = userEvent.setup();
+      render(<SetupPage />);
+      await fillNewRow(user);
+      expect(actions().createRoster).not.toHaveBeenCalled();
+      expect(screen.getByText("设置还没加载好，稍后再标记本人")).toBeTruthy();
+    });
   });
 
   it("verifies and deletes through the list actions", async () => {

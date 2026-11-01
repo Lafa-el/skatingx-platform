@@ -233,6 +233,32 @@ describe("result row sync status: the five states", () => {
     expect(lines(container)).toEqual(["未记入：没有关联本人运动员"]);
   });
 
+  it("an own row linked to a different athlete says so, without waiting for the records", () => {
+    setup({ roster: [person("lindsay", { isSelf: true, athleteRefId: "someone-else" }), ann] });
+    const { container } = renderPage();
+    expect(lines(container)).toEqual(["未记入：本人行关联的不是当前运动员"]);
+  });
+
+  it("an own row removed from the race's roster is still listed and says it is not recorded", () => {
+    setup({ races: [race({ rosterIds: ["ann"] })] });
+    const { container } = renderPage();
+    act(() => h.onData?.([]));
+    expect(lines(container)).toEqual(["未记入：已从这场比赛的名单移除"]);
+    // History is kept: the result itself is still on the page.
+    expect(screen.getByText(/49\.80/)).toBeTruthy();
+  });
+
+  it("uses the English texts for the two new reasons", () => {
+    locale.current = "en";
+    setup({ roster: [person("lindsay", { isSelf: true, athleteRefId: "someone-else" }), ann] });
+    const first = renderPage();
+    expect(lines(first.container)).toEqual(["Not recorded: this row is linked to a different athlete"]);
+    first.unmount();
+    setup({ races: [race({ rosterIds: ["ann"] })] });
+    const second = renderPage();
+    expect(lines(second.container)).toEqual(["Not recorded: removed from this race's roster"]);
+  });
+
   it("uses the English texts", () => {
     locale.current = "en";
     setup({});

@@ -189,25 +189,32 @@ type CheckboxFieldProps = {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  error?: string | null;
 };
 
-export function CheckboxField({ label, checked, onChange, disabled = false }: CheckboxFieldProps) {
+export function CheckboxField({ label, checked, onChange, disabled = false, error = null }: CheckboxFieldProps) {
   const id = useId();
+  const errorId = `${id}-error`;
   return (
-    <div className="flex min-h-11 items-center gap-3">
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(event) => {
-          onChange(event.target.checked);
-        }}
-        className="h-6 w-6 rounded border-brand-navy/50 accent-brand-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy"
-      />
-      <label htmlFor={id} className="min-w-0 break-words text-sm text-brand-navy">
-        {label}
-      </label>
+    <div>
+      <div className="flex min-h-11 items-center gap-3">
+        <input
+          id={id}
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+          onChange={(event) => {
+            onChange(event.target.checked);
+          }}
+          className="h-6 w-6 rounded border-brand-navy/50 accent-brand-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy"
+        />
+        <label htmlFor={id} className="min-w-0 break-words text-sm text-brand-navy">
+          {label}
+        </label>
+      </div>
+      {error ? <FieldError id={errorId}>{error}</FieldError> : null}
     </div>
   );
 }

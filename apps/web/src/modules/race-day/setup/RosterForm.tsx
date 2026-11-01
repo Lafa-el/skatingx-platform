@@ -17,7 +17,9 @@ type RosterFormProps = {
   mode: "create" | "edit";
   initial?: RosterEntryInput;
   /** Links the entry to the user's own athlete when "this is my athlete" is checked. */
-  selfAthleteId: string;
+  selfAthleteId: string | null;
+  /** True when another roster row (not the one being edited) is already marked as the user. */
+  otherSelfExists: boolean;
   saving: boolean;
   submitErrorKey: RaceDayMessageKey | null;
   onSubmit: (values: RosterEntryInput) => void;
@@ -28,6 +30,7 @@ export function RosterForm({
   mode,
   initial,
   selfAthleteId,
+  otherSelfExists,
   saving,
   submitErrorKey,
   onSubmit,
@@ -54,21 +57,39 @@ export function RosterForm({
     if (saving) {
       return;
     }
+    // Wait for the error attributes to render, then move focus to the first problem.
+    const focusFirstProblem = () => {
+      queueMicrotask(() => {
+        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      });
+    };
+    // Marking "self" links the row to the active athlete, so that athlete must be known, and the
+    // roster may hold only one self row (the first by id is the one results and records follow).
+    if (isSelf && selfAthleteId === null) {
+      setErrors(new Map([["isSelf", "raceDay.form.roster.selfNotReady"]]));
+      focusFirstProblem();
+      return;
+    }
+    if (isSelf && otherSelfExists) {
+      setErrors(new Map([["isSelf", "raceDay.form.roster.multipleSelf"]]));
+      focusFirstProblem();
+      return;
+    }
+    // An existing row whose self flag is unchanged keeps the link it has, null included. Only a
+    // newly marked self row is linked to the active athlete; re-linking a null one needs unmark + mark.
+    const keepsSelfFlag = mode === "edit" && initial !== undefined && initial.isSelf === isSelf;
     const { value, errors: found } = prepareRosterEntryInput({
       displayName,
       bib,
       division,
       isSelf,
       isFollowed,
-      athleteRefId: isSelf ? selfAthleteId : null,
+      athleteRefId: keepsSelfFlag ? initial.athleteRefId : isSelf ? selfAthleteId : null,
       sourceNote,
     });
     if (found.length > 0) {
       setErrors(fieldErrorKeys(found));
-      // Wait for the error attributes to render, then move focus to the first problem.
-      queueMicrotask(() => {
-        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
-      });
+      focusFirstProblem();
       return;
     }
     setErrors(new Map());
@@ -120,6 +141,7 @@ export function RosterForm({
         checked={isSelf}
         onChange={setIsSelf}
         disabled={saving}
+        error={errorText("isSelf")}
       />
       <CheckboxField
         label={t(locale, "raceDay.form.roster.isFollowed")}

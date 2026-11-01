@@ -58,7 +58,7 @@ export function SetupPage() {
   const ctx = useRaceDayContext();
   const events = useRaceEvents(ctx);
   const { actions, syncFailed, clearSyncFailed } = useRaceDayActions(ctx);
-  const { athleteId: selfAthleteId } = useActiveAthlete();
+  const { athleteId, loading: athleteLoading } = useActiveAthlete();
   const { sortedEvents, activeEvent, selectEvent: setStoredId } = useSelectedEvent(events.items, locale);
   const roster = useRoster(ctx, activeEvent?.eventId ?? null);
 
@@ -382,7 +382,12 @@ export function SetupPage() {
               key={rosterPanel.kind === "edit" ? rosterPanel.entry.rosterId : "create"}
               mode={rosterPanel.kind}
               initial={rosterPanel.kind === "edit" ? rosterToInput(rosterPanel.entry) : undefined}
-              selfAthleteId={selfAthleteId}
+              // The active athlete id is a default until settings load; linking to it then could pick the wrong athlete.
+              selfAthleteId={athleteLoading ? null : athleteId}
+              otherSelfExists={roster.items.some(
+                (entry) =>
+                  entry.isSelf && (rosterPanel.kind !== "edit" || entry.rosterId !== rosterPanel.entry.rosterId),
+              )}
               saving={rosterSubmit.saving}
               submitErrorKey={rosterSubmit.errorKey}
               onSubmit={(values) => {
