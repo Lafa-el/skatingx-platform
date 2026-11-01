@@ -95,6 +95,9 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
   const [trainingState, setTrainingState] =
     useState<FirestoreHookState<TrainingState>>(initialSlice);
   const settingsUnsubRef = useRef<(() => void) | null>(null);
+  // Whose settings the `settings` slice holds. When the uid changes without passing through signed
+  // out, the slice still shows the previous user's settings for one render; this tells that apart.
+  const settingsUidRef = useRef<string | null>(null);
 
   const activeAthleteId =
     settings.data?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
@@ -105,6 +108,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
       return;
     }
     settingsUnsubRef.current?.();
+    settingsUidRef.current = userId;
     setSettings({ data: null, loading: true, error: null });
     settingsUnsubRef.current = subscribeToDocument<UserSettings>(
       settingsRef(db, userId),
@@ -144,7 +148,6 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
 
     const db = dbMaybe;
     let cancelled = false;
-    const unsubs: Array<() => void> = [];
 
     async function start() {
       if (!uid) {
@@ -177,42 +180,6 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
 
       listenToSettings(uid);
 
-      const athleteId = DEFAULT_ATHLETE_ID;
-
-      unsubs.push(
-        subscribeToDocument<AthleteProfile>(
-          athleteProfileRef(db, uid, athleteId),
-          (data) => setProfile({ data, loading: false, error: null }),
-          (message) =>
-            setProfile({ data: null, loading: false, error: message }),
-        ).unsubscribe,
-      );
-
-      unsubs.push(
-        subscribeToDocument<Gamification>(
-          athleteGamificationRef(db, uid, athleteId),
-          (data) => setGamification({ data, loading: false, error: null }),
-          (message) =>
-            setGamification({ data: null, loading: false, error: message }),
-        ).unsubscribe,
-      );
-
-      unsubs.push(
-        subscribeToDocument<TrainingState>(
-          trainingStateRef(db, uid, athleteId),
-          (data) => setTrainingState({ data, loading: false, error: null }),
-          (message) =>
-            setTrainingState({ data: null, loading: false, error: message }),
-        ).unsubscribe,
-      );
-
-      // First read of this athlete's points. An empty ledger with a balance
-      // above zero gets one opening line. A failure stays in the log: the next
-      // points change records the same line.
-      void ensurePointsOpeningBalance(db, uid, athleteId, todayDateString()).catch((error: unknown) => {
-        logActionFailure("training-points", "opening-balance", error);
-      });
-
       setReady(true);
     }
 
@@ -222,9 +189,59 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       settingsUnsubRef.current?.();
       settingsUnsubRef.current = null;
-      unsubs.forEach((fn) => fn());
     };
   }, [uid, authLoading, firebaseReady, listenToSettings]);
+
+  // The three athlete documents follow `activeAthleteId`, the one value everything else reads, so a
+  // settings change cannot leave the subscriptions on another athlete than the pages. They wait for
+  // settings to settle (data or error): until then the slices keep the loading state `start()` set.
+  const subscribedAthleteRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!firebaseReady || !uid || settings.loading || settingsUidRef.current !== uid) {
+      return;
+    }
+    const db = getFirestoreDb();
+    if (!db) {
+      return;
+    }
+
+    // A settings reload that keeps the same id must not blank the cards, so only a real change resets.
+    if (subscribedAthleteRef.current !== null && subscribedAthleteRef.current !== activeAthleteId) {
+      setProfile({ data: null, loading: true, error: null });
+      setGamification({ data: null, loading: true, error: null });
+      setTrainingState({ data: null, loading: true, error: null });
+    }
+    subscribedAthleteRef.current = activeAthleteId;
+
+    const unsubs = [
+      subscribeToDocument<AthleteProfile>(
+        athleteProfileRef(db, uid, activeAthleteId),
+        (data) => setProfile({ data, loading: false, error: null }),
+        (message) => setProfile({ data: null, loading: false, error: message }),
+      ).unsubscribe,
+      subscribeToDocument<Gamification>(
+        athleteGamificationRef(db, uid, activeAthleteId),
+        (data) => setGamification({ data, loading: false, error: null }),
+        (message) => setGamification({ data: null, loading: false, error: message }),
+      ).unsubscribe,
+      subscribeToDocument<TrainingState>(
+        trainingStateRef(db, uid, activeAthleteId),
+        (data) => setTrainingState({ data, loading: false, error: null }),
+        (message) => setTrainingState({ data: null, loading: false, error: message }),
+      ).unsubscribe,
+    ];
+
+    // First read of this athlete's points. An empty ledger with a balance
+    // above zero gets one opening line. A failure stays in the log: the next
+    // points change records the same line.
+    void ensurePointsOpeningBalance(db, uid, activeAthleteId, todayDateString()).catch((error: unknown) => {
+      logActionFailure("training-points", "opening-balance", error);
+    });
+
+    return () => {
+      unsubs.forEach((fn) => fn());
+    };
+  }, [uid, firebaseReady, settings.loading, activeAthleteId]);
 
   const value = useMemo(
     (): FirestoreContextValue => ({

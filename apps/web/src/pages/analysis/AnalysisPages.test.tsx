@@ -41,6 +41,10 @@ const state = vi.hoisted(() => ({
   equipmentMode: "hold" as "hold" | "ready" | "error",
   analyses: [] as AnalysisRow[],
   equipment: [] as EquipmentRow[],
+  // Settings as the page reads them: the default names the athlete, a test can leave it out or change it.
+  settings: { activeAthleteId: "lindsay" } as { activeAthleteId?: string } | null,
+  // The athlete id each equipment subscription was opened for.
+  equipmentAthletes: [] as unknown[],
   // The training state the plan focus is stored on (ADR-008). A tiny store so a write re-renders.
   training: { value: null as Record<string, unknown> | null, listeners: new Set<() => void>() },
   setPlanFocus: vi.fn(),
@@ -65,7 +69,7 @@ vi.mock("@/app/providers/FirestoreProvider", async () => {
       loading: false,
       error: null,
     }),
-    useUserSettings: () => ({ data: { activeAthleteId: "lindsay" }, loading: false, error: null }),
+    useUserSettings: () => ({ data: state.settings, loading: false, error: null }),
   };
 });
 vi.mock("@skatingx/firebase-client", () => ({
@@ -91,10 +95,11 @@ vi.mock("@skatingx/firebase-client", () => ({
   subscribeToEquipmentHistory: (
     _db: unknown,
     _uid: unknown,
-    _athlete: unknown,
+    athlete: unknown,
     onData: (rows: EquipmentRow[]) => void,
     onError: (error: unknown) => void,
   ) => {
+    state.equipmentAthletes.push(athlete);
     if (state.equipmentMode === "ready") onData(state.equipment);
     if (state.equipmentMode === "error") onError(new Error("read"));
     return () => undefined;
@@ -128,6 +133,8 @@ afterEach(() => {
   state.equipmentMode = "hold";
   state.analyses = [];
   state.equipment = [];
+  state.settings = { activeAthleteId: "lindsay" };
+  state.equipmentAthletes = [];
   sessionStorage.clear();
 });
 
@@ -429,5 +436,34 @@ describe("analysis hub: states", () => {
     render(renderHub());
     expect(screen.getByText("登录后才能显示你的分析。")).toBeTruthy();
     expect(screen.queryByRole("link", { name: "去做动作分析" })).toBeNull();
+  });
+});
+
+describe("analysis hub: which athlete the equipment history is read for", () => {
+  it("reads the athlete in settings", () => {
+    readyEmpty();
+    state.settings = { activeAthleteId: "athlete-9" };
+    render(renderHub());
+    expect(state.equipmentAthletes).toEqual(["athlete-9"]);
+  });
+
+  it("reads lindsay when settings name no athlete, or are not available", () => {
+    readyEmpty();
+    state.settings = {};
+    const first = render(renderHub());
+    expect(state.equipmentAthletes).toEqual(["lindsay"]);
+    first.unmount();
+    state.settings = null;
+    render(renderHub());
+    expect(state.equipmentAthletes).toEqual(["lindsay", "lindsay"]);
+  });
+
+  it("opens a new equipment subscription when the athlete changes", () => {
+    readyEmpty();
+    const view = render(renderHub());
+    expect(state.equipmentAthletes).toEqual(["lindsay"]);
+    state.settings = { activeAthleteId: "athlete-9" };
+    view.rerender(renderHub());
+    expect(state.equipmentAthletes).toEqual(["lindsay", "athlete-9"]);
   });
 });

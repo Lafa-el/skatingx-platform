@@ -16,11 +16,18 @@ const state = vi.hoisted(() => ({
   remove: vi.fn((_db: unknown, _uid: unknown, _athlete: unknown, _id: unknown) => Promise.resolve()),
   unsubscribe: vi.fn(),
   records: [] as unknown[],
+  // Settings as the page reads them: empty names no athlete.
+  settings: {} as { activeAthleteId?: string } | null,
+  // The athlete id each history subscription was opened for.
+  subscribed: [] as unknown[],
 }));
 
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
 vi.mock("@/app/providers/AuthProvider", () => ({
   useAuth: () => ({ uid: state.uid, loading: false, firebaseReady: Boolean(state.uid) }),
+}));
+vi.mock("@/app/providers/FirestoreProvider", () => ({
+  useUserSettings: () => ({ data: state.settings, loading: false, error: null }),
 }));
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => state.db,
@@ -30,9 +37,10 @@ vi.mock("@skatingx/firebase-client", () => ({
   subscribeToEquipmentHistory: (
     _db: unknown,
     _uid: unknown,
-    _athlete: unknown,
+    athlete: unknown,
     onRecords: (records: readonly unknown[]) => void,
   ) => {
+    state.subscribed.push(athlete);
     onRecords(state.records);
     return state.unsubscribe;
   },
@@ -67,6 +75,8 @@ beforeEach(() => {
   state.uid = null;
   state.db = null;
   state.records = [];
+  state.settings = {};
+  state.subscribed = [];
   state.save.mockReset();
   state.save.mockImplementation(() => Promise.resolve());
   state.remove.mockClear();
@@ -167,6 +177,77 @@ describe("equipment page", () => {
 
     view.unmount();
     expect(state.unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  describe("which athlete the history belongs to", () => {
+    const oldRecord = () =>
+      buildEquipmentHistoryRecord({
+        id: "equip-1",
+        ownerUserId: "user-1",
+        createdAt: "2026-10-19T06:00:00.000Z",
+        symptomKey: "slide",
+        symptomText: "弯道咬冰不足，弯中有向外侧滑的感觉。",
+        height: "",
+        weight: "40",
+        bladeLength: "",
+        leftRocker: [],
+        rightRocker: [],
+        offsets: { leftFront: "", leftRear: "", rightFront: "", rightRear: "" },
+        bend: { front: "", middle: "", rear: "" },
+        adjustmentType: "unchanged",
+        feedbackRating: "not-skated",
+        adjustmentNotes: "",
+        missingCore: false,
+        ruleHints: [],
+      });
+
+    it("settings without an athlete id: read and delete go to lindsay, as before", async () => {
+      window.confirm = () => true;
+      state.uid = "user-1";
+      state.db = {};
+      state.records = [oldRecord()];
+      const user = userEvent.setup();
+      renderPage();
+      expect(state.subscribed).toEqual(["lindsay"]);
+      await user.click(screen.getByRole("button", { name: "删除记录" }));
+      await waitFor(() => expect(state.remove).toHaveBeenCalledWith({}, "user-1", "lindsay", "equip-1"));
+    });
+
+    it("settings that are not available: lindsay", () => {
+      state.uid = "user-1";
+      state.db = {};
+      state.settings = null;
+      renderPage();
+      expect(state.subscribed).toEqual(["lindsay"]);
+    });
+
+    it("settings name athlete-9: the subscription and the delete go to athlete-9", async () => {
+      window.confirm = () => true;
+      state.uid = "user-1";
+      state.db = {};
+      state.settings = { activeAthleteId: "athlete-9" };
+      state.records = [oldRecord()];
+      const user = userEvent.setup();
+      renderPage();
+      expect(state.subscribed).toEqual(["athlete-9"]);
+      await user.click(screen.getByRole("button", { name: "删除记录" }));
+      await waitFor(() => expect(state.remove).toHaveBeenCalledWith({}, "user-1", "athlete-9", "equip-1"));
+    });
+
+    it("a change of athlete releases the old subscription and opens one for the new athlete", () => {
+      state.uid = "user-1";
+      state.db = {};
+      const view = renderPage();
+      expect(state.subscribed).toEqual(["lindsay"]);
+      state.settings = { activeAthleteId: "athlete-9" };
+      view.rerender(
+        <MemoryRouter>
+          <AnalysisEquipmentPage />
+        </MemoryRouter>,
+      );
+      expect(state.unsubscribe).toHaveBeenCalledTimes(1);
+      expect(state.subscribed).toEqual(["lindsay", "athlete-9"]);
+    });
   });
 
   it("formats float32 artifacts out of weight and height, and keeps both languages free of the banned lab wording", () => {
