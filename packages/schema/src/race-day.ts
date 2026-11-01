@@ -97,6 +97,11 @@ export interface RaceVideoRef extends RaceDayAudit {
   rosterId: string;
   label: string;
   externalUrl: string | null;
+  /**
+   * Set only by the reader, when the stored link was not a plain http(s) link. `externalUrl` is
+   * then null: the bad value is not carried around, as it may hold a password. Never stored.
+   */
+  externalUrlInvalid?: boolean;
   storedWhere: string | null;
   note: string | null;
 }

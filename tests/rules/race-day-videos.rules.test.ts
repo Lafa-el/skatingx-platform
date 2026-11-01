@@ -340,15 +340,20 @@ describe("the rules keep video records to metadata", () => {
     await assertFails(updateDoc(doc(ctx.db, videoPath("alice", eventId, id)), { createdAt: Timestamp.now() }));
   });
 
-  it("does not check for credentials in a link (rules only check the scheme), so the codec hides such a record", async () => {
+  it("does not check for credentials in a link (rules only check the scheme), so the codec keeps the record and drops the link", async () => {
     const ctx = alice();
     await createRaceEvent(ctx, eventInput, { eventId: "ev" });
     await assertSucceeds(writeRaw(ctx, "clip-1", { externalUrl: "https://me:pw@example.com/clip" }));
     await assertSucceeds(writeRaw(ctx, "clip-2"));
 
     const list = await videosOf(ctx, "ev", (l) => l.items.length + l.invalid.length === 2);
-    expect(list.items.map((v) => v.videoId)).toEqual(["clip-2"]);
-    expect(list.invalid).toEqual([{ id: "clip-1", reason: "externalUrl is not a plain http(s) link" }]);
+    expect(list.items.map((v) => v.videoId)).toEqual(["clip-1", "clip-2"]);
+    expect(list.invalid).toEqual([]);
+    const flagged = list.items.find((v) => v.videoId === "clip-1");
+    expect(flagged?.externalUrl).toBeNull();
+    expect(flagged?.externalUrlInvalid).toBe(true);
+    expect(JSON.stringify(flagged)).not.toContain("pw@");
+    expect(list.items.find((v) => v.videoId === "clip-2")?.externalUrlInvalid).toBeUndefined();
   });
 });
 

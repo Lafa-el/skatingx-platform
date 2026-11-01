@@ -106,9 +106,26 @@ describe("buildVideoGroups", () => {
     expect(hosts.get("js")).toBeNull();
     expect(hosts.get("creds")).toBeNull();
   });
+
+  it("a record whose bad link was dropped and flagged has no host, and is still grouped under its race", () => {
+    const groups = buildVideoGroups(
+      [video("flagged", "r1", { externalUrl: null, externalUrlInvalid: true }), video("ok", "r1", { externalUrl: "https://example.com/a" })],
+      [race("r1", 1)],
+      [ann],
+    );
+    const views = new Map(groups[0]?.views.map((v) => [v.video.videoId, v]));
+    expect(views.get("flagged")?.linkHost).toBeNull();
+    expect(views.get("flagged")?.video.externalUrlInvalid).toBe(true);
+    expect(views.get("ok")?.linkHost).toBe("example.com");
+    expect(views.get("ok")?.video.externalUrlInvalid).toBeUndefined();
+  });
 });
 
 describe("form values", () => {
+  it("a flagged record opens with an empty link to fill in", () => {
+    expect(videoToFormValues(video("v1", "r1", { externalUrl: null, externalUrlInvalid: true })).externalUrl).toBe("");
+  });
+
   it("round-trips a record and turns empty optional fields into null", () => {
     expect(videoToFormValues(undefined)).toEqual({ label: "", externalUrl: "", storedWhere: "", note: "" });
     const values = videoToFormValues(video("v1", "r1", { externalUrl: "https://example.com/", note: "n" }));
