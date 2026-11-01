@@ -5,6 +5,7 @@ import {
   trainingRecordsCollectionRef,
 } from "@skatingx/firebase-client";
 import {
+  DEFAULT_ATHLETE_ID,
   DEFAULT_TRAINING_DISTANCES,
   type DistanceRecordsDocument,
 } from "@skatingx/schema";
@@ -33,7 +34,7 @@ export type DistanceRecordsMap = Record<string, DistanceRecordsDocument>;
 export function useTrainingRecords() {
   const { uid } = useAuth();
   const { data: settings } = useUserSettings();
-  const athleteId = settings?.activeAthleteId ?? "lindsay";
+  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
 
   const [recordsByDistance, setRecordsByDistance] = useState<DistanceRecordsMap>(
     {},

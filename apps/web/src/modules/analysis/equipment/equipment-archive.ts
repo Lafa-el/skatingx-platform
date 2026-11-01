@@ -1,3 +1,4 @@
+import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { equipmentSymptomKeys, type EquipmentHistoryRecord } from "@skatingx/skating-domain";
 
 /** Per-user browser archive. Not the legacy `blaze-equipment-history-v1` key. */
@@ -18,7 +19,7 @@ function isArchiveRecord(value: unknown): value is EquipmentHistoryRecord {
     typeof record.createdAt === "string" &&
     typeof record.symptomKey === "string" &&
     symptomKeys.has(record.symptomKey) &&
-    record.athleteId === "lindsay"
+    record.athleteId === DEFAULT_ATHLETE_ID
   );
 }
 

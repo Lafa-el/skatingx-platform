@@ -4,7 +4,7 @@ import {
   normalizeTrainingState,
   runDayRolloverIfNeeded,
 } from "@skatingx/firebase-client";
-import { todayDateString } from "@skatingx/schema";
+import { DEFAULT_ATHLETE_ID, todayDateString } from "@skatingx/schema";
 import { compareDateStrings, planGenerationSkip } from "@skatingx/skating-domain";
 import { useEffect, useRef } from "react";
 
@@ -36,7 +36,7 @@ export function TrainingDayRollover() {
   // call for the same thing; a different focus does, because the first call will give up on it.
   const generating = useRef<string | null>(null);
 
-  const athleteId = settings?.activeAthleteId ?? "lindsay";
+  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
 
   useEffect(() => {
     if (!uid || !ready || loading || !training) {
