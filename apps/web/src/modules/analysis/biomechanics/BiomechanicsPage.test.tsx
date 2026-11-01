@@ -18,10 +18,12 @@ const state = vi.hoisted(() => ({
   save: vi.fn((_db: unknown, _record: unknown) => Promise.resolve()),
   release: vi.fn(() => Promise.resolve()),
   prefetch: vi.fn(),
-  load: vi.fn((_onResults: (landmarks: unknown) => void) =>
+  forcedAngles: null as { lean: number | null; knee: number | null } | null,
+  loadEngine: (_onResults: (landmarks: unknown) => void): Promise<unknown> =>
     Promise.resolve({ send: vi.fn(), close: () => state.release() }),
-  ),
+  load: vi.fn(),
 }));
+state.load.mockImplementation(state.loadEngine);
 
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
 vi.mock("@/app/providers/AuthProvider", () => ({
@@ -31,6 +33,23 @@ vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => state.db,
   saveBiomechAnalysisRecord: (db: unknown, record: unknown) => state.save(db, record),
 }));
+// Real sampling, except when a test names the angles of the next frame: a readable frame can still
+// miss one angle, and no hand-made set of landmarks gives that reliably.
+vi.mock("@skatingx/skating-domain", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@skatingx/skating-domain")>();
+  return {
+    ...actual,
+    samplePoseFrame: (input: Parameters<typeof actual.samplePoseFrame>[0]) => {
+      const result = actual.samplePoseFrame(input);
+      const forced = state.forcedAngles;
+      if (!forced) return result;
+      return {
+        ...result,
+        sample: { ...result.sample, readable: true, unreadableReason: null, leanAngle: forced.lean, kneeAngle: forced.knee },
+      };
+    },
+  };
+});
 vi.mock("@/modules/analysis/biomechanics/pose-engine", () => ({
   loadPoseEngine: (onResults: (landmarks: unknown) => void) => state.load(onResults),
   releasePoseEngine: () => state.release(),
@@ -45,10 +64,43 @@ afterEach(() => {
   state.db = {};
   state.save.mockClear();
   state.load.mockClear();
+  // A test may leave the engine waiting for ever (the warmup timeout one); the next must not inherit it.
+  state.load.mockImplementation(state.loadEngine);
   state.release.mockClear();
   state.prefetch.mockClear();
+  state.forcedAngles = null;
   vi.useRealTimers();
+  vi.restoreAllMocks(); // the stage's bounding-box stub and the console spy
 });
+
+/** Starts the page, locks a target and takes one keyframe: the engine's callback delivers the frame. */
+async function started() {
+  const user = userEvent.setup();
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+    left: 0,
+    top: 0,
+    right: 160,
+    bottom: 90,
+    width: 160,
+    height: 90,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  });
+  const view = render(<AnalysisBiomechanicsPage />);
+  const input = document.querySelector("input[type=file]") as HTMLInputElement;
+  await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
+  await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
+  await screen.findByText(/就绪并缓存在本地/);
+  const stage = view.container.querySelector("video")!.parentElement!;
+  fireEvent.click(stage, { clientX: 80, clientY: 45 });
+  const onResults = state.load.mock.calls[0]![0];
+  const takeKeyframe = async () => {
+    await user.click(screen.getByRole("button", { name: "采样当前帧" }));
+    act(() => onResults(null));
+  };
+  return { user, takeKeyframe };
+}
 
 describe("biomechanics page", () => {
   it("keeps the analyse button waiting for a video and shows the idle warmup line", () => {
@@ -135,35 +187,6 @@ describe("biomechanics page", () => {
       vi.restoreAllMocks(); // the stage's bounding-box stub and the console spy
     });
 
-    /** Starts the page, locks a target and takes one keyframe: the engine's callback delivers the frame. */
-    async function started() {
-      const user = userEvent.setup();
-      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
-        left: 0,
-        top: 0,
-        right: 160,
-        bottom: 90,
-        width: 160,
-        height: 90,
-        x: 0,
-        y: 0,
-        toJSON: () => ({}),
-      });
-      const view = render(<AnalysisBiomechanicsPage />);
-      const input = document.querySelector("input[type=file]") as HTMLInputElement;
-      await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
-      await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
-      await screen.findByText(/就绪并缓存在本地/);
-      const stage = view.container.querySelector("video")!.parentElement!;
-      fireEvent.click(stage, { clientX: 80, clientY: 45 });
-      const onResults = state.load.mock.calls[0]![0];
-      const takeKeyframe = async () => {
-        await user.click(screen.getByRole("button", { name: "采样当前帧" }));
-        act(() => onResults(null));
-      };
-      return { user, takeKeyframe };
-    }
-
     it("is disabled with no keyframe, locks after a successful save, and a new keyframe frees it", async () => {
       const { user, takeKeyframe } = await started();
       expect(saveButton().disabled).toBe(true);
@@ -229,5 +252,39 @@ describe("biomechanics page", () => {
     expect(state.release.mock.invocationCallOrder[0]).toBeLessThan(
       state.load.mock.invocationCallOrder[1] ?? Number.POSITIVE_INFINITY,
     );
+  });
+});
+
+describe("the keyframe rows when an angle is missing", () => {
+  const rowText = () => document.querySelector("ul li")?.textContent ?? "";
+
+  async function keyframeWith(lean: number | null, knee: number | null) {
+    state.forcedAngles = { lean, knee };
+    const { takeKeyframe } = await started();
+    await takeKeyframe();
+    expect(screen.getByText("1 / 10")).toBeTruthy();
+  }
+
+  it("a missing lean shows --°, and the knee keeps its value", async () => {
+    await keyframeWith(null, 45);
+    expect(rowText()).toContain("倾角 --°，膝角 45°");
+    expect(rowText()).not.toContain("0°，");
+  });
+
+  it("a missing knee shows --°, and the lean keeps its value", async () => {
+    await keyframeWith(12, null);
+    expect(rowText()).toContain("倾角 12°，膝角 --°");
+  });
+
+  it("both missing show --° twice, never 0°", async () => {
+    await keyframeWith(null, null);
+    expect(rowText()).toContain("倾角 --°，膝角 --°");
+    expect(rowText()).not.toMatch(/(?<![\d.])0°/);
+  });
+
+  it("both present show their values, and a measured 0° is still 0°", async () => {
+    await keyframeWith(0, 45);
+    expect(rowText()).toContain("倾角 0°，膝角 45°");
+    expect(rowText()).not.toContain("--");
   });
 });

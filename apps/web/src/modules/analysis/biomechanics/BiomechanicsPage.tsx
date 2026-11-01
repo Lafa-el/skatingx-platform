@@ -702,8 +702,8 @@ export function BiomechanicsPage() {
                       ? tBiomech(locale, "biomech.keyframes.summary", {
                           readable: aggregate.readable,
                           unreadable: aggregate.unreadable,
-                          knee: aggregate.avgKnee ?? 0,
-                          lean: aggregate.avgLean ?? 0,
+                          knee: aggregate.avgKnee ?? "--",
+                          lean: aggregate.avgLean ?? "--",
                           highKnee: aggregate.highKnee,
                           highLean: aggregate.highLean,
                         })
@@ -719,8 +719,8 @@ export function BiomechanicsPage() {
                         <span>
                           {" "}
                           {tBiomech(locale, "biomech.keyframes.row", {
-                            lean: sampleRow.leanAngle ?? 0,
-                            knee: sampleRow.kneeAngle ?? 0,
+                            lean: sampleRow.leanAngle ?? "--",
+                            knee: sampleRow.kneeAngle ?? "--",
                           })}
                         </span>
                       ) : (
