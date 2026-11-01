@@ -240,7 +240,13 @@ export {
   type BiomechPoseFrame,
 } from "./analysis/biomech-record";
 export { formatDecimalDisplay, formatFixed } from "./analysis/decimal-display";
-export { buildEquipmentChecklist, buildEquipmentRuleHints, parseGaugeNumber } from "./analysis/legacy-equipment";
+export {
+  buildEquipmentChecklist,
+  buildEquipmentRuleHints,
+  findInvalidEquipmentNumber,
+  parseGaugeNumber,
+  type InvalidEquipmentNumber,
+} from "./analysis/legacy-equipment";
 export {
   buildEquipmentHistoryRecord,
   EQUIPMENT_ALGORITHM_VERSION,

@@ -26,6 +26,68 @@ export function parseGaugeNumber(value: string): number | null {
   return match ? Number(match[0]) : null;
 }
 
+/** The first field of the equipment form that holds text which is not a number. */
+export type InvalidEquipmentNumber =
+  | { readonly field: "weight" | "height" }
+  | { readonly field: "leftRocker" | "rightRocker"; readonly point: number }
+  | { readonly field: "leftFront" | "leftRear" | "rightFront" | "rightRear" }
+  | { readonly field: "bendFront" | "bendMiddle" | "bendRear" };
+
+// `parseGaugeNumber` keeps the legacy behaviour of taking the first number inside any text, so
+// "about 12" reads as 12. These two grammars are for new input: the whole text must be the number.
+const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/;
+// The Offset field is promised as a number with an optional side word and optional mm.
+const OFFSET_NUMBER = /^(内侧|外侧|内|外|inside|outside)?\s*-?\d+(\.\d+)?\s*(mm)?$/i;
+
+const ROCKER_POINT_ORDER = Array.from({ length: 21 }, (_, index) => index - 10);
+
+function isPlainNumberOrBlank(value: string): boolean {
+  const text = value.trim();
+  return text === "" || PLAIN_NUMBER.test(text);
+}
+
+function isOffsetOrBlank(value: string): boolean {
+  const text = value.trim();
+  return text === "" || OFFSET_NUMBER.test(text);
+}
+
+/**
+ * Checks, in a fixed order, that every filled numeric field is wholly a number, and returns the
+ * first one that is not (weight, height, left rocker -10 to +10, right rocker, offsets left front,
+ * left rear, right front, right rear, bend front, middle, rear). A blank field is not filled, so it
+ * is not invalid. Fields that are free text (blade length, symptom, notes) are not looked at.
+ */
+export function findInvalidEquipmentNumber(input: {
+  readonly weight: string;
+  readonly height: string;
+  readonly leftRocker: Readonly<Record<string, string>>;
+  readonly rightRocker: Readonly<Record<string, string>>;
+  readonly offsets: EquipmentOffsets;
+  readonly bend: EquipmentBend;
+}): InvalidEquipmentNumber | null {
+  if (!isPlainNumberOrBlank(input.weight)) return { field: "weight" };
+  if (!isPlainNumberOrBlank(input.height)) return { field: "height" };
+  for (const [field, values] of [
+    ["leftRocker", input.leftRocker],
+    ["rightRocker", input.rightRocker],
+  ] as const) {
+    for (const point of ROCKER_POINT_ORDER) {
+      if (!isPlainNumberOrBlank(values[String(point)] ?? "")) return { field, point };
+    }
+  }
+  for (const field of ["leftFront", "leftRear", "rightFront", "rightRear"] as const) {
+    if (!isOffsetOrBlank(input.offsets[field])) return { field };
+  }
+  for (const [field, key] of [
+    ["bendFront", "front"],
+    ["bendMiddle", "middle"],
+    ["bendRear", "rear"],
+  ] as const) {
+    if (!isPlainNumberOrBlank(input.bend[key])) return { field };
+  }
+  return null;
+}
+
 function valueAt(readings: readonly GaugeReading[], point: number): number | null {
   const reading = readings.find((entry) => entry.point === point);
   return reading ? parseGaugeNumber(reading.value) : null;
@@ -143,7 +205,9 @@ export function buildEquipmentChecklist(input: {
   readonly actionValue: "补全曲线/体重" | "左右脚曲线待复核";
   readonly hints: readonly string[];
 } {
-  const missingCore = !input.weightRaw || (!input.leftReadings.length && !input.rightReadings.length);
+  // Whether the weight parses, not whether the text is non-empty: "abc" is not a weight, and the
+  // comparison reads it as missing too.
+  const missingCore = parseGaugeNumber(input.weightRaw) === null || (!input.leftReadings.length && !input.rightReadings.length);
   return {
     missingCore,
     badgeLabel: missingCore ? "记录不完整" : "可提交教练复核",
