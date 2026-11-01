@@ -21,6 +21,10 @@ type AnalysisRow = {
     decayPercent: number | null;
     stabilityIndexPercent?: number | null;
     rating: "excellent" | "needs-work" | "moderate" | null;
+    /** Absent in older fixtures, which stand for records saved before the totals were read. */
+    totalSeconds?: number | null;
+    benchmarkTotalSeconds?: number | null;
+    trainingEmphasisRatio?: string | null;
   } | null;
 };
 
@@ -714,5 +718,119 @@ describe("analysis hub: which athlete the equipment history is read for", () => 
     state.settings = { activeAthleteId: "athlete-9" };
     view.rerender(renderHub());
     expect(state.equipmentAthletes).toEqual(["lindsay", "athlete-9"]);
+  });
+});
+
+describe("analysis hub: the pace totals a saved record stores", () => {
+  const paceRow = (id: string, createdAt: string, pace: NonNullable<AnalysisRow["pace"]>): AnalysisRow => ({
+    kind: "pace",
+    id,
+    createdAt,
+    distance: "500",
+    findings: [],
+    biomech: null,
+    pace,
+  });
+  const full = { decayPercent: 6.5, stabilityIndexPercent: 80, rating: "excellent" as const, totalSeconds: 52.3, benchmarkTotalSeconds: 50, trainingEmphasisRatio: "60:40" };
+  const show = (rows: AnalysisRow[], locale: "zh" | "en" = "zh") => {
+    state.locale = locale;
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    state.analyses = rows;
+    const view = render(renderHub());
+    return {
+      card: view.container.querySelector("[data-testid='hub-pace']")?.textContent ?? "",
+      recent: view.container.querySelector("[data-testid='hub-recent']")?.textContent ?? "",
+      view,
+    };
+  };
+
+  it("the card has the total, benchmark total and emphasis rows, with two decimals and an s", () => {
+    const { card } = show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)]);
+    expect(card).toContain("总成绩");
+    expect(card).toContain("52.30s");
+    expect(card).toContain("标杆总成绩");
+    expect(card).toContain("50.00s");
+    expect(card).toContain("训练侧重");
+    expect(card).toContain("60:40");
+  });
+
+  it("the card has English labels in English", () => {
+    const { card } = show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)], "en");
+    expect(card).toContain("Total");
+    expect(card).toContain("52.30s");
+    expect(card).toContain("Benchmark total");
+    expect(card).toContain("Training emphasis");
+    expect(card).toContain("60:40");
+  });
+
+  it("a row whose field is missing is not drawn, and the others are", () => {
+    const { card } = show([paceRow("p1", "2026-10-09T00:00:00.000Z", { ...full, benchmarkTotalSeconds: null, trainingEmphasisRatio: null })]);
+    expect(card).toContain("52.30s");
+    expect(card).not.toContain("标杆总成绩");
+    expect(card).not.toContain("训练侧重");
+    expect(card).not.toContain("—");
+  });
+
+  it("a record saved before the totals were read draws none of the three rows (guard)", () => {
+    const { card } = show([paceRow("p0", "2026-10-01T00:00:00.000Z", { decayPercent: 6.5, stabilityIndexPercent: 80, rating: "excellent" })]);
+    expect(card).toContain("优秀");
+    expect(card).toContain("80%");
+    expect(card).toContain("500m 后程衰减");
+    expect(card).not.toContain("总成绩");
+    expect(card).not.toContain("训练侧重");
+  });
+
+  it("the list title starts with the total when the total is there", () => {
+    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)]).recent).toContain("52.30s · 优秀 · 稳定指数 80%");
+  });
+
+  it("the list title in English", () => {
+    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)], "en").recent).toContain("52.30s · Strong · Stability index 80%");
+  });
+
+  it("the list title without a stability index is the total and the rating", () => {
+    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", { ...full, stabilityIndexPercent: null })]).recent).toContain("52.30s · 优秀");
+    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", { ...full, stabilityIndexPercent: null })]).recent).not.toContain("稳定指数");
+  });
+
+  it("the list title without a total is what it was: the rating and the stability index, or the rating alone (guard)", () => {
+    const old = { decayPercent: null, stabilityIndexPercent: 80, rating: "excellent" as const };
+    const withStability = show([paceRow("p0", "2026-10-01T00:00:00.000Z", old)]);
+    expect(withStability.recent).toContain("优秀 · 稳定指数 80%");
+    expect(withStability.recent).not.toContain("s ·");
+    withStability.view.unmount();
+    const ratingOnly = show([paceRow("p0", "2026-10-01T00:00:00.000Z", { ...old, stabilityIndexPercent: null })]);
+    expect(ratingOnly.recent).toContain("优秀");
+    expect(ratingOnly.recent).not.toContain("稳定指数");
+    expect(ratingOnly.recent).not.toContain("·");
+  });
+
+  it("a biomechanics card and the other lanes do not change when pace records carry totals", () => {
+    state.equipment = [{ id: "eq-1", createdAt: "2026-10-08T00:00:00.000Z", symptomKey: "slide", symptomText: "左脚打滑", findings: [] }];
+    const biomech: AnalysisRow = {
+      kind: "biomech",
+      id: "bio-1",
+      createdAt: "2026-10-07T00:00:00.000Z",
+      findings: [],
+      biomech: { avgKnee: 120, avgLean: 15, readableFrames: 4 },
+      pace: null,
+    };
+    state.locale = "zh";
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    state.analyses = [biomech, paceRow("p1", "2026-10-09T00:00:00.000Z", full)];
+    const { container } = render(renderHub());
+    const bio = container.querySelector("[data-testid='hub-biomech']")?.textContent ?? "";
+    expect(bio).toContain("15°");
+    expect(bio).toContain("120°");
+    expect(bio).not.toContain("总成绩");
+    expect(bio).not.toMatch(/\d\.\d{2}s/);
+    const equipment = container.querySelector("[data-testid='hub-equipment']")?.textContent ?? "";
+    expect(equipment).toContain("左脚打滑");
+    expect(equipment).not.toContain("总成绩");
+    const recent = container.querySelector("[data-testid='hub-recent']")?.textContent ?? "";
+    expect(recent).toContain("15°");
+    expect(recent).toContain("左脚打滑");
   });
 });

@@ -88,7 +88,7 @@ describe("savedAnalysisFromDocument", () => {
       findings: [{ code: "pace.decay.back-half" }],
       pace: { decayPercent: 4.5, stabilityIndexPercent: 80, rating: "needs-work" },
     });
-    expect(stored?.pace).toEqual({
+    expect(stored?.pace).toMatchObject({
       decayPercent: 4.5,
       stabilityIndexPercent: 80,
       rating: "needs-work",
@@ -100,10 +100,61 @@ describe("savedAnalysisFromDocument", () => {
       findings: [],
       pace: { stabilityIndexPercent: 80, rating: "excellent" },
     });
-    expect(missing?.pace).toEqual({
+    expect(missing?.pace).toMatchObject({
       decayPercent: null,
       stabilityIndexPercent: 80,
       rating: "excellent",
+    });
+  });
+
+  describe("the totals a pace document stores", () => {
+    const read = (pace: unknown) =>
+      savedAnalysisFromDocument("doc-t", { id: "pace-t", createdAt: "2026-10-11T00:00:00.000Z", findings: [], pace })?.pace;
+    const stored = { decayPercent: 4.5, stabilityIndexPercent: 80, rating: "excellent" };
+
+    it("passes all three through as stored", () => {
+      expect(read({ ...stored, totalSeconds: 52.34, benchmarkTotalSeconds: 50.1, trainingEmphasisRatio: "60:40" })).toEqual({
+        ...stored,
+        totalSeconds: 52.34,
+        benchmarkTotalSeconds: 50.1,
+        trainingEmphasisRatio: "60:40",
+      });
+    });
+
+    it("each is null when the document has no such field (a record saved before)", () => {
+      expect(read(stored)).toMatchObject({ totalSeconds: null, benchmarkTotalSeconds: null, trainingEmphasisRatio: null });
+    });
+
+    it("a number that is a string, NaN or infinite is null", () => {
+      expect(read({ ...stored, totalSeconds: "52.34", benchmarkTotalSeconds: Number.NaN })).toMatchObject({
+        totalSeconds: null,
+        benchmarkTotalSeconds: null,
+      });
+      expect(read({ ...stored, totalSeconds: Number.POSITIVE_INFINITY })).toMatchObject({ totalSeconds: null });
+    });
+
+    it("a ratio that is not a string, is empty or is longer than 16 characters is null; 16 is kept", () => {
+      expect(read({ ...stored, trainingEmphasisRatio: 60 })).toMatchObject({ trainingEmphasisRatio: null });
+      expect(read({ ...stored, trainingEmphasisRatio: "" })).toMatchObject({ trainingEmphasisRatio: null });
+      expect(read({ ...stored, trainingEmphasisRatio: "x".repeat(17) })).toMatchObject({ trainingEmphasisRatio: null });
+      expect(read({ ...stored, trainingEmphasisRatio: "x".repeat(16) })).toMatchObject({ trainingEmphasisRatio: "x".repeat(16) });
+    });
+
+    it("a pace that is not an object leaves all three null", () => {
+      const row = savedAnalysisFromDocument("doc-s", {
+        id: "pace-s",
+        createdAt: "2026-10-11T00:00:00.000Z",
+        findings: [],
+        pace: "broken",
+      });
+      expect(row?.pace).toEqual({
+        decayPercent: null,
+        stabilityIndexPercent: null,
+        rating: null,
+        totalSeconds: null,
+        benchmarkTotalSeconds: null,
+        trainingEmphasisRatio: null,
+      });
     });
   });
 

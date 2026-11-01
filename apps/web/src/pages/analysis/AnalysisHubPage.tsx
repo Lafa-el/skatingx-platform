@@ -98,6 +98,16 @@ function percentText(value: number | null, locale: Locale): string {
   return tAnalysis(locale, "analysis.hub.value.percent", { value: formatNumber(value, locale) });
 }
 
+/** Two decimals and an "s", as the pacing tool shows a total. No grouping, so it reads like `toFixed(2)`. */
+function secondsText(value: number, locale: Locale): string {
+  const formatted = new Intl.NumberFormat(NUMBER_LOCALE[locale], {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: false,
+  }).format(value);
+  return tAnalysis(locale, "analysis.hub.value.seconds", { value: formatted });
+}
+
 function ratingText(rating: HubPaceRating | null, locale: Locale): string {
   return rating ? tPace(locale, RATING_KEY[rating]) : tAnalysis(locale, "analysis.hub.value.missing");
 }
@@ -118,11 +128,17 @@ function headline(item: HubRecentItem, locale: Locale): string {
   }
   if (item.kind === "pace") {
     const rating = ratingText(item.rating, locale);
-    if (item.stabilityIndexPercent === null) return rating;
-    return tAnalysis(locale, "analysis.hub.headline.pace", {
-      rating,
-      stability: percentText(item.stabilityIndexPercent, locale),
-    });
+    const stability = item.stabilityIndexPercent === null ? null : percentText(item.stabilityIndexPercent, locale);
+    // Records saved before the total was read keep the earlier title, so the list does not change under them.
+    if (item.totalSeconds === null) {
+      return stability === null
+        ? rating
+        : tAnalysis(locale, "analysis.hub.headline.paceStability", { rating, stability });
+    }
+    const total = secondsText(item.totalSeconds, locale);
+    return stability === null
+      ? tAnalysis(locale, "analysis.hub.headline.paceTotal", { total, rating })
+      : tAnalysis(locale, "analysis.hub.headline.pace", { total, rating, stability });
   }
   return equipmentSummary(item.symptomKey, item.symptomText, locale);
 }
@@ -146,6 +162,9 @@ function toAnalysis(row: SavedAnalysisSource): HubAnalysisInput {
     decayPercent: row.pace?.decayPercent ?? null,
     stabilityIndexPercent: row.pace?.stabilityIndexPercent ?? null,
     rating: row.pace?.rating ?? null,
+    totalSeconds: row.pace?.totalSeconds ?? null,
+    benchmarkTotalSeconds: row.pace?.benchmarkTotalSeconds ?? null,
+    trainingEmphasisRatio: row.pace?.trainingEmphasisRatio ?? null,
   };
 }
 
@@ -589,6 +608,30 @@ function PaceCockpit({
               <MetricReadout
                 label={tAnalysis(locale, "analysis.hub.metric.stability")}
                 value={percentText(card.stabilityIndexPercent, locale)}
+                delta={null}
+                spark={[]}
+              />
+            ) : null}
+            {card.totalSeconds !== null ? (
+              <MetricReadout
+                label={tAnalysis(locale, "analysis.hub.metric.total")}
+                value={secondsText(card.totalSeconds, locale)}
+                delta={null}
+                spark={[]}
+              />
+            ) : null}
+            {card.benchmarkTotalSeconds !== null ? (
+              <MetricReadout
+                label={tAnalysis(locale, "analysis.hub.metric.benchmarkTotal")}
+                value={secondsText(card.benchmarkTotalSeconds, locale)}
+                delta={null}
+                spark={[]}
+              />
+            ) : null}
+            {card.trainingEmphasisRatio !== null ? (
+              <MetricReadout
+                label={tAnalysis(locale, "analysis.hub.metric.emphasis")}
+                value={card.trainingEmphasisRatio}
                 delta={null}
                 spark={[]}
               />
