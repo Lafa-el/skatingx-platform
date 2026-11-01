@@ -20,15 +20,20 @@ const NO_INFO: ReadonlyMap<string, ResultSyncInfo> = new Map();
  * recorded, waiting, or why it is not recorded. One listener on the active athlete's records,
  * released when the Results page unmounts. It writes nothing.
  *
- * While the records are loading or could not be read, a row that would be recorded shows nothing
- * (it must not pass for "recorded" or "waiting" on a guess); a read failure is logged once.
+ * While the records are loading, a row that would be recorded shows nothing (it must not pass for
+ * "recorded" or "waiting" on a guess). A read failure is not silent: it is logged once and also
+ * reported as `recordsReadFailed`, so those rows say "unknown" and the page can offer a retry.
+ * Bumping `refreshKey` re-subscribes, which is how that retry rebuilds a dead read.
  */
 export function useResultSyncInfo(input: {
   event: Pick<RaceEvent, "eventId" | "name" | "dates"> | null;
   races: readonly RaceEntry[];
   roster: readonly RaceRosterEntry[];
   results: readonly RaceResult[];
-}): ReadonlyMap<string, ResultSyncInfo> {
+  /** Changing it restarts the records subscription (a retry after a failed read). */
+  refreshKey?: number;
+}): { byResultId: ReadonlyMap<string, ResultSyncInfo>; recordsReadFailed: boolean } {
+  const { refreshKey = 0 } = input;
   const ctx = useRaceDayContext();
   const { athleteId } = useActiveAthlete();
   const userId = ctx?.userId ?? null;
@@ -56,13 +61,17 @@ export function useResultSyncInfo(input: {
         setRead({ key: readKey, recorded: { status: "error" } });
       },
     );
-  }, [ctx, athleteId]);
+  }, [ctx, athleteId, refreshKey]);
+
+  // Same key check as `recorded` below: another athlete's failed read is not this one's failure.
+  const recordsReadFailed = read !== null && read.key === key && read.recorded.status === "error";
 
   const derivation = useMemo(() => {
     if (!input.event || !athleteId) {
       return null;
     }
-    // Records not read yet, failed, or read for someone else: unknown, never guessed.
+    // Records not read yet, failed, or read for someone else: never guessed (a failure is passed on
+    // separately, so the row can say "unknown" instead of nothing).
     const recorded = read && read.key === key && read.recorded.status === "ready" ? read.recorded.entries : null;
     return deriveResultSyncInfo({
       event: input.event,
@@ -71,8 +80,9 @@ export function useResultSyncInfo(input: {
       results: input.results,
       athleteId,
       recorded,
+      recordsReadFailed,
     });
-  }, [input.event, input.races, input.roster, input.results, athleteId, read, key]);
+  }, [input.event, input.races, input.roster, input.results, athleteId, read, key, recordsReadFailed]);
 
   // States that should not exist are logged for developers, by reason only (an id can carry a name).
   const logged = useRef(new Set<string>());
@@ -86,5 +96,8 @@ export function useResultSyncInfo(input: {
     }
   }, [derivation]);
 
-  return derivation?.byResultId ?? NO_INFO;
+  return useMemo(
+    () => ({ byResultId: derivation?.byResultId ?? NO_INFO, recordsReadFailed }),
+    [derivation, recordsReadFailed],
+  );
 }

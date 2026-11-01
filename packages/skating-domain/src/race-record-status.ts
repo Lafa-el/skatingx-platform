@@ -23,7 +23,9 @@ export type ResultSyncStatus =
   | { readonly kind: "no-date" }
   | { readonly kind: "no-athlete" }
   | { readonly kind: "wrong-athlete" }
-  | { readonly kind: "removed-from-race" };
+  | { readonly kind: "removed-from-race" }
+  /** The row would be recorded, but the records could not be read, so whether it is is unknown. */
+  | { readonly kind: "unknown" };
 
 export type ResultSyncInfo = {
   /** Shown on a confirmed row; null shows nothing. */
@@ -76,9 +78,14 @@ function planFor(
  * - A self row that is no longer on the race's roster shows "removed-from-race". The result
  *   itself stays in the list (history); it just does not count toward the records.
  * - `recorded` is the entries found in the active athlete's records, or null while they are not
- *   known (loading or unreadable). Then a row that would be recorded shows nothing: it must not
- *   pass for "recorded" or "waiting" on a guess. Reasons that do not depend on the records
- *   (unmapped distance, no date, no athlete) are still shown.
+ *   known. A row that would be recorded must not pass for "recorded" or "waiting" on a guess, and
+ *   the two ways of not knowing are told apart:
+ *   - still loading (`recorded` null, `recordsReadFailed` false): the row shows nothing, since
+ *     the answer is on its way;
+ *   - the read failed (`recordsReadFailed` true): the row says "unknown", because nothing is
+ *     coming and silence would look the same as "no sync needed".
+ *   Reasons that do not depend on the records (unmapped distance, no date, no athlete, wrong
+ *   athlete, removed from the race) are shown either way and are never replaced by "unknown".
  */
 export function deriveResultSyncInfo(input: {
   event: Pick<RaceEvent, "eventId" | "name" | "dates">;
@@ -87,8 +94,10 @@ export function deriveResultSyncInfo(input: {
   results: readonly RaceResult[];
   athleteId: string;
   recorded: ReadonlyMap<string, StoredRaceEntry> | null;
+  /** The records could not be read (as opposed to still loading). Defaults to false. */
+  recordsReadFailed?: boolean;
 }): ResultSyncDerivation {
-  const { event, races, roster, results, athleteId, recorded } = input;
+  const { event, races, roster, results, athleteId, recorded, recordsReadFailed = false } = input;
   const byResultId = new Map<string, ResultSyncInfo>();
   const unexpected: { resultId: string; reason: RaceRecordSkipReason }[] = [];
   const result: ResultSyncDerivation = { byResultId, unexpected };
@@ -126,7 +135,9 @@ export function deriveResultSyncInfo(input: {
     if (desired) {
       const stored = recorded?.get(entryId);
       let status: ResultSyncStatus | null = null;
-      if (recorded !== null) {
+      if (recordsReadFailed) {
+        status = { kind: "unknown" };
+      } else if (recorded !== null) {
         status =
           stored && raceEntryMatchesDesired(stored, desired)
             ? { kind: "recorded", recordDistanceId: desired.recordDistanceId }

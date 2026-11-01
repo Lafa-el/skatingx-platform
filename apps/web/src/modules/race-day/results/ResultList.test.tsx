@@ -211,3 +211,42 @@ describe("ResultList", () => {
     }
   });
 });
+
+describe("ResultList: the unknown sync line", () => {
+  const unknown = new Map([["race-1_ann", { status: { kind: "unknown" as const }, confirmHint: false }]]);
+  const confirmedAnn = () => result("ann", { verification: "verified", verifiedAt: "2026-10-24T11:00:00.000Z" });
+  const render_ = (props: { syncFailed?: boolean; onRetrySync?: () => void }) => {
+    const views = buildResultViews([confirmedAnn()], [race1], [ann, bob]);
+    render(
+      <ResultList
+        views={views}
+        busy={false}
+        onEdit={vi.fn()}
+        onSetVerified={vi.fn()}
+        onDelete={vi.fn()}
+        sync={unknown}
+        {...props}
+      />,
+    );
+  };
+
+  it("with a failure and a retry handler: the text and a retry button that calls it", async () => {
+    const onRetrySync = vi.fn();
+    render_({ syncFailed: true, onRetrySync });
+    expect(screen.getByText("纪录读取失败，同步状态未知")).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole("button", { name: /重试同步/ }));
+    expect(onRetrySync).toHaveBeenCalledTimes(1);
+  });
+
+  it("without a failure flag or without a retry handler: only the text", () => {
+    render_({ syncFailed: false, onRetrySync: vi.fn() });
+    expect(screen.getByText("纪录读取失败，同步状态未知")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /重试同步/ })).toBeNull();
+  });
+
+  it("without a retry handler it is text only even when failed", () => {
+    render_({ syncFailed: true });
+    expect(screen.getByText("纪录读取失败，同步状态未知")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /重试同步/ })).toBeNull();
+  });
+});

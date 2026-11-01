@@ -252,6 +252,58 @@ describe("deriveResultSyncInfo: records not known", () => {
   });
 });
 
+describe("deriveResultSyncInfo: records could not be read", () => {
+  it("a row that would be recorded says unknown, not nothing", () => {
+    const d = derive({ recorded: null, recordsReadFailed: true });
+    expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "unknown" });
+  });
+
+  it("a failed read wins over entries that were read earlier", () => {
+    const d = derive({ recorded: new Map([stored("500m-1")]), recordsReadFailed: true });
+    expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "unknown" });
+  });
+
+  it("still loading (no records, no failure) shows nothing", () => {
+    const d = derive({ recorded: null, recordsReadFailed: false });
+    expect(statusOf(d, "500m-1_lindsay")).toBeNull();
+    expect(statusOf(derive({ recorded: null }), "500m-1_lindsay")).toBeNull();
+  });
+
+  it("reasons that do not depend on the records are not replaced by unknown", () => {
+    const failed = { recorded: null, recordsReadFailed: true } as const;
+    expect(
+      statusOf(derive({ ...failed, races: [race("weird-1", "relay")], results: [row("weird-1", "lindsay")] }), "weird-1_lindsay"),
+    ).toEqual({ kind: "unmapped-distance" });
+    expect(statusOf(derive({ ...failed, races: [race("500m-1", "500m", { day: null })] }), "500m-1_lindsay")).toEqual({
+      kind: "no-date",
+    });
+    expect(
+      statusOf(derive({ ...failed, roster: [person("lindsay", { isSelf: true, athleteRefId: null })] }), "500m-1_lindsay"),
+    ).toEqual({ kind: "no-athlete" });
+    expect(statusOf(derive({ ...failed, athleteId: "mia" }), "500m-1_lindsay")).toEqual({ kind: "wrong-athlete" });
+    expect(
+      statusOf(derive({ ...failed, races: [race("500m-1", "500m", { rosterIds: ["ann"] })] }), "500m-1_lindsay"),
+    ).toEqual({ kind: "removed-from-race" });
+  });
+
+  it("an unreadable time or a missing race still shows nothing and is reported for the log", () => {
+    const d = derive({ recorded: null, recordsReadFailed: true, results: [row("500m-1", "lindsay", { timeSeconds: null })] });
+    expect(statusOf(d, "500m-1_lindsay")).toBeNull();
+    expect(d.unexpected).toEqual([{ resultId: "500m-1_lindsay", reason: "invalid-time" }]);
+  });
+
+  it("an unconfirmed row still only gives the confirm hint, and DNS stays quiet", () => {
+    const d = derive({
+      recorded: null,
+      recordsReadFailed: true,
+      races: [race("500m-1", "500m"), race("1000m-1", "1000m")],
+      results: [row("500m-1", "lindsay", pending), row("1000m-1", "lindsay", { status: "DNS", timeSeconds: null })],
+    });
+    expect(d.byResultId.get("500m-1_lindsay")).toEqual({ status: null, confirmHint: true });
+    expect(statusOf(d, "1000m-1_lindsay")).toBeNull();
+  });
+});
+
 describe("deriveResultSyncInfo: the confirm hint", () => {
   const hint = (d: ReturnType<typeof derive>, resultId: string) => d.byResultId.get(resultId)?.confirmHint ?? false;
 

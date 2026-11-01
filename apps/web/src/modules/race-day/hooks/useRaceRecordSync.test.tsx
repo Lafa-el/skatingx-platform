@@ -93,6 +93,67 @@ describe("useRaceRecordSync", () => {
     expect(view.result.current.failed).toBe(false);
   });
 
+  describe("a dead subscription is not hidden by a healthy one", () => {
+    type Handlers = {
+      onError: (op: string, error: unknown) => void;
+      onReport: (report: { failures: unknown[]; unreadable: unknown[] }) => void;
+    };
+    const handlersOf = (call: number) => h.start.mock.calls[call]![1] as Handlers;
+    const clean = { failures: [], unreadable: [] };
+
+    it("a clean report after a subscription error does not clear the failure", () => {
+      const view = renderHook(() => useRaceRecordSync());
+      const handlers = handlersOf(0);
+      act(() => handlers.onError("subscribe:roster", new Error("dead")));
+      expect(view.result.current.failed).toBe(true);
+
+      // Another roster still delivers data, and its run comes out clean.
+      act(() => handlers.onReport(clean));
+      expect(view.result.current.failed).toBe(true);
+    });
+
+    it("a clean report clears a run failure but leaves a subscription failure in place", () => {
+      const view = renderHook(() => useRaceRecordSync());
+      const handlers = handlersOf(0);
+      act(() => handlers.onError("subscribe:roster", new Error("dead")));
+      act(() => handlers.onError("reconcile:500m", new Error("boom")));
+      act(() => handlers.onReport(clean));
+      expect(view.result.current.failed).toBe(true);
+    });
+
+    it("a run failure still clears on the next clean report", () => {
+      const view = renderHook(() => useRaceRecordSync());
+      const handlers = handlersOf(0);
+      act(() => handlers.onError("reconcile:500m", new Error("boom")));
+      expect(view.result.current.failed).toBe(true);
+      act(() => handlers.onReport(clean));
+      expect(view.result.current.failed).toBe(false);
+    });
+
+    it("retry after a subscription error restarts the sync and clears it, and a persistent error comes back", () => {
+      const view = renderHook(() => useRaceRecordSync());
+      act(() => handlersOf(0).onError("subscribe:roster", new Error("dead")));
+      expect(view.result.current.failed).toBe(true);
+
+      act(() => view.result.current.retry());
+      expect(h.stop).toHaveBeenCalledTimes(1);
+      expect(h.start).toHaveBeenCalledTimes(2);
+      expect(view.result.current.failed).toBe(false);
+
+      // The new subscription fails again: one retry must not clear it for good.
+      act(() => handlersOf(1).onError("subscribe:roster", new Error("dead again")));
+      expect(view.result.current.failed).toBe(true);
+    });
+
+    it("does not carry a subscription failure over to another athlete", () => {
+      const view = renderHook(() => useRaceRecordSync());
+      act(() => handlersOf(0).onError("subscribe:events", new Error("dead")));
+      h.athleteId = "mia";
+      view.rerender();
+      expect(view.result.current.failed).toBe(false);
+    });
+  });
+
   it("does not carry a failure over to another athlete", () => {
     const view = renderHook(() => useRaceRecordSync());
     const handlers = h.start.mock.calls[0]![1] as { onError: (op: string, error: unknown) => void };
