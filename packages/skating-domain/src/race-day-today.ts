@@ -47,7 +47,10 @@ export type TodayView = {
   next: NextRace;
   /** Races with no day yet. They are never placed on a guessed day. */
   undatedRaceCount: number;
-  /** Results still pending: the own athlete's, or all of them when no own athlete is marked. */
+  /**
+   * Results still pending on the shown day's races, so the number matches the list under it: the
+   * own athlete's, or all of them when no own athlete is marked. 0 when no day is shown.
+   */
   pendingResultCount: number;
   scope: "self" | "all";
 };
@@ -161,8 +164,12 @@ export function buildTodayView(input: TodayInput): TodayView {
           ? { kind: "race", raceId: open.race.raceId }
           : { kind: "allDone" };
 
-  const pendingResultCount = [...resultsOfRace.values()]
-    .flat()
+  // Only the shown day's races, like the list: the banner sits on that list, so its number has to
+  // match what is visible. The summary page counts the whole event; this view does not.
+  const shownRaceIds = new Set(races.map((entry) => entry.race.raceId));
+  const pendingResultCount = [...resultsOfRace.entries()]
+    .filter(([raceId]) => shownRaceIds.has(raceId))
+    .flatMap(([, list]) => list)
     .filter((result) => (selfId === null || result.rosterId === selfId) && !isConfirmed(result)).length;
 
   return {

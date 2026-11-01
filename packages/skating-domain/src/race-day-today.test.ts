@@ -333,3 +333,81 @@ describe("buildTodayView", () => {
     expect(JSON.stringify(races)).toBe(copy);
   });
 });
+
+describe("buildTodayView pendingResultCount follows the shown day's list", () => {
+  const SUN_NOON = "2026-10-25T16:00:00.000Z";
+  const BEFORE = "2026-10-20T16:00:00.000Z";
+  const AFTER = "2026-10-27T16:00:00.000Z";
+
+  // Day 1: one pending result of mine. Day 2: two pending results of mine. One more of someone else
+  // on each day, and a confirmed one of mine, so the self/all and the confirmed rules stay visible.
+  const races = [
+    race("d1", { day: "2026-10-24", sortOrder: 0, rosterIds: ["me", "other"] }),
+    race("d2a", { day: "2026-10-25", sortOrder: 1, rosterIds: ["me", "other"] }),
+    race("d2b", { day: "2026-10-25", sortOrder: 2, rosterIds: ["me", "other"] }),
+  ];
+  const results = [
+    result("d1", "me"),
+    result("d1", "other"),
+    result("d2a", "me"),
+    result("d2a", "other"),
+    result("d2b", "me"),
+    result("d2b", "me", { resultId: "d2b_me_done", verification: "verified" }),
+    result("d2b", "other"),
+  ];
+  const count = (now: string, self: { rosterId: string } | null, over: { races?: RaceEntry[]; results?: RaceResult[] } = {}) =>
+    buildTodayView({ event, races: over.races ?? races, results: over.results ?? results, self, now }).pendingResultCount;
+
+  it("a multi-day event counts only the shown day: 1 on day 1, 2 on day 2", () => {
+    expect(count(SAT_NOON, me)).toBe(1);
+    expect(count(SUN_NOON, me)).toBe(2);
+  });
+
+  it("before the event, the first day is the shown day and the later days do not leak in", () => {
+    const view = buildTodayView({ event, races, results, self: me, now: BEFORE });
+    expect(view.shownDay).toBe("2026-10-24");
+    expect(view.pendingResultCount).toBe(1);
+  });
+
+  it("the own-athlete rule is unchanged: own rows only, and with no own athlete everyone's", () => {
+    expect(count(SAT_NOON, me)).toBe(1);
+    expect(count(SAT_NOON, null)).toBe(2); // day 1: mine and the other's
+    expect(count(SUN_NOON, me)).toBe(2);
+    expect(count(SUN_NOON, null)).toBe(4); // day 2: d2a mine and other, d2b mine and other; the confirmed row is out
+  });
+
+  it("is 0 once the event is over, when no day is shown", () => {
+    const view = buildTodayView({ event, races, results, self: me, now: AFTER });
+    expect(view.phase.kind).toBe("after");
+    expect(view.shownDay).toBeNull();
+    expect(view.pendingResultCount).toBe(0);
+  });
+
+  it("is 0 when today cannot be decided", () => {
+    const view = buildTodayView({ event: { ...event, timeZone: null }, races, results, self: me, now: SAT_NOON });
+    expect(view.shownDay).toBeNull();
+    expect(view.pendingResultCount).toBe(0);
+  });
+
+  it("a pending result of a race with no day is not counted, and undatedRaceCount is unchanged", () => {
+    const withUndated = [...races, race("u1", { day: null, sortOrder: 3 })];
+    const withResult = [...results, result("u1", "me")];
+    const view = buildTodayView({ event, races: withUndated, results: withResult, self: me, now: SAT_NOON });
+    expect(view.pendingResultCount).toBe(1);
+    expect(view.undatedRaceCount).toBe(1);
+  });
+
+  it("a pending result of a race on a day outside the shown one is not counted, whatever that day is", () => {
+    const stray = [...races, race("x1", { day: "2026-11-30", sortOrder: 3 })];
+    expect(count(SAT_NOON, me, { races: stray, results: [...results, result("x1", "me")] })).toBe(1);
+  });
+
+  it("the other fields do not move with the count", () => {
+    const day1 = buildTodayView({ event, races, results, self: me, now: SAT_NOON });
+    expect(day1.races.map((r) => r.race.raceId)).toEqual(["d1"]);
+    expect(day1.next).toEqual({ kind: "allDone" });
+    expect(day1.undatedRaceCount).toBe(0);
+    expect(day1.phase).toEqual({ kind: "today", today: "2026-10-24" });
+    expect(day1.version).toBe(RACE_DAY_TODAY_VERSION);
+  });
+});
