@@ -53,7 +53,7 @@ function compareRocker(
   const older = readingMap(olderReadings);
   const newer = readingMap(newerReadings);
   const changed: string[] = [];
-  for (let point = -8; point <= 8; point += 1) {
+  for (let point = -10; point <= 10; point += 1) {
     const before = older.get(point);
     const after = newer.get(point);
     if (before === undefined || before === null || after === undefined || after === null) continue;

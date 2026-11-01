@@ -120,6 +120,7 @@ function SummaryContent() {
 
   const invalidCount =
     events.invalid.length + races.invalid.length + roster.invalid.length + results.invalid.length;
+  const caching = [events, races, roster, results].some((list) => list.fromCache === true);
   const loading = [races, roster, results, summaryDoc].some((list) => list.status === "loading");
   const failed = [races, roster, results, summaryDoc].find((list) => list.status === "error");
 
@@ -152,6 +153,7 @@ function SummaryContent() {
       {invalidCount > 0 ? (
         <FormMessage tone="info">{t(locale, "raceDay.state.invalidHidden", { count: invalidCount })}</FormMessage>
       ) : null}
+      {caching ? <FormMessage tone="info">{t(locale, "raceDay.sync.caching")}</FormMessage> : null}
 
       <EventPicker
         events={sortedEvents}

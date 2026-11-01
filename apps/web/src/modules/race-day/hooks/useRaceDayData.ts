@@ -26,6 +26,11 @@ export type ListState<T> = {
   /** Documents that exist but failed validation; hidden from the list, counted for the user. */
   invalid: InvalidRaceDayDocument[];
   error: RaceDayListError | null;
+  /**
+   * The snapshot came from the local cache and the server has not answered yet, so it may lack
+   * documents that exist there. Absent means not known to be cached (and is never true for loading).
+   */
+  fromCache?: boolean;
 };
 
 const LOADING: ListState<never> = { status: "loading", items: [], invalid: [], error: null };
@@ -61,7 +66,13 @@ function useSubscribedList<T>(subscribe: Subscribe<T> | null): ListState<T> {
     setState(LOADING);
     return subscribe(
       (list) => {
-        setState({ status: "ready", items: list.items, invalid: list.invalid, error: null });
+        setState({
+          status: "ready",
+          items: list.items,
+          invalid: list.invalid,
+          error: null,
+          fromCache: list.fromCache === true,
+        });
       },
       (error) => {
         logRaceDayError("subscribe", error);

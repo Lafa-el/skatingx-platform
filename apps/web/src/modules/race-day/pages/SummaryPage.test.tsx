@@ -279,6 +279,37 @@ describe("SummaryPage states", () => {
   });
 });
 
+describe("SummaryPage lists that came from the local cache", () => {
+  const cached = <T,>(list: unknown): ListState<T> => ({ ...(list as ListState<T>), fromCache: true });
+
+  it("shows a syncing line while any list is only a cache snapshot, in both languages", () => {
+    for (const key of ['events', 'roster', 'races', 'results'] as const) {
+      h[key] = cached(h[key]);
+      const view = render(
+        <MemoryRouter>
+          <SummaryPage />
+        </MemoryRouter>,
+      );
+      expect(screen.getByText("正在同步…")).toBeTruthy();
+      view.unmount();
+      h[key] = { ...(h[key] as ListState<unknown>), fromCache: false };
+    }
+    locale.current = "en";
+    h.races = cached(h.races);
+    render(
+      <MemoryRouter>
+        <SummaryPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("Syncing…")).toBeTruthy();
+  });
+
+  it("shows no syncing line for server snapshots, or when the flag is absent (guard)", () => {
+    renderPage();
+    expect(screen.queryByText("正在同步…")).toBeNull();
+  });
+});
+
 describe("SummaryPage card", () => {
   it("is about the own athlete only: a followed athlete's results are not counted", () => {
     h.results = ready([result("me", { timeSeconds: 50 }), result("other", { timeSeconds: 40 })]);

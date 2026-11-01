@@ -129,7 +129,7 @@ export function analyzeLeftRightRocker(
   rightReadings: readonly GaugeReading[],
 ): string[] {
   const hints: string[] = [];
-  for (let point = -8; point <= 8; point += 1) {
+  for (let point = -10; point <= 10; point += 1) {
     const left = valueAt(leftReadings, point);
     const right = valueAt(rightReadings, point);
     if (left === null || right === null) continue;

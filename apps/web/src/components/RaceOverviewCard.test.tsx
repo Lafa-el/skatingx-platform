@@ -204,6 +204,23 @@ describe("RaceOverviewCard: next event", () => {
     expect(block("下一场").getByText("组别暂时无法加载。")).toBeTruthy();
   });
 
+  it("a division still loading is a status line, and is told apart from none and from a failed read", () => {
+    const loading = renderCard(ready({ next: next({ division: null, detail: "loading" }) }));
+    expect(block("下一场").getByRole("status").textContent).toBe("正在加载组别…");
+    expect(block("下一场").queryByText("组别暂时无法加载。")).toBeNull();
+    loading.unmount();
+    renderCard(ready({ next: next({ division: null, detail: "loading" }) }), "en");
+    expect(block("Next event").getByRole("status").textContent).toBe("Loading division…");
+  });
+
+  it("a division that is loaded or failed shows no loading line (guard)", () => {
+    const loaded = renderCard(ready());
+    expect(block("下一场").queryByText("正在加载组别…")).toBeNull();
+    loaded.unmount();
+    renderCard(ready({ next: next({ division: null, detail: "error" }) }));
+    expect(block("下一场").queryByText("正在加载组别…")).toBeNull();
+  });
+
   it("leads to the Race Day home", () => {
     renderCard(ready());
     expect(href("打开比赛日 →")).toBe("/race-day");

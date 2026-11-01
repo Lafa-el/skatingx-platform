@@ -8,6 +8,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { EventPicker } from "../components/EventPicker";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { FormMessage, PRIMARY_BUTTON } from "../components/fields";
+import { CleanupPendingNotice } from "../components/CleanupPendingNotice";
 import { WriteNotices } from "../components/WriteNotices";
 import { useSelectedEvent } from "../hooks/useActiveEvent";
 import { useRaceDayActions } from "../hooks/useRaceDayActions";
@@ -49,6 +50,8 @@ export function SchedulePage() {
 
   const [panel, setPanel] = useState<Panel>({ kind: "closed" });
   const [queued, setQueued] = useState(false);
+  // A race delete went through in this visit: if the records sync then fails, say its results may linger.
+  const [deleteDone, setDeleteDone] = useState(false);
   const raceSubmit = useSubmitState("saveRace");
   const rowAction = useSubmitState("raceRowAction");
 
@@ -121,6 +124,7 @@ export function SchedulePage() {
     <div className="space-y-6">
       {heading}
       {notices}
+      <CleanupPendingNotice deleteDone={deleteDone} />
       {invalidCount > 0 ? (
         <FormMessage tone="info">{t(locale, "raceDay.state.invalidHidden", { count: invalidCount })}</FormMessage>
       ) : null}
@@ -174,7 +178,11 @@ export function SchedulePage() {
           onDelete={(race) => {
             void rowAction
               .submit(() => actions.deleteRace(activeEvent.eventId, race.raceId))
-              .then(afterWrite);
+              .then((outcome) => {
+                if (afterWrite(outcome)) {
+                  setDeleteDone(true);
+                }
+              });
           }}
         />
       )}

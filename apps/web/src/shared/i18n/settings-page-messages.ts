@@ -74,6 +74,7 @@ const zh = {
   "settings.pin.invalid": "请输入 4 位数字。",
   "settings.pin.wrong": "PIN 不正确。请再试一次。",
   "settings.pin.saveFailed": "没能保存，请再试一次。",
+  "settings.pin.loadFailed": "家长 PIN 加载失败，请稍后重试",
   "settings.pin.dialogTitle": "请输入家长 PIN",
   "settings.pin.dialogHelp": "输入家长 PIN 后才会继续。这只是为了防止误触，不是账户的安全锁。",
   "settings.pin.dialogLabel": "家长 PIN",
@@ -82,6 +83,7 @@ const zh = {
 
   "settings.athlete.name": "姓名",
   "settings.athlete.id": "运动员 ID",
+  "settings.profile.loadFailed": "运动员资料读取失败",
   "settings.athlete.current": "当前",
   "settings.athlete.open": "运动员资料 ›",
 
@@ -174,6 +176,7 @@ const en: Record<SettingsPageKey, string> = {
   "settings.pin.invalid": "Enter 4 digits.",
   "settings.pin.wrong": "That PIN is not correct. Try again.",
   "settings.pin.saveFailed": "Could not save. Try again.",
+  "settings.pin.loadFailed": "Parent PIN failed to load, please try again later",
   "settings.pin.dialogTitle": "Enter the parent PIN",
   "settings.pin.dialogHelp":
     "Enter the parent PIN to continue. This only prevents an accidental tap. It is not an account security lock.",
@@ -183,6 +186,7 @@ const en: Record<SettingsPageKey, string> = {
 
   "settings.athlete.name": "Name",
   "settings.athlete.id": "Athlete ID",
+  "settings.profile.loadFailed": "Athlete profile failed to load",
   "settings.athlete.current": "Current",
   "settings.athlete.open": "Athlete profile ›",
 

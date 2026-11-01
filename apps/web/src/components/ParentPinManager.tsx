@@ -58,8 +58,12 @@ export function ParentPinManager() {
   const [saved, setSaved] = useState(false);
   const [formError, setFormError] = useState<SettingsPageMessageKey | null>(null);
 
-  if (loading || error) {
+  if (loading) {
     return null;
+  }
+  if (error) {
+    // Not hidden: a PIN that cannot be read is not the same as no PIN, and the guarded actions behave differently.
+    return <p className="mt-4 text-sm text-brand-navy/80">{t("settings.pin.loadFailed")}</p>;
   }
 
   function clearFields() {

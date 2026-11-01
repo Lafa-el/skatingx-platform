@@ -163,9 +163,9 @@ describe("biomechanics page", () => {
     const view = render(<AnalysisBiomechanicsPage />);
     const button = screen.getByRole("button", { name: "请先上传视频" });
     expect(button.hasAttribute("disabled")).toBe(true);
-    expect(screen.getByText(/正在加载引擎/)).toBeTruthy();
+    expect(screen.getByText(/未启动/)).toBeTruthy();
     expect(screen.getByText("标定纠错：3D Normal Projection Active")).toBeTruthy();
-    expect(screen.getByText(/● 已连接/)).toBeTruthy();
+    expect(screen.getByText(/● 已登录/)).toBeTruthy();
     const grid = screen.getByRole("checkbox");
     expect((grid as HTMLInputElement).checked).toBe(false);
     const roll = screen.getByRole("slider", { name: /Roll/ });
@@ -189,8 +189,44 @@ describe("biomechanics page", () => {
     expect(state.load).not.toHaveBeenCalled();
     await user.click(start);
     expect(state.load).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/正在加载引擎|就绪并缓存在本地/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "采样当前帧" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "暂停" })).toBeTruthy();
+  });
+
+  it("starts from idle, shows loading-engine while the model loads, and reset returns to idle", async () => {
+    const pending = new Promise<ReturnType<typeof fakeEngine>>(() => undefined);
+    state.load.mockImplementationOnce(() => pending);
+    const user = userEvent.setup();
+    stubBrowser(4);
+    render(<AnalysisBiomechanicsPage />);
+    expect(screen.getByText(/未启动/)).toBeTruthy();
+    const input = document.querySelector("input[type=file]") as HTMLInputElement;
+    await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
+    metadataArrives();
+    await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
+    expect(screen.getByText(/正在加载引擎/)).toBeTruthy();
+    expect(screen.queryByText(/未启动/)).toBeNull();
+  });
+
+  it("reset after a ready engine returns the console to idle", async () => {
+    const user = userEvent.setup();
+    stubBrowser(4);
+    render(<AnalysisBiomechanicsPage />);
+    const input = document.querySelector("input[type=file]") as HTMLInputElement;
+    await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
+    metadataArrives();
+    await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
+    await screen.findByText(/就绪并缓存在本地/);
+    await user.click(screen.getByRole("button", { name: "替换或重置测试视频" }));
+    expect(screen.getByText(/未启动/)).toBeTruthy();
+  });
+
+  it("has the signed-in line and the lean tolerance band, in both languages", () => {
+    expect(tBiomech("zh", "biomech.sync.on")).toBe("● 已登录");
+    expect(tBiomech("en", "biomech.sync.on")).toBe("● Signed in");
+    expect(tBiomech("zh", "biomech.metric.leanHint")).toBe("NDP标准：< 48°（> 52° 判偏大）");
+    expect(tBiomech("en", "biomech.metric.leanHint")).toBe("NDP reference: under 48° (flagged above 52°)");
   });
 
   it("uses the English draft when the locale is English", () => {
@@ -198,7 +234,7 @@ describe("biomechanics page", () => {
     render(<AnalysisBiomechanicsPage />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Analysis · Biomechanics");
     expect(screen.getByRole("button", { name: "Choose a video first" }).hasAttribute("disabled")).toBe(true);
-    expect(screen.getByText(/Loading the engine/)).toBeTruthy();
+    expect(screen.getByText(/Not started/)).toBeTruthy();
   });
 
   it("closes Pose when the video is reset and when the page unmounts", async () => {
@@ -264,9 +300,23 @@ describe("biomechanics page", () => {
 
       await takeKeyframe();
       expect(screen.getByText("2 / 10")).toBeTruthy();
+      expect(screen.queryByText("已保存这次分析。")).toBeNull();
       expect(saveButton().disabled).toBe(false);
       await user.click(saveButton());
       await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2));
+    });
+
+    it("a failed save stays on screen when another frame is sampled (guard)", async () => {
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      state.save.mockRejectedValueOnce(new Error("cloud down"));
+      state.forcedAngles = { lean: 12, knee: 100 };
+      const { user, takeKeyframe } = await started();
+      await takeKeyframe();
+      await user.click(saveButton());
+      expect(await screen.findByText("云端保存失败。")).toBeTruthy();
+      await takeKeyframe();
+      expect(screen.getByText("云端保存失败。")).toBeTruthy();
+      log.mockRestore();
     });
 
     it("stays clickable when the save fails, and can be retried", async () => {
@@ -500,6 +550,22 @@ describe("sampling is refused before it changes anything", () => {
 
     await user.click(sampleButton()); // the refusal did not wedge the next sample
     expect(engine.send).toHaveBeenCalledTimes(2);
+  });
+
+
+  it("disables sampling at 10 frames and says so; nine frames stay usable", async () => {
+    state.forcedAngles = { lean: 12, knee: 100 };
+    const { takeKeyframe } = await started();
+    const sample = () => screen.getByRole("button", { name: "采样当前帧" }) as HTMLButtonElement;
+    for (let n = 0; n < 9; n += 1) await takeKeyframe();
+    expect(screen.getByText("9 / 10")).toBeTruthy();
+    expect(sample().disabled).toBe(false);
+    expect(screen.queryByText(/已达到采样上限/)).toBeNull();
+    await takeKeyframe();
+    expect(screen.getByText("10 / 10")).toBeTruthy();
+    expect(sample().disabled).toBe(true);
+    expect(screen.getByText(/已达到采样上限（10 帧）/)).toBeTruthy();
+    expect(tBiomech("en", "biomech.keyframes.full")).toBe("Sampling limit reached (10 frames)");
   });
 
   it("with the target locked, the engine ready and nothing in flight: one send, one keyframe", async () => {

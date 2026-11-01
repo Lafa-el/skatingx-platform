@@ -297,7 +297,7 @@ export async function deleteTrainingTask(
         refId: taskId,
       });
     }
-    if (wasAllCompleted && !stillAllCompleted && remaining.length >= 0) {
+    if (wasAllCompleted && !stillAllCompleted) {
       drafts.push({
         dateId: today,
         delta: -state.dailyBonusPoints,

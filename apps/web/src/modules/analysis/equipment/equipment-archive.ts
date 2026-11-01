@@ -11,6 +11,12 @@ export function equipmentArchiveKey(userId: string): string {
   return `${KEY_PREFIX}${userId}`;
 }
 
+function isStringRecord(value: unknown, keys: readonly string[]): value is Record<string, string> {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Record<string, unknown>;
+  return keys.every((key) => typeof row[key] === "string");
+}
+
 function isArchiveRecord(value: unknown): value is EquipmentHistoryRecord {
   if (typeof value !== "object" || value === null) return false;
   const record = value as EquipmentHistoryRecord;
@@ -19,7 +25,11 @@ function isArchiveRecord(value: unknown): value is EquipmentHistoryRecord {
     typeof record.createdAt === "string" &&
     typeof record.symptomKey === "string" &&
     symptomKeys.has(record.symptomKey) &&
-    record.athleteId === DEFAULT_ATHLETE_ID
+    record.athleteId === DEFAULT_ATHLETE_ID &&
+    isStringRecord(record.offsets, ["leftFront", "leftRear", "rightFront", "rightRear"]) &&
+    isStringRecord(record.bend, ["front", "middle", "rear"]) &&
+    Array.isArray(record.leftRocker) &&
+    Array.isArray(record.rightRocker)
   );
 }
 

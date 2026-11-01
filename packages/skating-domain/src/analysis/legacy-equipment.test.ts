@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildEquipmentChecklist, findInvalidEquipmentNumber, parseGaugeNumber } from "./legacy-equipment";
+import { analyzeLeftRightRocker, buildEquipmentChecklist, findInvalidEquipmentNumber, parseGaugeNumber } from "./legacy-equipment";
 
 const blankRocker = () => Object.fromEntries(Array.from({ length: 21 }, (_, index) => [String(index - 10), ""]));
 const blank = () => ({
@@ -112,3 +112,15 @@ describe("buildEquipmentChecklist: missingCore follows what parses", () => {
     expect(parseGaugeNumber("约12")).toBe(12);
   });
 });
+
+describe("analyzeLeftRightRocker reads ±9 and ±10", () => {
+  it("a 8-tick gap at ±9 or ±10 is a hint; the same gap at 0 still is", () => {
+    const gap = (point: number) =>
+      analyzeLeftRightRocker([{ point, value: "10" }], [{ point, value: "18" }]);
+    expect(gap(9).some((line) => line.includes("+9"))).toBe(true);
+    expect(gap(-10).some((line) => line.includes("-10"))).toBe(true);
+    expect(gap(0).some((line) => line.includes("0 点"))).toBe(true);
+    expect(gap(8).some((line) => line.includes("+8") || line.includes("8 点"))).toBe(true);
+  });
+});
+

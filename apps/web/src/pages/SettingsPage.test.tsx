@@ -33,7 +33,7 @@ const h = vi.hoisted(() => {
     update: vi.fn(),
     planLoading: false,
     planError: null as string | null,
-    profile: { data: { displayName: "Sample Skater" } as { displayName: string } | null, loading: false },
+    profile: { data: { displayName: "Sample Skater" } as { displayName: string } | null, loading: false, error: null as string | null },
     reload: vi.fn(),
     reset: vi.fn(),
     authClient: {} as object | null,
@@ -69,7 +69,7 @@ beforeEach(() => {
   h.settings = { language: "zh", isPro: false, parentPinEnabled: false, activeAthleteId: "lindsay" };
   h.planLoading = false;
   h.planError = null;
-  h.profile = { data: { displayName: "Sample Skater" }, loading: false };
+  h.profile = { data: { displayName: "Sample Skater" }, loading: false, error: null };
   h.reload = vi.fn();
   h.reset = vi.fn().mockResolvedValue(undefined);
   h.authClient = {};
@@ -286,6 +286,12 @@ describe("SettingsPage account", () => {
     renderSettings();
     expect(dd("匿名")).toBe("是");
     expect(dd("邮箱")).toBe("—");
+  });
+
+  it("the email line says it is loading, and does not show the empty dash while auth is loading", () => {
+    h.auth.loading = true;
+    renderSettings();
+    expect(dd("邮箱")).toBe("…");
   });
 
   it("English yes/no", () => {
@@ -722,7 +728,7 @@ describe("SettingsPage forgot password", () => {
 
 describe("SettingsPage athlete", () => {
   it("shows the current athlete name and id, and links to the read-only profile", () => {
-    h.profile = { data: { displayName: "Sample Skater" }, loading: false };
+    h.profile = { data: { displayName: "Sample Skater" }, loading: false, error: null };
     h.settings = { ...h.settings, activeAthleteId: "athlete-9" };
     renderSettings();
     expect(dd("姓名")).toBe("Sample Skater");
@@ -731,6 +737,36 @@ describe("SettingsPage athlete", () => {
     const link = screen.getByRole("link", { name: "运动员资料 ›" });
     expect(link.getAttribute("href")).toBe("/athlete");
     expect(link.textContent).not.toMatch(/编辑/);
+  });
+});
+
+describe("SettingsPage athlete: what is missing or failed", () => {
+  it("with no activeAthleteId saved, the id line shows the default athlete, not a dash", () => {
+    h.settings = { language: "zh", isPro: false, parentPinEnabled: false };
+    renderSettings();
+    expect(dd("运动员 ID")).toBe("lindsay");
+  });
+
+  it("an empty activeAthleteId is the default too", () => {
+    h.settings = { ...h.settings, activeAthleteId: "" };
+    renderSettings();
+    expect(dd("运动员 ID")).toBe("lindsay");
+  });
+
+  it("a failed profile read shows an error line, in both languages", () => {
+    h.profile = { data: null, loading: false, error: "denied" };
+    const view = renderSettings();
+    expect(screen.getByRole("alert").textContent).toContain("运动员资料读取失败");
+    view.unmount();
+    setEnglish();
+    renderSettings();
+    expect(screen.getByRole("alert").textContent).toContain("Athlete profile failed to load");
+  });
+
+  it("a profile that loaded shows no error line, and keeps the name (guard)", () => {
+    renderSettings();
+    expect(screen.queryByText("运动员资料读取失败")).toBeNull();
+    expect(dd("姓名")).toBe("Sample Skater");
   });
 });
 
@@ -777,6 +813,30 @@ describe("SettingsPage look (UI v1)", () => {
     const signOut = screen.getByRole("button", { name: "退出登录" });
     expect(signOut.className).toContain("text-status-danger");
     expect(signOut.className).not.toContain("brand-flame");
+  });
+});
+
+describe("SettingsPage parent PIN: when it cannot be read", () => {
+  it("a failed read says so instead of hiding the PIN area, in both languages", () => {
+    h.planError = "denied";
+    const view = renderSettings();
+    expect(screen.getByText("家长 PIN 加载失败，请稍后重试")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "设置家长 PIN" })).toBeNull();
+    view.unmount();
+    setEnglish();
+    renderSettings();
+    expect(screen.getByText("Parent PIN failed to load, please try again later")).toBeTruthy();
+  });
+
+  it("while it is loading nothing is drawn, and a readable one keeps its button (guard)", () => {
+    h.planLoading = true;
+    const view = renderSettings();
+    expect(screen.queryByText("家长 PIN 加载失败，请稍后重试")).toBeNull();
+    expect(screen.queryByRole("button", { name: "设置家长 PIN" })).toBeNull();
+    view.unmount();
+    h.planLoading = false;
+    renderSettings();
+    expect(screen.getByRole("button", { name: "设置家长 PIN" })).toBeTruthy();
   });
 });
 

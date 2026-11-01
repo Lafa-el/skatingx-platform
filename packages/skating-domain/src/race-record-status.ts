@@ -48,7 +48,10 @@ export type ResultSyncDerivation = {
   readonly unexpected: readonly { readonly resultId: string; readonly reason: RaceRecordSkipReason }[];
 };
 
-/** One stored `race_` entry as read from the records documents. Values are whatever was stored. */
+/**
+ * One stored `race_` entry as read from the records documents. Values are whatever was stored,
+ * except `recordDistanceId`, which the reader sets to the id of the document the entry sits in.
+ */
 export type StoredRaceEntry = Readonly<Record<string, unknown>>;
 
 const NOTHING: ResultSyncInfo = { status: null, confirmHint: false };
@@ -80,7 +83,8 @@ function planFor(
  * - A self row that is no longer on the race's roster shows "removed-from-race". The result
  *   itself stays in the list (history); it just does not count toward the records.
  * - `recorded` is the entries found in the active athlete's records, or null while they are not
- *   known. A row that would be recorded must not pass for "recorded" or "waiting" on a guess, and
+ *   known. An entry counts only when it sits in the document the sync would write it to
+ *   (`recordDistanceId`); a copy with equal values elsewhere is "waiting". A row that would be recorded must not pass for "recorded" or "waiting" on a guess, and
  *   the two ways of not knowing are told apart:
  *   - still loading (`recorded` null, `recordsReadFailed` false): the row shows nothing, since
  *     the answer is on its way;
@@ -141,8 +145,11 @@ export function deriveResultSyncInfo(input: {
       if (recordsReadFailed) {
         status = { kind: "unknown" };
       } else if (recorded !== null) {
+        // A copy with the same values in another distance's document is not the entry the sync keeps.
         status =
-          stored && raceEntryMatchesDesired(stored, desired)
+          stored &&
+          raceEntryMatchesDesired(stored, desired) &&
+          stored.recordDistanceId === desired.recordDistanceId
             ? { kind: "recorded", recordDistanceId: desired.recordDistanceId }
             : { kind: "waiting" };
       }

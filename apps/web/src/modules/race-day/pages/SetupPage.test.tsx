@@ -6,6 +6,7 @@ import { legacyColourClasses } from "@/test/legacyLook";
 import { hashParentPin } from "@/shared/parentPin";
 import { render, screen, userEvent, waitFor, within } from "@/test/dom";
 
+import { RaceRecordSyncContext } from "../hooks/raceRecordSyncState";
 import type { ListState } from "../hooks/useRaceDayData";
 import { SetupPage } from "./SetupPage";
 
@@ -134,6 +135,95 @@ beforeEach(() => {
 });
 
 const actions = () => h.actions as ReturnType<typeof makeActions>;
+
+describe("SetupPage after a delete", () => {
+  const PENDING = "纪录同步失败，已删比赛的成绩可能仍在纪录中";
+  const withSync = (failed: boolean, retry = vi.fn()) => (
+    <RaceRecordSyncContext.Provider value={{ failed, retry }}>
+      <SetupPage />
+    </RaceRecordSyncContext.Provider>
+  );
+  const deleteEvent = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getAllByRole("button", { name: /^删除/ })[0]!);
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+  };
+
+  it("an event delete that went through, with the records sync failed, says the results may linger and retries through the sync", async () => {
+    const retry = vi.fn();
+    const user = userEvent.setup();
+    render(withSync(true, retry));
+    expect(screen.queryByText(PENDING)).toBeNull(); // nothing deleted yet
+    await deleteEvent(user);
+    expect(await screen.findByText(PENDING)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "重试同步" }));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("the line goes once the sync is clean again", async () => {
+    const user = userEvent.setup();
+    const view = render(withSync(true));
+    await deleteEvent(user);
+    expect(await screen.findByText(PENDING)).toBeTruthy();
+    view.rerender(withSync(false));
+    expect(screen.queryByText(PENDING)).toBeNull();
+    expect(screen.queryByRole("button", { name: "重试同步" })).toBeNull();
+  });
+
+  it("a delete that went through with the sync healthy shows nothing (guard)", async () => {
+    const user = userEvent.setup();
+    render(withSync(false));
+    await deleteEvent(user);
+    await waitFor(() => {
+      expect(actions().deleteEvent).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText(PENDING)).toBeNull();
+  });
+
+  it("a delete that failed does not set it, even while the sync is failed", async () => {
+    actions().deleteEvent.mockRejectedValue(Object.assign(new Error("x"), { code: "unavailable" }));
+    const user = userEvent.setup();
+    render(withSync(true));
+    await deleteEvent(user);
+    await waitFor(() => {
+      expect(actions().deleteEvent).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText(PENDING)).toBeNull();
+  });
+
+  it("a failed sync with no delete in this visit shows nothing", () => {
+    render(withSync(true));
+    expect(screen.queryByText(PENDING)).toBeNull();
+  });
+
+  it("an athlete delete that went through counts too", async () => {
+    const user = userEvent.setup();
+    render(withSync(true));
+    await user.click(screen.getByRole("button", { name: /^删除 Lindsay/ }));
+    await user.click(screen.getByRole("button", { name: /确认删除 Lindsay/ }));
+    expect(await screen.findByText(PENDING)).toBeTruthy();
+  });
+
+  it("deleting the current event forgets the remembered id, and a failed delete keeps it", async () => {
+    window.localStorage.setItem("skatingx.raceDay.activeEventId", "buffalo-abc123");
+    actions().deleteEvent.mockRejectedValueOnce(Object.assign(new Error("x"), { code: "unavailable" }));
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    await deleteEvent(user);
+    await waitFor(() => {
+      expect(actions().deleteEvent).toHaveBeenCalledTimes(1);
+    });
+    expect(window.localStorage.getItem("skatingx.raceDay.activeEventId")).toBe("buffalo-abc123");
+
+    await user.click(screen.getAllByRole("button", { name: /^删除/ })[0]!);
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    await waitFor(() => {
+      expect(actions().deleteEvent).toHaveBeenCalledTimes(2);
+    });
+    await waitFor(() => {
+      expect(window.localStorage.getItem("skatingx.raceDay.activeEventId")).toBeNull();
+    });
+  });
+});
 
 describe("SetupPage states", () => {
   it("shows the heading and a preparing message until the user context is ready", () => {

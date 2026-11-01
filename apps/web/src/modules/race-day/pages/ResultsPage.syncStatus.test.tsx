@@ -164,7 +164,11 @@ function reconciledEntries(): ReadonlyArray<Record<string, unknown>> {
     canRemoveEntriesOf: plan.canRemoveEntriesOf,
     nowIso: "2026-10-30T12:00:00.000Z",
   });
-  return entries as ReadonlyArray<Record<string, unknown>>;
+  // As the reader hands them over: each entry marked with the document (distance) it sits in.
+  return (entries as ReadonlyArray<Record<string, unknown>>).map((entry) => ({
+    ...entry,
+    recordDistanceId: plan.desired.find((desired) => desired.entryId === entry.id)?.recordDistanceId,
+  }));
 }
 
 const lines = (container: HTMLElement) =>
@@ -195,6 +199,52 @@ beforeEach(() => {
     configurable: true,
   });
   vi.spyOn(console, "error").mockImplementation(() => undefined);
+});
+
+describe("result row sync status: lists that came from the local cache", () => {
+  const cached = <T,>(items: T[]): ListState<T> => ({ ...ready(items), fromCache: true });
+
+  it("a cached input list makes the row unknown, not recorded or waiting", () => {
+    setup({});
+    h.results = cached((h.results as ListState<RaceResult>).items);
+    const { container } = renderPage();
+    act(() => h.onData?.(reconciledEntries()));
+    expect(lines(container)).toEqual(["纪录读取失败，同步状态未知"]);
+    act(() => h.onData?.([]));
+    expect(lines(container)).toEqual(["纪录读取失败，同步状态未知"]);
+  });
+
+  it("each of the event, race and roster lists does the same", () => {
+    for (const key of ["events", "races", "roster"] as const) {
+      setup({});
+      if (key === "events") h.events = cached([buffalo]);
+      if (key === "races") h.races = cached([race()]);
+      if (key === "roster") h.roster = cached([me, ann]);
+      const view = renderPage();
+      act(() => h.onData?.(reconciledEntries()));
+      expect(lines(view.container)).toEqual(["纪录读取失败，同步状态未知"]);
+      view.unmount();
+      h.events = ready([buffalo]);
+    }
+  });
+
+  it("a server snapshot behaves as before: recorded, then waiting (guard)", () => {
+    setup({});
+    h.results = { ...ready((h.results as ListState<RaceResult>).items), fromCache: false };
+    const { container } = renderPage();
+    act(() => h.onData?.(reconciledEntries()));
+    expect(lines(container)).toEqual(["已记入纪录（500m）"]);
+    act(() => h.onData?.([]));
+    expect(lines(container)).toEqual(["等待同步"]);
+  });
+
+  it("a reason that does not depend on the records is still shown from a cached list", () => {
+    setup({ races: [race({ day: null })] });
+    h.races = cached((h.races as ListState<RaceEntry>).items);
+    const { container } = renderPage();
+    act(() => h.onData?.([]));
+    expect(lines(container)).toEqual(["未记入：缺少比赛日期"]);
+  });
 });
 
 describe("result row sync status: the five states", () => {

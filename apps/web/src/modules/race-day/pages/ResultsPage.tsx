@@ -67,6 +67,7 @@ export function ResultsPage() {
     roster: roster.items,
     results: results.items,
     refreshKey: statusAttempt,
+    inputsFromCache: [events, races, roster, results].some((list) => list.fromCache === true),
   });
   const recordSync = useRaceRecordSyncState();
   // One retry for both: restart the sync (a dead roster listener) and re-read the records.

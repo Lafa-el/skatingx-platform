@@ -28,7 +28,7 @@ ADR-001 其余内容不变：成绩仍然录入即 pending，确认仍是手动�
 - `isConfirmed(result)`，即 `result.verification === "verified"`；
 - `result.status === "finished"`，且 `result.timeSeconds` 是 `0 < t <= 1800` 的有限数。
 
-录入（`createRaceResult`）和编辑（`updateRaceResult`）写出的都是 pending，不进纪录。DNS / DNF / DQ 没有时间，不同步。
+录入（`createRaceResult`）和编辑（`updateRaceResult`）写出的都是 pending，不进纪录。DNS / DNF / DQ 没有时间，不同步。赛程、赛事或名单的编辑不把成绩打回 pending：成绩确认是进入纪录的唯一门。
 
 ### 2.2 同步对象
 

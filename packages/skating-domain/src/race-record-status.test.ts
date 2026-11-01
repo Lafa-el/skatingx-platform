@@ -78,6 +78,8 @@ const stored = (raceId: string, over: Record<string, unknown> = {}): [string, St
     timeSeconds: 48.123,
     note: `Buffalo · ${raceId.split("-")[0] ?? ""}`,
     source: "race",
+    // The document the entry sits in, which the reader sets: the record distance of this race.
+    recordDistanceId: raceId.startsWith("super") ? "1500m" : (raceId.split("-")[0] ?? ""),
     ...over,
   },
 ];
@@ -87,6 +89,18 @@ describe("deriveResultSyncInfo: confirmed own rows", () => {
   it("recorded, with the distance, when the entry is there and holds the same values", () => {
     const d = derive({ recorded: new Map([stored("500m-1")]) });
     expect(statusOf(d, "500m-1_lindsay")).toEqual({ kind: "recorded", recordDistanceId: "500m" });
+  });
+
+  it("waiting, not recorded, when the same values sit in another distance's document", () => {
+    const copy = derive({ recorded: new Map([stored("500m-1", { recordDistanceId: "1000m" })]) });
+    expect(statusOf(copy, "500m-1_lindsay")).toEqual({ kind: "waiting" });
+    const unmarked = derive({ recorded: new Map([stored("500m-1", { recordDistanceId: undefined })]) });
+    expect(statusOf(unmarked, "500m-1_lindsay")).toEqual({ kind: "waiting" });
+  });
+
+  it("recorded when the matching entry sits in the target document", () => {
+    const target = derive({ recorded: new Map([stored("500m-1", { recordDistanceId: "500m" })]) });
+    expect(statusOf(target, "500m-1_lindsay")).toEqual({ kind: "recorded", recordDistanceId: "500m" });
   });
 
   it("waiting when the entry is not there yet (offline, or just confirmed)", () => {
@@ -406,7 +420,7 @@ describe("deriveResultSyncInfo agrees with what reconcile writes", () => {
         canRemoveEntriesOf: plan.canRemoveEntriesOf,
         nowIso: NOW,
       });
-      for (const entry of out.entries as StoredRaceEntry[]) recorded.set(String(entry.id), entry);
+      for (const entry of out.entries as StoredRaceEntry[]) recorded.set(String(entry.id), { ...entry, recordDistanceId: distance });
     }
 
     const after = derive({ races, results, recorded });
@@ -425,7 +439,7 @@ describe("deriveResultSyncInfo agrees with what reconcile writes", () => {
       sources: { events: [{ event: EVENT, races: [race("500m-1", "500m")], roster: [me], results: first, complete: true }], eventsComplete: true, unknownEventIds: [] },
     });
     const written = reconcileRaceEntries({ existing: [], desired: plan1.desired, canRemoveEntriesOf: plan1.canRemoveEntriesOf, nowIso: NOW });
-    const recorded = new Map((written.entries as StoredRaceEntry[]).map((e) => [String(e.id), e]));
+    const recorded = new Map((written.entries as StoredRaceEntry[]).map((e) => [String(e.id), { ...e, recordDistanceId: "500m" }]));
 
     expect(statusOf(derive({ results: first, recorded }), "500m-1_lindsay")?.kind).toBe("recorded");
     // Edited and confirmed again at a faster time, offline: the stored entry is still the old one.

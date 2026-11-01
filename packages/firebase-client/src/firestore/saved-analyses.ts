@@ -66,17 +66,23 @@ function finiteNumber(value: unknown): number | null {
 function frameToSample(frame: unknown): PoseKeyframeSample | null {
   if (!frame || typeof frame !== "object") return null;
   const row = frame as Record<string, unknown>;
+  const timeSeconds = finiteNumber(row.timeSeconds);
+  if (timeSeconds === null) return null;
+  const support = row.supportLeg && typeof row.supportLeg === "object" ? (row.supportLeg as Record<string, unknown>) : null;
   return {
-    timeSeconds: finiteNumber(row.timeSeconds) ?? 0,
+    timeSeconds,
     readable: row.readable === true,
-    unreadableReason: null,
+    unreadableReason: typeof row.unreadableReason === "string" ? (row.unreadableReason as PoseKeyframeSample["unreadableReason"]) : null,
     kneeAngle: finiteNumber(row.kneeAngleDegrees),
     leanAngle: finiteNumber(row.leanAngleDegrees),
-    pelvisHeight: null,
-    recoveryRate: null,
-    supportSide: "unknown",
-    supportConfidence: null,
-    manual: false,
+    pelvisHeight: finiteNumber(row.pelvisHeightRatio),
+    recoveryRate: finiteNumber(row.recoveryRate),
+    supportSide:
+      support?.side === "left" || support?.side === "right" || support?.side === "unknown"
+        ? support.side
+        : "unknown",
+    supportConfidence: finiteNumber(support?.confidencePercent),
+    manual: support?.manual === true,
     issue: null,
   };
 }

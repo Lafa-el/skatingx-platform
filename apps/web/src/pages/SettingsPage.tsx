@@ -1,4 +1,5 @@
 import { getFirebaseAuth, requestPasswordResetEmail } from "@skatingx/firebase-client";
+import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { Button, Card, ErrorNotice, StatusTag } from "@skatingx/ui";
 import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
@@ -120,14 +121,14 @@ export function SettingsPage() {
   const t = (key: SettingsPageMessageKey, params?: Record<string, string | number>) =>
     tSettingsPage(locale, key, params);
   const { isPro, loading: planLoading, error: planError, settings } = useIsPro();
-  const { data: profile, loading: profileLoading } = useAthleteProfile();
+  const { data: profile, loading: profileLoading, error: profileError } = useAthleteProfile();
   const reloadSettings = useReloadUserSettings();
 
   const registered = firebaseReady && Boolean(user) && !isAnonymous && !loading;
   const activeAthleteId =
     typeof settings?.activeAthleteId === "string" && settings.activeAthleteId.length > 0
       ? settings.activeAthleteId
-      : null;
+      : DEFAULT_ATHLETE_ID;
 
   async function handleBindSubmit(event: FormEvent) {
     event.preventDefault();
@@ -249,7 +250,7 @@ export function SettingsPage() {
         ? t("settings.account.guest")
         : t("settings.account.registered");
 
-  const emailDisplay = user?.email ?? "—";
+  const emailDisplay = loading ? "…" : (user?.email ?? "—");
   const failureText = (failure: ResetFailure | null) =>
     failure?.kind === "auth" ? formatAuthError(failure.note, locale) : failure ? t(failure.key) : null;
   const resetFailureText = failureText(resetFailure);
@@ -391,9 +392,10 @@ export function SettingsPage() {
           </div>
           <div className="flex items-center justify-between gap-4">
             <dt className="text-brand-navy/70">{t("settings.athlete.id")}</dt>
-            <dd className="font-mono text-xs text-brand-navy">{planLoading ? "…" : (activeAthleteId ?? "—")}</dd>
+            <dd className="font-mono text-xs text-brand-navy">{planLoading ? "…" : activeAthleteId}</dd>
           </div>
         </dl>
+        {profileError ? <ErrorNotice className="mt-3">{t("settings.profile.loadFailed")}</ErrorNotice> : null}
         <div className="mt-3">
           <StatusTag tone="brand">{t("settings.athlete.current")}</StatusTag>
         </div>

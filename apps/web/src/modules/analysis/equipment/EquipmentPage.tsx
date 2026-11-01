@@ -351,6 +351,14 @@ export function EquipmentPage() {
     feedbackRating,
     adjustmentNotes,
   });
+  useEffect(() => {
+    if (
+      draftStale &&
+      (statusKey === "equipment.status.saved" || statusKey === "equipment.status.savedLocal")
+    ) {
+      setStatusKey("equipment.status.ready");
+    }
+  }, [draftStale, statusKey]);
 
   const generate = () => {
     // Before anything is built: text that is not a number must not reach the checklist, where it
@@ -469,7 +477,10 @@ export function EquipmentPage() {
       }
     }
     const storedInCloud = cloudHistory.some((record) => record.id === recordId);
-    if (!storedInCloud) return;
+    if (!storedInCloud) {
+      setComparison(null);
+      return;
+    }
     if (!uid) {
       setStatusError(true);
       setStatusKey("equipment.status.signedOut");
@@ -484,6 +495,7 @@ export function EquipmentPage() {
     try {
       await deleteEquipmentHistoryRecord(db, uid, athleteId, recordId);
       setCloudHistory((current) => current.filter((record) => record.id !== recordId));
+      setComparison(null);
     } catch (error) {
       logActionFailure("equipment", "delete", error);
       setStatusError(true);
@@ -533,9 +545,9 @@ export function EquipmentPage() {
             {SYMPTOMS.map((item) => (
               <Button
                 key={item.key}
-                variant={symptomKey === item.key && symptomText ? "brand" : "outline"}
+                variant={symptomKey === item.key ? "brand" : "outline"}
                 className="w-full"
-                aria-pressed={symptomKey === item.key && symptomText.length > 0}
+                aria-pressed={symptomKey === item.key}
                 onClick={() => {
                   setSymptomKey(item.key);
                   setSymptomText(tEquipment(locale, item.textKey));

@@ -1,5 +1,5 @@
 import type { RaceEntry, RaceRosterEntry } from "@skatingx/schema";
-import { sortRaceEntries } from "@skatingx/skating-domain";
+import { compareText, sortRaceEntries } from "@skatingx/skating-domain";
 
 import type { Locale } from "@/shared/i18n/translator";
 
@@ -14,7 +14,7 @@ export function pickSelfAthlete(roster: readonly RaceRosterEntry[]): {
   self: RaceRosterEntry | null;
   selfCount: number;
 } {
-  const selves = roster.filter((entry) => entry.isSelf).sort((a, b) => a.rosterId.localeCompare(b.rosterId));
+  const selves = roster.filter((entry) => entry.isSelf).sort((a, b) => compareText(a.rosterId, b.rosterId));
   return { self: selves[0] ?? null, selfCount: selves.length };
 }
 

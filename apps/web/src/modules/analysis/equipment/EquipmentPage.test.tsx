@@ -862,3 +862,81 @@ describe("numbers are checked before a checklist is generated", () => {
   });
 });
 
+describe("saved status, comparison, and symptom buttons", () => {
+  const record = (id: string, createdAt: string) =>
+    buildEquipmentHistoryRecord({
+      id,
+      ownerUserId: "user-1",
+      createdAt,
+      symptomKey: "slide",
+      symptomText: "弯道咬冰不足，弯中有向外侧滑的感觉。",
+      height: "",
+      weight: "40",
+      bladeLength: "",
+      leftRocker: [],
+      rightRocker: [],
+      offsets: { leftFront: "", leftRear: "", rightFront: "", rightRear: "" },
+      bend: { front: "", middle: "", rear: "" },
+      adjustmentType: "unchanged",
+      feedbackRating: "not-skated",
+      adjustmentNotes: "",
+      missingCore: false,
+      ruleHints: [],
+    });
+
+  it("a saved checklist goes back to ready when the form changes", async () => {
+    state.uid = "user-1";
+    state.db = {};
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByLabelText("运动员体重 (kg)"), "40");
+    await user.click(screen.getByRole("button", { name: "生成清单" }));
+    await user.click(screen.getByRole("button", { name: "保存记录" }));
+    await screen.findByText("已保存到云端器材档案。");
+    await user.type(screen.getByLabelText("运动员体重 (kg)"), "5");
+    expect(await screen.findByText("清单已生成，可以保存到历史档案。")).toBeTruthy();
+    expect(screen.queryByText("已保存到云端器材档案。")).toBeNull();
+  });
+
+  it("deleting a compared record clears the comparison", async () => {
+    window.confirm = () => true;
+    state.uid = "user-1";
+    state.db = {};
+    state.records = [record("equip-1", "2026-10-19T06:00:00.000Z"), record("equip-2", "2026-10-19T07:00:00.000Z")];
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "生成对比" }));
+    expect(screen.getByText("调整前后对比摘要")).toBeTruthy();
+    await user.click(screen.getAllByRole("button", { name: "删除记录" })[0]!);
+    await waitFor(() => expect(screen.queryByText("调整前后对比摘要")).toBeNull());
+  });
+
+  it("saving a new record leaves an existing comparison in place", async () => {
+    state.uid = "user-1";
+    state.db = {};
+    state.records = [record("equip-1", "2026-10-19T06:00:00.000Z"), record("equip-2", "2026-10-19T07:00:00.000Z")];
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "生成对比" }));
+    expect(screen.getByText("调整前后对比摘要")).toBeTruthy();
+    await user.type(screen.getByLabelText("运动员体重 (kg)"), "40");
+    await user.click(screen.getByRole("button", { name: "生成清单" }));
+    await user.click(screen.getByRole("button", { name: "保存记录" }));
+    await screen.findByText("已保存到云端器材档案。");
+    expect(screen.getByText("调整前后对比摘要")).toBeTruthy();
+  });
+
+  it("the chosen symptom stays pressed after its text is cleared, and follows a new choice", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const slide = screen.getByRole("button", { name: "弯道咬冰不足" });
+    const unstable = screen.getByRole("button", { name: "直道稳定性差" });
+    expect(slide.getAttribute("aria-pressed")).toBe("true");
+    await user.clear(screen.getByLabelText("主要反馈 / 症状记录"));
+    expect(slide.getAttribute("aria-pressed")).toBe("true");
+    await user.click(unstable);
+    expect(unstable.getAttribute("aria-pressed")).toBe("true");
+    expect(slide.getAttribute("aria-pressed")).toBe("false");
+  });
+});
+

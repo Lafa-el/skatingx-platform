@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AnalysisPacingPage } from "@/pages/analysis/AnalysisPacingPage";
+import { readNumber } from "./PacingPage";
 import { render, screen, userEvent, waitFor } from "@/test/dom";
 import { legacyColourClasses } from "@/test/legacyLook";
 
@@ -420,3 +421,21 @@ describe("pacing page", () => {
     });
   });
 });
+
+describe("readNumber rounds to three decimals, the way race-day times do", () => {
+  it("1.2345 becomes 1.235", () => {
+    expect(readNumber("1.2345")).toBe(1.235);
+  });
+
+  it("a m:ss.fff string is still NaN then 0, so generate keeps refusing it", async () => {
+    expect(readNumber("1:23.456")).toBe(0);
+    const user = userEvent.setup();
+    render(<AnalysisPacingPage />);
+    const boxes = screen.getAllByRole("textbox");
+    await user.clear(boxes[0]!);
+    await user.type(boxes[0]!, "1:23.456");
+    await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+    expect(screen.getByRole("alert").textContent).toBe("请输入完整且大于 0 的圈速数据后再生成曲线。");
+  });
+});
+

@@ -1,6 +1,8 @@
 import type { RaceEntry, RaceRosterEntry } from "@skatingx/schema";
 import { describe, expect, it, vi } from "vitest";
 
+import { ownRosterEntry, selfRosterEntry } from "@skatingx/skating-domain";
+
 import { formatSavedAt, pickSelfAthlete, raceNumberById } from "./summary";
 
 const prov = {
@@ -49,6 +51,16 @@ describe("pickSelfAthlete", () => {
     const { self, selfCount } = pickSelfAthlete([athlete("z", true), athlete("m", true)]);
     expect(self?.rosterId).toBe("m");
     expect(selfCount).toBe(2);
+  });
+
+  it("the three pickers choose the same winner: the self row with the smallest id by code units", () => {
+    const roster = [athlete("z", true), athlete("a", false), athlete("m", true), athlete("b", true)];
+    const picked = pickSelfAthlete(roster);
+    expect(picked).toEqual({ self: roster.find((row) => row.rosterId === "b"), selfCount: 3 });
+    expect(selfRosterEntry(roster)?.rosterId).toBe("b");
+    expect(ownRosterEntry(roster)?.rosterId).toBe("b");
+    expect(selfRosterEntry(roster)).toEqual(picked.self);
+    expect(ownRosterEntry(roster)).toEqual(picked.self);
   });
 });
 

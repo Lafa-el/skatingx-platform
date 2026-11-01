@@ -42,6 +42,7 @@ const zh = {
     "{title} 分段结构：{pattern}。总成绩 {total}s，比 Junior D 标杆{gapWord} {gap}s。主滑圈段前段均速 {early}s，后段均速 {late}s，后段衰减 {decay}%，标杆衰减 {benchmarkDecay}%。",
   "pace.report.slower": "慢",
   "pace.report.faster": "快",
+  "pace.report.even": "持平",
   "pace.advice.reinforce":
     " 建议下一阶段围绕 {focus}，加入分段追速、弯道姿态保持和短间歇乳酸耐受组合。",
   "pace.advice.steady":
@@ -123,6 +124,7 @@ const en: Record<PaceKey, string> = {
     "{title} split structure: {pattern}. Total {total}s, {gap}s {gapWord} than the Junior D benchmark. Early main-lap average {early}s, late average {late}s, late decay {decay}%, benchmark decay {benchmarkDecay}%.",
   "pace.report.slower": "slower",
   "pace.report.faster": "faster",
+  "pace.report.even": "Even",
   "pace.advice.reinforce":
     " Next, centre the block on {focus}: add split chasing, corner posture holds, and short-interval lactate work.",
   "pace.advice.steady":
