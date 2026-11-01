@@ -471,3 +471,181 @@ describe("equipment page", () => {
     expect(screen.getByText("本机浏览器档案")).toBeTruthy();
   });
 });
+
+describe("a form changed after the checklist was generated", () => {
+  const STALE = "表单已改动，当前清单是生成时的快照，请重新生成后再保存。";
+  const saveButton = () => screen.getByRole("button", { name: "保存记录" }) as HTMLButtonElement;
+  const weight = () => screen.getByLabelText("运动员体重 (kg)") as HTMLInputElement;
+  const generate = (user: ReturnType<typeof userEvent.setup>) =>
+    user.click(screen.getByRole("button", { name: "生成清单" }));
+  const rocker = (container: HTMLElement, side: "left" | "right", point: number) =>
+    container.querySelector(`[id="equip-rocker-${side}-${point}"]`) as HTMLInputElement;
+  const signedIn = () => {
+    state.uid = "user-1";
+    state.db = {};
+  };
+
+  it("no checklist yet: no stale notice", () => {
+    renderPage();
+    expect(screen.queryByText(STALE)).toBeNull();
+  });
+
+  it("changing the weight after generating disables saving, says why, and writes nothing", async () => {
+    signedIn();
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(weight(), "40");
+    await generate(user);
+    expect(screen.queryByText(STALE)).toBeNull();
+    expect(saveButton().disabled).toBe(false);
+
+    await user.type(weight(), "5");
+    expect(screen.getByText(STALE)).toBeTruthy();
+    expect(saveButton().disabled).toBe(true);
+    await user.click(saveButton());
+    expect(state.save).not.toHaveBeenCalled();
+  });
+
+  it("every kind of field counts: the record type, the feedback rating, the notes", async () => {
+    signedIn();
+    const user = userEvent.setup();
+    renderPage();
+    await generate(user);
+    expect(screen.queryByText(STALE)).toBeNull();
+
+    await user.selectOptions(screen.getByLabelText("本次记录类型"), "offset");
+    expect(screen.getByText(STALE)).toBeTruthy();
+    await user.selectOptions(screen.getByLabelText("本次记录类型"), "unchanged");
+    expect(screen.queryByText(STALE)).toBeNull();
+
+    await user.selectOptions(screen.getByLabelText("上冰反馈评级"), "clear-improvement");
+    expect(screen.getByText(STALE)).toBeTruthy();
+    await user.selectOptions(screen.getByLabelText("上冰反馈评级"), "not-skated");
+    expect(screen.queryByText(STALE)).toBeNull();
+
+    await user.type(screen.getByPlaceholderText(/记录具体调整或教练反馈/), "x");
+    expect(screen.getByText(STALE)).toBeTruthy();
+  });
+
+  it("changing it back clears the notice and frees saving, when nothing was saved yet", async () => {
+    signedIn();
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(weight(), "40");
+    await generate(user);
+    await user.type(weight(), "5");
+    expect(saveButton().disabled).toBe(true);
+
+    await user.type(weight(), "{Backspace}");
+    expect(screen.queryByText(STALE)).toBeNull();
+    expect(saveButton().disabled).toBe(false);
+    await user.click(saveButton());
+    await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1));
+  });
+
+  it("a trailing space is not a change: the comparison is made on trimmed text", async () => {
+    signedIn();
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(weight(), "40");
+    await generate(user);
+    await user.type(weight(), " ");
+    expect(weight().value).toBe("40 ");
+    expect(screen.queryByText(STALE)).toBeNull();
+    expect(saveButton().disabled).toBe(false);
+  });
+
+  it("a rocker reading counts, but touching an empty gauge point does not", async () => {
+    signedIn();
+    const user = userEvent.setup();
+    const view = renderPage();
+    await user.type(rocker(view.container, "left", 0), "12");
+    await generate(user);
+
+    await user.type(rocker(view.container, "left", -1), "   ");
+    expect(screen.queryByText(STALE)).toBeNull();
+    expect(saveButton().disabled).toBe(false);
+
+    await user.type(rocker(view.container, "left", 0), "5");
+    expect(screen.getByText(STALE)).toBeTruthy();
+    expect(saveButton().disabled).toBe(true);
+
+    await user.type(rocker(view.container, "left", 0), "{Backspace}");
+    expect(screen.queryByText(STALE)).toBeNull();
+
+    await user.type(rocker(view.container, "right", 3), "7");
+    expect(screen.getByText(STALE)).toBeTruthy();
+  });
+
+  it("after a failed save the form still cannot be saved once it changes", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    signedIn();
+    state.save.mockRejectedValue(new Error("cloud down"));
+    vi.spyOn(window.localStorage, "setItem").mockImplementation(() => {
+      throw new Error("quota");
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(weight(), "40");
+    await generate(user);
+    await user.click(saveButton());
+    expect((await screen.findByRole("alert")).textContent).toBe("保存没有完成，请再试一次。");
+    expect(saveButton().disabled).toBe(false);
+
+    await user.type(weight(), "5");
+    expect(screen.getByText(STALE)).toBeTruthy();
+    expect(saveButton().disabled).toBe(true);
+    await user.click(saveButton());
+    expect(state.save).toHaveBeenCalledTimes(1);
+  });
+
+  it("generating again after a change saves the new values, not the old snapshot", async () => {
+    signedIn();
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(weight(), "40");
+    await generate(user);
+    await user.type(weight(), "5");
+    expect(saveButton().disabled).toBe(true);
+
+    await generate(user);
+    expect(screen.queryByText(STALE)).toBeNull();
+    expect(saveButton().disabled).toBe(false);
+    await user.click(saveButton());
+    await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1));
+    expect((state.save.mock.calls[0]![1] as { weight: string }).weight).toBe("405");
+  });
+
+  it("a saved checklist stays locked after a change, and generating again is the way out", async () => {
+    signedIn();
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(weight(), "40");
+    await generate(user);
+    await user.click(saveButton());
+    await screen.findByText("已保存到云端器材档案。");
+    expect(saveButton().disabled).toBe(true);
+
+    await user.type(weight(), "5");
+    expect(screen.getByText(STALE)).toBeTruthy();
+    expect(saveButton().disabled).toBe(true);
+
+    await generate(user);
+    expect(saveButton().disabled).toBe(false);
+    // Back to the saved content, still the new draft object: that is a new record, as before.
+    await user.click(saveButton());
+    await waitFor(() => expect(state.save).toHaveBeenCalledTimes(2));
+  });
+
+  it("the notice is in English when the locale is English", async () => {
+    state.locale = "en";
+    signedIn();
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Build the checklist" }));
+    await user.type(screen.getByLabelText(/weight/i), "4");
+    expect(
+      screen.getByText("The form changed since this checklist was generated. Generate it again before saving."),
+    ).toBeTruthy();
+  });
+});
