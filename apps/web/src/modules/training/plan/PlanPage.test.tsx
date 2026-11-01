@@ -561,6 +561,42 @@ describe("plan suggestions", () => {
   });
 });
 
+describe("plan suggestions from an equipment record with no stored findings", () => {
+  const record = (over: Record<string, unknown>) => ({
+    id: "equip-old",
+    createdAt: "2026-10-20T12:00:00.000Z",
+    symptomKey: "slide",
+    ...over,
+  });
+
+  it("gives the review card from the recorded symptom", () => {
+    renderPage();
+    act(() => {
+      state.onEquipment?.([record({}) as never]);
+    });
+    expect(screen.getByRole("link", { name: "打开器材页" }).getAttribute("href")).toBe("/analysis/equipment");
+    expect(screen.getByText(/来自器材记录 equip-old/)).toBeTruthy();
+  });
+
+  it("gives nothing for a missing, unknown or non-string symptom key", () => {
+    renderPage();
+    for (const symptomKey of [undefined, "constructor", ["slide"], 5]) {
+      act(() => {
+        state.onEquipment?.([record({ symptomKey }) as never]);
+      });
+      expect(screen.queryByRole("link", { name: "打开器材页" })).toBeNull();
+    }
+  });
+
+  it("a record saved with findings behaves as before", () => {
+    renderPage();
+    act(() => {
+      state.onEquipment?.([record({ symptomKey: undefined, findings: [{ code: "equipment.symptom.slide" }] }) as never]);
+    });
+    expect(screen.getByRole("link", { name: "打开器材页" })).toBeTruthy();
+  });
+});
+
 describe("plan page: which athlete the equipment feedback is read for", () => {
   it("reads the equipment history of the athlete in settings", () => {
     state.settings = { activeAthleteId: "athlete-9" };

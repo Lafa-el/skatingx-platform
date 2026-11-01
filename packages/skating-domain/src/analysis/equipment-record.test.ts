@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildEquipmentHistoryRecord } from "./equipment-record";
+import { buildEquipmentHistoryRecord, equipmentSymptomCode, equipmentSymptomKeys } from "./equipment-record";
 
 describe("equipment history record", () => {
   it("keeps the athlete, the ISO time, and the contract provenance, and stores no video", () => {
@@ -36,5 +36,17 @@ describe("equipment history record", () => {
     expect(record.findings).toEqual([{ code: "equipment.symptom.boot-out", analysisId: "equip-1" }]);
     expect(JSON.stringify(record)).not.toContain("video");
     expect(Object.keys(record)).not.toContain("poseFrames");
+  });
+});
+
+describe("equipmentSymptomCode", () => {
+  it("gives the code a symptom is saved with, for every symptom key", () => {
+    for (const key of equipmentSymptomKeys) expect(equipmentSymptomCode(key)).toBe(`equipment.symptom.${key}`);
+  });
+
+  it("gives undefined for anything else, prototype chain names included", () => {
+    for (const key of ["", "nope", "Slide", "constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"]) {
+      expect(equipmentSymptomCode(key)).toBeUndefined();
+    }
   });
 });

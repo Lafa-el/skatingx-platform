@@ -161,6 +161,8 @@ export function PlanPage() {
               id: record.id,
               createdAt: record.createdAt,
               findings: record.findings ?? [],
+              // Stored data: only a string is a key (anything else would be coerced when looked up).
+              symptomKey: typeof record.symptomKey === "string" ? record.symptomKey : undefined,
             },
           ];
         });

@@ -93,6 +93,17 @@ const findingCode = {
   asymmetry: "equipment.symptom.asymmetry",
 } as const;
 
+/**
+ * The finding code a symptom key is saved with, or undefined for a key that is not one of the six.
+ * A stored key is outside input: an own-property test, so a name from the prototype chain
+ * (`constructor`, `toString`) is unknown, not a symptom.
+ */
+export function equipmentSymptomCode(key: string): string | undefined {
+  return Object.prototype.hasOwnProperty.call(findingCode, key)
+    ? findingCode[key as keyof typeof findingCode]
+    : undefined;
+}
+
 export function buildEquipmentHistoryRecord(input: {
   id: string;
   ownerUserId: string;

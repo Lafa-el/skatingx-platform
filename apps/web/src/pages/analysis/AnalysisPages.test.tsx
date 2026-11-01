@@ -212,6 +212,42 @@ describe("analysis hub: states", () => {
     expect(document.querySelector("#hub-biomech polyline, [data-testid='hub-biomech'] polyline")).toBeNull();
   });
 
+  describe("an equipment record whose findings were never stored", () => {
+    const old = (over: Record<string, unknown>) => ({
+      id: "eq-old",
+      createdAt: "2026-10-20T00:00:00.000Z",
+      symptomKey: "slide",
+      symptomText: "左弯发飘",
+      ...over,
+    });
+
+    it("still gives the review hero, from the recorded symptom", () => {
+      state.analysesMode = "ready";
+      state.equipmentMode = "ready";
+      state.equipment = [old({})];
+      render(renderHub());
+      expect(screen.getByTestId("hub-suggestion").getAttribute("data-status")).toBe("ready");
+      expect(screen.getByText("复查装备。这不会改本周计划。")).toBeTruthy();
+      expect(screen.getByRole("link", { name: "打开装备页" })).toBeTruthy();
+    });
+
+    it("gives no hero when the recorded symptom is not a known one", () => {
+      state.analysesMode = "ready";
+      state.equipmentMode = "ready";
+      state.equipment = [old({ symptomKey: "constructor" })];
+      render(renderHub());
+      expect(screen.queryByTestId("hub-suggestion")).toBeNull();
+    });
+
+    it("a record saved with findings behaves as before", () => {
+      state.analysesMode = "ready";
+      state.equipmentMode = "ready";
+      state.equipment = [old({ findings: [{ code: "equipment.symptom.slide" }] })];
+      render(renderHub());
+      expect(screen.getByText("复查装备。这不会改本周计划。")).toBeTruthy();
+    });
+  });
+
   describe("the no-readable-frames mark on biomechanics", () => {
     const BADGE = "无有效帧";
     const bio = (id: string, createdAt: string, readableFrames: number, avg: number | null) => ({
