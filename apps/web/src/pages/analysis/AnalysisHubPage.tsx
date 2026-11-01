@@ -217,10 +217,19 @@ function LaneError({ message, retryLabel, onRetry }: { message: string; retryLab
   );
 }
 
-function EmptyLane({ body, cta, to }: { body: string; cta: string; to: string }) {
+/**
+ * `note` is for an empty lane whose source had documents it could not read: "nothing to show" is then
+ * not the whole story. It is added to the usual text and link, which stay.
+ */
+function EmptyLane({ body, cta, to, note }: { body: string; cta: string; to: string; note?: string }) {
   return (
     <div className="grid gap-2">
       <p>{body}</p>
+      {note ? (
+        <p role="status" className="font-semibold">
+          {note}
+        </p>
+      ) : null}
       <Link to={to} className={CTA_CLASS}>
         {cta}
       </Link>
@@ -235,6 +244,9 @@ export function AnalysisHubPage() {
   const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
   const [analyses, setAnalyses] = useState<HubLane<HubAnalysisInput>>({ status: "loading" });
   const [equipment, setEquipment] = useState<HubLane<HubEquipmentInput>>({ status: "loading" });
+  // Documents of the latest snapshot that were left out whole. Only an empty lane reads it.
+  const [analysesDropped, setAnalysesDropped] = useState(0);
+  const [equipmentDropped, setEquipmentDropped] = useState(0);
   const [analysesAttempt, setAnalysesAttempt] = useState(0);
   const [equipmentAttempt, setEquipmentAttempt] = useState(0);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => readHiddenFeedback());
@@ -251,9 +263,13 @@ export function AnalysisHubPage() {
     return subscribeToSavedAnalyses(
       db,
       uid,
-      (rows) => setAnalyses({ status: "ready", records: rows.map(toAnalysis) }),
+      (rows, dropped) => {
+        setAnalysesDropped(dropped);
+        setAnalyses({ status: "ready", records: rows.map(toAnalysis) });
+      },
       (error) => {
         logActionFailure("analysis-hub", "read-analyses", error);
+        setAnalysesDropped(0);
         setAnalyses({ status: "error" });
       },
     );
@@ -271,12 +287,19 @@ export function AnalysisHubPage() {
       db,
       uid,
       athleteId,
-      (rows) => setEquipment({ status: "ready", records: rows.flatMap((row) => {
-        const mapped = toEquipment(row);
-        return mapped ? [mapped] : [];
-      }) }),
+      (rows, dropped) => {
+        setEquipmentDropped(dropped);
+        setEquipment({
+          status: "ready",
+          records: rows.flatMap((row) => {
+            const mapped = toEquipment(row);
+            return mapped ? [mapped] : [];
+          }),
+        });
+      },
       (error) => {
         logActionFailure("analysis-hub", "read-equipment", error);
+        setEquipmentDropped(0);
         setEquipment({ status: "error" });
       },
     );
@@ -331,9 +354,15 @@ export function AnalysisHubPage() {
               card={model.biomech}
               locale={locale}
               onRetry={retryAnalyses}
+              unreadable={analysesDropped > 0}
             />
-            <PaceCockpit card={model.pace} locale={locale} onRetry={retryAnalyses} />
-            <EquipmentCockpit card={model.equipment} locale={locale} onRetry={retryEquipment} />
+            <PaceCockpit card={model.pace} locale={locale} onRetry={retryAnalyses} unreadable={analysesDropped > 0} />
+            <EquipmentCockpit
+              card={model.equipment}
+              locale={locale}
+              onRetry={retryEquipment}
+              unreadable={equipmentDropped > 0}
+            />
           </section>
           <section className="grid gap-4 md:grid-cols-3">
             <ToolCard
@@ -452,7 +481,17 @@ function NoReadableFramesBadge({ locale }: { locale: Locale }) {
   return <StatusTag tone="pending">{tAnalysis(locale, "analysis.hub.badge.noReadableFrames")}</StatusTag>;
 }
 
-function AngleCockpit({ card, locale, onRetry }: { card: HubAngleCard; locale: Locale; onRetry: () => void }) {
+function AngleCockpit({
+  card,
+  locale,
+  onRetry,
+  unreadable,
+}: {
+  card: HubAngleCard;
+  locale: Locale;
+  onRetry: () => void;
+  unreadable: boolean;
+}) {
   return (
     <div data-testid="hub-biomech" data-status={card.status}>
       <Card variant="raised" title={tAnalysis(locale, "analysis.hub.cockpit.biomech")}>
@@ -469,6 +508,7 @@ function AngleCockpit({ card, locale, onRetry }: { card: HubAngleCard; locale: L
             body={tAnalysis(locale, "analysis.hub.empty.biomech")}
             cta={tAnalysis(locale, "analysis.hub.empty.cta.biomech")}
             to={TOOL_ROUTE.biomech}
+            note={unreadable ? tAnalysis(locale, "analysis.hub.partialUnreadable") : undefined}
           />
         ) : card.status === "single" ? (
           <div className="grid gap-3">
@@ -508,7 +548,17 @@ function AngleCockpit({ card, locale, onRetry }: { card: HubAngleCard; locale: L
   );
 }
 
-function PaceCockpit({ card, locale, onRetry }: { card: HubPaceCard; locale: Locale; onRetry: () => void }) {
+function PaceCockpit({
+  card,
+  locale,
+  onRetry,
+  unreadable,
+}: {
+  card: HubPaceCard;
+  locale: Locale;
+  onRetry: () => void;
+  unreadable: boolean;
+}) {
   return (
     <div data-testid="hub-pace" data-status={card.status}>
       <Card variant="raised" title={tAnalysis(locale, "analysis.hub.cockpit.pace")}>
@@ -525,6 +575,7 @@ function PaceCockpit({ card, locale, onRetry }: { card: HubPaceCard; locale: Loc
             body={tAnalysis(locale, "analysis.hub.empty.pace")}
             cta={tAnalysis(locale, "analysis.hub.empty.cta.pace")}
             to={TOOL_ROUTE.pace}
+            note={unreadable ? tAnalysis(locale, "analysis.hub.partialUnreadable") : undefined}
           />
         ) : (
           <div className="grid gap-3">
@@ -563,10 +614,12 @@ function EquipmentCockpit({
   card,
   locale,
   onRetry,
+  unreadable,
 }: {
   card: HubEquipmentCard;
   locale: Locale;
   onRetry: () => void;
+  unreadable: boolean;
 }) {
   return (
     <div data-testid="hub-equipment" data-status={card.status}>
@@ -584,6 +637,7 @@ function EquipmentCockpit({
             body={tAnalysis(locale, "analysis.hub.empty.equipment")}
             cta={tAnalysis(locale, "analysis.hub.empty.cta.equipment")}
             to={TOOL_ROUTE.equipment}
+            note={unreadable ? tAnalysis(locale, "analysis.hub.partialUnreadable") : undefined}
           />
         ) : (
           <div className="grid gap-1">
