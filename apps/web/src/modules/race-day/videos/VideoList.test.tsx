@@ -98,6 +98,52 @@ describe("VideoList", () => {
     expect(document.querySelectorAll('a[href^="http"], a[href^="javascript"]')).toHaveLength(0);
   });
 
+  describe("a record whose saved link was invalid (link dropped, flagged)", () => {
+    const flagged = (over: Partial<RaceVideoRef> = {}) =>
+      video({ videoId: "bad", label: "Bad link clip", externalUrl: null, externalUrlInvalid: true, ...over });
+
+    it("shows the invalid-link line and the rest of the record, and renders no link", () => {
+      setup([flagged({ storedWhere: "手机相册", note: "第三圈" })]);
+      expect(screen.getByText("保存的外链无效，已隐藏")).toBeTruthy();
+      expect(screen.getByText("Bad link clip")).toBeTruthy();
+      expect(screen.getByText("Ann · #7")).toBeTruthy();
+      expect(screen.getByText("存放位置：手机相册")).toBeTruthy();
+      expect(screen.getByText("第三圈")).toBeTruthy();
+      expect(document.querySelectorAll('a[target="_blank"]')).toHaveLength(0);
+      expect(document.querySelectorAll('a[href^="http"], a[href^="javascript"]')).toHaveLength(0);
+      expect(screen.queryByRole("link", { name: /^打开链接/ })).toBeNull();
+    });
+
+    it("shows no invalid-link line for a record that simply has no link, or has a good one", () => {
+      setup([video(), video({ videoId: "v2", externalUrl: "https://example.com/x" })]);
+      expect(screen.queryByText("保存的外链无效，已隐藏")).toBeNull();
+    });
+
+    it("has edit and a two-step delete, like any other record", async () => {
+      const { user, onEdit, onDelete } = setup([flagged()]);
+      await user.click(screen.getByRole("button", { name: /^编辑/ }));
+      expect(onEdit).toHaveBeenCalledTimes(1);
+      expect(onEdit.mock.calls[0]?.[0].video.videoId).toBe("bad");
+
+      await user.click(screen.getByRole("button", { name: /^删除/ }));
+      expect(onDelete).not.toHaveBeenCalled();
+      expect(screen.getByRole("alert").textContent).toContain("只删除记录");
+      await user.click(screen.getByRole("button", { name: /^确认删除/ }));
+      expect(onDelete).toHaveBeenCalledTimes(1);
+      expect(onDelete.mock.calls[0]?.[0].video.videoId).toBe("bad");
+    });
+
+    it("English locale", () => {
+      locale.current = "en";
+      try {
+        setup([flagged()]);
+        expect(screen.getByText("The saved link is invalid and is hidden")).toBeTruthy();
+      } finally {
+        locale.current = "zh"; // a failure here must not turn every later test English
+      }
+    });
+  });
+
   it("never renders a video player or file input", () => {
     setup([video({ externalUrl: "https://example.com/v.mp4" })]);
     expect(document.querySelector("video, audio, iframe, embed, object")).toBeNull();

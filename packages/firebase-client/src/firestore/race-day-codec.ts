@@ -353,15 +353,16 @@ export function parseRaceVideo(id: string, data: unknown): ParseResult<RaceVideo
   ) {
     return fail("video fields have the wrong shape");
   }
-  // A link is only ever followed by the user; one that is not a plain http(s) link is hidden
-  // rather than rendered as something clickable.
+  const base = { ...audit.value, videoId: id, raceId, rosterId, label, storedWhere, note };
+  // A link is only ever followed by the user, so one that is not a plain http(s) link is never
+  // rendered as something clickable. The record itself stays: the rules let such a link into the
+  // database (they only check the prefix), and failing the whole record would leave it with no way
+  // to be fixed or deleted. The link is dropped, not echoed, because it may carry a password; the
+  // flag is for display only and is never written back.
   if (externalUrl !== null && checkExternalUrl(externalUrl) !== "ok") {
-    return fail("externalUrl is not a plain http(s) link");
+    return { ok: true, value: { ...base, externalUrl: null, externalUrlInvalid: true } };
   }
-  return {
-    ok: true,
-    value: { ...audit.value, videoId: id, raceId, rosterId, label, externalUrl, storedWhere, note },
-  };
+  return { ok: true, value: { ...base, externalUrl } };
 }
 
 /**

@@ -62,6 +62,9 @@ export function VideoList({ eventId, groups, busy, onEdit, onDelete }: VideoList
                         </a>
                       </p>
                     ) : null}
+                    {video.externalUrlInvalid === true ? (
+                      <p className="mt-1 text-sm text-brand-navy/70">{t(locale, "raceDay.videos.item.invalidLink")}</p>
+                    ) : null}
                     {video.storedWhere ? (
                       <p className="mt-1 text-sm text-brand-navy/70">
                         {t(locale, "raceDay.videos.item.storedWhere", { where: video.storedWhere })}

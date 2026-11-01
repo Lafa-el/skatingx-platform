@@ -591,16 +591,57 @@ describe("race video: parse", () => {
   });
 
   it.each([
-    "javascript:alert(1)",
-    "data:text/html,x",
-    "ftp://example.com/clip",
-    "example.com/clip",
-    "https://user:pw@example.com/clip",
-    "https://example.com/a b",
-  ])("hides a record whose link is %s instead of showing something clickable", (externalUrl) => {
-    expect(reason(parseRaceVideo("clip-1", storedVideo({ externalUrl })))).toBe(
-      "externalUrl is not a plain http(s) link",
+    ["a link with a password", "https://user:SECRETPW@example.com/clip"],
+    ["a link with whitespace", "https://example.com/a b"],
+    ["a link with a newline", "https://example.com/a\nb"],
+    ["a javascript: link", "javascript:alert(1)"],
+    ["a data: link", "data:text/html,x"],
+    ["an ftp link", "ftp://example.com/clip"],
+    ["a link with no scheme", "example.com/clip"],
+  ])("keeps a record with %s, with the link dropped and flagged, and never carries the link", (_name, externalUrl) => {
+    const parsed = parseRaceVideo("clip-1", storedVideo({ externalUrl }));
+    expect(parsed).toMatchObject({
+      ok: true,
+      value: { videoId: "clip-1", label: "500m final", externalUrl: null, externalUrlInvalid: true },
+    });
+    // Neither the value nor any part of it (a password) survives anywhere in the result.
+    const text = JSON.stringify(parsed);
+    expect(text).not.toContain(externalUrl);
+    expect(text).not.toContain("SECRETPW");
+    // The rest of the record is untouched, so it can be shown, edited and deleted.
+    expect(parsed).toMatchObject({
+      ok: true,
+      value: { raceId: "race-1", rosterId: "sk-1", storedWhere: "Phone camera roll", note: "second corner" },
+    });
+  });
+
+  it("a plain http(s) link, or no link, carries no flag at all", () => {
+    for (const externalUrl of ["https://example.com/watch?v=abc", "http://example.com/x", null]) {
+      const parsed = parseRaceVideo("clip-1", storedVideo({ externalUrl }));
+      expect(parsed).toMatchObject({ ok: true, value: { externalUrl } });
+      expect(parsed.ok && "externalUrlInvalid" in parsed.value).toBe(false);
+    }
+  });
+
+  it("a bad link does not rescue a record that is wrong in another way", () => {
+    const bad = "https://user:SECRETPW@example.com/clip";
+    expect(reason(parseRaceVideo("clip-1", storedVideo({ externalUrl: bad, label: "" })))).toBe(
+      "video fields have the wrong shape",
     );
+    expect(reason(parseRaceVideo("clip-1", storedVideo({ externalUrl: bad, videoId: "other" })))).toBe(
+      "video fields have the wrong shape",
+    );
+    expect(reason(parseRaceVideo("clip-1", storedVideo({ externalUrl: bad, note: "n".repeat(1001) })))).toBe(
+      "video fields have the wrong shape",
+    );
+    expect(reason(parseRaceVideo("clip-1", storedVideo({ externalUrl: bad, schemaVersion: 2 })))).toBe(
+      "unsupported schemaVersion: 2",
+    );
+  });
+
+  it("the flag is never written: an encoded update carries only the editable fields", () => {
+    const data = encodeRaceVideoUpdate({ ...videoInput, externalUrl: null });
+    expect(keys(data)).toEqual(["externalUrl", "label", "note", "storedWhere", "updatedAt"]);
   });
 
   it("rejects a link over the length limit", () => {

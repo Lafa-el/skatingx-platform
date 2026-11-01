@@ -473,6 +473,56 @@ describe("VideosPage list, edit and delete", () => {
     });
   });
 
+  describe("a record whose saved link was invalid", () => {
+    const flagged = () => video({ label: "Bad link clip", externalUrl: null, externalUrlInvalid: true });
+
+    it("is listed with the invalid-link line, and does not count as an unreadable record", () => {
+      h.videos = ready([flagged()]);
+      renderPage();
+      expect(screen.getByText("Bad link clip")).toBeTruthy();
+      expect(screen.getByText("保存的外链无效，已隐藏")).toBeTruthy();
+      expect(screen.queryByText(/无法读取，已隐藏/)).toBeNull();
+    });
+
+    it("edit opens with an empty link, and saving a good link repairs the record", async () => {
+      h.videos = ready([flagged()]);
+      const user = renderPage();
+      await user.click(screen.getByRole("button", { name: /^编辑/ }));
+      const link = screen.getByLabelText("链接（可选）") as HTMLInputElement;
+      expect(link.value).toBe("");
+      await user.type(link, "https://example.com/fixed");
+      await user.click(screen.getByRole("button", { name: "保存视频记录" }));
+      await waitFor(() => {
+        expect(actions().updateVideo).toHaveBeenCalledTimes(1);
+      });
+      expect(actions().updateVideo).toHaveBeenCalledWith("buffalo-1", "v1", {
+        label: "Bad link clip",
+        externalUrl: "https://example.com/fixed",
+        storedWhere: null,
+        note: null,
+      });
+    });
+
+    it("a bad link typed in the repair is still refused by the normal check", async () => {
+      h.videos = ready([flagged()]);
+      const user = renderPage();
+      await user.click(screen.getByRole("button", { name: /^编辑/ }));
+      await user.type(screen.getByLabelText("链接（可选）"), "https://user:pw@example.com/x");
+      await user.click(screen.getByRole("button", { name: "保存视频记录" }));
+      expect(actions().updateVideo).not.toHaveBeenCalled();
+    });
+
+    it("can be deleted", async () => {
+      h.videos = ready([flagged()]);
+      const user = renderPage();
+      await user.click(screen.getByRole("button", { name: /^删除/ }));
+      await user.click(screen.getByRole("button", { name: /^确认删除/ }));
+      await waitFor(() => {
+        expect(actions().deleteVideo).toHaveBeenCalledWith("buffalo-1", "v1");
+      });
+    });
+  });
+
   it("cancelling an edit returns to the race and athlete choices without writing", async () => {
     h.videos = ready([video()]);
     const user = renderPage();
