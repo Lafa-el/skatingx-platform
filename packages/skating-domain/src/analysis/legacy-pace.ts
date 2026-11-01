@@ -61,6 +61,15 @@ export function calculatePacingAnalysis(
   splits: readonly number[],
   benchmark: readonly number[],
 ): PaceResult {
+  // Shape before values: `positive` is true for an empty list, and a list of the wrong length would
+  // put different segments side by side. Both would otherwise reach the arithmetic and give NaN.
+  const expected = pacingDistanceConfigs[distance].labels.length;
+  if (splits.length !== expected) {
+    return { ok: false, message: "请输入完整且大于 0 的圈速数据后再生成曲线。" };
+  }
+  if (benchmark.length !== expected) {
+    return { ok: false, message: "请先填写完整且大于 0 的 Junior D 标准，再生成曲线。" };
+  }
   if (!positive(splits)) {
     return { ok: false, message: "请输入完整且大于 0 的圈速数据后再生成曲线。" };
   }
