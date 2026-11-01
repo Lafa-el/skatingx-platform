@@ -381,8 +381,10 @@ export function BiomechanicsPage() {
       setModel("ready");
       return true;
     } catch (error) {
-      clearWarmupTimer();
+      // The round check comes first: by the time an older round throws, warmupTimerRef already holds
+      // the newer round's timer, and clearing it would leave that round without its timeout.
       if (run !== runRef.current) return false;
+      clearWarmupTimer();
       logActionFailure("biomechanics", "model", error);
       setModel("failed");
       return false;

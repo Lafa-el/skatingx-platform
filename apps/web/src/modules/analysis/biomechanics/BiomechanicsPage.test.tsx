@@ -146,10 +146,12 @@ async function started() {
 
 function deferred<T = void>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((done, fail) => {
     resolve = done;
+    reject = fail;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 function fakeEngine(send: () => Promise<void> | void = () => undefined) {
@@ -654,6 +656,38 @@ describe("a warmup from an older round never closes the newer engine", () => {
       expect(screen.getByText(/模型脚本加载失败/)).toBeTruthy();
       expect(screen.queryByText(/就绪并缓存在本地/)).toBeNull();
     });
+
+    it("an older round that throws after a retry began leaves the new round's own timeout in place", async () => {
+      const pending = await expiredWarmup();
+      // The retry is round two: its load never settles, so only its page timer can end it.
+      state.load.mockImplementationOnce(() => new Promise(() => undefined));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "重试" }));
+        await Promise.resolve();
+      });
+      expect(state.load).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText(/模型脚本加载失败/)).toBeNull();
+
+      await act(async () => {
+        pending.reject(new Error("older round failed"));
+        await pending.promise.catch(() => undefined);
+      });
+      expect(screen.queryByText(/模型脚本加载失败/)).toBeNull(); // the older round does not decide round two
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(screen.getByText(/模型脚本加载失败/)).toBeTruthy();
+    });
+  });
+
+  it("a load that throws in the current round still ends in failed, and is logged (guard)", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    state.load.mockImplementation(() => Promise.reject(new Error("load failed")));
+    await begin({ waitReady: false });
+    expect(await screen.findByText(/模型脚本加载失败/)).toBeTruthy();
+    expect(screen.queryByText(/就绪并缓存在本地/)).toBeNull();
+    expect(log).toHaveBeenCalled();
   });
 });
 
