@@ -256,6 +256,11 @@ export async function updateRaceEvent(
   const previousZone = await readStoredTimeZone(eventRef, eventId);
   if (previousZone !== null && value.timeZone !== null && previousZone !== value.timeZone) {
     const snapshot = await getDocs(raceDayRacesCollectionRef(ctx.db, ctx.userId, eventId));
+    // Window between this read and the commitInBatches below. A race edited in that gap
+    // keeps every other field, because the batch writes only scheduledAt and updatedAt.
+    // A concurrent edit of scheduledAt itself is overwritten by this stale recalculation.
+    // Accepted: one user, changing the zone is a rare deliberate action, and the window
+    // is tiny, so this stays outside a transaction.
     const races: RaceEntry[] = [];
     for (const docSnap of snapshot.docs) {
       // A race that does not parse is left untouched rather than guessed at.
