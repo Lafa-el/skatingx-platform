@@ -139,13 +139,14 @@ describe("TrainingHomePage: Chinese", () => {
     expect(card("学院").getByText(`参考阶段：${featured!.labelZh}（${featured!.ageRangeZh}）`)).toBeTruthy();
   });
 
-  it("the four shortcuts and their lines", () => {
+  it("the shortcuts and their lines", () => {
     renderPage();
     const link = (to: string) => document.querySelector(`a[href="${to}"].rounded-card`) as HTMLElement;
     expect(link("/training/tasks").textContent).toBe("任务添加并完成今天的清单");
     expect(link("/training/academy").textContent).toBe(`学院${stage.labelZh} · 陆地训练计划`);
     expect(link("/training/records").textContent).toBe("纪录各距离的个人最好成绩");
     expect(link("/training/shop").textContent).toBe("商店可用 120 积分");
+    expect(link("/training/journal").textContent).toBe("日记日历按月查看每天的日记和训练课");
   });
 
   it("the card links keep their destinations and say where they go", () => {
@@ -186,6 +187,7 @@ describe("TrainingHomePage: English", () => {
     expect(link("/training/academy").textContent).toBe(`Academy${stage.labelEn} · dryland plans`);
     expect(link("/training/records").textContent).toBe("RecordsPB times by distance");
     expect(link("/training/shop").textContent).toBe("Shop120 points available");
+    expect(link("/training/journal").textContent).toBe("Journal calendarDays and sessions by month");
   });
 
   it("English: one is singular (day, entry, point), zero is plural", () => {

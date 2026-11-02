@@ -250,6 +250,20 @@ export function raceDayVideoRef(
   return docFromPath(db, paths.raceDayVideo(userId, eventId, videoId));
 }
 
+export function journalDayRef(db: Firestore, userId: string, dayId: string): DocumentReference {
+  return docFromPath(db, paths.journalDay(userId, dayId));
+}
+
+export function journalDaysCollectionRef(db: Firestore, userId: string): CollectionReference {
+  const segments = pathToSegments(paths.journalDaysCollection(userId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
+export function journalSessionsCollectionRef(db: Firestore, userId: string): CollectionReference {
+  const segments = pathToSegments(paths.journalSessionsCollection(userId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
 export function raceDayVideosCollectionRef(
   db: Firestore,
   userId: string,
