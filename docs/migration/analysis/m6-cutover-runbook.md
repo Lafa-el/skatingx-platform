@@ -171,7 +171,11 @@ prod 计数：
 
 另外检查路径之外的孤儿文档，以及重复的文档路径。输出每一项 PASS 或 FAIL，FAIL 的整批列在后面。`--fail-on-diff` 在有 FAIL 时让进程退出码为 1。
 
-这版验证脚本还没有对 prod 跑。评审通过之前不要跑。
+## 切换后验证基线（2026-10-20）
+
+切换后对 prod 跑了 14 项验证：13 项 PASS，1 项 FAIL。FAIL 是复制计数 1422 vs 迁移基线 1363，差额已追溯为切换后现网自然增长（用户 215→222，+7），不是迁移错误，按非错误结案，不追查。
+
+这版验证脚本已于 2026-10-20 切换后对 prod 跑过（见上节基线）。
 
 ```bash
 export TARGET_GOOGLE_APPLICATION_CREDENTIALS="/path/to/skatingx-prod-writer.json"
