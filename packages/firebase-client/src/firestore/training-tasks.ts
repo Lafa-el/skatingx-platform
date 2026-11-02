@@ -22,7 +22,7 @@ import {
   taskHistoryRef,
   trainingStateRef,
 } from "./refs";
-import { recordPointsChange } from "./points-ledger";
+import { probeLedgerEmpty, recordPointsChange } from "./points-ledger";
 import {
   serializeTaskHistoryDay,
   serializeTrainingTask,
@@ -257,6 +257,7 @@ export async function deleteTrainingTask(
     ctx.athleteId,
   );
   const today = todayDateString();
+  const ledgerEmpty = await probeLedgerEmpty(ctx.db, ctx.userId, ctx.athleteId);
 
   await runTransaction(ctx.db, async (tx) => {
     const stateSnap = await tx.get(stateRef);
@@ -278,6 +279,7 @@ export async function deleteTrainingTask(
         gamification.points,
         [],
         today,
+        ledgerEmpty,
       );
       return;
     }
@@ -314,6 +316,7 @@ export async function deleteTrainingTask(
       gamification.points,
       drafts,
       today,
+      ledgerEmpty,
     );
     const streakDays = calculateStreakDays(completedDays, today);
 
@@ -348,6 +351,7 @@ export async function toggleTrainingTask(
   );
   const today = todayDateString();
   const nowIso = new Date().toISOString();
+  const ledgerEmpty = await probeLedgerEmpty(ctx.db, ctx.userId, ctx.athleteId);
 
   let bonusApplied = false;
   let bonusRemoved = false;
@@ -404,6 +408,7 @@ export async function toggleTrainingTask(
       gamification.points,
       drafts,
       today,
+      ledgerEmpty,
     );
 
     tx.update(

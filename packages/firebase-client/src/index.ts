@@ -97,7 +97,7 @@ export {
   subscribeToEquipmentHistory,
 } from "./firestore/equipment-history";
 export { updateUserSettings } from "./firestore/settings";
-export { ensurePointsOpeningBalance, recordPointsChange } from "./firestore/points-ledger";
+export { ensurePointsOpeningBalance, probeLedgerEmpty, recordPointsChange } from "./firestore/points-ledger";
 export {
   pointsLedgerRowFromDocument,
   readPointsLedgerMonth,

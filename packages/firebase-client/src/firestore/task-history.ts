@@ -10,7 +10,7 @@ import {
   type Firestore,
 } from "firebase/firestore";
 
-import { recordPointsChange } from "./points-ledger";
+import { probeLedgerEmpty, recordPointsChange } from "./points-ledger";
 import { athleteGamificationRef, taskHistoryCollectionRef, taskHistoryRef, trainingStateRef } from "./refs";
 import { toFirestoreData } from "./sanitize";
 
@@ -121,6 +121,7 @@ export async function deleteTaskHistoryDay(
   const stateRef = trainingStateRef(db, userId, athleteId);
   const gamificationRef = athleteGamificationRef(db, userId, athleteId);
   const today = todayDateString();
+  const ledgerEmpty = await probeLedgerEmpty(db, userId, athleteId);
 
   await runTransaction(db, async (tx) => {
     const historySnap = await tx.get(historyRef);
@@ -128,7 +129,7 @@ export async function deleteTaskHistoryDay(
     const gamificationSnap = await tx.get(gamificationRef);
     const gamification = gamificationFromHistory(gamificationSnap.data() as Gamification | undefined);
     if (!historySnap.exists()) {
-      await recordPointsChange(tx, db, userId, athleteId, gamification.points, [], today);
+      await recordPointsChange(tx, db, userId, athleteId, gamification.points, [], today, ledgerEmpty);
       return;
     }
     const state = normalizeTrainingState(stateSnap.data() as TrainingState | undefined);
@@ -147,6 +148,7 @@ export async function deleteTaskHistoryDay(
         ? []
         : [{ dateId, delta: -reclaim, reason: "history-delete", refId: dateId }],
       today,
+      ledgerEmpty,
     );
     const completedDays = fullAttendance
       ? gamification.completedDays.filter((dayId) => dayId !== dateId)
