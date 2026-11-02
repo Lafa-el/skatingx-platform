@@ -20,7 +20,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
-import { readHiddenFeedback, usePlanFocus, writeHiddenFeedback } from "@/modules/training/plan/plan-session";
+import { useHiddenFeedback, usePlanFocus } from "@/modules/training/plan/plan-session";
 import { tAnalysis, type AnalysisMessageKey } from "@/shared/i18n/analysis-messages";
 import { tEquipment, type EquipmentMessageKey } from "@/shared/i18n/equipment-messages";
 import { formatCalendarDate } from "@/shared/i18n/format";
@@ -275,7 +275,7 @@ export function AnalysisHubPage() {
   const [equipmentDropped, setEquipmentDropped] = useState(0);
   const [analysesAttempt, setAnalysesAttempt] = useState(0);
   const [equipmentAttempt, setEquipmentAttempt] = useState(0);
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => readHiddenFeedback());
+  const [hidden, setHidden] = useHiddenFeedback();
   const [focus, setFocus, focusStatus] = usePlanFocus();
 
   useEffect(() => {
@@ -347,7 +347,6 @@ export function AnalysisHubPage() {
     const next = new Set(hidden);
     next.add(trainingFeedbackKey(item));
     setHidden(next);
-    writeHiddenFeedback(next);
   };
 
   const model = buildHubModel({ analyses, equipment, hidden, currentFocus: focus });

@@ -139,6 +139,7 @@ afterEach(() => {
   state.onAnalyses = null;
   state.raceListeners = [];
   sessionStorage.clear();
+  window.localStorage.removeItem("skatingx.plan.feedback.hidden");
 });
 
 const renderPage = () =>
@@ -294,7 +295,7 @@ describe("adopting and hiding", () => {
     expect(raceRegion()).toBeNull();
   });
 
-  it("hiding keeps it away for this session, including after a reload, and writes no data", async () => {
+  it("hiding keeps it away for this week, including after a reload, and writes no data", async () => {
     const user = userEvent.setup({ advanceTimers: () => undefined });
     const view = renderPage();
     await deliver([raceEvent()]);
@@ -302,10 +303,13 @@ describe("adopting and hiding", () => {
     await user.click(within(raceRegion() as HTMLElement).getByRole("button", { name: "忽略" }));
 
     expect(raceRegion()).toBeNull();
-    expect(sessionStorage.getItem("skatingx.plan.feedback.hidden")).toBe(JSON.stringify(["set-focus:race:spring-open"]));
+    expect(JSON.parse(window.localStorage.getItem("skatingx.plan.feedback.hidden") ?? "null")).toEqual({
+      week: mondayOfWeek(todayDateString()),
+      hidden: ["set-focus:race:spring-open"],
+    });
     expect(state.setPlanFocus).not.toHaveBeenCalled();
 
-    // A reload in the same session: the page mounts again with the same sessionStorage.
+    // A remount reads the same local value, the way a restarted browser would.
     view.unmount();
     state.raceListeners = [];
     renderPage();
@@ -313,15 +317,16 @@ describe("adopting and hiding", () => {
     expect(raceRegion()).toBeNull();
   });
 
-  it("comes back in a new session", async () => {
-    const user = userEvent.setup({ advanceTimers: () => undefined });
-    const view = renderPage();
-    await deliver([raceEvent()]);
-    await user.click(within(raceRegion() as HTMLElement).getByRole("button", { name: "忽略" }));
-    view.unmount();
+  it("comes back when the stored hide belongs to an earlier week", async () => {
+    const [year, month, day] = mondayOfWeek(todayDateString()).split("-").map(Number);
+    const earlier = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
+    earlier.setDate(earlier.getDate() - 7);
+    const earlierWeek = `${earlier.getFullYear()}-${String(earlier.getMonth() + 1).padStart(2, "0")}-${String(earlier.getDate()).padStart(2, "0")}`;
+    window.localStorage.setItem(
+      "skatingx.plan.feedback.hidden",
+      JSON.stringify({ week: earlierWeek, hidden: ["set-focus:race:spring-open"] }),
+    );
 
-    sessionStorage.clear();
-    state.raceListeners = [];
     renderPage();
     await deliver([raceEvent()]);
     expect(raceRegion()).toBeTruthy();

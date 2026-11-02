@@ -38,7 +38,7 @@ import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 import { dayCopy } from "./plan-day-copy";
 import { dayEntries } from "./plan-day-entries";
-import { readHiddenFeedback, usePlanFocus, writeHiddenFeedback } from "./plan-session";
+import { useHiddenFeedback, usePlanFocus } from "./plan-session";
 
 const FOCUS_TITLE: Record<PlanFocus, PlanMessageKey> = {
   lean: "plan.focus.lean.title",
@@ -118,7 +118,7 @@ export function PlanPage() {
   const [focus, setFocus, focusStatus] = usePlanFocus();
   const [history, setHistory] = useState<HistoryRead | null>(null);
   const [sources, setSources] = useState<readonly FeedbackSource[]>([]);
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => readHiddenFeedback());
+  const [hidden, setHidden] = useHiddenFeedback();
   const [feedbackUnreadable, setFeedbackUnreadable] = useState(false);
   // Off (no listener at all) unless VITE_FEATURE_RACE_DAY is on.
   const raceEvents = useRaceWeekEvents();
@@ -231,7 +231,6 @@ export function PlanPage() {
     const next = new Set(hidden);
     next.add(trainingFeedbackKey(item));
     setHidden(next);
-    writeHiddenFeedback(next);
   };
 
   return (
