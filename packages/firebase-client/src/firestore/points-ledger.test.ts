@@ -273,12 +273,12 @@ describe("points ledger transactions", () => {
   });
 
   it("records a redemption as a negative event", async () => {
-    seedGame(200);
+    seedGame(1000);
     put(paths.trainingRewardsCatalog(userId, athleteId), createDefaultRewardsCatalog());
-    const added = await expectChange(() => redeemReward(actor, "reward_ice_cream", "冰淇淋奖励", 80));
+    const added = await expectChange(() => redeemReward(actor, "reward_ice_cream", "冰淇淋奖励", 400));
     const redeem = added.find((event) => event.reason === "reward-redeem");
-    expect(redeem).toMatchObject({ delta: -80, dateId: today });
-    expect(points()).toBe(120);
+    expect(redeem).toMatchObject({ delta: -400, dateId: today });
+    expect(points()).toBe(600);
     expect(store.has(paths.trainingRedemption(userId, athleteId, redeem?.refId ?? ""))).toBe(true);
   });
 

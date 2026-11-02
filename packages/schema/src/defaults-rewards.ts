@@ -10,7 +10,7 @@ export const DEFAULT_REWARD_ITEMS: Omit<RewardItem, "createdAt" | "updatedAt">[]
     descriptionZh: "完成训练后的小奖励",
     descriptionEn: "A sweet treat after training",
     icon: "🍦",
-    cost: 80,
+    cost: 400,
     isActive: true,
   },
   {
@@ -20,7 +20,7 @@ export const DEFAULT_REWARD_ITEMS: Omit<RewardItem, "createdAt" | "updatedAt">[]
     descriptionZh: "家庭电影时间",
     descriptionEn: "Family movie time",
     icon: "🎬",
-    cost: 120,
+    cost: 600,
     isActive: true,
   },
   {
@@ -28,7 +28,7 @@ export const DEFAULT_REWARD_ITEMS: Omit<RewardItem, "createdAt" | "updatedAt">[]
     nameZh: "滑冰装备贴纸",
     nameEn: "Skating gear sticker",
     icon: "🏷️",
-    cost: 150,
+    cost: 750,
     isActive: true,
   },
   {
@@ -38,7 +38,7 @@ export const DEFAULT_REWARD_ITEMS: Omit<RewardItem, "createdAt" | "updatedAt">[]
     descriptionZh: "挑选一顿喜欢的晚餐",
     descriptionEn: "Pick a favorite dinner",
     icon: "🍽️",
-    cost: 200,
+    cost: 1000,
     isActive: true,
   },
   {
@@ -48,7 +48,7 @@ export const DEFAULT_REWARD_ITEMS: Omit<RewardItem, "createdAt" | "updatedAt">[]
     descriptionZh: "额外休闲屏幕时间",
     descriptionEn: "Bonus recreational screen time",
     icon: "📱",
-    cost: 250,
+    cost: 1250,
     isActive: true,
   },
 ];
