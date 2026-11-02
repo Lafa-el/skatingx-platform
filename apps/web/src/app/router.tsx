@@ -35,6 +35,11 @@ const TrainingHistoryPage = lazy(() =>
     default: module.TrainingHistoryPage,
   })),
 );
+const JournalCalendarPage = lazy(() =>
+  import("@/modules/journal/JournalCalendarPage").then((module) => ({
+    default: module.JournalCalendarPage,
+  })),
+);
 import { AthletePage } from "@/pages/AthletePage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -78,6 +83,14 @@ export function AppRouter() {
         <Route path="academy" element={<TrainingAcademyPage />} />
         <Route path="records" element={<TrainingRecordsPage />} />
         <Route path="shop" element={<TrainingShopPage />} />
+        <Route
+          path="journal"
+          element={
+            <Suspense fallback={<div className="min-h-11" />}>
+              <JournalCalendarPage />
+            </Suspense>
+          }
+        />
       </Route>
 
       <Route path="/analysis" element={<AnalysisLayout />}>

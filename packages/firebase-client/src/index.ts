@@ -24,6 +24,9 @@ export {
   analysisRecordRef,
   equipmentHistoryCollectionRef,
   equipmentHistoryRecordRef,
+  journalDayRef,
+  journalDaysCollectionRef,
+  journalSessionsCollectionRef,
   settingsRef,
   taskHistoryCollectionRef,
   taskHistoryRef,
@@ -96,6 +99,20 @@ export {
   saveEquipmentHistoryRecord,
   subscribeToEquipmentHistory,
 } from "./firestore/equipment-history";
+export {
+  buildJournalDayWrite,
+  journalDayFromDocument,
+  journalSessionFromDocument,
+  saveJournalDay,
+  subscribeToJournal,
+  type JournalDayInput,
+  type JournalDayRecord,
+  type JournalDayWrite,
+  type JournalReflection,
+  type JournalSessionRecord,
+  type JournalSnapshot,
+  type JournalWriteFailure,
+} from "./firestore/journal";
 export { updateUserSettings } from "./firestore/settings";
 export { ensurePointsOpeningBalance, probeLedgerEmpty, recordPointsChange } from "./firestore/points-ledger";
 export {

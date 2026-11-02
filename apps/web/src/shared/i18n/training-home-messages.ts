@@ -46,6 +46,8 @@ const zh = {
   "trainingHome.shortcut.shop.title": "商店",
   "trainingHome.shortcut.shop.body.one": "可用 {count} 积分",
   "trainingHome.shortcut.shop.body.other": "可用 {count} 积分",
+  "trainingHome.shortcut.journal.title": "日记日历",
+  "trainingHome.shortcut.journal.body": "按月查看每天的日记和训练课",
 } as const;
 
 type TrainingHomeKey = keyof typeof zh;
@@ -89,6 +91,8 @@ const en: Record<TrainingHomeKey, string> = {
   "trainingHome.shortcut.shop.title": "Shop",
   "trainingHome.shortcut.shop.body.one": "{count} point available",
   "trainingHome.shortcut.shop.body.other": "{count} points available",
+  "trainingHome.shortcut.journal.title": "Journal calendar",
+  "trainingHome.shortcut.journal.body": "Days and sessions by month",
 };
 
 export type TrainingHomeMessageKey = TrainingHomeKey;
