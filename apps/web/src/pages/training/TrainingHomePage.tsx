@@ -200,6 +200,10 @@ export function TrainingHomePage() {
           <span className="font-semibold text-brand-navy">{t("trainingHome.shortcut.records.title")}</span>
           <p className="mt-1 text-sm text-brand-navy/80">{t("trainingHome.shortcut.records.body")}</p>
         </Link>
+        <Link to="/training/journal" className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card hover:bg-brand-ice focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy">
+          <span className="font-semibold text-brand-navy">{t("trainingHome.shortcut.journal.title")}</span>
+          <p className="mt-1 text-sm text-brand-navy/80">{t("trainingHome.shortcut.journal.body")}</p>
+        </Link>
         <Link to="/training/shop" className="rounded-card border border-brand-navy/10 bg-white p-4 shadow-card hover:bg-brand-ice focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy">
           <span className="font-semibold text-brand-navy">{t("trainingHome.shortcut.shop.title")}</span>
           <p className="mt-1 text-sm text-brand-navy/80">
