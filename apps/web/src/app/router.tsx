@@ -16,6 +16,11 @@ const AnalysisBiomechanicsPage = lazy(() =>
     default: module.AnalysisBiomechanicsPage,
   })),
 );
+const AnalysisBiomechDetailPage = lazy(() =>
+  import("@/pages/analysis/AnalysisBiomechDetailPage").then((module) => ({
+    default: module.AnalysisBiomechDetailPage,
+  })),
+);
 const AnalysisPacingPage = lazy(() =>
   import("@/pages/analysis/AnalysisPacingPage").then((module) => ({ default: module.AnalysisPacingPage })),
 );
@@ -89,6 +94,14 @@ export function AppRouter() {
           element={
             <Suspense fallback={<div className="min-h-11" />}>
               <AnalysisBiomechanicsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="biomechanics/:analysisId"
+          element={
+            <Suspense fallback={<div className="min-h-11" />}>
+              <AnalysisBiomechDetailPage />
             </Suspense>
           }
         />

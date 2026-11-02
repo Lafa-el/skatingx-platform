@@ -1,7 +1,7 @@
 import { aggregateKeyframes, type FeedbackSource, type PoseKeyframeSample } from "@skatingx/skating-domain";
-import { onSnapshot, orderBy, query, type Firestore, type Unsubscribe } from "firebase/firestore";
+import { getDoc, onSnapshot, orderBy, query, type Firestore, type Unsubscribe } from "firebase/firestore";
 
-import { analysesCollectionRef } from "./refs";
+import { analysesCollectionRef, analysisRecordRef } from "./refs";
 
 export type SavedPaceRating = "excellent" | "needs-work" | "moderate";
 export type SavedPaceDistance = "500" | "777" | "1000";
@@ -39,6 +39,25 @@ export type SavedAnalysisSource = FeedbackSource & {
     readonly benchmarkTotalSeconds: number | null;
     readonly trainingEmphasisRatio: string | null;
   } | null;
+};
+
+/** One stored pose frame, in the same shape the sampling tool saved. */
+export type SavedAnalysisFrame = {
+  readonly timeSeconds: number;
+  readonly kneeAngle: number | null;
+  readonly leanAngle: number | null;
+  /** Stored hip-mid y percent. The field name stays `pelvisHeightRatio` on the document. */
+  readonly pelvisHeight: number | null;
+  readonly supportSide: "left" | "right" | "unknown";
+  readonly supportConfidence: number | null;
+  readonly readable: boolean;
+  /** Stored reason text, when the frame was not readable. */
+  readonly unreadableReason: string | null;
+  readonly manual: boolean;
+};
+
+export type SavedAnalysisDetail = SavedAnalysisSource & {
+  readonly frames: readonly SavedAnalysisFrame[];
 };
 
 const PACE_RATINGS = new Set<SavedPaceRating>(["excellent", "needs-work", "moderate"]);
@@ -87,6 +106,27 @@ function frameToSample(frame: unknown): PoseKeyframeSample | null {
   };
 }
 
+function poseFramesOf(data: Record<string, unknown>): SavedAnalysisFrame[] {
+  if (!Array.isArray(data.poseFrames)) return [];
+  return data.poseFrames.flatMap((frame) => {
+    const sample = frameToSample(frame);
+    if (!sample) return [];
+    return [
+      {
+        timeSeconds: sample.timeSeconds,
+        kneeAngle: sample.kneeAngle,
+        leanAngle: sample.leanAngle,
+        pelvisHeight: sample.pelvisHeight,
+        supportSide: sample.supportSide,
+        supportConfidence: sample.supportConfidence,
+        readable: sample.readable,
+        unreadableReason: sample.unreadableReason,
+        manual: sample.manual,
+      },
+    ];
+  });
+}
+
 function biomechAverages(frames: unknown): NonNullable<SavedAnalysisSource["biomech"]> {
   const samples = Array.isArray(frames) ? frames.flatMap((frame) => {
     const sample = frameToSample(frame);
@@ -124,6 +164,24 @@ function paceDetail(pace: unknown): NonNullable<SavedAnalysisSource["pace"]> {
         ? row.trainingEmphasisRatio
         : null,
   };
+}
+
+/**
+ * One saved analysis, by id. Missing and malformed documents are both `null`.
+ * This reads that document only; it does not subscribe to the collection.
+ */
+export async function getSavedAnalysis(
+  db: Firestore,
+  userId: string,
+  id: string,
+): Promise<SavedAnalysisDetail | null> {
+  const snapshot = await getDoc(analysisRecordRef(db, userId, id));
+  if (!snapshot.exists()) return null;
+  const data = snapshot.data();
+  if (!data) return null;
+  const source = savedAnalysisFromDocument(snapshot.id, data);
+  if (!source) return null;
+  return { ...source, frames: poseFramesOf(data) };
 }
 
 /** Same query as before. Extra fields are read off the document that is already loaded. */

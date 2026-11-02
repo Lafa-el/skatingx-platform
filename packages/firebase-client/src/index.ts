@@ -84,7 +84,13 @@ export {
 } from "./firestore/race-record-sync";
 export { saveBiomechAnalysisRecord } from "./firestore/biomech-analysis";
 export { savePaceAnalysisRecord } from "./firestore/pace-analysis";
-export { subscribeToSavedAnalyses, type SavedAnalysisSource } from "./firestore/saved-analyses";
+export {
+  getSavedAnalysis,
+  subscribeToSavedAnalyses,
+  type SavedAnalysisDetail,
+  type SavedAnalysisFrame,
+  type SavedAnalysisSource,
+} from "./firestore/saved-analyses";
 export {
   deleteEquipmentHistoryRecord,
   saveEquipmentHistoryRecord,

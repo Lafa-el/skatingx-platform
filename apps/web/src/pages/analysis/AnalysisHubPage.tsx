@@ -47,6 +47,7 @@ const TOOL_ROUTE = {
   biomech: "/analysis/biomechanics",
   pace: "/analysis/pacing",
   equipment: "/analysis/equipment",
+  detail: (id: string) => `/analysis/biomechanics/${id}`,
 } as const;
 
 const RATING_KEY: Record<HubPaceRating, PaceMessageKey> = {
@@ -383,6 +384,11 @@ export function AnalysisHubPage() {
               locale={locale}
               onRetry={retryAnalyses}
               unreadable={analysesDropped > 0}
+              detailTo={
+                model.tools.biomech.status === "ready"
+                  ? TOOL_ROUTE.detail(model.tools.biomech.item.id)
+                  : null
+              }
             />
             <PaceCockpit card={model.pace} locale={locale} onRetry={retryAnalyses} unreadable={analysesDropped > 0} />
             <EquipmentCockpit
@@ -509,16 +515,26 @@ function NoReadableFramesBadge({ locale }: { locale: Locale }) {
   return <StatusTag tone="pending">{tAnalysis(locale, "analysis.hub.badge.noReadableFrames")}</StatusTag>;
 }
 
+function FrameDetailLink({ to, locale }: { to: string; locale: Locale }) {
+  return (
+    <Link to={to} className={CTA_CLASS}>
+      {tAnalysis(locale, "analysis.hub.detail.open")}
+    </Link>
+  );
+}
+
 function AngleCockpit({
   card,
   locale,
   onRetry,
   unreadable,
+  detailTo,
 }: {
   card: HubAngleCard;
   locale: Locale;
   onRetry: () => void;
   unreadable: boolean;
+  detailTo: string | null;
 }) {
   return (
     <div data-testid="hub-biomech" data-status={card.status}>
@@ -553,6 +569,7 @@ function AngleCockpit({
               delta={null}
               spark={[]}
             />
+            {detailTo ? <FrameDetailLink to={detailTo} locale={locale} /> : null}
           </div>
         ) : (
           <div className="grid gap-3">
@@ -569,6 +586,7 @@ function AngleCockpit({
               delta={metricDelta(card.knee, locale)}
               spark={card.knee.spark}
             />
+            {detailTo ? <FrameDetailLink to={detailTo} locale={locale} /> : null}
           </div>
         )}
       </Card>
@@ -751,7 +769,7 @@ function RecentList({ recent, locale }: { recent: ReturnType<typeof buildHubMode
           ) : null}
           <ul className="grid gap-2">
             {recent.items.map((item) => (
-              <li key={`${item.kind}:${item.id}`}>
+              <li key={`${item.kind}:${item.id}`} className="grid gap-1">
                 <Link
                   to={TOOL_ROUTE[item.kind]}
                   className="flex min-h-11 flex-wrap items-center justify-between gap-3 rounded-card border border-brand-navy/10 bg-white p-3"
@@ -761,6 +779,7 @@ function RecentList({ recent, locale }: { recent: ReturnType<typeof buildHubMode
                   <span className="sx-numeric text-lg text-brand-flame">{headline(item, locale)}</span>
                   {item.kind === "biomech" && item.noReadableFrames ? <NoReadableFramesBadge locale={locale} /> : null}
                 </Link>
+                {item.kind === "biomech" ? <FrameDetailLink to={TOOL_ROUTE.detail(item.id)} locale={locale} /> : null}
               </li>
             ))}
           </ul>

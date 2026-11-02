@@ -1,7 +1,17 @@
 import { aggregateKeyframes } from "@skatingx/skating-domain";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { savedAnalysisFromDocument } from "./saved-analyses";
+import { getSavedAnalysis, savedAnalysisFromDocument } from "./saved-analyses";
+
+const firestoreMock = vi.hoisted(() => ({
+  getDoc: vi.fn(),
+  doc: vi.fn((_db: unknown, ...segments: string[]) => ({ path: segments.join("/") })),
+}));
+
+vi.mock("firebase/firestore", async () => {
+  const actual = await vi.importActual<typeof import("firebase/firestore")>("firebase/firestore");
+  return { ...actual, getDoc: firestoreMock.getDoc, doc: firestoreMock.doc };
+});
 
 describe("savedAnalysisFromDocument", () => {
   it("averages readable biomechanics frames and ignores an unreadable one", () => {
@@ -222,4 +232,78 @@ describe("savedAnalysisFromDocument", () => {
     });
     expect(source?.biomech).toEqual({ avgKnee: 100, avgLean: 40, readableFrames: 1 });
   });
+
+describe("getSavedAnalysis", () => {
+  const db = {} as never;
+
+  it("returns the document's frames, and drops a frame whose time is not finite", async () => {
+    firestoreMock.getDoc.mockResolvedValue({
+      id: "bio-1",
+      exists: () => true,
+      data: () => ({
+        id: "bio-1",
+        createdAt: "2026-10-18T00:00:00.000Z",
+        findings: [{ code: "biomech.knee.high" }],
+        poseFrames: [
+          {
+            timeSeconds: 1.2,
+            readable: true,
+            kneeAngleDegrees: 100,
+            leanAngleDegrees: 40,
+            pelvisHeightRatio: 42.5,
+            supportLeg: { side: "left", confidencePercent: 80, manual: true },
+          },
+          {
+            timeSeconds: 2,
+            readable: false,
+            unreadableReason: "occlusion-or-jump",
+            supportLeg: { side: "unknown", confidencePercent: 10, manual: false },
+          },
+          { readable: true, kneeAngleDegrees: 200 },
+        ],
+      }),
+    });
+    const detail = await getSavedAnalysis(db, "user-1", "bio-1");
+    expect(firestoreMock.getDoc.mock.calls[0]?.[0]).toMatchObject({ path: expect.stringContaining("users/user-1/analyses/bio-1") });
+    expect(detail?.biomech).toEqual({ avgKnee: 100, avgLean: 40, readableFrames: 1 });
+    expect(detail?.frames).toEqual([
+      {
+        timeSeconds: 1.2,
+        kneeAngle: 100,
+        leanAngle: 40,
+        pelvisHeight: 42.5,
+        supportSide: "left",
+        supportConfidence: 80,
+        readable: true,
+        unreadableReason: null,
+        manual: true,
+      },
+      {
+        timeSeconds: 2,
+        kneeAngle: null,
+        leanAngle: null,
+        pelvisHeight: null,
+        supportSide: "unknown",
+        supportConfidence: 10,
+        readable: false,
+        unreadableReason: "occlusion-or-jump",
+        manual: false,
+      },
+    ]);
+  });
+
+  it("returns null when the document is missing", async () => {
+    firestoreMock.getDoc.mockResolvedValue({ id: "gone", exists: () => false, data: () => undefined });
+    expect(await getSavedAnalysis(db, "user-1", "gone")).toBeNull();
+  });
+
+  it("returns null when the document is malformed", async () => {
+    firestoreMock.getDoc.mockResolvedValue({
+      id: "bad",
+      exists: () => true,
+      data: () => ({ poseFrames: [{ timeSeconds: 1, readable: true }] }),
+    });
+    expect(await getSavedAnalysis(db, "user-1", "bad")).toBeNull();
+  });
+});
 

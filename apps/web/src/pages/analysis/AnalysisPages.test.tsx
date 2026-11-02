@@ -891,3 +891,44 @@ describe("analysis hub: unparseable dates stay out, and unknown symptoms use the
     expect(empty.container.querySelector("[data-testid='hub-equipment']")?.textContent).not.toContain("其它反馈");
   });
 });
+
+describe("analysis hub: a biomechanics record can open its frames", () => {
+  it("links the biomechanics card and the biomechanics row, and not pace or equipment", () => {
+    state.analysesMode = "ready";
+    state.equipmentMode = "ready";
+    state.analyses = [
+      {
+        kind: "biomech",
+        id: "b1",
+        createdAt: "2026-10-18T00:00:00.000Z",
+        findings: [],
+        biomech: { avgKnee: 108, avgLean: 42, readableFrames: 2 },
+        pace: null,
+      },
+      {
+        kind: "pace",
+        id: "p1",
+        createdAt: "2026-10-17T00:00:00.000Z",
+        findings: [],
+        biomech: null,
+        pace: { decayPercent: 4, rating: "moderate", stabilityIndexPercent: 70 },
+      },
+    ];
+    state.equipment = [
+      { id: "eq-1", createdAt: "2026-10-16T00:00:00.000Z", symptomKey: "slide", symptomText: "左脚打滑", findings: [] },
+    ];
+    render(renderHub());
+    const links = screen.getAllByRole("link", { name: "查看逐帧" });
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/analysis/biomechanics/b1",
+      "/analysis/biomechanics/b1",
+    ]);
+    const rows = [...screen.getByTestId("hub-recent").querySelectorAll("li")];
+    const pace = rows.find((row) => row.textContent?.includes("配速"));
+    const equipment = rows.find((row) => row.textContent?.includes("装备"));
+    expect(pace?.textContent).not.toContain("查看逐帧");
+    expect(equipment?.textContent).not.toContain("查看逐帧");
+    expect(screen.getByTestId("hub-pace").textContent).not.toContain("查看逐帧");
+    expect(screen.getByTestId("hub-equipment").textContent).not.toContain("查看逐帧");
+  });
+});
