@@ -80,7 +80,9 @@ export function buildBiomechAnalysisRecord(input: {
   const findings: BiomechAnalysisRecord["findings"][number][] = [];
   if (aggregate.highKnee > 0) findings.push({ code: "biomech.knee.high", analysisId: input.id });
   if (aggregate.highLean > 0) findings.push({ code: "biomech.lean.high", analysisId: input.id });
-  if (input.samples.some((sample) => sample.readable && (sample.pelvisHeight ?? 0) > 62)) {
+  // Same mirrored gate as classifyPoseIssue: y downward, smaller percent is
+  // higher off the ice. Missing pelvisHeight is not high. <38 mirrors legacy >62.
+  if (input.samples.some((sample) => sample.readable && sample.pelvisHeight !== null && sample.pelvisHeight < 38)) {
     findings.push({ code: "biomech.pelvis.high", analysisId: input.id });
   }
   if (input.samples.some((sample) => !sample.readable)) {

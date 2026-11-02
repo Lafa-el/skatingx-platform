@@ -179,7 +179,10 @@ export function classifyPoseIssue(metrics: {
   const issues: string[] = [];
   if (metrics.kneeAngle > 115) issues.push("支撑膝角度偏大");
   if (metrics.leanAngle > 52) issues.push("身体倾角偏大");
-  if (metrics.pelvisHeight > 62) issues.push("骨盆高度偏高");
+  // Hip-mid y percent: y grows downward, so a larger value is closer to the ice.
+  // <38 is the mirror of the legacy >62 gate. Magnitude is inherited from
+  // legacy and depends on framing; real footage can recalibrate it later.
+  if (metrics.pelvisHeight < 38) issues.push("骨盆高度偏高");
   if (!issues.length) issues.push("姿态可接受");
   return issues.join(" / ");
 }
@@ -272,6 +275,9 @@ export function pelvisHeightPercent(landmarks: readonly (PlanePoint | null)[]): 
   const lHip = landmarks[23];
   const rHip = landmarks[24];
   if (!lHip || !rHip) return null;
+  // MediaPipe y grows downward. This is hip-mid y as a percent of the frame,
+  // not height off the ice: a larger value is closer to the ground. The stored
+  // field stays pelvisHeightRatio so old records remain readable.
   return (((lHip.y + rHip.y) / 2) * 100).toFixed(1);
 }
 
