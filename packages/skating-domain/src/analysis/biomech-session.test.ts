@@ -9,6 +9,7 @@ import {
   MAX_POSE_KEYFRAMES,
   poseSendSize,
   samplePoseFrame,
+  type PoseKeyframeSample,
 } from "./biomech-session";
 
 const readablePoints = {
@@ -108,6 +109,55 @@ describe("biomechanics sampling", () => {
     expect(record.poseFrames[0]?.timeSeconds).toBe(4.5);
     expect(record.poseFrames[0]?.readable).toBe(sample.readable);
     expect(record).not.toHaveProperty("pace");
+  });
+});
+
+function frame(timeSeconds: number, kneeAngle: number): PoseKeyframeSample {
+  return {
+    timeSeconds,
+    readable: true,
+    unreadableReason: null,
+    kneeAngle,
+    leanAngle: 10,
+    pelvisHeight: 50,
+    recoveryRate: 1,
+    supportSide: "left",
+    supportConfidence: 90,
+    manual: false,
+    issue: null,
+  };
+}
+
+describe("appendKeyframe", () => {
+  it("replaces a sample at the same time without moving it or growing the list", () => {
+    const first = frame(1, 40);
+    const middle = frame(2, 50);
+    const last = frame(3, 60);
+    const samples = [first, middle, last];
+    const replacement = frame(2, 70);
+    const next = appendKeyframe(samples, replacement);
+    expect(next).toHaveLength(3);
+    expect(next.map((sample) => sample.timeSeconds)).toEqual([1, 2, 3]);
+    expect(next[0]).toBe(first);
+    expect(next[1]).toEqual(replacement);
+    expect(next[1]?.kneeAngle).toBe(70);
+    expect(next[2]).toBe(last);
+  });
+
+  it("appends a sample at a new time", () => {
+    const first = frame(1, 40);
+    const second = frame(2, 50);
+    expect(appendKeyframe([first], second)).toEqual([first, second]);
+  });
+
+  it("replaces inside a full list and does not drop the earliest frame", () => {
+    const frames = Array.from({ length: MAX_POSE_KEYFRAMES }, (_, index) => frame(index, index));
+    const replacement = frame(3, 99);
+    const next = appendKeyframe(frames, replacement);
+    expect(next).toHaveLength(MAX_POSE_KEYFRAMES);
+    expect(next.map((sample) => sample.timeSeconds)).toEqual(frames.map((sample) => sample.timeSeconds));
+    expect(next[0]).toBe(frames[0]);
+    expect(next[3]?.kneeAngle).toBe(99);
   });
 });
 

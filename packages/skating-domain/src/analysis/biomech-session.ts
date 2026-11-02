@@ -230,10 +230,28 @@ function manualKnee(
   return { kneeAngle: calculateAngle(hip, knee, ankle), readable: true, side: mode, confidence: Math.min(99, Math.round(visibility * 100)) };
 }
 
+/**
+ * A keyframe is one moment in the video. Two samples with the same timeSeconds
+ * are a repeated tap, or a correction after the support leg or a manual mark
+ * changed. Both should replace the earlier sample. currentTime stays put while
+ * the video is paused, so === is enough.
+ *
+ * A new moment is appended. Past the cap the oldest moment is dropped. A
+ * replacement does not grow the list, so it never triggers that drop. The
+ * sample button stays disabled at 10/10, so a replacement is only reachable
+ * below the cap. That limit stays; it is not opened just so a full list can
+ * be corrected.
+ */
 export function appendKeyframe(
   samples: readonly PoseKeyframeSample[],
   sample: PoseKeyframeSample,
 ): readonly PoseKeyframeSample[] {
+  const index = samples.findIndex((existing) => existing.timeSeconds === sample.timeSeconds);
+  if (index >= 0) {
+    const next = [...samples];
+    next[index] = sample;
+    return next;
+  }
   const next = [...samples, sample];
   return next.length > MAX_POSE_KEYFRAMES ? next.slice(next.length - MAX_POSE_KEYFRAMES) : next;
 }
