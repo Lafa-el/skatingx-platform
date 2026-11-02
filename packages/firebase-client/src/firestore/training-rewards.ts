@@ -18,7 +18,7 @@ import {
   trainingRedemptionRef,
   trainingRewardsCatalogRef,
 } from "./refs";
-import { recordPointsChange } from "./points-ledger";
+import { probeLedgerEmpty, recordPointsChange } from "./points-ledger";
 import { toFirestoreData } from "./sanitize";
 
 export type RewardsActorContext = {
@@ -81,6 +81,7 @@ export async function redeemReward(
   );
   const nowIso = new Date().toISOString();
   const today = todayDateString();
+  const ledgerEmpty = await probeLedgerEmpty(ctx.db, ctx.userId, ctx.athleteId);
 
   return runTransaction(ctx.db, async (tx) => {
     const catalogSnap = await tx.get(catalogRef);
@@ -112,6 +113,7 @@ export async function redeemReward(
       balance,
       [{ dateId: today, delta: -cost, reason: "reward-redeem", refId: redemptionId }],
       today,
+      ledgerEmpty,
     );
     const redemption: RewardRedemption = {
       id: redemptionId,

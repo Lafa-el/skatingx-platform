@@ -1,4 +1,5 @@
 import { createDefaultRewardsCatalog, paths } from "@skatingx/schema";
+import { runTransaction } from "firebase/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const store = vi.hoisted(() => new Map<string, Record<string, unknown>>());
@@ -44,7 +45,10 @@ const firestore = vi.hoisted(() => {
     documentId: () => "documentId",
     onSnapshot: vi.fn(),
     deleteDoc: vi.fn(),
-    getDoc: vi.fn(),
+    getDoc: async (target: { path?: string }) => {
+      const data = store.get(target.path ?? "");
+      return { exists: () => data !== undefined, data: () => data };
+    },
     getDocs: async (target: { ref?: { path: string }; limit?: number }) => {
       const prefix = `${target.ref?.path ?? ""}/`;
       const found = [...store.entries()].filter(([path]) => path.startsWith(prefix));
@@ -62,7 +66,7 @@ const firestore = vi.hoisted(() => {
 
 vi.mock("firebase/firestore", () => firestore);
 
-import { ensurePointsOpeningBalance } from "./points-ledger";
+import { ensurePointsOpeningBalance, probeLedgerEmpty, recordPointsChange } from "./points-ledger";
 import { deleteTaskHistoryDay } from "./task-history";
 import { deleteTrainingTask, toggleTrainingTask } from "./training-tasks";
 import { redeemReward } from "./training-rewards";
@@ -141,6 +145,48 @@ beforeEach(() => {
   store.clear();
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 9, 23, 12, 0, 0));
+});
+
+describe("probeLedgerEmpty", () => {
+  it("is empty when there is no opening document and no event", async () => {
+    expect(await probeLedgerEmpty(db, userId, athleteId)).toBe(true);
+  });
+
+  it("is not empty when an event exists without an opening document", async () => {
+    put(paths.pointsLedger(userId, athleteId, "earlier"), {
+      dateId: today,
+      delta: 20,
+      reason: "task-complete",
+      createdAt: today,
+    });
+    expect(await probeLedgerEmpty(db, userId, athleteId)).toBe(false);
+  });
+
+  it("is not empty when the opening document exists", async () => {
+    put(paths.pointsLedger(userId, athleteId, "opening"), {
+      dateId: today,
+      delta: 80,
+      reason: "opening-balance",
+      createdAt: today,
+    });
+    expect(await probeLedgerEmpty(db, userId, athleteId)).toBe(false);
+  });
+});
+
+describe("recordPointsChange", () => {
+  it("does not write a second opening line when the probe said empty but the opening document is already there", async () => {
+    seedGame(80);
+    put(paths.pointsLedger(userId, athleteId, "opening"), {
+      dateId: today,
+      delta: 80,
+      reason: "opening-balance",
+      createdAt: today,
+    });
+    await runTransaction(db, async (tx) => {
+      await recordPointsChange(tx, db, userId, athleteId, 80, [], today, true);
+    });
+    expect(ledger().map((event) => event.id)).toEqual(["opening"]);
+  });
 });
 
 describe("points ledger transactions", () => {

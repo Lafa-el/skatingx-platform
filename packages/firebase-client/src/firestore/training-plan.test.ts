@@ -30,6 +30,10 @@ const firestore = vi.hoisted(() => {
     doc: (...parts: unknown[]) => ({ kind: "doc" as const, path: pathOf(parts) }),
     query: (ref: { path: string }) => ({ kind: "query" as const, ref }),
     limit: (n: number) => ({ kind: "limit" as const, n }),
+    getDoc: async (target: { path?: string }) => {
+      const data = store.get(target.path ?? "");
+      return { exists: () => data !== undefined, data: () => data };
+    },
     getDocs: async (target: { ref?: { path: string } }) => {
       const prefix = `${target.ref?.path ?? ""}/`;
       const found = [...store.entries()].filter(([path]) => path.startsWith(prefix));
