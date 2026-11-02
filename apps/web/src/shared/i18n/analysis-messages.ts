@@ -93,6 +93,10 @@ const zh = {
   "analysis.raceVideo.link.open": "打开链接（{host}）",
   "analysis.raceVideo.link.notWeb": "不是普通网页链接，只显示文字：{text}",
   "analysis.raceVideo.link.credentials": "这条链接含用户名或口令，不在此显示。",
+  "analysis.pro.heading": "分析",
+  "analysis.pro.title": "这一页需要 PRO",
+  "analysis.pro.belongs": "{benefit}属于 PRO。",
+  "analysis.pro.errorRest": "，所以这一页先保持锁定。请检查网络后刷新页面。",
 } as const;
 
 type AnalysisKey = keyof typeof zh;
@@ -185,6 +189,10 @@ const en: Record<AnalysisKey, string> = {
   "analysis.raceVideo.link.open": "Open link ({host})",
   "analysis.raceVideo.link.notWeb": "Not a plain web link, shown as text only: {text}",
   "analysis.raceVideo.link.credentials": "This link contains a user name or password, so it is not shown here.",
+  "analysis.pro.heading": "Analysis",
+  "analysis.pro.title": "This page needs PRO",
+  "analysis.pro.belongs": "{benefit} is part of PRO.",
+  "analysis.pro.errorRest": ", so this page stays locked. Check your connection and reload.",
 };
 
 export type AnalysisMessageKey = AnalysisKey;
