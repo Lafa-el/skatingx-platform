@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { getAcademyStages, localizeStageLabel } from "@skatingx/content";
+import { getAcademyStage, getAcademyStages, localizeStageLabel } from "@skatingx/content";
 import { normalizeTrainingState } from "@skatingx/firebase-client";
 import { formatSecondsToTime } from "@skatingx/skating-domain";
 import { Card, ErrorNotice, ProgressBar } from "@skatingx/ui";
@@ -19,6 +19,12 @@ import {
   type TrainingHomeMessageKey,
   tTrainingHome,
 } from "@/shared/i18n/training-home-messages";
+
+/**
+ * Featured reference picks, not the athlete's current stage (Lindsay is age11_16).
+ * Stay on this featured stage for now; change the lookup if the card later follows the current stage.
+ */
+const FEATURED_ACADEMY_STAGE_ID = "age7_10";
 
 /** A count with its unit: the language's singular or plural form, chosen by the number. */
 function countKey(
@@ -53,7 +59,7 @@ export function TrainingHomePage() {
   const pb500 = getBestForDistance("500m");
   const points = gamification?.points ?? 0;
   const streakDays = gamification?.streakDays ?? 0;
-  const defaultStage = getAcademyStages()[1] ?? getAcademyStages()[0];
+  const defaultStage = getAcademyStage(FEATURED_ACADEMY_STAGE_ID) ?? getAcademyStages()[0];
   // The stage label and age range are content data, shown as stored; only the labels around them
   // are translated.
   const academyLabel = defaultStage ? localizeStageLabel(defaultStage, locale) : "";
