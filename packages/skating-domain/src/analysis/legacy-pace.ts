@@ -3,6 +3,10 @@
  * Numeric inputs only. No chart and no DOM.
  */
 
+// The US Junior D benchmarks are the author's estimate of the times most US skaters
+// post at Junior D (confirmed 2026-11-01), not a published official standard.
+// The three defaults total 500m 50.00s, 777m 80.00s and 1000m 105.00s.
+// Those totals were set in #95, replacing the older values carried from the legacy port.
 export const pacingDistanceConfigs = {
   "500": {
     title: "500m",
