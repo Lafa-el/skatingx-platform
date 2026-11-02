@@ -160,6 +160,7 @@ afterEach(() => {
   state.history = null;
   state.stopFeedback.mockClear();
   sessionStorage.clear();
+  window.localStorage.removeItem("skatingx.plan.feedback.hidden");
 });
 
 const renderPage = () =>
@@ -520,7 +521,7 @@ describe("plan suggestions", () => {
     expect(screen.getByRole("link", { name: "打开器材页" })).toBeTruthy();
   });
 
-  it("hides an ignored suggestion for this session and does not write", async () => {
+  it("hides an ignored suggestion for this week and does not write", async () => {
     const user = userEvent.setup({ advanceTimers: () => undefined });
     renderPage();
     act(() => {
@@ -536,7 +537,7 @@ describe("plan suggestions", () => {
     await user.click(screen.getByRole("button", { name: "忽略" }));
 
     expect(screen.queryByText("将本周侧重设为『技术基础与弯道控制』")).toBeNull();
-    expect(sessionStorage.getItem("skatingx.plan.feedback.hidden")).toContain("bio-1");
+    expect(window.localStorage.getItem("skatingx.plan.feedback.hidden")).toContain("bio-1");
 
     act(() => {
       state.onAnalyses?.([

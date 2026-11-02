@@ -145,6 +145,7 @@ afterEach(() => {
   state.settings = { activeAthleteId: "lindsay" };
   state.equipmentAthletes = [];
   sessionStorage.clear();
+  window.localStorage.removeItem(HIDDEN_FEEDBACK_KEY);
 });
 
 describe.each(["zh", "en"] as const)("analysis hub (%s)", (locale) => {
@@ -473,7 +474,9 @@ describe("analysis hub: states", () => {
     render(renderHub());
     await user.click(screen.getByRole("button", { name: "忽略" }));
     expect(screen.queryByTestId("hub-suggestion")).toBeNull();
-    expect(JSON.parse(sessionStorage.getItem(HIDDEN_FEEDBACK_KEY) ?? "[]")).toEqual(["set-focus:pace:pace-1"]);
+    expect(JSON.parse(window.localStorage.getItem(HIDDEN_FEEDBACK_KEY) ?? "null")).toMatchObject({
+      hidden: ["set-focus:pace:pace-1"],
+    });
   });
 
   it("after accepting one focus, the hero moves on to the next suggestion instead of going empty", async () => {

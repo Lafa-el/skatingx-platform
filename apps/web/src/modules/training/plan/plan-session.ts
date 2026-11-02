@@ -1,7 +1,7 @@
 import { setPlanFocus } from "@skatingx/firebase-client";
 import { DEFAULT_ATHLETE_ID, todayDateString } from "@skatingx/schema";
 import { mondayOfWeek, normalizeTrainingState, type PlanFocus } from "@skatingx/skating-domain";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useTrainingState, useUserSettings } from "@/app/providers/FirestoreProvider";
@@ -11,11 +11,28 @@ import { logActionFailure } from "@/shared/utils/logActionFailure";
 /** Shared with the analysis hub so ignoring a suggestion in either place hides it in both. */
 export const HIDDEN_FEEDBACK_KEY = "skatingx.plan.feedback.hidden";
 
+type StoredHiddenFeedback = {
+  readonly week: string;
+  readonly hidden: readonly string[];
+};
+
+function currentWeek(): string {
+  return mondayOfWeek(todayDateString());
+}
+
+/**
+ * Only this week's list counts. A stored earlier week, an old bare array, or unreadable JSON
+ * reads as empty and is left in place; the next ignore overwrites it with this Monday.
+ */
 export function readHiddenFeedback(): Set<string> {
   try {
-    const raw = sessionStorage.getItem(HIDDEN_FEEDBACK_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : []);
+    const raw = window.localStorage.getItem(HIDDEN_FEEDBACK_KEY);
+    if (!raw) return new Set();
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return new Set();
+    const record = parsed as { week?: unknown; hidden?: unknown };
+    if (record.week !== currentWeek() || !Array.isArray(record.hidden)) return new Set();
+    return new Set(record.hidden.filter((item): item is string => typeof item === "string"));
   } catch {
     return new Set();
   }
@@ -23,10 +40,36 @@ export function readHiddenFeedback(): Set<string> {
 
 export function writeHiddenFeedback(hidden: ReadonlySet<string>) {
   try {
-    sessionStorage.setItem(HIDDEN_FEEDBACK_KEY, JSON.stringify([...hidden]));
+    const stored: StoredHiddenFeedback = { week: currentWeek(), hidden: [...hidden] };
+    window.localStorage.setItem(HIDDEN_FEEDBACK_KEY, JSON.stringify(stored));
   } catch (error) {
     logActionFailure("training-plan", "hide-suggestion", error);
   }
+}
+
+/**
+ * This week's ignored suggestions. A write updates this tab at once (a same-tab storage event
+ * never fires). Another tab is picked up from the storage event, then re-read so a stale week
+ * still comes back empty.
+ */
+export function useHiddenFeedback(): readonly [ReadonlySet<string>, (next: ReadonlySet<string>) => void] {
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => readHiddenFeedback());
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== HIDDEN_FEEDBACK_KEY) return;
+      setHidden(readHiddenFeedback());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const write = useCallback((next: ReadonlySet<string>) => {
+    writeHiddenFeedback(next);
+    setHidden(next);
+  }, []);
+
+  return [hidden, write];
 }
 
 export type PlanFocusStatus = {
