@@ -134,10 +134,18 @@ async function begin({ waitReady = true, readyState = 4 } = {}) {
   return { user, view, onResults: () => state.load.mock.calls[0]![0] as (landmarks: unknown) => void };
 }
 
-/** Starts the page, locks a target and takes one keyframe: the engine's callback delivers the frame. */
+/**
+ * Starts the page, locks a target and takes one keyframe: the engine's callback delivers the frame.
+ * Each call moves the paused video to a later moment. The same time would replace the previous
+ * sample instead of adding one.
+ */
 async function started() {
   const { user, onResults } = await begin();
+  let moment = 0;
   const takeKeyframe = async () => {
+    const video = document.querySelector("video");
+    if (video) video.currentTime = moment;
+    moment += 1;
     await user.click(screen.getByRole("button", { name: "采样当前帧" }));
     deliver(onResults());
   };
