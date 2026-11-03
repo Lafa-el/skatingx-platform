@@ -33,16 +33,18 @@ describe("getSkatingAge", () => {
 
 describe("getAgeCategory", () => {
   it.each([
-    [6, "初级前", "Pre-Novice"],
-    [7, "少年F（7/8岁）", "Junior F (7/8)"],
-    [11, "少年D（11/12岁）", "Junior D (11/12)"],
-    [12, "少年D（11/12岁）", "Junior D (11/12)"],
-    [13, "少年C（13/14岁）", "Junior C (13/14)"],
-    [18, "少年A（17/18岁）", "Junior A (17/18)"],
-    [19, "高级（18岁以上）", "Senior (18+)"],
-  ])("maps skating age %s", (age, zh, en) => {
-    expect(getAgeCategory(age)).toBe(zh);
-    expect(getAgeCategory(age, "en")).toBe(en);
+    [6, "Novice"],
+    [7, "U-11/Junior E"],
+    [8, "U-11/Junior E"],
+    [10, "U-11/Junior E"],
+    [11, "U-13/Junior D"],
+    [12, "U-13/Junior D"],
+    [13, "U-15/Junior C"],
+    [15, "U-17/Junior B"],
+    [18, "U-19/Junior A"],
+    [19, "Senior"],
+  ])("maps skating age %s to %s", (age, label) => {
+    expect(getAgeCategory(age)).toBe(label);
   });
 });
 
