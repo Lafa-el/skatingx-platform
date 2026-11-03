@@ -286,6 +286,7 @@ describe("SetupPage event", () => {
     render(<SetupPage />);
     expect(screen.getByText(/还没有赛事/)).toBeTruthy();
     expect(screen.getByRole("form", { name: "创建赛事" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "创建赛事" })).toBeNull();
     expect(screen.queryByRole("button", { name: "取消" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "运动员名单" })).toBeNull();
     expect(h.rosterCalls.every((id) => id === null)).toBe(true);
@@ -662,9 +663,33 @@ describe("SetupPage template", () => {
     h.events = ready([event({ eventId: "buffalo-championships-2026" })]);
     const user = userEvent.setup();
     render(<SetupPage />);
-    await user.click(screen.getAllByRole("button", { name: "创建赛事" })[0]!);
+    await user.click(screen.getByRole("button", { name: "创建赛事" }));
     expect(screen.queryByRole("button", { name: /用模板创建赛事/ })).toBeNull();
     expect(screen.getByText("已经使用过这个模板。")).toBeTruthy();
+  });
+
+  it("opens the create form from the button under the card, not from the card itself", async () => {
+    const user = userEvent.setup();
+    render(<SetupPage />);
+    const card = screen.getByText("Buffalo Championships").closest(".rounded-card") as HTMLElement;
+    expect(within(card).queryByRole("button", { name: "创建赛事" })).toBeNull();
+    expect(within(card).getByRole("button", { name: "编辑" })).toBeTruthy();
+    expect(within(card).getByRole("button", { name: "标记为已确认" })).toBeTruthy();
+    expect(within(card).getByRole("button", { name: "删除" })).toBeTruthy();
+
+    const create = screen.getByRole("button", { name: "创建赛事" });
+    expect(create.className).toContain("bg-brand-flame");
+    expect(card.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await user.click(create);
+    expect(screen.getByRole("form", { name: "创建赛事" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /用模板创建赛事/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "创建赛事" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "取消" }));
+    expect(screen.queryByRole("form", { name: "创建赛事" })).toBeNull();
+    expect(screen.getByRole("button", { name: "创建赛事" })).toBeTruthy();
+    expect(within(screen.getByText("Buffalo Championships").closest(".rounded-card") as HTMLElement).queryByRole("button", { name: "创建赛事" })).toBeNull();
   });
 
   it("is hidden while editing an event", async () => {
