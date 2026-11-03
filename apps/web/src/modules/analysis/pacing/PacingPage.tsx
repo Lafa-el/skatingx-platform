@@ -1,6 +1,7 @@
 import {
   buildPaceAnalysisRecord,
   calculatePacingAnalysis,
+  formatResultTime,
   pacingDistanceConfigs,
   type PaceAnalysis,
   type PaceDistance,
@@ -42,7 +43,7 @@ function blankSplits(distance: PaceDistance): string[] {
 }
 
 function defaultBenchmark(distance: PaceDistance): string[] {
-  return pacingDistanceConfigs[distance].defaults.map((value) => value.toFixed(2));
+  return pacingDistanceConfigs[distance].defaults.map((value) => formatResultTime(value));
 }
 
 /** Race-day times keep 3 decimals; the same rounding is applied here before generate. */
@@ -218,9 +219,9 @@ export function PacingPage() {
                   tPace(locale, "pace.chart.fallbackLine", {
                     label,
                     benchmarkName: tPace(locale, "pace.chart.canvasBenchmark"),
-                    benchmark: chartBenchmark[index]?.toFixed(2) ?? "--",
+                    benchmark: formatResultTime(chartBenchmark[index] ?? Number.NaN),
                     athleteName: tPace(locale, "pace.chart.canvasAthlete"),
-                    athlete: chartAthlete[index]?.toFixed(2) ?? "--",
+                    athlete: formatResultTime(chartAthlete[index] ?? Number.NaN),
                   }),
                 )}
               />

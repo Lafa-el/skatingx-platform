@@ -28,7 +28,7 @@ const zh = {
   "pace.chart.waiting": "输入分段后生成配速衰减曲线",
   "pace.chart.canvasBenchmark": "US Junior D 标杆",
   "pace.chart.canvasAthlete": "Lindsay 测算配速",
-  "pace.chart.fallbackLine": "{label}：{benchmarkName} {benchmark}s，{athleteName} {athlete}s",
+  "pace.chart.fallbackLine": "{label}：{benchmarkName} {benchmark}，{athleteName} {athlete}",
   "pace.badge": "TARGET: US Junior D",
   "pace.empty": "请在左侧选择距离并填写实际分段，然后点击“生成配速衰减曲线”进行分析。",
   "pace.metric.stability": "节奏稳定指数",
@@ -39,7 +39,7 @@ const zh = {
   "pace.metric.ratioHint": "基于距离与后段衰减",
   "pace.report.heading": "配速衰减归因报告",
   "pace.report.body":
-    "{title} 分段结构：{pattern}。总成绩 {total}s，比 Junior D 标杆{gapWord} {gap}s。主滑圈段前段均速 {early}s，后段均速 {late}s，后段衰减 {decay}%，标杆衰减 {benchmarkDecay}%。",
+    "{title} 分段结构：{pattern}。总成绩 {total}，比 Junior D 标杆{gapWord} {gap}。主滑圈段前段均速 {early}，后段均速 {late}，后段衰减 {decay}%，标杆衰减 {benchmarkDecay}%。",
   "pace.report.slower": "慢",
   "pace.report.faster": "快",
   "pace.report.even": "持平",
@@ -109,7 +109,7 @@ const en: Record<PaceKey, string> = {
   "pace.chart.waiting": "Enter the splits, then generate the pace-decay curve",
   "pace.chart.canvasBenchmark": "US Junior D benchmark",
   "pace.chart.canvasAthlete": "Lindsay's calculated pace",
-  "pace.chart.fallbackLine": "{label}: {benchmarkName} {benchmark}s, {athleteName} {athlete}s",
+  "pace.chart.fallbackLine": "{label}: {benchmarkName} {benchmark}, {athleteName} {athlete}",
   "pace.badge": "TARGET: US Junior D",
   "pace.empty":
     "Choose a distance, fill in the actual splits, then choose “Generate the pace-decay curve”.",
@@ -121,7 +121,7 @@ const en: Record<PaceKey, string> = {
   "pace.metric.ratioHint": "Based on the distance and late-race decay",
   "pace.report.heading": "Pace-decay report",
   "pace.report.body":
-    "{title} split structure: {pattern}. Total {total}s, {gap}s {gapWord} than the Junior D benchmark. Early main-lap average {early}s, late average {late}s, late decay {decay}%, benchmark decay {benchmarkDecay}%.",
+    "{title} split structure: {pattern}. Total {total}, {gap} {gapWord} than the Junior D benchmark. Early main-lap average {early}, late average {late}, late decay {decay}%, benchmark decay {benchmarkDecay}%.",
   "pace.report.slower": "slower",
   "pace.report.faster": "faster",
   "pace.report.even": "Even",

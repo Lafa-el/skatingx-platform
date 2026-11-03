@@ -182,7 +182,6 @@ export {
 } from "./race-day-input";
 export {
   createTimeEntryId,
-  formatSecondsToTime,
   getBestTime,
   getLatestTime,
   normalizeDistanceId,

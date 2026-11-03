@@ -83,10 +83,10 @@ describe("ResultList", () => {
     expect(within(li).getByText("49.123")).toBeTruthy();
   });
 
-  it("shows times with two decimals, minutes when needed", () => {
+  it("shows times with three decimals, minutes when needed", () => {
     setup([result("ann", { timeSeconds: 49.8 }), result("bob", { timeSeconds: 104.23 })]);
-    expect(screen.getByText("49.80")).toBeTruthy();
-    expect(screen.getByText("1:44.23")).toBeTruthy();
+    expect(screen.getByText("49.800")).toBeTruthy();
+    expect(screen.getByText("1:44.230")).toBeTruthy();
   });
 
   it("every result carries a visible pending marker, and verified ones say so", () => {
@@ -126,7 +126,7 @@ describe("ResultList", () => {
     setup([result("bob")]);
     const li = item("Bob");
     expect(within(li).getByText("该运动员已不在这场比赛名单中")).toBeTruthy();
-    expect(within(li).getByText("49.80")).toBeTruthy();
+    expect(within(li).getByText("49.800")).toBeTruthy();
   });
 
   it("does not show that note for an athlete who is on the race", () => {

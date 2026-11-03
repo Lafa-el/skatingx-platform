@@ -2,7 +2,6 @@ import type { TimeEntry } from "@skatingx/schema";
 import { describe, expect, it } from "vitest";
 
 import {
-  formatSecondsToTime,
   getBestTime,
   getLatestTime,
   normalizeDistanceId,
@@ -44,33 +43,6 @@ describe("parseTimeToSeconds", () => {
     ["over the 30 minute limit", "30:01"],
   ])("returns null for %s", (_label, input) => {
     expect(parseTimeToSeconds(input)).toBeNull();
-  });
-});
-
-describe("formatSecondsToTime", () => {
-  it.each([
-    [49.8, "49.80"],
-    [5.5, "5.50"],
-    [60, "1:00.00"],
-    [61.05, "1:01.05"],
-    [104.23, "1:44.23"],
-  ])("formats %d seconds as %j", (seconds, expected) => {
-    expect(formatSecondsToTime(seconds)).toBe(expected);
-  });
-
-  it.each([[-1], [Number.NaN], [Number.POSITIVE_INFINITY]])(
-    "returns the placeholder for invalid input %d",
-    (seconds) => {
-      expect(formatSecondsToTime(seconds)).toBe("--");
-    },
-  );
-
-  it("round-trips common race times", () => {
-    for (const text of ["49.80", "1:44.23", "2:47.00"]) {
-      const seconds = parseTimeToSeconds(text);
-      expect(seconds).not.toBeNull();
-      expect(formatSecondsToTime(seconds as number)).toBe(text);
-    }
   });
 });
 

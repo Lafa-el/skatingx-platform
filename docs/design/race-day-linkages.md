@@ -59,7 +59,7 @@
 - 个人最好是读取时算出来的，不存：`packages/skating-domain/src/records.ts` · `getBestTime`（`entries` 里 `timeSeconds` 最小的那条，并列保留先出现的）；最近一条是 `getLatestTime`（按 `date` 降序，同日按 `createdAt`）。总览的 500m 和最快单圈两张卡经 `useTrainingRecords` 的 `getBestForDistance` 读它（`apps/web/src/pages/DashboardPage.tsx` · `getBestForDistance("500m")`、`getBestForDistance("fastest_lap")`）。
 - 读取时会静默丢掉不合格条目：`records.ts` · `normalizeDistanceRecordsDocument` 过滤掉没有 `id`、没有 `date` 或 `timeSeconds <= 0` 的条目。
 - 写入是读改写整个数组，没有事务：`packages/firebase-client/src/firestore/training-records.ts` · `addTimeEntry`、`updateTimeEntry`、`deleteTimeEntry`（`getDoc` 后 `updateDoc`）。条目 id 是随机的：`records.ts` · `createTimeEntryId`（`time_{时间戳}_{随机}`）。迁移来的条目 id 以 `legacy-time-` 开头（`scripts/migration/training-map.mjs`）。
-- 时间显示的位数不同：纪录页用 `records.ts` · `formatSecondsToTime`，固定 `toFixed(2)`；比赛日用 `race-day-input.ts` · `formatResultTime`，两位小数，第三位非零时显示三位。所以 `49.123` 在比赛日显示 `49.123`，在纪录页显示 `49.12`。比较大小用的是完整数值，不受影响。
+- 时间显示统一用 `race-day-input.ts` · `formatResultTime`：小数恒为 3 位。`49.123` 显示 `49.123`，`49.8` 显示 `49.800`。比较大小用的是完整数值，不受影响。
 - 规则：这条路径落在 `firestore.rules` 的 `match /athletes/{athleteId}/{a}/{b}/{c}/{d}`（`a=training`、`b=main`、`c=records`），只对属主放行，且只排除 `equipment/main/records`。**写纪录不需要改规则。**
 
 ### 1.4 总览页现有的卡

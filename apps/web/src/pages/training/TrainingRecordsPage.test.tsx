@@ -182,10 +182,10 @@ describe.each(["zh", "en"] as const)("TrainingRecordsPage (%s)", (locale) => {
     setup();
     const view = renderPage();
     const best = within(screen.getByRole("heading", { name: t.best }).closest("article")!);
-    expect(best.getByText("49.80")).toBeTruthy();
+    expect(best.getByText("49.800")).toBeTruthy();
     expect(best.getByText(t.days["2026-10-12"])).toBeTruthy();
     const latest = within(screen.getByRole("heading", { name: t.latest }).closest("article")!);
-    expect(latest.getByText("49.80")).toBeTruthy();
+    expect(latest.getByText("49.800")).toBeTruthy();
     expect(latest.getByText(t.days["2026-10-12"])).toBeTruthy();
     view.unmount();
 
@@ -211,10 +211,10 @@ describe.each(["zh", "en"] as const)("TrainingRecordsPage (%s)", (locale) => {
     expect(screen.getByRole("heading", { name: t.listTitle("500m", 2) })).toBeTruthy();
     const rows = screen.getAllByRole("listitem");
     expect(rows).toHaveLength(2);
-    expect(rows[0]!.textContent).toContain("49.80");
+    expect(rows[0]!.textContent).toContain("49.800");
     expect(rows[0]!.textContent).toContain(t.pb);
     expect(rows[0]!.textContent).toContain(`${t.days["2026-10-12"]} · ${t.sources.race}`);
-    expect(rows[1]!.textContent).toContain("51.20");
+    expect(rows[1]!.textContent).toContain("51.200");
     expect(rows[1]!.textContent).not.toContain(t.pb);
     expect(rows[1]!.textContent).toContain(`${t.days["2026-09-01"]} · ${t.sources.training}`);
     expect(rows[1]!.textContent).toContain("after school");
@@ -242,7 +242,7 @@ describe.each(["zh", "en"] as const)("TrainingRecordsPage (%s)", (locale) => {
     const rows = screen.getAllByRole("listitem");
     expect(rows).toHaveLength(2);
     const synced = within(rows[0]!);
-    expect(rows[0]!.textContent).toContain("48.12");
+    expect(rows[0]!.textContent).toContain("48.123");
     expect(synced.queryByRole("button", { name: t.edit })).toBeNull();
     expect(synced.queryByRole("button", { name: t.del })).toBeNull();
     expect(synced.getByText(t.synced)).toBeTruthy();
@@ -252,7 +252,7 @@ describe.each(["zh", "en"] as const)("TrainingRecordsPage (%s)", (locale) => {
     expect(typed.getByRole("button", { name: t.del })).toBeTruthy();
     expect(typed.queryByText(t.synced)).toBeNull();
     // The PB is still the plain minimum over all entries, synced or not.
-    expect(within(screen.getByRole("heading", { name: t.best }).closest("article")!).getByText("48.12")).toBeTruthy();
+    expect(within(screen.getByRole("heading", { name: t.best }).closest("article")!).getByText("48.123")).toBeTruthy();
   });
 
   it("the form: labels, placeholders, source choices and the button", () => {
@@ -308,7 +308,7 @@ describe.each(["zh", "en"] as const)("TrainingRecordsPage (%s)", (locale) => {
     const row = within(screen.getAllByRole("listitem")[1]!);
     await user.click(row.getByRole("button", { name: t.edit }));
     expect(screen.getByRole("heading", { name: t.editCard })).toBeTruthy();
-    expect((screen.getByLabelText(t.time) as HTMLInputElement).value).toBe("51.20");
+    expect((screen.getByLabelText(t.time) as HTMLInputElement).value).toBe("51.200");
     expect((screen.getByLabelText(t.date) as HTMLInputElement).value).toBe("2026-09-01");
     expect((screen.getByLabelText(t.source) as HTMLSelectElement).value).toBe("training");
     expect((screen.getByLabelText(t.note) as HTMLInputElement).value).toBe("after school");
@@ -342,7 +342,7 @@ describe.each(["zh", "en"] as const)("TrainingRecordsPage (%s)", (locale) => {
     renderPage();
     const del = () => within(screen.getAllByRole("listitem")[0]!).getByRole("button", { name: t.del });
     await user.click(del());
-    expect(confirm).toHaveBeenCalledExactlyOnceWith(t.confirm("49.80"));
+    expect(confirm).toHaveBeenCalledExactlyOnceWith(t.confirm("49.800"));
     expect(h.state.actions.removeEntry).not.toHaveBeenCalled();
 
     confirm.mockReturnValue(true);

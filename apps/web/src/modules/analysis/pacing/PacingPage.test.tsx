@@ -122,7 +122,7 @@ describe("pacing page", () => {
     expect(screen.getByText("需强化")).toBeTruthy();
     expect(screen.getByText("47%")).toBeTruthy();
     expect(screen.getByText("45:55")).toBeTruthy();
-    expect(screen.getByText(/总成绩 47\.60s，比 Junior D 标杆快 2\.40s/)).toBeTruthy();
+    expect(screen.getByText(/总成绩 47\.600，比 Junior D 标杆快 2\.400/)).toBeTruthy();
     await waitFor(() => expect(state.configs).toHaveLength(1));
   });
 
@@ -136,7 +136,7 @@ describe("pacing page", () => {
       read("Lap 2"),
       read("Lap 3"),
       read("Lap 4"),
-    ]).toEqual(["8.00", "10.30", "10.40", "10.50", "10.80"]);
+    ]).toEqual(["8.000", "10.300", "10.400", "10.500", "10.800"]);
 
     await user.click(screen.getByRole("button", { name: "777m" }));
     expect([
@@ -147,7 +147,7 @@ describe("pacing page", () => {
       read("第4圈"),
       read("第5圈"),
       read("冲刺圈"),
-    ]).toEqual(["13.80", "10.50", "10.60", "10.70", "10.90", "11.20", "12.30"]);
+    ]).toEqual(["13.800", "10.500", "10.600", "10.700", "10.900", "11.200", "12.300"]);
 
     await user.click(screen.getByRole("button", { name: "1000m" }));
     expect([
@@ -160,7 +160,7 @@ describe("pacing page", () => {
       read("第6圈"),
       read("第7圈"),
       read("冲刺圈"),
-    ]).toEqual(["14.10", "11.60", "11.60", "11.60", "11.50", "11.30", "11.10", "11.30", "10.90"]);
+    ]).toEqual(["14.100", "11.600", "11.600", "11.600", "11.500", "11.300", "11.100", "11.300", "10.900"]);
   });
 
   it("switches to 777m labels", async () => {
@@ -353,7 +353,7 @@ describe("pacing page", () => {
       // No new chart, and the one on screen still plots the benchmark it was generated with.
       expect(state.configs).toHaveLength(1);
       expect(benchmarkSeries()).toEqual(generated);
-      expect(screen.getByText(/总成绩 47\.60s，比 Junior D 标杆快 2\.40s/)).toBeTruthy();
+      expect(screen.getByText(/总成绩 47\.600，比 Junior D 标杆快 2\.400/)).toBeTruthy();
       expect(screen.getByText("需强化")).toBeTruthy();
       expect(screen.getByText("47%")).toBeTruthy();
 
@@ -374,7 +374,7 @@ describe("pacing page", () => {
 
       await user.click(screen.getByRole("button", { name: "恢复默认标准" }));
       await settle();
-      expect((screen.getByLabelText("Lap 1") as HTMLInputElement).value).toBe("10.30");
+      expect((screen.getByLabelText("Lap 1") as HTMLInputElement).value).toBe("10.300");
       expect(state.configs).toHaveLength(1);
       expect(benchmarkSeries()).toEqual([8, 9, 10.4, 10.5, 10.8]);
 
@@ -395,7 +395,7 @@ describe("pacing page", () => {
       await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
       await waitFor(() => expect(state.configs).toHaveLength(2));
       expect(benchmarkSeries()).toEqual([8, 9, 10.4, 10.5, 10.8]);
-      expect(screen.getByText(/总成绩 47\.60s，比 Junior D 标杆快 1\.10s/)).toBeTruthy();
+      expect(screen.getByText(/总成绩 47\.600，比 Junior D 标杆快 1\.100/)).toBeTruthy();
 
       await user.click(screen.getByRole("button", { name: "保存本次配速" }));
       await waitFor(() => expect(state.save).toHaveBeenCalledTimes(1));
