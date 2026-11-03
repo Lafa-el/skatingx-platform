@@ -401,8 +401,8 @@ export function parseResultTime(input: string): ParsedResultTime {
 }
 
 /**
- * Display form that never hides what was entered: two decimals normally ("49.80"), three only
- * when the third is not zero ("49.123"). Parsing the output gives back the same seconds.
+ * Display form: the fraction is always 3 digits, milliseconds rounded and padded.
+ * At least a minute uses M:SS.mmm. Parsing the output gives back the same seconds.
  */
 export function formatResultTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) {
@@ -412,10 +412,7 @@ export function formatResultTime(seconds: number): string {
   const minutes = Math.floor(totalMs / 60000);
   const remainderMs = totalMs % 60000;
   const wholeSeconds = Math.floor(remainderMs / 1000);
-  let fraction = String(remainderMs % 1000).padStart(3, "0");
-  if (fraction.endsWith("0")) {
-    fraction = fraction.slice(0, 2);
-  }
+  const fraction = String(remainderMs % 1000).padStart(3, "0");
   const secondsText = minutes > 0 ? String(wholeSeconds).padStart(2, "0") : String(wholeSeconds);
   return `${minutes > 0 ? `${String(minutes)}:` : ""}${secondsText}.${fraction}`;
 }

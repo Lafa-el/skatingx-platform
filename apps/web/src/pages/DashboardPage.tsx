@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { normalizeTrainingState } from "@skatingx/firebase-client";
-import { formatSecondsToTime, localizeRedemptionName } from "@skatingx/skating-domain";
+import { formatResultTime, localizeRedemptionName } from "@skatingx/skating-domain";
 import { Card, ErrorNotice, ProgressBar } from "@skatingx/ui";
 
 import { isRaceDayEnabled } from "@/app/features";
@@ -181,7 +181,7 @@ export function DashboardPage() {
         </Card>
         <Card variant="raised" title={tDashboard(locale, "dashboard.card.pb500")}>
           <p className="sx-numeric text-2xl text-brand-navy">
-            {loading ? "…" : pb500 ? formatSecondsToTime(pb500.timeSeconds) : "—"}
+            {loading ? "…" : pb500 ? formatResultTime(pb500.timeSeconds) : "—"}
           </p>
           {pb500 ? (
             <p className="mt-1 text-xs text-brand-navy/70">
@@ -194,7 +194,7 @@ export function DashboardPage() {
             {loading
               ? "…"
               : pbFastestLap
-                ? formatSecondsToTime(pbFastestLap.timeSeconds)
+                ? formatResultTime(pbFastestLap.timeSeconds)
                 : "—"}
           </p>
           {pbFastestLap ? (
@@ -242,7 +242,7 @@ export function DashboardPage() {
             {loading
               ? "…"
               : latestEntryOverall
-                ? formatSecondsToTime(latestEntryOverall.timeSeconds)
+                ? formatResultTime(latestEntryOverall.timeSeconds)
                 : "—"}
           </p>
           {latestEntryOverall ? (

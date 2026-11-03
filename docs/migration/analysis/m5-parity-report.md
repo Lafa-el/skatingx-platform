@@ -6,7 +6,7 @@
 
 页面调用：
 
-- 配速页 `calculatePacingAnalysis`。总时间等展示是 `toFixed(2)`，与 `formatPaceReport` 相同。
+- 配速页 `calculatePacingAnalysis`。页面上的总时间等现在用 `formatResultTime`（3 位、无 s）。下表仍按旧站两位小数加 s 对照，锁定值不改。
 - 器材页 `buildEquipmentChecklist`。输入是 M3 回归里的两张合成清单。
 - 生物力学页 `assessVideoInput`、`samplePoseFrame`、`shouldSendPoseFrame`、`aggregateKeyframes`、`resetAnalysisSession`。输入是五条固件。
 - 计划页的打卡对照行（三张周积分表、打卡后的周积分与余额、重复打卡、技术周不含速度周一，共 9 行）已随打卡退役移除（ADR-008 步骤 ③）。对应的周积分与打卡余额函数已删除，计划页完成度改为由任务派生。仅保留「计划 · 积分落点」一行。

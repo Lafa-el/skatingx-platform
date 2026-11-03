@@ -1,5 +1,6 @@
 import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import {
+  formatResultTime,
   pacingDistanceConfigs,
   trainingFeedbackKey,
   type EquipmentHistoryRecord,
@@ -99,14 +100,9 @@ function percentText(value: number | null, locale: Locale): string {
   return tAnalysis(locale, "analysis.hub.value.percent", { value: formatNumber(value, locale) });
 }
 
-/** Two decimals and an "s", as the pacing tool shows a total. No grouping, so it reads like `toFixed(2)`. */
-function secondsText(value: number, locale: Locale): string {
-  const formatted = new Intl.NumberFormat(NUMBER_LOCALE[locale], {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-    useGrouping: false,
-  }).format(value);
-  return tAnalysis(locale, "analysis.hub.value.seconds", { value: formatted });
+/** The same 3-decimal race time as the pacing report. No unit suffix. */
+function secondsText(value: number): string {
+  return formatResultTime(value);
 }
 
 function ratingText(rating: HubPaceRating | null, locale: Locale): string {
@@ -140,7 +136,7 @@ function headline(item: HubRecentItem, locale: Locale): string {
         ? rating
         : tAnalysis(locale, "analysis.hub.headline.paceStability", { rating, stability });
     }
-    const total = secondsText(item.totalSeconds, locale);
+    const total = secondsText(item.totalSeconds);
     return stability === null
       ? tAnalysis(locale, "analysis.hub.headline.paceTotal", { total, rating })
       : tAnalysis(locale, "analysis.hub.headline.pace", { total, rating, stability });
@@ -641,7 +637,7 @@ function PaceCockpit({
             {card.totalSeconds !== null ? (
               <MetricReadout
                 label={tAnalysis(locale, "analysis.hub.metric.total")}
-                value={secondsText(card.totalSeconds, locale)}
+                value={secondsText(card.totalSeconds)}
                 delta={null}
                 spark={[]}
               />
@@ -649,7 +645,7 @@ function PaceCockpit({
             {card.benchmarkTotalSeconds !== null ? (
               <MetricReadout
                 label={tAnalysis(locale, "analysis.hub.metric.benchmarkTotal")}
-                value={secondsText(card.benchmarkTotalSeconds, locale)}
+                value={secondsText(card.benchmarkTotalSeconds)}
                 delta={null}
                 spark={[]}
               />

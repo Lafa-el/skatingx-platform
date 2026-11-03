@@ -364,7 +364,7 @@ describe("ResultsPage entry", () => {
     h.results = ready([result("ann", { timeSeconds: 49.8 })]);
     const user = renderPage();
     await choose(user, "race-1", "ann");
-    expect((timeBox() as HTMLInputElement).value).toBe("49.80");
+    expect((timeBox() as HTMLInputElement).value).toBe("49.800");
     await user.type(screen.getByLabelText("来源说明（可选）"), "typed for Ann");
 
     await user.selectOptions(screen.getByLabelText("运动员"), "bob");

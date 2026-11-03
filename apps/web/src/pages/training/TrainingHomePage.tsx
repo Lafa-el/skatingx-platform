@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { getAcademyStage, getAcademyStages, localizeStageLabel } from "@skatingx/content";
 import { normalizeTrainingState } from "@skatingx/firebase-client";
-import { formatSecondsToTime } from "@skatingx/skating-domain";
+import { formatResultTime } from "@skatingx/skating-domain";
 import { Card, ErrorNotice, ProgressBar } from "@skatingx/ui";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
@@ -131,7 +131,7 @@ export function TrainingHomePage() {
             {loading
               ? "…"
               : pb500
-                ? t("trainingHome.records.pb", { time: formatSecondsToTime(pb500.timeSeconds) })
+                ? t("trainingHome.records.pb", { time: formatResultTime(pb500.timeSeconds) })
                 : t("trainingHome.records.noPb")}
           </p>
           <Link

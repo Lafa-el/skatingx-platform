@@ -100,8 +100,8 @@ describe("SummaryCard", () => {
       ],
     );
     const fastest = screen.getByText("最快完赛时间（1000m，仅统计已确认成绩）").closest("div") as HTMLElement;
-    expect(within(fastest).getByText("50.50")).toBeTruthy();
-    expect(within(fastest).queryByText("40.00")).toBeNull();
+    expect(within(fastest).getByText("50.500")).toBeTruthy();
+    expect(within(fastest).queryByText("40.000")).toBeNull();
     expect(screen.getByTestId("pending-banner").textContent).toContain("1 项成绩仍待确认");
   });
 
@@ -109,7 +109,7 @@ describe("SummaryCard", () => {
     setup([race("r1", 1, "500m")], [result("r1", { timeSeconds: 40.0 })]);
     const fastest = screen.getByText("最快完赛时间（仅统计已确认成绩）").closest("div") as HTMLElement;
     expect(within(fastest).getByText("暂无已确认的完赛成绩")).toBeTruthy();
-    expect(within(fastest).queryByText("40.00")).toBeNull();
+    expect(within(fastest).queryByText("40.000")).toBeNull();
   });
 
   it("uses the distance id itself when that distance is not in the default list", () => {

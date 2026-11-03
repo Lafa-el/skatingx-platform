@@ -1,6 +1,6 @@
 import { DEFAULT_TRAINING_DISTANCES, todayDateString } from "@skatingx/schema";
 import {
-  formatSecondsToTime,
+  formatResultTime,
   isRaceSyncedEntryId,
   parseTimeToSeconds,
 } from "@skatingx/skating-domain";
@@ -125,7 +125,7 @@ export function TrainingRecordsPage() {
     }
     setEditingEntryId(entry.id);
     setDate(entry.date);
-    setTimeInput(formatSecondsToTime(entry.timeSeconds));
+    setTimeInput(formatResultTime(entry.timeSeconds));
     setSource(entry.source ?? "manual");
     setNote(entry.note ?? "");
     setFormError(null);
@@ -188,7 +188,7 @@ export function TrainingRecordsPage() {
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Card variant="raised" title={t("records.card.best")}>
           <p className="sx-numeric text-3xl text-brand-navy">
-            {loading ? "…" : best ? formatSecondsToTime(best.timeSeconds) : "—"}
+            {loading ? "…" : best ? formatResultTime(best.timeSeconds) : "—"}
           </p>
           {best ? (
             <p className="mt-1 text-xs text-brand-navy/70">{formatCalendarDate(best.date, locale)}</p>
@@ -198,7 +198,7 @@ export function TrainingRecordsPage() {
         </Card>
         <Card variant="raised" title={t("records.card.latest")}>
           <p className="sx-numeric text-3xl text-brand-navy">
-            {loading ? "…" : latest ? formatSecondsToTime(latest.timeSeconds) : "—"}
+            {loading ? "…" : latest ? formatResultTime(latest.timeSeconds) : "—"}
           </p>
           {latest ? (
             <p className="mt-1 text-xs text-brand-navy/70">{formatCalendarDate(latest.date, locale)}</p>
@@ -295,7 +295,7 @@ export function TrainingRecordsPage() {
         ) : (
           <ul className="divide-y divide-brand-navy/10">
             {entries.map((entry) => {
-              const timeLabel = formatSecondsToTime(entry.timeSeconds);
+              const timeLabel = formatResultTime(entry.timeSeconds);
               const isBest = best?.id === entry.id;
               return (
                 <li

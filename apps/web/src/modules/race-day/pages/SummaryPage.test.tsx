@@ -316,8 +316,8 @@ describe("SummaryPage card", () => {
     renderPage();
     expect(screen.getByRole("heading", { name: "Me Skater 的比赛总结" })).toBeTruthy();
     expect(screen.getByTestId("pending-banner").textContent).toContain("1 项成绩仍待确认");
-    expect(screen.getByText("50.00")).toBeTruthy();
-    expect(screen.queryByText("40.00")).toBeNull();
+    expect(screen.getByText("50.000")).toBeTruthy();
+    expect(screen.queryByText("40.000")).toBeNull();
     expect(screen.queryByText("Other Skater")).toBeNull();
   });
 
@@ -329,7 +329,7 @@ describe("SummaryPage card", () => {
     ]);
     renderPage();
     const fastest = screen.getByText("最快完赛时间（500m，仅统计已确认成绩）").closest("div") as HTMLElement;
-    expect(within(fastest).getByText("1:39.00")).toBeTruthy();
+    expect(within(fastest).getByText("1:39.000")).toBeTruthy();
     expect(screen.getByTestId("pending-banner").textContent).toContain("1 项成绩仍待确认");
   });
 

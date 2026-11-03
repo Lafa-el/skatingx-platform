@@ -748,12 +748,13 @@ describe("analysis hub: the pace totals a saved record stores", () => {
     };
   };
 
-  it("the card has the total, benchmark total and emphasis rows, with two decimals and an s", () => {
+  it("the card has the total, benchmark total and emphasis rows, with three decimals and no s", () => {
     const { card } = show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)]);
     expect(card).toContain("总成绩");
-    expect(card).toContain("52.30s");
+    expect(card).toContain("52.300");
+    expect(card).not.toContain("52.300s");
     expect(card).toContain("标杆总成绩");
-    expect(card).toContain("50.00s");
+    expect(card).toContain("50.000");
     expect(card).toContain("训练侧重");
     expect(card).toContain("60:40");
   });
@@ -761,7 +762,7 @@ describe("analysis hub: the pace totals a saved record stores", () => {
   it("the card has English labels in English", () => {
     const { card } = show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)], "en");
     expect(card).toContain("Total");
-    expect(card).toContain("52.30s");
+    expect(card).toContain("52.300");
     expect(card).toContain("Benchmark total");
     expect(card).toContain("Training emphasis");
     expect(card).toContain("60:40");
@@ -769,7 +770,7 @@ describe("analysis hub: the pace totals a saved record stores", () => {
 
   it("a row whose field is missing is not drawn, and the others are", () => {
     const { card } = show([paceRow("p1", "2026-10-09T00:00:00.000Z", { ...full, benchmarkTotalSeconds: null, trainingEmphasisRatio: null })]);
-    expect(card).toContain("52.30s");
+    expect(card).toContain("52.300");
     expect(card).not.toContain("标杆总成绩");
     expect(card).not.toContain("训练侧重");
     expect(card).not.toContain("—");
@@ -785,15 +786,15 @@ describe("analysis hub: the pace totals a saved record stores", () => {
   });
 
   it("the list title starts with the total when the total is there", () => {
-    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)]).recent).toContain("52.30s · 优秀 · 稳定指数 80%");
+    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)]).recent).toContain("52.300 · 优秀 · 稳定指数 80%");
   });
 
   it("the list title in English", () => {
-    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)], "en").recent).toContain("52.30s · Strong · Stability index 80%");
+    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", full)], "en").recent).toContain("52.300 · Strong · Stability index 80%");
   });
 
   it("the list title without a stability index is the total and the rating", () => {
-    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", { ...full, stabilityIndexPercent: null })]).recent).toContain("52.30s · 优秀");
+    expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", { ...full, stabilityIndexPercent: null })]).recent).toContain("52.300 · 优秀");
     expect(show([paceRow("p1", "2026-10-09T00:00:00.000Z", { ...full, stabilityIndexPercent: null })]).recent).not.toContain("稳定指数");
   });
 

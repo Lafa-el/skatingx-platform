@@ -119,7 +119,7 @@ describe("form values", () => {
       resultToFormValues(result("race-1", "sk-a", base.createdAt, { timeSeconds: 104.231, place: 2, advanced: false, sourceNote: "n" })),
     ).toEqual({ status: "finished", time: "1:44.231", place: "2", advanced: "no", sourceNote: "n" });
     expect(resultToFormValues(result("race-1", "sk-a", base.createdAt, { timeSeconds: 49.8, advanced: true })).time).toBe(
-      "49.80",
+      "49.800",
     );
     expect(
       resultToFormValues(result("race-1", "sk-a", base.createdAt, { status: "DNS", timeSeconds: null })),

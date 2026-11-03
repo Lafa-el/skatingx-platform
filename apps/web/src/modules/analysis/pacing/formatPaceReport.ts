@@ -1,4 +1,4 @@
-import type { PaceAnalysis, PaceDistance } from "@skatingx/skating-domain";
+import { formatResultTime, type PaceAnalysis, type PaceDistance } from "@skatingx/skating-domain";
 
 import type { Locale } from "@/shared/i18n/translator";
 import { paceFocus, tPace } from "@/shared/i18n/pacing-messages";
@@ -21,11 +21,11 @@ export function formatPaceReport(
   const body = tPace(locale, "pace.report.body", {
     title,
     pattern: labels.join(" / "),
-    total: analysis.totalSeconds.toFixed(2),
+    total: formatResultTime(analysis.totalSeconds),
     gapWord: tPace(locale, gap === 0 ? "pace.report.even" : gap > 0 ? "pace.report.slower" : "pace.report.faster"),
-    gap: Math.abs(gap).toFixed(2),
-    early: analysis.earlyAverageSeconds.toFixed(2),
-    late: analysis.lateAverageSeconds.toFixed(2),
+    gap: formatResultTime(Math.abs(gap)),
+    early: formatResultTime(analysis.earlyAverageSeconds),
+    late: formatResultTime(analysis.lateAverageSeconds),
     decay: analysis.decayPercent.toFixed(1),
     benchmarkDecay: analysis.benchmarkDecayPercent.toFixed(1),
   });

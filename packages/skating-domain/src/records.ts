@@ -38,20 +38,6 @@ export function parseTimeToSeconds(input: string): number | null {
   return isValidRecordSeconds(total) ? total : null;
 }
 
-/** Display time for PB cards and lists (e.g. `0:49.80`, `1:44.23`). */
-export function formatSecondsToTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) {
-    return "--";
-  }
-  const minutes = Math.floor(seconds / 60);
-  const remainder = seconds % 60;
-  const secondText =
-    minutes > 0
-      ? remainder.toFixed(2).padStart(5, "0")
-      : remainder.toFixed(2);
-  return minutes > 0 ? `${minutes}:${secondText}` : secondText;
-}
-
 export function normalizeDistanceId(label: string): string {
   const slug = label
     .trim()
