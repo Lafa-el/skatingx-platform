@@ -2,7 +2,6 @@ import { Card, ErrorNotice } from "@skatingx/ui";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { AthleteFacts } from "@/components/AthleteFacts";
-import { AthleteSelector } from "@/components/AthleteSelector";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import {
   useActiveAthlete,
@@ -37,7 +36,6 @@ export function AthletePage() {
             {tAthlete(locale, "athlete.subtitle")}
           </p>
         </div>
-        <AthleteSelector />
       </div>
 
       <FirestoreStatusBanner className="mt-4" />
