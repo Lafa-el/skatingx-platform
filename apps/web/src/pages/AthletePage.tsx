@@ -1,6 +1,7 @@
 import { Card, ErrorNotice } from "@skatingx/ui";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { AthleteFacts } from "@/components/AthleteFacts";
 import { AthleteSelector } from "@/components/AthleteSelector";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import {
@@ -99,6 +100,7 @@ export function AthletePage() {
               {uid ?? "—"}
             </dd>
           </div>
+          <AthleteFacts profile={profile} loading={loading} locale={locale} />
         </dl>
       </Card>
     </section>

@@ -13,6 +13,10 @@ const zh = {
   "athlete.field.country": "国家/地区",
   "athlete.field.activeId": "当前运动员 ID",
   "athlete.field.accountUid": "账户 UID",
+  "athlete.field.age": "年龄",
+  "athlete.field.skatingAge": "冰龄",
+  "athlete.field.ageCategory": "年龄组",
+  "athlete.field.skatingDuration": "滑冰时长",
   "athlete.sport.shortTrack": "短道速滑",
 } as const;
 
@@ -28,6 +32,10 @@ const en: Record<AthleteKey, string> = {
   "athlete.field.country": "Country",
   "athlete.field.activeId": "Active athlete ID",
   "athlete.field.accountUid": "Account UID",
+  "athlete.field.age": "Age",
+  "athlete.field.skatingAge": "Skating Age",
+  "athlete.field.ageCategory": "Age Category",
+  "athlete.field.skatingDuration": "Skating duration",
   "athlete.sport.shortTrack": "Short track speed skating",
 };
 

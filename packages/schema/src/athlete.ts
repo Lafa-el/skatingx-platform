@@ -10,6 +10,8 @@ export interface AthleteProfile {
   /** Display name (UI label: Name) */
   displayName: string;
   birthDate: DateString;
+  /** First day on the ice. Optional until a profile editor writes it. */
+  skatingStartDate?: DateString;
   sport: string;
   country: string;
   skatingDivision?: string;

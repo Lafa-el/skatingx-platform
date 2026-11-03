@@ -1,4 +1,13 @@
 export { compareText } from "./compare-text";
+export {
+  formatSkatingDuration,
+  getAgeCategory,
+  getRealAge,
+  getSkatingAge,
+  getSkatingDuration,
+  type AthleteAgeLocale,
+  type SkatingDuration,
+} from "./athlete-age";
 export { compareDateStrings, previousDateString, todayDateString } from "./dates";
 export { calculateStreakDays } from "./streak";
 export { clampPointsDeltas, type PointsLedgerDraft } from "./points-ledger";

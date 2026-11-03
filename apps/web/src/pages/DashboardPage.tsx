@@ -5,6 +5,7 @@ import { formatResultTime, localizeRedemptionName } from "@skatingx/skating-doma
 import { Card, ErrorNotice, ProgressBar } from "@skatingx/ui";
 
 import { isRaceDayEnabled } from "@/app/features";
+import { AthleteFacts } from "@/components/AthleteFacts";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import {
   useAthleteProfile,
@@ -134,6 +135,9 @@ export function DashboardPage() {
           <p className="text-lg font-semibold text-brand-navy">
             {loading ? "…" : name}
           </p>
+          <dl className="mt-3 space-y-2 text-sm">
+            <AthleteFacts profile={profile} loading={loading} locale={locale} />
+          </dl>
         </Card>
         <Card variant="raised" title={tDashboard(locale, "dashboard.card.points")}>
           <p className="sx-numeric text-3xl text-brand-navy">
