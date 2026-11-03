@@ -9,6 +9,10 @@ import { TrainingLayout } from "./TrainingLayout";
 
 const state = vi.hoisted(() => ({ locale: "zh" as "zh" | "en" }));
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
+// These tests are about the section tabs. The analysis gate stays unlocked so the outlet still mounts.
+vi.mock("@/hooks/useIsPro", () => ({
+  useIsPro: () => ({ isPro: true, loading: false, error: null, language: state.locale, settings: null }),
+}));
 // The header and the two main bars have their own tests; here only the section navigation is under test.
 vi.mock("@/components/Header", () => ({ Header: () => null }));
 vi.mock("@/components/BottomNav", () => ({ BottomNav: () => null }));
