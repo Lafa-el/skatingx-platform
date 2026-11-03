@@ -1,6 +1,15 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import {
+  formatSkatingDuration,
+  getAgeCategory,
+  getRealAge,
+  getSkatingAge,
+  getSkatingDuration,
+  todayDateString,
+} from "@skatingx/skating-domain";
+
 import { legacyColourClasses } from "@/test/legacyLook";
 import { render, screen } from "@/test/dom";
 
@@ -46,7 +55,7 @@ describe("AthletePage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "运动员" })).toBeTruthy();
     expect(screen.getByText("已从数据服务加载当前运动员的档案。")).toBeTruthy();
     expect(screen.getByRole("heading", { level: 3, name: "当前档案" })).toBeTruthy();
-    for (const label of ["姓名", "出生日期", "项目", "国家/地区", "当前运动员 ID", "账户 UID"]) {
+    for (const label of ["姓名", "出生日期", "项目", "国家/地区", "当前运动员 ID", "账户 UID", "年龄", "冰龄", "年龄组", "滑冰时长"]) {
       expect(screen.getByText(label), label).toBeTruthy();
     }
   });
@@ -57,7 +66,7 @@ describe("AthletePage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Athlete" })).toBeTruthy();
     expect(screen.getByText("Profile loaded from Firestore for the active skater.")).toBeTruthy();
     expect(screen.getByRole("heading", { level: 3, name: "Active profile" })).toBeTruthy();
-    for (const label of ["Name", "Birth date", "Sport", "Country", "Active athlete ID", "Account UID"]) {
+    for (const label of ["Name", "Birth date", "Sport", "Country", "Active athlete ID", "Account UID", "Age", "Skating Age", "Age Category", "Skating duration"]) {
       expect(screen.getByText(label), label).toBeTruthy();
     }
   });
@@ -105,6 +114,41 @@ describe("AthletePage", () => {
     h.state.profile = h.ready({ displayName: "X", birthDate: "unknown", sport: "s", country: "c" });
     render(<AthletePage />);
     expect(term("出生日期")).toBe("unknown");
+  });
+
+  it("adds age, skating age, category and duration; a missing start date leaves only the duration blank", () => {
+    const today = todayDateString();
+    render(<AthletePage />);
+    const skatingAge = getSkatingAge("2015-01-14", today);
+    expect(term("年龄")).toBe(String(getRealAge("2015-01-14", today)));
+    expect(term("冰龄")).toBe(String(skatingAge));
+    expect(term("年龄组")).toBe(getAgeCategory(skatingAge ?? Number.NaN, "zh"));
+    expect(term("滑冰时长")).toBe("—");
+  });
+
+  it("without a birth date the first three lines are dashes, and a start date still fills the duration", () => {
+    const today = todayDateString();
+    h.state.profile = h.ready({
+      displayName: "X",
+      sport: "s",
+      country: "c",
+      skatingStartDate: "2021-05-12",
+    });
+    render(<AthletePage />);
+    expect(term("年龄")).toBe("—");
+    expect(term("冰龄")).toBe("—");
+    expect(term("年龄组")).toBe("—");
+    const duration = getSkatingDuration("2021-05-12", today);
+    expect(duration).not.toBeNull();
+    expect(term("滑冰时长")).toBe(formatSkatingDuration(duration!, "zh"));
+  });
+
+  it("while the profile is loading the four lines stay on the ellipsis", () => {
+    h.state.profile = { data: { displayName: "X", birthDate: "2015-01-14", skatingStartDate: "2021-05-12" }, loading: true, error: null };
+    render(<AthletePage />);
+    for (const label of ["年龄", "冰龄", "年龄组", "滑冰时长"]) {
+      expect(term(label)).toBe("…");
+    }
   });
 
   it("a missing birth date shows a dash, not an empty cell", () => {

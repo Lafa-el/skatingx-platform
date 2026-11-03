@@ -2,6 +2,15 @@
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import {
+  formatSkatingDuration,
+  getAgeCategory,
+  getRealAge,
+  getSkatingAge,
+  getSkatingDuration,
+  todayDateString,
+} from "@skatingx/skating-domain";
+
 import { isIcePage } from "@/layouts/icePages";
 import { render, screen, within } from "@/test/dom";
 import { legacyColourClasses } from "@/test/legacyLook";
@@ -212,6 +221,43 @@ describe("DashboardPage: values", () => {
   it("the athlete's name is shown as stored", () => {
     renderPage();
     expect(card("运动员").getByText("Sample Skater")).toBeTruthy();
+  });
+
+  it("the athlete card lists age, skating age, category and duration under the name", () => {
+    const today = todayDateString();
+    h.state.profile = h.ready({
+      displayName: "Sample Skater",
+      birthDate: "2015-01-14",
+      skatingStartDate: "2021-05-12",
+    });
+    renderPage();
+    const athlete = card("运动员");
+    const skatingAge = getSkatingAge("2015-01-14", today);
+    const duration = getSkatingDuration("2021-05-12", today);
+    expect(athlete.getByText("年龄").closest("div")?.querySelector("dd")?.textContent).toBe(String(getRealAge("2015-01-14", today)));
+    expect(athlete.getByText("冰龄").closest("div")?.querySelector("dd")?.textContent).toBe(String(skatingAge));
+    expect(athlete.getByText("年龄组").closest("div")?.querySelector("dd")?.textContent).toBe(getAgeCategory(skatingAge ?? Number.NaN, "zh"));
+    expect(duration).not.toBeNull();
+    expect(athlete.getByText("滑冰时长").closest("div")?.querySelector("dd")?.textContent).toBe(formatSkatingDuration(duration!, "zh"));
+  });
+
+  it("without a birth date the first three lines are dashes, and without a start date the duration is a dash", () => {
+    renderPage();
+    const athlete = card("运动员");
+    expect(athlete.getByText("年龄").closest("div")?.querySelector("dd")?.textContent).toBe("—");
+    expect(athlete.getByText("冰龄").closest("div")?.querySelector("dd")?.textContent).toBe("—");
+    expect(athlete.getByText("年龄组").closest("div")?.querySelector("dd")?.textContent).toBe("—");
+    expect(athlete.getByText("滑冰时长").closest("div")?.querySelector("dd")?.textContent).toBe("—");
+  });
+
+  it("English athlete card uses the age labels", () => {
+    setLanguage("en");
+    renderPage();
+    const athlete = card("Athlete");
+    expect(athlete.getByText("Age")).toBeTruthy();
+    expect(athlete.getByText("Skating Age")).toBeTruthy();
+    expect(athlete.getByText("Age Category")).toBeTruthy();
+    expect(athlete.getByText("Skating duration")).toBeTruthy();
   });
 });
 
