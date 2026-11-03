@@ -272,16 +272,6 @@ export function SetupPage() {
                   type="button"
                   className={SECONDARY_BUTTON}
                   onClick={() => {
-                    eventSubmit.reset();
-                    setEventPanel("create");
-                  }}
-                >
-                  {t(locale, "raceDay.setup.event.create")}
-                </button>
-                <button
-                  type="button"
-                  className={SECONDARY_BUTTON}
-                  onClick={() => {
                     setConfirmDeleteEvent(true);
                   }}
                 >
@@ -290,6 +280,19 @@ export function SetupPage() {
               </div>
             )}
           </div>
+        ) : null}
+
+        {sortedEvents.length > 0 && eventPanel === "closed" ? (
+          <button
+            type="button"
+            className={PRIMARY_BUTTON}
+            onClick={() => {
+              eventSubmit.reset();
+              setEventPanel("create");
+            }}
+          >
+            {t(locale, "raceDay.setup.event.create")}
+          </button>
         ) : null}
 
         {showEventForm ? (
