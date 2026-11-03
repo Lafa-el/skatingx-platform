@@ -236,7 +236,7 @@ describe("DashboardPage: values", () => {
     const duration = getSkatingDuration("2021-05-12", today);
     expect(athlete.getByText("年龄").closest("div")?.querySelector("dd")?.textContent).toBe(String(getRealAge("2015-01-14", today)));
     expect(athlete.getByText("冰龄").closest("div")?.querySelector("dd")?.textContent).toBe(String(skatingAge));
-    expect(athlete.getByText("年龄组").closest("div")?.querySelector("dd")?.textContent).toBe(getAgeCategory(skatingAge ?? Number.NaN, "zh"));
+    expect(athlete.getByText("年龄组").closest("div")?.querySelector("dd")?.textContent).toBe(getAgeCategory(skatingAge ?? Number.NaN));
     expect(duration).not.toBeNull();
     expect(athlete.getByText("滑冰时长").closest("div")?.querySelector("dd")?.textContent).toBe(formatSkatingDuration(duration!, "zh"));
   });

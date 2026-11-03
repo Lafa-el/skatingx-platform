@@ -122,7 +122,7 @@ describe("AthletePage", () => {
     const skatingAge = getSkatingAge("2015-01-14", today);
     expect(term("年龄")).toBe(String(getRealAge("2015-01-14", today)));
     expect(term("冰龄")).toBe(String(skatingAge));
-    expect(term("年龄组")).toBe(getAgeCategory(skatingAge ?? Number.NaN, "zh"));
+    expect(term("年龄组")).toBe(getAgeCategory(skatingAge ?? Number.NaN));
     expect(term("滑冰时长")).toBe("—");
   });
 

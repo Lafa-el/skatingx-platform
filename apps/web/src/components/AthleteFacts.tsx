@@ -31,7 +31,7 @@ export function AthleteFacts({ profile, loading, locale }: AthleteFactsProps) {
   const startDate = profile?.skatingStartDate;
   const realAge = !loading && birthDate ? getRealAge(birthDate, today) : null;
   const skatingAge = !loading && birthDate ? getSkatingAge(birthDate, today) : null;
-  const category = skatingAge === null ? null : getAgeCategory(skatingAge, locale);
+  const category = skatingAge === null ? null : getAgeCategory(skatingAge);
   const duration = !loading && startDate ? getSkatingDuration(startDate, today) : null;
 
   const rows: ReadonlyArray<{ key: string; label: string; value: string }> = [

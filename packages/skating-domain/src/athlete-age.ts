@@ -53,24 +53,23 @@ export function getSkatingAge(birthDate: DateString, today: DateString): number 
   return seasonStartYear - birth.year - (bornBeforeJuly ? 0 : 1);
 }
 
-const AGE_CATEGORIES: ReadonlyArray<{ max: number; zh: string; en: string }> = [
-  { max: 6, zh: "初级前", en: "Pre-Novice" },
-  { max: 8, zh: "少年F（7/8岁）", en: "Junior F (7/8)" },
-  { max: 10, zh: "少年E（9/10岁）", en: "Junior E (9/10)" },
-  { max: 12, zh: "少年D（11/12岁）", en: "Junior D (11/12)" },
-  { max: 14, zh: "少年C（13/14岁）", en: "Junior C (13/14)" },
-  { max: 16, zh: "少年B（15/16岁）", en: "Junior B (15/16)" },
-  { max: 18, zh: "少年A（17/18岁）", en: "Junior A (17/18)" },
-  { max: Number.POSITIVE_INFINITY, zh: "高级（18岁以上）", en: "Senior (18+)" },
+const AGE_CATEGORIES: ReadonlyArray<{ max: number; label: string }> = [
+  { max: 6, label: "Novice" },
+  { max: 10, label: "U-11/Junior E" },
+  { max: 12, label: "U-13/Junior D" },
+  { max: 14, label: "U-15/Junior C" },
+  { max: 16, label: "U-17/Junior B" },
+  { max: 18, label: "U-19/Junior A" },
+  { max: Number.POSITIVE_INFINITY, label: "Senior" },
 ];
 
-/** Category for a skating age. 18 is still Junior A; 19 and above is Senior. */
-export function getAgeCategory(skatingAge: number, locale: AthleteAgeLocale = "zh"): string | null {
+/** One label for every language. 18 is still Junior A; 19 and above is Senior. */
+export function getAgeCategory(skatingAge: number): string | null {
   if (!Number.isInteger(skatingAge)) {
     return null;
   }
   const band = AGE_CATEGORIES.find((item) => skatingAge <= item.max);
-  return band ? band[locale] : null;
+  return band ? band.label : null;
 }
 
 export type SkatingDuration = { years: number; months: number; days: number };
