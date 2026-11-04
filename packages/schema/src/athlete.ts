@@ -14,6 +14,8 @@ export interface AthleteProfile {
   skatingStartDate?: DateString;
   sport: string;
   country: string;
+  /** Written when the profile is created. Older profiles are backfilled in the console. */
+  userId?: string;
   /** Short note. Optional. The editor allows at most 500 characters. */
   bio?: string;
   skatingDivision?: string;

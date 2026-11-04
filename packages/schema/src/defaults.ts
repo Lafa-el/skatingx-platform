@@ -36,10 +36,12 @@ export function createDefaultUserSettings(): Omit<
 }
 
 export function createDefaultAthleteProfile(
-  athleteId: string = DEFAULT_ATHLETE_ID,
+  athleteId: string,
+  userId: string,
 ): Omit<AthleteProfile, "createdAt" | "updatedAt"> {
   return {
     athleteId,
+    userId,
     displayName: "Lindsay Lin",
     birthDate: "2015-01-14",
     // The product has one athlete, Lindsay. A later profile editor replaces this per athlete.

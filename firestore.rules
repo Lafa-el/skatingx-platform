@@ -465,5 +465,14 @@ service cloud.firestore {
                       && request.resource.data.ownerUserId == resource.data.ownerUserId;
       }
     }
+
+    // A collection-group list does not bind `path` to the parent document, so a
+    // path prefix cannot separate these queries. The profile stores `userId` and
+    // the query filters on that field.
+    // List only. A single-document read stays on the fixed-depth owner rules
+    // above, and nothing here grants a write.
+    match /{path=**}/profile/{profileId} {
+      allow list: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
   }
 }

@@ -31,6 +31,7 @@ export async function createAthlete(
   const bio = patch.bio.trim();
   const profile: Record<string, unknown> = {
     athleteId,
+    userId,
     displayName: patch.displayName.trim(),
     birthDate: patch.birthDate.trim(),
     sport: patch.sport,
