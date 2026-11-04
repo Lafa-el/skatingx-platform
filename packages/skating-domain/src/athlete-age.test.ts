@@ -6,7 +6,17 @@ import {
   getRealAge,
   getSkatingAge,
   getSkatingDuration,
+  isValidDateString,
 } from "./athlete-age";
+
+describe("isValidDateString", () => {
+  it("accepts a real day and rejects a missing day, a bad shape, and an empty string", () => {
+    expect(isValidDateString("2015-01-14")).toBe(true);
+    expect(isValidDateString("2026-02-30")).toBe(false);
+    expect(isValidDateString("2026/02/01")).toBe(false);
+    expect(isValidDateString("")).toBe(false);
+  });
+});
 
 describe("getRealAge", () => {
   it("waits for the birthday", () => {

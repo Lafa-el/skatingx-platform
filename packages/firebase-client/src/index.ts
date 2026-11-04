@@ -114,6 +114,7 @@ export {
   type JournalWriteFailure,
 } from "./firestore/journal";
 export { updateUserSettings } from "./firestore/settings";
+export { updateAthleteProfile, type AthleteProfilePatch } from "./firestore/athlete-profile";
 export { ensurePointsOpeningBalance, probeLedgerEmpty, recordPointsChange } from "./firestore/points-ledger";
 export {
   pointsLedgerRowFromDocument,

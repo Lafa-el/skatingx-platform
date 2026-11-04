@@ -5,9 +5,16 @@ export {
   getRealAge,
   getSkatingAge,
   getSkatingDuration,
+  isValidDateString,
   type AthleteAgeLocale,
   type SkatingDuration,
 } from "./athlete-age";
+export {
+  ATHLETE_BIO_MAX_LENGTH,
+  validateAthleteProfileForm,
+  type AthleteProfileFormErrors,
+  type AthleteProfileFormInput,
+} from "./athlete-profile-form";
 export { compareDateStrings, previousDateString, todayDateString } from "./dates";
 export { calculateStreakDays } from "./streak";
 export { clampPointsDeltas, type PointsLedgerDraft } from "./points-ledger";

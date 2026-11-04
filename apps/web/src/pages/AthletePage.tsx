@@ -1,7 +1,9 @@
-import { Card, ErrorNotice } from "@skatingx/ui";
+import { Button, Card, ErrorNotice } from "@skatingx/ui";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { AthleteFacts } from "@/components/AthleteFacts";
+import { AthleteProfileForm } from "@/components/AthleteProfileForm";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import {
   useActiveAthlete,
@@ -24,6 +26,12 @@ export function AthletePage() {
 
   const loading = activeLoading || profileLoading || settingsLoading;
   const error = activeError ?? profileError ?? settingsError;
+  const [editing, setEditing] = useState(false);
+  const canEdit = !loading && !error && profile != null && uid != null;
+
+  useEffect(() => {
+    setEditing(false);
+  }, [athleteId]);
 
   return (
     <section>
@@ -101,6 +109,21 @@ export function AthletePage() {
           <AthleteFacts profile={profile} loading={loading} locale={locale} />
         </dl>
       </Card>
+      {canEdit && !editing ? (
+        <Button variant="outline" className="mt-4" onClick={() => setEditing(true)}>
+          {tAthlete(locale, "athlete.action.edit")}
+        </Button>
+      ) : null}
+      {canEdit && editing && profile && uid ? (
+        <AthleteProfileForm
+          profile={profile}
+          userId={uid}
+          athleteId={athleteId}
+          locale={locale}
+          onCancel={() => setEditing(false)}
+          onSaved={() => setEditing(false)}
+        />
+      ) : null}
     </section>
   );
 }
