@@ -23,6 +23,11 @@ function parseCalendarDay(value: string): CalendarDay | null {
   return { year, month, day };
 }
 
+/** True when the string is YYYY-MM-DD and that day exists on the local calendar. */
+export function isValidDateString(value: string): boolean {
+  return parseCalendarDay(value) !== null;
+}
+
 /** Age in whole years. The birthday itself is the day the age increases. */
 export function getRealAge(birthDate: DateString, today: DateString): number | null {
   const birth = parseCalendarDay(birthDate);

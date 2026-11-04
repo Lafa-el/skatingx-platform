@@ -14,6 +14,8 @@ export interface AthleteProfile {
   skatingStartDate?: DateString;
   sport: string;
   country: string;
+  /** Short note. Optional. The editor allows at most 500 characters. */
+  bio?: string;
   skatingDivision?: string;
   avatarStoragePath?: string;
   legacySource?: LegacySource;
