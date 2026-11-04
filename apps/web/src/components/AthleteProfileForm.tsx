@@ -1,11 +1,22 @@
-import { createAthlete, getFirestoreDb, updateAthleteProfile } from "@skatingx/firebase-client";
+import {
+  avatarFileProblem,
+  createAthlete,
+  deleteAthleteAvatar,
+  getFirebaseStorage,
+  getFirestoreDb,
+  updateAthleteProfile,
+  uploadAthleteAvatar,
+} from "@skatingx/firebase-client";
 import type { AthleteProfile } from "@skatingx/schema";
 import {
   validateAthleteProfileForm,
   type AthleteProfileFormErrors,
 } from "@skatingx/skating-domain";
 import { Button, ErrorNotice, StatusGlyph } from "@skatingx/ui";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
+
+import { Avatar } from "@/components/Avatar";
+import { useAthletePhotoUrl } from "@/hooks/useAthletePhotoUrl";
 
 import { tAthlete, type AthleteMessageKey } from "@/shared/i18n/athlete-messages";
 import type { Locale } from "@/shared/i18n/translator";
@@ -52,6 +63,11 @@ export function AthleteProfileForm({
   const [errors, setErrors] = useState<AthleteProfileFormErrors>({});
   const [saveFailed, setSaveFailed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [avatarPath, setAvatarPath] = useState<string | null>(profile?.avatarStoragePath ?? null);
+  const [avatarNote, setAvatarNote] = useState<AthleteMessageKey | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState<"upload" | "remove" | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const photoUrl = useAthletePhotoUrl(creating ? null : avatarPath);
 
   const t = (key: AthleteMessageKey) => tAthlete(locale, key);
   const sportOptions = sport === SHORT_TRACK ? [SHORT_TRACK] : [sport, SHORT_TRACK];
@@ -93,8 +109,101 @@ export function AthleteProfileForm({
     }
   }
 
+  async function onPickAvatar(file: File | undefined) {
+    if (!file || !athleteId) {
+      return;
+    }
+    const problem = avatarFileProblem(file);
+    if (problem) {
+      setAvatarNote(problem === "type" ? "athlete.avatar.type" : "athlete.avatar.size");
+      return;
+    }
+    const db = getFirestoreDb();
+    const storage = getFirebaseStorage();
+    if (!db || !storage) {
+      setAvatarNote("athlete.avatar.failed");
+      return;
+    }
+    setAvatarNote(null);
+    setAvatarBusy("upload");
+    try {
+      const path = await uploadAthleteAvatar(db, storage, userId, athleteId, file);
+      setAvatarPath(path);
+    } catch (error) {
+      logActionFailure("athlete-avatar", "upload", error);
+      setAvatarNote("athlete.avatar.failed");
+    } finally {
+      setAvatarBusy(null);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function onRemoveAvatar() {
+    if (!athleteId) {
+      return;
+    }
+    const db = getFirestoreDb();
+    const storage = getFirebaseStorage();
+    if (!db || !storage) {
+      setAvatarNote("athlete.avatar.failed");
+      return;
+    }
+    setAvatarNote(null);
+    setAvatarBusy("remove");
+    try {
+      await deleteAthleteAvatar(db, storage, userId, athleteId);
+      setAvatarPath(null);
+    } catch (error) {
+      logActionFailure("athlete-avatar", "remove", error);
+      setAvatarNote("athlete.avatar.failed");
+    } finally {
+      setAvatarBusy(null);
+    }
+  }
+
   return (
     <form className="mt-4 grid gap-4" noValidate onSubmit={onSubmit}>
+      {creating || !athleteId ? null : (
+        <div className="flex flex-wrap items-center gap-3">
+          <Avatar letter={(displayName.trim() || "…").charAt(0)} photoUrl={photoUrl} size="lg" />
+          <div className="grid gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              aria-label={t(avatarPath ? "athlete.avatar.replace" : "athlete.avatar.upload")}
+              onChange={(event) => void onPickAvatar(event.target.files?.[0])}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={avatarBusy != null}
+              onClick={() => fileRef.current?.click()}
+            >
+              {avatarBusy === "upload"
+                ? t("athlete.avatar.uploading")
+                : t(avatarPath ? "athlete.avatar.replace" : "athlete.avatar.upload")}
+            </Button>
+            {avatarPath ? (
+              <Button
+                type="button"
+                variant="danger-outline"
+                disabled={avatarBusy != null}
+                onClick={() => void onRemoveAvatar()}
+              >
+                {avatarBusy === "remove" ? t("athlete.avatar.removing") : t("athlete.avatar.remove")}
+              </Button>
+            ) : null}
+          </div>
+          {avatarNote ? (
+            <p className="flex w-full items-start gap-1.5 text-sm font-medium text-status-danger">
+              <StatusGlyph tone="danger" className="mt-0.5 size-4 shrink-0" />
+              <span>{t(avatarNote)}</span>
+            </p>
+          ) : null}
+        </div>
+      )}
       <Field
         id="athlete-name"
         label={t("athlete.field.name")}

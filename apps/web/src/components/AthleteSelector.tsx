@@ -4,7 +4,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { Avatar } from "@/components/Avatar";
 import { useActiveAthlete, useAthleteProfile } from "@/hooks/firestore";
+import { useAthletePhotoUrl } from "@/hooks/useAthletePhotoUrl";
 import { useLocale } from "@/hooks/useLocale";
 import { tShell } from "@/shared/i18n/shell-messages";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
@@ -25,6 +27,7 @@ export function AthleteSelector() {
   const displayName = noAthlete
     ? tShell(locale, "shell.athlete.none")
     : (profile?.displayName ?? "…");
+  const photoUrl = useAthletePhotoUrl(noAthlete ? null : profile?.avatarStoragePath);
 
   useEffect(() => {
     if (!uid) {
@@ -114,7 +117,7 @@ export function AthleteSelector() {
         disabled={loading}
         className="flex min-h-11 items-center gap-2 rounded-control border border-brand-navy/15 px-3 py-1.5 text-sm hover:bg-brand-ice focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-navy disabled:opacity-60"
       >
-        <Avatar letter={displayName.charAt(0)} />
+        <Avatar letter={displayName.charAt(0)} photoUrl={photoUrl} />
         <span className="hidden text-left sm:inline">
           <span className="block font-medium text-brand-navy">{displayName}</span>
           {athleteId == null ? null : (
@@ -143,7 +146,7 @@ export function AthleteSelector() {
                   aria-selected
                   className="flex w-full items-center gap-3 bg-brand-ice px-3 py-2 text-left text-sm text-brand-navy"
                 >
-                  <Avatar letter={entry.displayName.charAt(0)} />
+                  <Avatar letter={entry.displayName.charAt(0)} photoUrl={photoUrl} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{entry.displayName}</span>
                     <span className="block truncate text-xs text-brand-navy/70">{entry.athleteId}</span>
@@ -191,13 +194,3 @@ export function AthleteSelector() {
   );
 }
 
-function Avatar({ letter }: { letter: string }) {
-  return (
-    <span
-      className="sx-energy-gradient flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-brand-navy"
-      aria-hidden
-    >
-      {letter}
-    </span>
-  );
-}
