@@ -106,7 +106,7 @@ export async function bootstrapUserDocuments(
   const settingsResult = await ensureDocument(settingsPath, settingsData, true);
   (settingsResult === "created" ? created : existing).push("settings/main");
 
-  const profileData = createDefaultAthleteProfile(athleteId);
+  const profileData = createDefaultAthleteProfile(athleteId, userId);
   const profilePath = athleteProfileRef(db, userId, athleteId);
   const profileResult = await ensureDocument(profilePath, profileData, true);
   (profileResult === "created" ? created : existing).push(

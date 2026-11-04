@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const firestore = vi.hoisted(() => ({
   collectionGroup: vi.fn((db: unknown, name: string) => ({ kind: "group", db, name })),
-  documentId: vi.fn(() => "document-id"),
   query: vi.fn((...parts: unknown[]) => ({ kind: "query", parts })),
   where: vi.fn((field: unknown, op: string, value: string) => ({ field, op, value })),
   onSnapshot: vi.fn(),
@@ -15,6 +14,8 @@ import { athleteIdFromProfilePath, subscribeToAthleteProfiles } from "./athlete-
 beforeEach(() => {
   firestore.onSnapshot.mockReset();
   firestore.collectionGroup.mockClear();
+  firestore.query.mockClear();
+  firestore.where.mockClear();
 });
 
 describe("athleteIdFromProfilePath", () => {
@@ -29,18 +30,17 @@ describe("athleteIdFromProfilePath", () => {
 });
 
 describe("subscribeToAthleteProfiles", () => {
-  it("listens to the profile collection group under this user", () => {
+  it("listens to profiles whose userId is this user", () => {
     firestore.onSnapshot.mockReturnValue(() => undefined);
     subscribeToAthleteProfiles({} as never, "user-1", () => undefined, () => undefined);
     expect(firestore.collectionGroup).toHaveBeenCalledWith({}, "profile");
-    const [group, low, high] = firestore.query.mock.calls[0] as [
+    expect(firestore.where).toHaveBeenCalledWith("userId", "==", "user-1");
+    const [group, clause] = firestore.query.mock.calls[0] as [
       { name: string },
-      { value: string },
-      { value: string },
+      { field: string; op: string; value: string },
     ];
     expect(group.name).toBe("profile");
-    expect(low.value).toBe("artifacts/skatingx-production/users/user-1/athletes/\u0000/profile/main");
-    expect(high.value).toBe("artifacts/skatingx-production/users/user-1/athletes/\uf8ff/profile/main");
+    expect(clause).toEqual({ field: "userId", op: "==", value: "user-1" });
   });
 
   it("maps each profile to its parent athlete id", () => {

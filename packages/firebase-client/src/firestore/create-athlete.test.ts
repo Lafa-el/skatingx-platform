@@ -82,6 +82,7 @@ describe("createAthlete", () => {
     );
     expect(profileCall[1]).toEqual({
       athleteId: "new-skater-aaa111",
+      userId: "user-1",
       displayName: "New Skater",
       birthDate: "2016-03-04",
       skatingStartDate: "2020-06-01",

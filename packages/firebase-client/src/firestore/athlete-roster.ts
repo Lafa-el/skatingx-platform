@@ -1,7 +1,5 @@
-import { PLATFORM_APP_ID } from "@skatingx/schema";
 import {
   collectionGroup,
-  documentId,
   onSnapshot,
   query,
   where,
@@ -31,9 +29,9 @@ export function athleteIdFromProfilePath(path: string): string | null {
 }
 
 /**
- * Every profile under this user. A collection-group read is scoped with the document
- * path so another user's profiles are not part of the query. The parent athlete
- * document is not listed: bootstrap never creates it.
+ * Every profile stamped with this user's id. A collection-group list cannot see
+ * the parent path, so the query filters on `userId`. The parent athlete document
+ * is not listed: bootstrap never creates it.
  */
 export function subscribeToAthleteProfiles(
   db: Firestore,
@@ -41,13 +39,9 @@ export function subscribeToAthleteProfiles(
   onData: (entries: AthleteRosterEntry[]) => void,
   onError: (message: string) => void,
 ): { unsubscribe: () => void } {
-  // documentId() on a collection group must be a full document path (even segment
-  // count). The bounds sit around `{athleteId}/profile/main` under this user.
-  const root = `artifacts/${PLATFORM_APP_ID}/users/${userId}/athletes/`;
   const roster = query(
     collectionGroup(db, "profile"),
-    where(documentId(), ">=", `${root}\u0000/profile/main`),
-    where(documentId(), "<", `${root}\uf8ff/profile/main`),
+    where("userId", "==", userId),
   );
   const unsubscribe = onSnapshot(
     roster,
