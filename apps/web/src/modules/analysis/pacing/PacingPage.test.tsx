@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
   locale: "zh" as "zh" | "en",
   uid: null as string | null,
   authLoading: false,
+  settings: { activeAthleteId: "lindsay" } as { activeAthleteId?: string } | null,
   db: {} as object | null,
   save: vi.fn((_db: unknown, _record: unknown) => Promise.resolve()),
   configs: [] as unknown[],
@@ -19,6 +20,9 @@ const state = vi.hoisted(() => ({
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
 vi.mock("@/app/providers/AuthProvider", () => ({
   useAuth: () => ({ uid: state.uid, loading: state.authLoading, firebaseReady: Boolean(state.uid) }),
+}));
+vi.mock("@/app/providers/FirestoreProvider", () => ({
+  useUserSettings: () => ({ data: state.settings, loading: false, error: null }),
 }));
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => state.db,
@@ -61,6 +65,7 @@ describe("pacing page", () => {
     state.locale = "zh";
     state.uid = null;
     state.authLoading = false;
+    state.settings = { activeAthleteId: "lindsay" };
     state.db = {};
     state.save.mockReset();
     state.configs.length = 0;
@@ -171,8 +176,9 @@ describe("pacing page", () => {
     expect(screen.getByRole("heading", { name: "777m 配速标杆比对" })).toBeTruthy();
   });
 
-  it("saves a lindsay record through the repository and destroys the chart on unmount", async () => {
+  it("saves a record for the current athlete and destroys the chart on unmount", async () => {
     state.uid = "alice";
+    state.settings = { activeAthleteId: "ann-k3x9a2" };
     const user = userEvent.setup();
     const view = render(<AnalysisPacingPage />);
     await fillSynthetic500m(user);
@@ -188,7 +194,7 @@ describe("pacing page", () => {
     } | undefined;
     expect(record).toBeTruthy();
     if (!record) return;
-    expect(record.athleteId).toBe("lindsay");
+    expect(record.athleteId).toBe("ann-k3x9a2");
     expect(record.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(record.provenance.schemaVersion).toBe("skatingx-analysis-contract-v1");
     expect(record.provenance.algorithmVersion).toBe("legacy-pace-port-1");
@@ -197,6 +203,17 @@ describe("pacing page", () => {
     const destroyedBeforeUnmount = state.destroyed;
     view.unmount();
     expect(state.destroyed).toBe(destroyedBeforeUnmount + 1);
+  });
+
+  it("does not save when there is no current athlete", async () => {
+    state.uid = "alice";
+    state.settings = {};
+    const user = userEvent.setup();
+    render(<AnalysisPacingPage />);
+    await fillSynthetic500m(user);
+    await user.click(screen.getByRole("button", { name: "生成配速衰减曲线" }));
+    await user.click(screen.getByRole("button", { name: "保存本次配速" }));
+    expect(state.save).not.toHaveBeenCalled();
   });
 
   it("does not save when nobody is signed in", async () => {

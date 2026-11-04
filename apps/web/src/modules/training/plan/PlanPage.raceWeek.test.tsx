@@ -78,6 +78,7 @@ vi.mock("@skatingx/firebase-client", () => ({
   subscribeToSavedAnalyses: (
     _db: unknown,
     _uid: unknown,
+    _athlete: unknown,
     onData: (rows: { kind: "pace" | "biomech"; id: string; createdAt: string; findings: { code: string }[] }[]) => void,
   ) => {
     state.onAnalyses = onData;

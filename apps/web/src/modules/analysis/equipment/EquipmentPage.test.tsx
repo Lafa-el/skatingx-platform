@@ -114,6 +114,7 @@ describe("the history when the cloud read fails or documents cannot be read", ()
     buildEquipmentHistoryRecord({
       id,
       ownerUserId: "user-1",
+      athleteId: "lindsay",
       createdAt: "2026-10-19T06:00:00.000Z",
       symptomKey: "slide",
       symptomText,
@@ -227,9 +228,10 @@ describe("equipment page", () => {
     expect(screen.getByText("可提交教练复核")).toBeTruthy();
   });
 
-  it("saves a lindsay record with an ISO time and provenance, and no video", async () => {
+  it("saves a record for the current athlete, with an ISO time and provenance, and no video", async () => {
     state.uid = "user-1";
     state.db = {};
+    state.settings = { activeAthleteId: "ann-k3x9a2" };
     const user = userEvent.setup();
     renderPage();
 
@@ -243,12 +245,24 @@ describe("equipment page", () => {
       provenance: { schemaVersion: string; algorithmVersion: string };
       findings: { code: string }[];
     };
-    expect(record.athleteId).toBe("lindsay");
+    expect(record.athleteId).toBe("ann-k3x9a2");
     expect(record.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     expect(record.provenance.schemaVersion).toBe("skatingx-analysis-contract-v1");
     expect(record.provenance.algorithmVersion).toBe("legacy-equipment-port-1");
     expect(record.findings[0]?.code).toBe("equipment.symptom.slide");
     expect(JSON.stringify(record)).not.toContain("video");
+  });
+
+  it("does not save when there is no current athlete", async () => {
+    state.uid = "user-1";
+    state.db = {};
+    state.settings = {};
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "生成清单" }));
+    await user.click(screen.getByRole("button", { name: "保存记录" }));
+    expect(state.save).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("skatingx-equipment-history-v1:user-1")).toBeNull();
   });
 
   it("asks before deleting, leaves the record on cancel, and removes it after confirm", async () => {
@@ -260,6 +274,7 @@ describe("equipment page", () => {
       buildEquipmentHistoryRecord({
         id: "equip-1",
         ownerUserId: "user-1",
+        athleteId: "lindsay",
         createdAt: "2026-10-19T06:00:00.000Z",
         symptomKey: "slide",
         symptomText: "弯道咬冰不足，弯中有向外侧滑的感觉。",
@@ -299,6 +314,7 @@ describe("equipment page", () => {
       buildEquipmentHistoryRecord({
         id: "equip-1",
         ownerUserId: "user-1",
+        athleteId: "lindsay",
         createdAt: "2026-10-19T06:00:00.000Z",
         symptomKey: "slide",
         symptomText: "弯道咬冰不足，弯中有向外侧滑的感觉。",
@@ -494,6 +510,7 @@ describe("equipment page", () => {
       buildEquipmentHistoryRecord({
         id,
         ownerUserId: "user-1",
+        athleteId: "lindsay",
         createdAt: "2026-10-19T06:00:00.000Z",
         symptomKey: "slide",
         symptomText: "old record",
@@ -865,6 +882,7 @@ describe("saved status, comparison, and symptom buttons", () => {
     buildEquipmentHistoryRecord({
       id,
       ownerUserId: "user-1",
+      athleteId: "lindsay",
       createdAt,
       symptomKey: "slide",
       symptomText: "弯道咬冰不足，弯中有向外侧滑的感觉。",

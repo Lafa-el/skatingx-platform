@@ -11,7 +11,9 @@ import { Button, Card, ErrorNotice, Notice } from "@skatingx/ui";
 import { useMemo, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { tAnalysis } from "@/shared/i18n/analysis-messages";
 import { paceSegmentLabel, tPace, type PaceMessageKey } from "@/shared/i18n/pacing-messages";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
@@ -65,6 +67,8 @@ export function readNumber(raw: string): number {
 export function PacingPage() {
   const locale = useLocale();
   const { uid, loading: authLoading } = useAuth();
+  const { data: settings } = useUserSettings();
+  const athleteId = activeAthleteIdOf(settings);
   const [distance, setDistance] = useState<PaceDistance>("500");
   const [athleteText, setAthleteText] = useState(() => blankSplits("500"));
   const [benchmarkText, setBenchmarkText] = useState(() => defaultBenchmark("500"));
@@ -124,6 +128,7 @@ export function PacingPage() {
       setSaveState("pace.error.signedOut");
       return;
     }
+    if (!athleteId) return;
     const db = getFirestoreDb();
     if (!db) {
       setSaveState("pace.error.unavailable");
@@ -134,6 +139,7 @@ export function PacingPage() {
       const record = buildPaceAnalysisRecord({
         id: `pace-${distance}-${crypto.randomUUID()}`,
         ownerUserId: uid,
+        athleteId,
         createdAt: new Date().toISOString(),
         distance,
         splits: chartAthlete,

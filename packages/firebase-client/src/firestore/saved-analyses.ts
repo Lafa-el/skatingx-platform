@@ -204,8 +204,12 @@ export function savedAnalysisFromDocument(docId: string, data: Record<string, un
 }
 
 /**
- * Read the saved pace and biomechanics documents. This does not write.
+ * Read the saved pace and biomechanics documents for one athlete. This does not write.
  * The caller unsubscribes when the page goes away.
+ *
+ * The collection is user-level, so the query stays `orderBy(createdAt)`. Documents whose
+ * `athleteId` is not the one asked for are left out here, and they are not counted as
+ * dropped. A `where` on `athleteId` plus that order would need a composite index.
  *
  * `dropped` counts the documents of this snapshot that were left out whole (no string `createdAt`, or
  * not exactly one of pace / poseFrames). It is worked out again for every snapshot, never summed over
@@ -215,6 +219,7 @@ export function savedAnalysisFromDocument(docId: string, data: Record<string, un
 export function subscribeToSavedAnalyses(
   db: Firestore,
   userId: string,
+  athleteId: string,
   onData: (sources: readonly SavedAnalysisSource[], dropped: number) => void,
   onError: (error: unknown) => void,
 ): Unsubscribe {
@@ -225,7 +230,9 @@ export function subscribeToSavedAnalyses(
       const sources: SavedAnalysisSource[] = [];
       let dropped = 0;
       for (const entry of snapshot.docs) {
-        const source = savedAnalysisFromDocument(entry.id, entry.data());
+        const data = entry.data();
+        if (data.athleteId !== athleteId) continue;
+        const source = savedAnalysisFromDocument(entry.id, data);
         if (source) sources.push(source);
         else dropped += 1;
       }

@@ -45,6 +45,7 @@ function paceDoc(overrides: Record<string, unknown> = {}): PaceAnalysisRecord & 
     ...buildPaceAnalysisRecord({
       id: "pace-500-abc",
       ownerUserId: "alice",
+      athleteId: "lindsay",
       createdAt: "2026-10-19T04:59:13.497Z",
       distance: "500",
       splits,
@@ -86,7 +87,7 @@ describe("analyses/{analysisId}", () => {
   it("denies a record that leaves the AnalysisRecord shape", async () => {
     const db = env.authenticatedContext("alice").firestore();
     const created = paceDoc();
-    await assertFails(setDoc(doc(db, path), paceDoc({ athleteId: "other" })));
+    await assertFails(setDoc(doc(db, path), paceDoc({ athleteId: "Athlete_9" })));
     await assertFails(setDoc(doc(db, path), paceDoc({ createdAt: new Date() })));
     await assertFails(setDoc(doc(db, path), paceDoc({ createdAt: "2026-10-19T04:59:13Z" })));
     await assertFails(setDoc(doc(db, path), { ...created, paceInput: { distance: "500" } }));
@@ -114,6 +115,7 @@ describe("analyses/{analysisId}", () => {
       return buildPaceAnalysisRecord({
         id,
         ownerUserId: "alice",
+        athleteId: "lindsay",
         createdAt: "2026-10-19T04:59:13.497Z",
         distance,
         splits: [...series],
@@ -212,6 +214,7 @@ describe("analyses/{analysisId}", () => {
     const record: BiomechAnalysisRecord = buildBiomechAnalysisRecord({
       id: "biomech-abc",
       ownerUserId: "alice",
+      athleteId: "lindsay",
       createdAt: "2026-10-19T07:00:00.000Z",
       samples: [sample],
     });
@@ -245,5 +248,85 @@ describe("analyses/{analysisId}", () => {
     );
     const bob = env.authenticatedContext("bob").firestore();
     await assertFails(setDoc(doc(bob, biomechPath), { ...record, ownerUserId: "bob" }));
+  });
+});
+
+const NEW_ATHLETE = "ann-k3x9a2";
+
+function paceFor(id: string, athleteId: string) {
+  const result = calculatePacingAnalysis("500", splits, pacingDistanceConfigs["500"].defaults);
+  if (!result.ok) throw new Error(result.message);
+  return buildPaceAnalysisRecord({
+    id,
+    ownerUserId: "alice",
+    athleteId,
+    createdAt: "2026-10-19T04:59:13.497Z",
+    distance: "500",
+    splits,
+    benchmark: pacingDistanceConfigs["500"].defaults,
+    analysis: result.analysis,
+  });
+}
+
+function biomechDoc(athleteId: string, id = "biomech-scope") {
+  return buildBiomechAnalysisRecord({
+    id,
+    ownerUserId: "alice",
+    athleteId,
+    createdAt: "2026-10-19T07:00:00.000Z",
+    samples: [],
+  });
+}
+
+describe("analyses athleteId", () => {
+  it("accepts a new athlete slug, and still accepts lindsay", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    await assertSucceeds(setDoc(doc(db, path), paceDoc({ athleteId: NEW_ATHLETE })));
+    await assertSucceeds(setDoc(doc(db, `${USERS}/alice/analyses/pace-lindsay`), paceFor("pace-lindsay", "lindsay")));
+    await assertSucceeds(setDoc(doc(db, `${USERS}/alice/analyses/biomech-scope`), biomechDoc(NEW_ATHLETE)));
+    await assertSucceeds(
+      setDoc(doc(db, `${USERS}/alice/analyses/biomech-lindsay`), biomechDoc("lindsay", "biomech-lindsay")),
+    );
+  });
+
+  it("rejects an empty athleteId and one with characters outside the id pattern", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    await assertFails(setDoc(doc(db, path), paceDoc({ athleteId: "" })));
+    await assertFails(setDoc(doc(db, path), paceDoc({ athleteId: "Athlete_9" })));
+    await assertFails(setDoc(doc(db, `${USERS}/alice/analyses/biomech-scope`), { ...biomechDoc(NEW_ATHLETE), athleteId: "" }));
+    await assertFails(
+      setDoc(doc(db, `${USERS}/alice/analyses/biomech-scope`), { ...biomechDoc(NEW_ATHLETE), athleteId: "Athlete_9" }),
+    );
+  });
+
+  it("rejects a record whose ownerUserId is not the signed-in user", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    await assertFails(setDoc(doc(db, path), paceDoc({ ownerUserId: "bob", athleteId: NEW_ATHLETE })));
+    await assertFails(
+      setDoc(doc(db, `${USERS}/alice/analyses/biomech-scope`), { ...biomechDoc(NEW_ATHLETE), ownerUserId: "bob" }),
+    );
+  });
+
+  it("lets the owner update a record that already names a new athlete", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    const created = paceFor("pace-ann", NEW_ATHLETE);
+    const annPath = `${USERS}/alice/analyses/pace-ann`;
+    await assertSucceeds(setDoc(doc(db, annPath), created));
+    await assertSucceeds(
+      setDoc(doc(db, annPath), {
+        ...created,
+        pace: { ...created.pace, rating: "excellent" },
+      }),
+    );
+  });
+
+  it("rejects an update that changes athleteId", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    await assertSucceeds(setDoc(doc(db, path), paceDoc()));
+    await assertFails(setDoc(doc(db, path), paceDoc({ athleteId: NEW_ATHLETE })));
+    const biomechPath = `${USERS}/alice/analyses/biomech-scope`;
+    const created = biomechDoc("lindsay");
+    await assertSucceeds(setDoc(doc(db, biomechPath), created));
+    await assertFails(setDoc(doc(db, biomechPath), { ...created, athleteId: NEW_ATHLETE }));
   });
 });

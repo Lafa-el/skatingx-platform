@@ -1,5 +1,3 @@
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
-
 import { aggregateKeyframes, type PoseKeyframeSample } from "./biomech-session";
 import { paceProvenanceModel } from "./pace-record";
 
@@ -25,7 +23,7 @@ export interface BiomechPoseFrame {
 export interface BiomechAnalysisRecord {
   readonly id: string;
   readonly ownerUserId: string;
-  readonly athleteId: typeof DEFAULT_ATHLETE_ID;
+  readonly athleteId: string;
   readonly createdAt: string;
   readonly provenance: {
     readonly schemaVersion: "skatingx-analysis-contract-v1";
@@ -63,11 +61,15 @@ function frameOf(sample: PoseKeyframeSample): BiomechPoseFrame {
 export function buildBiomechAnalysisRecord(input: {
   id: string;
   ownerUserId: string;
+  athleteId: string;
   createdAt: string;
   samples: readonly PoseKeyframeSample[];
 }): BiomechAnalysisRecord {
   if (!analysisIdPattern.test(input.id) || input.id.length > 64) {
     throw new Error("Biomechanics analysis id is not a valid Firestore id.");
+  }
+  if (!analysisIdPattern.test(input.athleteId) || input.athleteId.length > 64) {
+    throw new Error("Biomechanics analysis athleteId is not a valid Firestore id.");
   }
   if (Number.isNaN(Date.parse(input.createdAt))) {
     throw new Error("Biomechanics analysis createdAt must be an ISO-8601 string.");
@@ -92,7 +94,7 @@ export function buildBiomechAnalysisRecord(input: {
   return {
     id: input.id,
     ownerUserId: input.ownerUserId,
-    athleteId: DEFAULT_ATHLETE_ID,
+    athleteId: input.athleteId,
     createdAt: input.createdAt,
     provenance: {
       schemaVersion: "skatingx-analysis-contract-v1",
