@@ -20,6 +20,7 @@ const zh = {
   "athlete.field.skatingStartDate": "开始滑冰日期",
   "athlete.field.bio": "个人简介",
   "athlete.action.edit": "编辑",
+  "athlete.action.add": "添加运动员",
   "athlete.action.save": "保存",
   "athlete.action.cancel": "取消",
   "athlete.form.bioCount": "{count}/500",
@@ -28,6 +29,7 @@ const zh = {
   "athlete.error.dateInvalid": "请填写真实日期。",
   "athlete.error.bioTooLong": "简介不能超过 500 个字。",
   "athlete.error.saveFailed": "没能保存，请再试一次。",
+  "athlete.error.createFailed": "没能添加，请再试一次。",
   "athlete.sport.shortTrack": "短道速滑",
 } as const;
 
@@ -50,6 +52,7 @@ const en: Record<AthleteKey, string> = {
   "athlete.field.skatingStartDate": "Skating start date",
   "athlete.field.bio": "Bio",
   "athlete.action.edit": "Edit",
+  "athlete.action.add": "Add athlete",
   "athlete.action.save": "Save",
   "athlete.action.cancel": "Cancel",
   "athlete.form.bioCount": "{count}/500",
@@ -58,6 +61,7 @@ const en: Record<AthleteKey, string> = {
   "athlete.error.dateInvalid": "Enter a real date.",
   "athlete.error.bioTooLong": "Bio must be 500 characters or fewer.",
   "athlete.error.saveFailed": "Could not save. Try again.",
+  "athlete.error.createFailed": "Could not add the athlete. Try again.",
   "athlete.sport.shortTrack": "Short track speed skating",
 };
 

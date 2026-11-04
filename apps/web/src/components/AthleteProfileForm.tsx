@@ -1,4 +1,4 @@
-import { getFirestoreDb, updateAthleteProfile } from "@skatingx/firebase-client";
+import { createAthlete, getFirestoreDb, updateAthleteProfile } from "@skatingx/firebase-client";
 import type { AthleteProfile } from "@skatingx/schema";
 import {
   validateAthleteProfileForm,
@@ -25,9 +25,10 @@ const FIELD_ERROR: Record<keyof AthleteProfileFormErrors, AthleteMessageKey> = {
 };
 
 type AthleteProfileFormProps = {
-  profile: AthleteProfile;
+  /** Absent when the form is creating an athlete. */
+  profile?: AthleteProfile;
   userId: string;
-  athleteId: string;
+  athleteId?: string;
   locale: Locale;
   onCancel: () => void;
   onSaved: () => void;
@@ -41,12 +42,13 @@ export function AthleteProfileForm({
   onCancel,
   onSaved,
 }: AthleteProfileFormProps) {
-  const [displayName, setDisplayName] = useState(profile.displayName);
-  const [birthDate, setBirthDate] = useState(profile.birthDate ?? "");
-  const [skatingStartDate, setSkatingStartDate] = useState(profile.skatingStartDate ?? "");
-  const [sport, setSport] = useState(profile.sport || SHORT_TRACK);
-  const [country, setCountry] = useState(profile.country);
-  const [bio, setBio] = useState(profile.bio ?? "");
+  const creating = profile == null;
+  const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
+  const [birthDate, setBirthDate] = useState(profile?.birthDate ?? "");
+  const [skatingStartDate, setSkatingStartDate] = useState(profile?.skatingStartDate ?? "");
+  const [sport, setSport] = useState(profile?.sport || SHORT_TRACK);
+  const [country, setCountry] = useState(profile?.country ?? "");
+  const [bio, setBio] = useState(profile?.bio ?? "");
   const [errors, setErrors] = useState<AthleteProfileFormErrors>({});
   const [saveFailed, setSaveFailed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -69,24 +71,22 @@ export function AthleteProfileForm({
     }
     setSaveFailed(false);
     const db = getFirestoreDb();
-    if (!db) {
-      logActionFailure("athlete-profile", "update", { code: "unavailable" });
+    if (!db || (!creating && !athleteId)) {
+      logActionFailure("athlete-profile", creating ? "create" : "update", { code: "unavailable" });
       setSaveFailed(true);
       return;
     }
+    const formPatch = { displayName, birthDate, skatingStartDate, sport, country, bio };
     setSaving(true);
     try {
-      await updateAthleteProfile(db, userId, athleteId, {
-        displayName,
-        birthDate,
-        skatingStartDate,
-        sport,
-        country,
-        bio,
-      });
+      if (creating) {
+        await createAthlete(db, userId, formPatch);
+      } else {
+        await updateAthleteProfile(db, userId, athleteId as string, formPatch);
+      }
       onSaved();
     } catch (error) {
-      logActionFailure("athlete-profile", "update", error);
+      logActionFailure("athlete-profile", creating ? "create" : "update", error);
       setSaveFailed(true);
     } finally {
       setSaving(false);
@@ -185,7 +185,9 @@ export function AthleteProfileForm({
           {tAthlete(locale, "athlete.form.bioCount", { count: bio.length })}
         </p>
       </Field>
-      {saveFailed ? <ErrorNotice>{t("athlete.error.saveFailed")}</ErrorNotice> : null}
+      {saveFailed ? (
+        <ErrorNotice>{t(creating ? "athlete.error.createFailed" : "athlete.error.saveFailed")}</ErrorNotice>
+      ) : null}
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={saving}>
           {t("athlete.action.save")}

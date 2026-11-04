@@ -47,6 +47,49 @@ async function ensureDocument(
 }
 
 /**
+ * Gamification, training state, default distance records, and the rewards catalog.
+ * The same documents a brand-new account gets for its first athlete. Existing documents stay.
+ */
+export async function provisionAthleteCompanions(
+  db: Firestore,
+  userId: string,
+  athleteId: string,
+): Promise<BootstrapResult> {
+  const created: string[] = [];
+  const existing: string[] = [];
+
+  const gamificationResult = await ensureDocument(
+    athleteGamificationRef(db, userId, athleteId),
+    createDefaultGamification(),
+    false,
+  );
+  (gamificationResult === "created" ? created : existing).push(
+    `athletes/${athleteId}/gamification/main`,
+  );
+
+  const trainingResult = await ensureDocument(
+    trainingStateRef(db, userId, athleteId),
+    createDefaultTrainingState(),
+    false,
+  );
+  (trainingResult === "created" ? created : existing).push(
+    `athletes/${athleteId}/training/state`,
+  );
+
+  const recordIds = await ensureDefaultDistanceRecords({ db, userId, athleteId });
+  for (const distanceId of recordIds) {
+    created.push(`athletes/${athleteId}/training/main/records/${distanceId}`);
+  }
+
+  const catalogCreated = await ensureDefaultRewardsCatalog({ db, userId, athleteId });
+  if (catalogCreated) {
+    created.push(`athletes/${athleteId}/training/main/rewards/catalog`);
+  }
+
+  return { created, existing };
+}
+
+/**
  * Create default settings + Lindsay athlete documents for a new auth user.
  * Idempotent: existing documents are left unchanged.
  */
@@ -70,41 +113,9 @@ export async function bootstrapUserDocuments(
     `athletes/${athleteId}/profile/main`,
   );
 
-  const gamificationData = createDefaultGamification();
-  const gamificationPath = athleteGamificationRef(db, userId, athleteId);
-  const gamificationResult = await ensureDocument(
-    gamificationPath,
-    gamificationData,
-    false,
-  );
-  (gamificationResult === "created" ? created : existing).push(
-    `athletes/${athleteId}/gamification/main`,
-  );
-
-  const trainingData = createDefaultTrainingState();
-  const trainingPath = trainingStateRef(db, userId, athleteId);
-  const trainingResult = await ensureDocument(trainingPath, trainingData, false);
-  (trainingResult === "created" ? created : existing).push(
-    `athletes/${athleteId}/training/state`,
-  );
-
-  const recordIds = await ensureDefaultDistanceRecords({
-    db,
-    userId,
-    athleteId,
-  });
-  for (const distanceId of recordIds) {
-    created.push(`athletes/${athleteId}/training/main/records/${distanceId}`);
-  }
-
-  const catalogCreated = await ensureDefaultRewardsCatalog({
-    db,
-    userId,
-    athleteId,
-  });
-  if (catalogCreated) {
-    created.push(`athletes/${athleteId}/training/main/rewards/catalog`);
-  }
+  const companions = await provisionAthleteCompanions(db, userId, athleteId);
+  created.push(...companions.created);
+  existing.push(...companions.existing);
 
   return { created, existing };
 }
