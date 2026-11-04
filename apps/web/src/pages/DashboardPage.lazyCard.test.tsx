@@ -24,6 +24,7 @@ vi.mock("@/app/providers/FirestoreProvider", () => ({
   useAthleteProfile: () => ({ data: { displayName: "Sample Skater" }, loading: false, error: null }),
   useGamification: () => ({ data: { points: 0, streakDays: 0 }, loading: false, error: null }),
   useTrainingState: () => ({ data: { todayTasks: [] }, loading: false, error: null }),
+  useActiveAthlete: () => ({ athleteId: "skater", loading: false, error: null, profile: { data: { displayName: "Sample Skater" }, loading: false, error: null } }),
 }));
 vi.mock("@/hooks/useRewardsShop", () => ({
   useRewardsShop: () => ({ loading: false, error: null, catalog: null, latestRedemption: null }),

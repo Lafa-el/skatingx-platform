@@ -9,7 +9,7 @@ import { AthleteSelector } from "./AthleteSelector";
 
 const state = vi.hoisted(() => ({
   locale: "zh" as "zh" | "en",
-  athleteId: "athlete-1",
+  athleteId: "athlete-1" as string | null,
   displayName: "Sample Skater",
   roster: [] as { athleteId: string; displayName: string }[],
   listFailed: false,
@@ -135,6 +135,14 @@ describe("AthleteSelector", () => {
     await user.click(screen.getByRole("option", { name: /Alex/ }));
     expect(screen.getByRole("listbox")).toBeTruthy();
     expect(screen.getByRole("alert").textContent).toContain("没能切换，请再试一次。");
+  });
+
+  it("with no athlete, the button says so and the menu only links to the athlete page", async () => {
+    state.athleteId = null;
+    await openMenu();
+    expect(screen.getByRole("button", { name: /暂无运动员/ })).toBeTruthy();
+    expect(screen.queryByRole("option")).toBeNull();
+    expect(screen.getByRole("link", { name: "运动员档案 →" }).getAttribute("href")).toBe("/athlete");
   });
 
   it("is closed until opened, and Escape closes it", async () => {

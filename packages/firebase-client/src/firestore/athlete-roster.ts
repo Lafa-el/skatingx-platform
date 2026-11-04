@@ -1,9 +1,11 @@
 import {
   collectionGroup,
+  getDocs,
   onSnapshot,
   query,
   where,
   type Firestore,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore";
 
 export type AthleteRosterEntry = {
@@ -28,6 +30,35 @@ export function athleteIdFromProfilePath(path: string): string | null {
   return athleteId;
 }
 
+/** Same order as the shell selector: display name, then athlete id. */
+export function compareAthleteRosterEntries(a: AthleteRosterEntry, b: AthleteRosterEntry): number {
+  return a.displayName.localeCompare(b.displayName) || a.athleteId.localeCompare(b.athleteId);
+}
+
+function athleteRosterQuery(db: Firestore, userId: string) {
+  return query(collectionGroup(db, "profile"), where("userId", "==", userId));
+}
+
+function rosterEntriesFromDocs(
+  docs: ReadonlyArray<Pick<QueryDocumentSnapshot, "ref" | "data">>,
+): AthleteRosterEntry[] {
+  const entries: AthleteRosterEntry[] = [];
+  for (const docSnap of docs) {
+    const athleteId = athleteIdFromProfilePath(docSnap.ref.path);
+    if (!athleteId) {
+      continue;
+    }
+    const raw = docSnap.data() as { displayName?: unknown };
+    const displayName =
+      typeof raw.displayName === "string" && raw.displayName.trim() !== ""
+        ? raw.displayName
+        : athleteId;
+    entries.push({ athleteId, displayName });
+  }
+  entries.sort(compareAthleteRosterEntries);
+  return entries;
+}
+
 /**
  * Every profile stamped with this user's id. A collection-group list cannot see
  * the parent path, so the query filters on `userId`. The parent athlete document
@@ -39,34 +70,23 @@ export function subscribeToAthleteProfiles(
   onData: (entries: AthleteRosterEntry[]) => void,
   onError: (message: string) => void,
 ): { unsubscribe: () => void } {
-  const roster = query(
-    collectionGroup(db, "profile"),
-    where("userId", "==", userId),
-  );
   const unsubscribe = onSnapshot(
-    roster,
+    athleteRosterQuery(db, userId),
     (snap) => {
-      const entries: AthleteRosterEntry[] = [];
-      for (const docSnap of snap.docs) {
-        const athleteId = athleteIdFromProfilePath(docSnap.ref.path);
-        if (!athleteId) {
-          continue;
-        }
-        const raw = docSnap.data() as { displayName?: unknown };
-        const displayName =
-          typeof raw.displayName === "string" && raw.displayName.trim() !== ""
-            ? raw.displayName
-            : athleteId;
-        entries.push({ athleteId, displayName });
-      }
-      entries.sort(
-        (a, b) => a.displayName.localeCompare(b.displayName) || a.athleteId.localeCompare(b.athleteId),
-      );
-      onData(entries);
+      onData(rosterEntriesFromDocs(snap.docs));
     },
     (error) => {
       onError(error.message);
     },
   );
   return { unsubscribe };
+}
+
+/** One-shot read of the same query the selector listens to. */
+export async function listAthleteProfiles(
+  db: Firestore,
+  userId: string,
+): Promise<AthleteRosterEntry[]> {
+  const snap = await getDocs(athleteRosterQuery(db, userId));
+  return rosterEntriesFromDocs(snap.docs);
 }

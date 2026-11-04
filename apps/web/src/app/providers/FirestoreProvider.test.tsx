@@ -7,6 +7,7 @@ import { act, renderHook, waitFor } from "@/test/dom";
 
 import {
   FirestoreProvider,
+  useActiveAthlete,
   useAthleteProfile,
   useFirestoreStatus,
   useGamification,
@@ -113,9 +114,7 @@ describe("useFirestoreStatus: why the data service did not start", () => {
     await act(async () => {
       h.state.deliverSettings!();
     });
-    await waitFor(() =>
-      expect(h.state.ensureOpening).toHaveBeenCalledWith(h.state.db, "uid-1", "lindsay", todayDateString()),
-    );
+    expect(h.state.ensureOpening).not.toHaveBeenCalled();
   });
 
   it("not signed in yet but Firebase is set up: nothing to report", async () => {
@@ -189,23 +188,38 @@ describe("the athlete documents follow the active athlete", () => {
     expect(h.state.ensureOpening).toHaveBeenCalledWith(h.state.db, "uid-1", "athlete-9", todayDateString());
   });
 
-  it("settings without an athlete id: the default athlete", async () => {
-    const { result } = all();
+  it("settings without an athlete id: athleteId is null and nothing is subscribed", async () => {
+    const { result } = renderHook(
+      () => ({
+        status: useFirestoreStatus(),
+        profile: useAthleteProfile(),
+        gamification: useGamification(),
+        training: useTrainingState(),
+        active: useActiveAthlete(),
+      }),
+      { wrapper },
+    );
     await waitFor(() => expect(result.current.status.ready).toBe(true));
     await deliver();
-    await waitFor(() => expect(open()).toEqual(["gamification:lindsay", "profile:lindsay", "training:lindsay"]));
-    expect(h.state.ensureOpening).toHaveBeenCalledWith(h.state.db, "uid-1", "lindsay", todayDateString());
+    await waitFor(() => expect(result.current.active.loading).toBe(false));
+    expect(result.current.active.athleteId).toBeNull();
+    expect(open()).toEqual([]);
+    expect(result.current.profile).toEqual({ data: null, loading: false, error: null });
+    expect(result.current.gamification).toEqual({ data: null, loading: false, error: null });
+    expect(result.current.training).toEqual({ data: null, loading: false, error: null });
+    expect(h.state.ensureOpening).not.toHaveBeenCalled();
   });
 
-  it("settings that fail to load: the default athlete", async () => {
+  it("settings that fail to load: no athlete document is read", async () => {
     const { result } = all();
     await waitFor(() => expect(result.current.status.ready).toBe(true));
     await act(async () => {
       h.state.failSettings!("permission-denied");
     });
-    await waitFor(() => expect(open()).toEqual(["gamification:lindsay", "profile:lindsay", "training:lindsay"]));
-    expect(result.current.settings.error).toBe("permission-denied");
-    expect(h.state.ensureOpening).toHaveBeenCalledWith(h.state.db, "uid-1", "lindsay", todayDateString());
+    await waitFor(() => expect(result.current.settings.error).toBe("permission-denied"));
+    expect(open()).toEqual([]);
+    expect(result.current.profile).toEqual({ data: null, loading: false, error: null });
+    expect(h.state.ensureOpening).not.toHaveBeenCalled();
   });
 
   it("settings still loading: no athlete document is read and the slices stay loading", async () => {

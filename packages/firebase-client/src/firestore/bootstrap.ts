@@ -106,16 +106,20 @@ export async function bootstrapUserDocuments(
   const settingsResult = await ensureDocument(settingsPath, settingsData, true);
   (settingsResult === "created" ? created : existing).push("settings/main");
 
-  const profileData = createDefaultAthleteProfile(athleteId, userId);
-  const profilePath = athleteProfileRef(db, userId, athleteId);
-  const profileResult = await ensureDocument(profilePath, profileData, true);
-  (profileResult === "created" ? created : existing).push(
-    `athletes/${athleteId}/profile/main`,
-  );
+  // An existing account is left alone. Recreating the default athlete here would
+  // bring back someone the user deleted on the next visit.
+  if (settingsResult === "created") {
+    const profileData = createDefaultAthleteProfile(athleteId, userId);
+    const profilePath = athleteProfileRef(db, userId, athleteId);
+    const profileResult = await ensureDocument(profilePath, profileData, true);
+    (profileResult === "created" ? created : existing).push(
+      `athletes/${athleteId}/profile/main`,
+    );
 
-  const companions = await provisionAthleteCompanions(db, userId, athleteId);
-  created.push(...companions.created);
-  existing.push(...companions.existing);
+    const companions = await provisionAthleteCompanions(db, userId, athleteId);
+    created.push(...companions.created);
+    existing.push(...companions.existing);
+  }
 
   return { created, existing };
 }

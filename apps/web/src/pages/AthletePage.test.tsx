@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+import { useRef, useState } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -21,7 +23,7 @@ const h = vi.hoisted(() => {
   const ready = (data: unknown): Hook => ({ data, loading: false, error: null });
   const base = () => ({
     locale: "zh" as "zh" | "en",
-    active: { athleteId: "athlete-1", loading: false, error: null as string | null },
+    active: { athleteId: "athlete-1" as string | null, loading: false, error: null as string | null },
     profile: ready({
       displayName: "Sample Skater",
       birthDate: "2015-01-14",
@@ -36,6 +38,8 @@ const h = vi.hoisted(() => {
     state: base(),
     updateAthleteProfile: vi.fn(),
     createAthlete: vi.fn(async () => "new-id"),
+    deleteAthlete: vi.fn(async (_db: unknown, _userId: string, _athleteId: string) => undefined),
+    pinSet: false,
   };
 });
 
@@ -52,13 +56,48 @@ vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => ({}),
   updateAthleteProfile: h.updateAthleteProfile,
   createAthlete: h.createAthlete,
+  deleteAthlete: (db: unknown, userId: string, athleteId: string) =>
+    h.deleteAthlete(db, userId, athleteId),
 }));
+vi.mock("@/hooks/useParentPinGuard", () => {
+  return {
+    useParentPinGuard: () => {
+      const [open, setOpen] = useState(false);
+      const pending = useRef<(() => void) | null>(null);
+      return {
+        guard: (action: string, run: () => void) => {
+          if (action !== "deleteAthlete") return;
+          if (h.pinSet) {
+            pending.current = run;
+            setOpen(true);
+            return;
+          }
+          run();
+        },
+        dialog: open ? (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              pending.current?.();
+            }}
+          >
+            确认 PIN
+          </button>
+        ) : null,
+      };
+    },
+  };
+});
 
 afterEach(() => {
   h.state = h.base();
   h.updateAthleteProfile.mockReset();
   h.createAthlete.mockReset();
   h.createAthlete.mockResolvedValue("new-id");
+  h.deleteAthlete.mockReset();
+  h.deleteAthlete.mockResolvedValue(undefined);
+  h.pinSet = false;
 });
 
 const term = (name: string) =>
@@ -448,6 +487,92 @@ describe("AthletePage", () => {
     expect(screen.getByLabelText("Bio")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
+  });
+
+  it("delete asks, then runs at once when no PIN is set", async () => {
+    const user = userEvent.setup();
+    render(<AthletePage />);
+    await user.click(screen.getByRole("button", { name: "删除运动员" }));
+    expect(screen.getByRole("alertdialog").textContent).toContain("训练、纪录、积分和分析");
+    expect(screen.getByRole("alertdialog").textContent).toContain("日志和账号会保留");
+    expect(h.deleteAthlete).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    await waitFor(() => expect(h.deleteAthlete).toHaveBeenCalledWith({}, "uid-123", "athlete-1"));
+    expect(screen.queryByRole("button", { name: "确认 PIN" })).toBeNull();
+  });
+
+  it("a set PIN holds the delete until it is confirmed", async () => {
+    h.pinSet = true;
+    const user = userEvent.setup();
+    render(<AthletePage />);
+    await user.click(screen.getByRole("button", { name: "删除运动员" }));
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    expect(h.deleteAthlete).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "确认 PIN" }));
+    await waitFor(() => expect(h.deleteAthlete).toHaveBeenCalledTimes(1));
+  });
+
+  it("a failed delete stays on the confirm so it can be tried again", async () => {
+    h.deleteAthlete.mockRejectedValueOnce(new Error("unavailable"));
+    const user = userEvent.setup();
+    render(<AthletePage />);
+    await user.click(screen.getByRole("button", { name: "删除运动员" }));
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("没能删除，请再试一次。"));
+    expect(screen.getByRole("button", { name: "确认删除" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    await waitFor(() => expect(h.deleteAthlete).toHaveBeenCalledTimes(2));
+  });
+
+  it("after a delete the card shows the athlete the account switched to", async () => {
+    h.deleteAthlete.mockImplementation(async () => {
+      h.state.active = { athleteId: "alex", loading: false, error: null };
+      h.state.profile = h.ready({
+        displayName: "Alex",
+        birthDate: "2016-03-04",
+        sport: "short_track_speed_skating",
+        country: "Canada",
+      });
+      h.state.settings = h.ready({ activeAthleteId: "alex" });
+    });
+    const user = userEvent.setup();
+    render(<AthletePage />);
+    await user.click(screen.getByRole("button", { name: "删除运动员" }));
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    await waitFor(() => expect(term("姓名")).toBe("Alex"));
+  });
+
+  it("deleting the last athlete shows the empty state", async () => {
+    h.deleteAthlete.mockImplementation(async () => {
+      h.state.active = { athleteId: null, loading: false, error: null };
+      h.state.profile = h.ready(null);
+      h.state.settings = h.ready({});
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AthletePage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole("button", { name: "删除运动员" }));
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    await waitFor(() => expect(screen.getByText("还没有运动员")).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "删除运动员" })).toBeNull();
+  });
+
+  it("with no athlete, add is available and edit and delete are not", () => {
+    h.state.active = { athleteId: null, loading: false, error: null };
+    h.state.profile = h.ready(null);
+    h.state.settings = h.ready({});
+    render(
+      <MemoryRouter>
+        <AthletePage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("link", { name: "添加运动员" }).getAttribute("href")).toBe("/athlete");
+    expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "删除运动员" })).toBeNull();
   });
 });
 

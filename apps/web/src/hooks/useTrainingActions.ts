@@ -3,11 +3,11 @@ import {
   deleteTrainingTask,
   toggleTrainingTask,
 } from "@skatingx/firebase-client";
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { useLocale } from "@/hooks/useLocale";
 import {
   type TrainingTasksMessageKey,
@@ -32,7 +32,7 @@ export function useTrainingActions() {
       : tTrainingTasks(language, errorNote.key)
     : null;
 
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const athleteId = activeAthleteIdOf(settings);
 
   const withActor = useCallback(
     async <T,>(
@@ -42,6 +42,9 @@ export function useTrainingActions() {
       setErrorNote(null);
       try {
         // Inside the try: "not signed in" and "no data service" are shown to the user too.
+        if (!athleteId) {
+          throw new ActionPreconditionError("unavailable");
+        }
         return await fn({ ...requireActor(uid), athleteId });
       } catch (error) {
         setErrorNote(

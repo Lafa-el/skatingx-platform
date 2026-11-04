@@ -17,6 +17,9 @@ vi.mock("@/hooks/useIsPro", () => ({
 vi.mock("@/components/Header", () => ({ Header: () => null }));
 vi.mock("@/components/BottomNav", () => ({ BottomNav: () => null }));
 vi.mock("@/components/SideNav", () => ({ SideNav: () => null }));
+vi.mock("@/hooks/firestore", () => ({
+  useActiveAthlete: () => ({ athleteId: "lindsay", loading: false, error: null }),
+}));
 
 afterEach(() => {
   state.locale = "zh";

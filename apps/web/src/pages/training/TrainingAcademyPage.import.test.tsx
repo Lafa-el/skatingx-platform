@@ -16,7 +16,7 @@ const h = vi.hoisted(() => ({
 
 vi.mock("@/app/providers/AuthProvider", () => ({ useAuth: () => ({ uid: h.uid }) }));
 vi.mock("@/app/providers/FirestoreProvider", () => ({
-  useUserSettings: () => ({ data: { language: h.language, isPro: true }, loading: false, error: null }),
+  useUserSettings: () => ({ data: { language: h.language, isPro: true, activeAthleteId: "athlete-1" }, loading: false, error: null }),
   useTrainingState: () => ({ data: { todayTasks: [] }, loading: false, error: null }),
 }));
 vi.mock("@/components/FirestoreStatusBanner", () => ({ FirestoreStatusBanner: () => null }));

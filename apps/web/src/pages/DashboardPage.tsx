@@ -6,8 +6,10 @@ import { Card, ErrorNotice, ProgressBar } from "@skatingx/ui";
 
 import { isRaceDayEnabled } from "@/app/features";
 import { AthleteFacts } from "@/components/AthleteFacts";
+import { NoAthleteNotice } from "@/components/NoAthleteNotice";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import {
+  useActiveAthlete,
   useAthleteProfile,
   useGamification,
   useTrainingState,
@@ -57,6 +59,7 @@ const dashboardCards: ReadonlyArray<{
 
 export function DashboardPage() {
   const locale = useLocale();
+  const { athleteId, loading: athleteLoading } = useActiveAthlete();
   const { data: profile, loading: profileLoading, error: profileError } =
     useAthleteProfile();
   const {
@@ -84,6 +87,7 @@ export function DashboardPage() {
   } = useRewardsShop();
 
   const loading =
+    athleteLoading ||
     profileLoading ||
     gamificationLoading ||
     trainingLoading ||
@@ -132,12 +136,18 @@ export function DashboardPage() {
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card variant="raised" title={tDashboard(locale, "dashboard.card.athlete")}>
-          <p className="text-lg font-semibold text-brand-navy">
-            {loading ? "…" : name}
-          </p>
-          <dl className="mt-3 space-y-2 text-sm">
-            <AthleteFacts profile={profile} loading={loading} locale={locale} />
-          </dl>
+          {!loading && athleteId == null ? (
+            <NoAthleteNotice />
+          ) : (
+            <>
+              <p className="text-lg font-semibold text-brand-navy">
+                {loading ? "…" : name}
+              </p>
+              <dl className="mt-3 space-y-2 text-sm">
+                <AthleteFacts profile={profile} loading={loading} locale={locale} />
+              </dl>
+            </>
+          )}
         </Card>
         <Card variant="raised" title={tDashboard(locale, "dashboard.card.points")}>
           <p className="sx-numeric text-3xl text-brand-navy">

@@ -116,8 +116,10 @@ export {
 export { updateUserSettings } from "./firestore/settings";
 export { updateAthleteProfile, type AthleteProfilePatch } from "./firestore/athlete-profile";
 export { AthleteIdCollisionError, createAthlete } from "./firestore/create-athlete";
+export { deleteAthlete } from "./firestore/delete-athlete";
 export {
   athleteIdFromProfilePath,
+  listAthleteProfiles,
   subscribeToAthleteProfiles,
   type AthleteRosterEntry,
 } from "./firestore/athlete-roster";

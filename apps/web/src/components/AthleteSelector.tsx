@@ -14,6 +14,7 @@ export function AthleteSelector() {
   const { uid } = useAuth();
   const { athleteId, loading } = useActiveAthlete();
   const { data: profile } = useAthleteProfile();
+  const noAthlete = !loading && athleteId == null;
   const [open, setOpen] = useState(false);
   const [roster, setRoster] = useState<AthleteRosterEntry[] | null>(null);
   const [listFailed, setListFailed] = useState(false);
@@ -21,7 +22,9 @@ export function AthleteSelector() {
   const rootRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
 
-  const displayName = profile?.displayName ?? "…";
+  const displayName = noAthlete
+    ? tShell(locale, "shell.athlete.none")
+    : (profile?.displayName ?? "…");
 
   useEffect(() => {
     if (!uid) {
@@ -70,13 +73,16 @@ export function AthleteSelector() {
     };
   }, [open]);
 
-  const current: AthleteRosterEntry = { athleteId, displayName };
+  const current: AthleteRosterEntry | null =
+    athleteId == null ? null : { athleteId, displayName };
   const listed =
-    listFailed || !roster || roster.length === 0
-      ? [current]
-      : roster.some((entry) => entry.athleteId === athleteId)
-        ? roster
-        : [current, ...roster];
+    current == null
+      ? []
+      : listFailed || !roster || roster.length === 0
+        ? [current]
+        : roster.some((entry) => entry.athleteId === athleteId)
+          ? roster
+          : [current, ...roster];
 
   async function switchTo(nextId: string) {
     if (!uid || nextId === athleteId) {
@@ -111,7 +117,9 @@ export function AthleteSelector() {
         <Avatar letter={displayName.charAt(0)} />
         <span className="hidden text-left sm:inline">
           <span className="block font-medium text-brand-navy">{displayName}</span>
-          <span className="block text-xs text-brand-navy/70">{athleteId}</span>
+          {athleteId == null ? null : (
+            <span className="block text-xs text-brand-navy/70">{athleteId}</span>
+          )}
         </span>
         <span className="text-brand-navy/60" aria-hidden>
           ▾

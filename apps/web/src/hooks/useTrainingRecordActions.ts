@@ -5,11 +5,11 @@ import {
   type RecordsActorContext,
 } from "@skatingx/firebase-client";
 import type { TimeEntrySource } from "@skatingx/schema";
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { useLocale } from "@/hooks/useLocale";
 import { type RecordsMessageKey, tRecords } from "@/shared/i18n/records-messages";
 
@@ -29,12 +29,14 @@ export function useTrainingRecordActions() {
       : tRecords(language, errorNote.key)
     : null;
 
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const athleteId = activeAthleteIdOf(settings);
 
-  const getContext = useCallback(
-    (): RecordsActorContext => ({ ...requireActor(uid), athleteId }),
-    [uid, athleteId],
-  );
+  const getContext = useCallback((): RecordsActorContext => {
+    if (!athleteId) {
+      throw new ActionPreconditionError("unavailable");
+    }
+    return { ...requireActor(uid), athleteId };
+  }, [uid, athleteId]);
 
   const withActor = useCallback(
     async <T,>(fn: (ctx: RecordsActorContext) => Promise<T>): Promise<T> => {

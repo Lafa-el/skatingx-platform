@@ -5,7 +5,8 @@ import type { Language } from "./language";
  * Account-level settings (`users/{userId}/settings/main`).
  */
 export interface UserSettings {
-  activeAthleteId: string;
+  /** Absent after the last athlete is deleted. A missing id is not the default athlete. */
+  activeAthleteId?: string;
   language: Language;
   theme: string;
   /** Manual dev flag — no payment integration in M6 */

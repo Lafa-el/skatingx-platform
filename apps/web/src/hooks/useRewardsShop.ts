@@ -9,12 +9,12 @@ import type {
   RewardRedemption,
   RewardsCatalogDocument,
 } from "@skatingx/schema";
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { onSnapshot } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { type ShopMessageKey, tShop } from "@/shared/i18n/shop-messages";
 import { toLocale } from "@/shared/i18n/translator";
 
@@ -27,8 +27,8 @@ type ShopErrorNote = { key: ShopMessageKey } | { received: string };
 
 export function useRewardsShop() {
   const { uid } = useAuth();
-  const { data: settings } = useUserSettings();
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const { data: settings, loading: settingsLoading } = useUserSettings();
+  const athleteId = activeAthleteIdOf(settings);
 
   const [catalog, setCatalog] = useState<RewardsCatalogDocument | null>(null);
   const [redemptions, setRedemptions] = useState<RewardRedemption[]>([]);
@@ -36,7 +36,10 @@ export function useRewardsShop() {
   const [errorNote, setErrorNote] = useState<ShopErrorNote | null>(null);
 
   useEffect(() => {
-    if (!uid) {
+    if (settingsLoading) {
+      return;
+    }
+    if (!uid || !athleteId) {
       setCatalog(null);
       setRedemptions([]);
       setLoading(false);
@@ -126,7 +129,7 @@ export function useRewardsShop() {
       unsubCatalog();
       unsubRedemptions();
     };
-  }, [uid, athleteId]);
+  }, [uid, athleteId, settingsLoading]);
 
   const latestRedemption = useMemo(() => {
     if (redemptions.length === 0) return null;
