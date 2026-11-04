@@ -25,6 +25,7 @@ vi.mock("@/hooks/firestore", () => ({
 }));
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => ({}),
+  getFirebaseStorage: () => null,
   subscribeToAthleteProfiles: (
     _db: unknown,
     _userId: string,

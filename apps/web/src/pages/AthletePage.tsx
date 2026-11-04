@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { AthleteFacts } from "@/components/AthleteFacts";
+import { Avatar } from "@/components/Avatar";
 import { AthleteProfileForm } from "@/components/AthleteProfileForm";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
 import { NoAthleteNotice } from "@/components/NoAthleteNotice";
@@ -12,6 +13,7 @@ import {
   useAthleteProfile,
   useUserSettings,
 } from "@/hooks/firestore";
+import { useAthletePhotoUrl } from "@/hooks/useAthletePhotoUrl";
 import { useParentPinGuard } from "@/hooks/useParentPinGuard";
 import { useLocale } from "@/hooks/useLocale";
 import { formatSport, tAthlete } from "@/shared/i18n/athlete-messages";
@@ -68,6 +70,7 @@ export function AthletePage() {
   }
 
   const empty = !loading && settingsError == null && athleteId == null;
+  const photoUrl = useAthletePhotoUrl(profile?.avatarStoragePath);
 
   return (
     <section>
@@ -94,6 +97,13 @@ export function AthletePage() {
         </Card>
       ) : (
         <Card title={tAthlete(locale, "athlete.profile.title")} variant="raised" className="mt-6">
+          <div className="mb-4">
+            <Avatar
+              letter={loading ? "…" : (profile?.displayName ?? "…").charAt(0)}
+              photoUrl={photoUrl}
+              size="lg"
+            />
+          </div>
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-brand-navy/70">{tAthlete(locale, "athlete.field.name")}</dt>

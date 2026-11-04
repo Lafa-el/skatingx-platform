@@ -54,6 +54,7 @@ vi.mock("@/components/AthleteSelector", () => ({ AthleteSelector: () => null }))
 vi.mock("@/components/FirestoreStatusBanner", () => ({ FirestoreStatusBanner: () => null }));
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => ({}),
+  getFirebaseStorage: () => null,
   updateAthleteProfile: h.updateAthleteProfile,
   createAthlete: h.createAthlete,
   deleteAthlete: (db: unknown, userId: string, athleteId: string) =>

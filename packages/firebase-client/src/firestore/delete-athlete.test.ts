@@ -10,6 +10,8 @@ const memory = vi.hoisted(() => ({
   docs: new Map<string, Doc>(),
   commits: [] as number[],
   failCommits: 0,
+  removed: [] as string[],
+  storageFail: false,
 }));
 
 function refOf(path: string) {
@@ -128,6 +130,18 @@ const firestore = vi.hoisted(() => {
 });
 
 vi.mock("firebase/firestore", () => firestore);
+vi.mock("../storage/avatar", () => ({
+  removeAvatarObject: async (path: string) => {
+    const profileStillThere = [...memory.docs.keys()].some((key) => key.endsWith("/profile/main"));
+    if (!profileStillThere) {
+      throw new Error("profile-gone-before-file");
+    }
+    if (memory.storageFail) {
+      throw new Error("storage-failed");
+    }
+    memory.removed.push(path);
+  },
+}));
 
 import { deleteAthlete } from "./delete-athlete";
 
@@ -141,6 +155,8 @@ beforeEach(() => {
   memory.docs.clear();
   memory.commits.length = 0;
   memory.failCommits = 0;
+  memory.removed.length = 0;
+  memory.storageFail = false;
   firestore.updateDoc.mockClear();
   firestore.deleteDoc.mockClear();
 });
@@ -265,5 +281,46 @@ describe("deleteAthlete", () => {
     expect(memory.docs.get(paths.userSettings(userId))).not.toHaveProperty("activeAthleteId");
     await deleteAthlete({} as never, userId, "lindsay");
     expect(memory.docs.has(paths.journalDay(userId, "2026-11-01"))).toBe(true);
+  });
+
+  it("deletes the avatar file before the profile, and skips storage when there is no path", async () => {
+    seedShared();
+    seedAthlete("lindsay", "Lindsay");
+    await deleteAthlete({} as never, userId, "lindsay");
+    expect(memory.removed).toEqual([]);
+    expect(memory.docs.has(paths.athleteProfile(userId, "lindsay"))).toBe(false);
+
+    seedAthlete("lindsay", "Lindsay");
+    memory.docs.set(paths.athleteProfile(userId, "lindsay"), {
+      displayName: "Lindsay",
+      userId,
+      avatarStoragePath: "avatars/user-1/lindsay/avatar",
+    });
+    await deleteAthlete({} as never, userId, "lindsay");
+    expect(memory.removed).toEqual(["avatars/user-1/lindsay/avatar"]);
+    expect(memory.docs.has(paths.athleteProfile(userId, "lindsay"))).toBe(false);
+  });
+
+  it("stops before the cascade when the avatar file cannot be deleted, and a retry still sees the path", async () => {
+    seedShared();
+    seedAthlete("lindsay", "Lindsay");
+    memory.docs.set(paths.athleteProfile(userId, "lindsay"), {
+      displayName: "Lindsay",
+      userId,
+      avatarStoragePath: "avatars/user-1/lindsay/avatar",
+    });
+    memory.storageFail = true;
+    await expect(deleteAthlete({} as never, userId, "lindsay")).rejects.toThrow("storage-failed");
+    expect(memory.removed).toEqual([]);
+    expect(memory.commits).toEqual([]);
+    expect(firestore.deleteDoc).not.toHaveBeenCalled();
+    expect(memory.docs.get(paths.athleteProfile(userId, "lindsay"))?.avatarStoragePath).toBe(
+      "avatars/user-1/lindsay/avatar",
+    );
+
+    memory.storageFail = false;
+    await deleteAthlete({} as never, userId, "lindsay");
+    expect(memory.removed).toEqual(["avatars/user-1/lindsay/avatar"]);
+    expect(memory.docs.has(paths.athleteProfile(userId, "lindsay"))).toBe(false);
   });
 });

@@ -16,6 +16,7 @@ import {
   type Query,
 } from "firebase/firestore";
 
+import { removeAvatarObject } from "../storage/avatar";
 import { listAthleteProfiles } from "./athlete-roster";
 import {
   athleteGamificationRef,
@@ -86,6 +87,13 @@ export async function deleteAthlete(
   userId: string,
   athleteId: string,
 ): Promise<void> {
+  const profileSnap = await getDoc(athleteProfileRef(db, userId, athleteId));
+  const storedAvatar = profileSnap.get("avatarStoragePath");
+  // The file goes first. A storage failure stops here, so the profile and its path remain for a retry.
+  if (typeof storedAvatar === "string" && storedAvatar.length > 0) {
+    await removeAvatarObject(storedAvatar);
+  }
+
   const collections = athleteDeleteCollectionPaths(userId, athleteId);
 
   await deleteDoc(athleteGamificationRef(db, userId, athleteId));

@@ -1,0 +1,16 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 头像仅本人可见可写。本步不做公开读、不做缩略图。
+    match /avatars/{userId}/{athleteId}/{fileName} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      // create/update only. A delete has no request.resource, so the size and type
+      // checks stay off the delete allow above.
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

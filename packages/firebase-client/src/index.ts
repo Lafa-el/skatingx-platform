@@ -117,6 +117,14 @@ export { updateUserSettings } from "./firestore/settings";
 export { updateAthleteProfile, type AthleteProfilePatch } from "./firestore/athlete-profile";
 export { AthleteIdCollisionError, createAthlete } from "./firestore/create-athlete";
 export { deleteAthlete } from "./firestore/delete-athlete";
+export { getFirebaseStorage } from "./storage/client";
+export {
+  AVATAR_MAX_BYTES,
+  athleteAvatarPath,
+  avatarFileProblem,
+  deleteAthleteAvatar,
+  uploadAthleteAvatar,
+} from "./storage/avatar";
 export {
   athleteIdFromProfilePath,
   listAthleteProfiles,
