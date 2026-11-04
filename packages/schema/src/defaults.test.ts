@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { createDefaultAthleteProfile } from "./defaults";
+import { createDefaultUserSettings } from "./defaults";
 
-describe("createDefaultAthleteProfile", () => {
-  it("writes the signed-in user onto the default profile", () => {
-    const profile = createDefaultAthleteProfile("lindsay", "user-1");
-    expect(profile.athleteId).toBe("lindsay");
-    expect(profile.userId).toBe("user-1");
-    expect(profile.displayName).toBe("Lindsay Lin");
+describe("createDefaultUserSettings", () => {
+  it("does not name a current athlete", () => {
+    const settings = createDefaultUserSettings();
+    expect(settings).toEqual({
+      language: "zh",
+      theme: "system",
+      isPro: false,
+      parentPinEnabled: false,
+    });
+    expect(settings).not.toHaveProperty("activeAthleteId");
   });
 });

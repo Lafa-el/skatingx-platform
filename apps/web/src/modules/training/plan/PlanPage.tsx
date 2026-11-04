@@ -1,4 +1,4 @@
-import { DEFAULT_ATHLETE_ID, todayDateString } from "@skatingx/schema";
+import { todayDateString } from "@skatingx/schema";
 import {
   deriveRaceWeekFeedback,
   deriveTrainingFeedback,
@@ -34,6 +34,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useRaceWeekEvents } from "@/hooks/useRaceWeekEvents";
 import { formatCalendarDate } from "@/shared/i18n/format";
 import { tPlan, type PlanMessageKey } from "@/shared/i18n/plan-messages";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 import { dayCopy } from "./plan-day-copy";
@@ -114,7 +115,7 @@ export function PlanPage() {
   const { uid } = useAuth();
   const { data: settings } = useUserSettings();
   const { data: rawState, loading: stateLoading, error: stateError } = useTrainingState();
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const athleteId = activeAthleteIdOf(settings);
   const [focus, setFocus, focusStatus] = usePlanFocus();
   const [history, setHistory] = useState<HistoryRead | null>(null);
   const [sources, setSources] = useState<readonly FeedbackSource[]>([]);
@@ -124,7 +125,7 @@ export function PlanPage() {
   const raceEvents = useRaceWeekEvents();
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || !athleteId) return;
     const db = getFirestoreDb();
     if (!db) return;
     let analyses: FeedbackSource[] = [];
@@ -189,7 +190,7 @@ export function PlanPage() {
 
   // The days of this week before today, from the day archive. One range read, released with the page.
   useEffect(() => {
-    if (!uid || !hasFocus || !hasPastDays) return;
+    if (!uid || !athleteId || !hasFocus || !hasPastDays) return;
     const db = getFirestoreDb();
     if (!db) {
       setHistory({ key: historyKey, status: "error", days: new Map() });

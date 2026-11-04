@@ -1,4 +1,4 @@
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import {
   formatResultTime,
   pacingDistanceConfigs,
@@ -263,7 +263,7 @@ export function AnalysisHubPage() {
   const locale = useLocale();
   const { uid, loading: authLoading } = useAuth();
   const { data: settings } = useUserSettings();
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const athleteId = activeAthleteIdOf(settings);
   const [analyses, setAnalyses] = useState<HubLane<HubAnalysisInput>>({ status: "loading" });
   const [equipment, setEquipment] = useState<HubLane<HubEquipmentInput>>({ status: "loading" });
   // Documents of the latest snapshot that were left out whole. Only an empty lane reads it.
@@ -302,6 +302,11 @@ export function AnalysisHubPage() {
 
   useEffect(() => {
     if (!uid) return;
+    if (!athleteId) {
+      setEquipment({ status: "ready", records: [] });
+      setEquipmentDropped(0);
+      return;
+    }
     const db = getFirestoreDb();
     if (!db) {
       setEquipment({ status: "error" });

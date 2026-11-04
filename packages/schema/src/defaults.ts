@@ -1,5 +1,3 @@
-import { DEFAULT_ATHLETE_ID } from "./constants";
-import type { AthleteProfile } from "./athlete";
 import type { DateString } from "./common";
 import type { Gamification } from "./gamification";
 import type { TrainingState, WeeklyTemplateByDay } from "./training";
@@ -27,27 +25,10 @@ export function createDefaultUserSettings(): Omit<
   "createdAt" | "updatedAt"
 > {
   return {
-    activeAthleteId: DEFAULT_ATHLETE_ID,
     language: "zh",
     theme: "system",
     isPro: false,
     parentPinEnabled: false,
-  };
-}
-
-export function createDefaultAthleteProfile(
-  athleteId: string,
-  userId: string,
-): Omit<AthleteProfile, "createdAt" | "updatedAt"> {
-  return {
-    athleteId,
-    userId,
-    displayName: "Lindsay Lin",
-    birthDate: "2015-01-14",
-    // The product has one athlete, Lindsay. A later profile editor replaces this per athlete.
-    skatingStartDate: "2021-05-12",
-    sport: "short_track_speed_skating",
-    country: "USA",
   };
 }
 

@@ -1,11 +1,30 @@
 // @vitest-environment happy-dom
 import { todayDateString } from "@skatingx/schema";
 import { mondayOfWeek } from "@skatingx/skating-domain";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { act, renderHook } from "@/test/dom";
 
-import { HIDDEN_FEEDBACK_KEY, readHiddenFeedback, useHiddenFeedback, writeHiddenFeedback } from "./plan-session";
+import { HIDDEN_FEEDBACK_KEY, readHiddenFeedback, useHiddenFeedback, usePlanFocus, writeHiddenFeedback } from "./plan-session";
+
+const focusState = vi.hoisted(() => ({
+  settings: { activeAthleteId: "athlete-9" } as { activeAthleteId?: string } | null,
+  calls: [] as unknown[],
+}));
+
+vi.mock("@/app/providers/AuthProvider", () => ({
+  useAuth: () => ({ uid: "user-1", loading: false, firebaseReady: true }),
+}));
+vi.mock("@/app/providers/FirestoreProvider", () => ({
+  useUserSettings: () => ({ data: focusState.settings, loading: false, error: null }),
+  useTrainingState: () => ({ data: null, loading: false, error: null }),
+}));
+vi.mock("@skatingx/firebase-client", () => ({
+  getFirestoreDb: () => ({}),
+  setPlanFocus: async (ctx: unknown, focus: string) => {
+    focusState.calls.push({ ctx, focus });
+  },
+}));
 
 const week = () => mondayOfWeek(todayDateString());
 
@@ -25,6 +44,8 @@ function store(value: unknown) {
 afterEach(() => {
   window.localStorage.removeItem(HIDDEN_FEEDBACK_KEY);
   sessionStorage.removeItem(HIDDEN_FEEDBACK_KEY);
+  focusState.settings = { activeAthleteId: "athlete-9" };
+  focusState.calls.length = 0;
 });
 
 describe("readHiddenFeedback", () => {
@@ -81,5 +102,27 @@ describe("useHiddenFeedback", () => {
       week: week(),
       hidden: ["from-this-tab"],
     });
+  });
+});
+
+describe("usePlanFocus", () => {
+  it("does not write a lindsay path when there is no current athlete", () => {
+    focusState.settings = {};
+    const { result } = renderHook(() => usePlanFocus());
+    act(() => {
+      result.current[1]("lean");
+    });
+    expect(focusState.calls).toEqual([]);
+  });
+
+  it("writes the current athlete, not lindsay", async () => {
+    focusState.settings = { activeAthleteId: "athlete-9" };
+    const { result } = renderHook(() => usePlanFocus());
+    await act(async () => {
+      result.current[1]("lean");
+    });
+    expect(focusState.calls).toEqual([
+      { ctx: { db: {}, userId: "user-1", athleteId: "athlete-9" }, focus: "lean" },
+    ]);
   });
 });

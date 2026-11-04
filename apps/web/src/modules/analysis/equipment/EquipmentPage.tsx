@@ -1,4 +1,4 @@
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import {
   buildEquipmentChecklist,
   buildEquipmentHistoryRecord,
@@ -245,7 +245,7 @@ export function EquipmentPage() {
   const locale = useLocale();
   const { uid } = useAuth();
   const { data: settings } = useUserSettings();
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const athleteId = activeAthleteIdOf(settings);
   const [symptomKey, setSymptomKey] = useState<EquipmentSymptomKey>("slide");
   const [symptomText, setSymptomText] = useState("");
   const [weight, setWeight] = useState("");
@@ -292,15 +292,15 @@ export function EquipmentPage() {
   const selectedB = history.some((record) => record.id === compareB) ? compareB : (history[1]?.id ?? history[0]?.id ?? "");
 
   useEffect(() => {
-    if (!uid) {
+    if (!uid || !athleteId) {
       setLocalHistory([]);
       return;
     }
-    setLocalHistory(readEquipmentArchive(window.localStorage, uid));
-  }, [uid]);
+    setLocalHistory(readEquipmentArchive(window.localStorage, uid, athleteId));
+  }, [uid, athleteId]);
 
   useEffect(() => {
-    if (!uid) {
+    if (!uid || !athleteId) {
       setCloudHistory([]);
       setSynced(false);
       setSyncFailed(false);
@@ -481,7 +481,7 @@ export function EquipmentPage() {
       setComparison(null);
       return;
     }
-    if (!uid) {
+    if (!uid || !athleteId) {
       setStatusError(true);
       setStatusKey("equipment.status.signedOut");
       return;

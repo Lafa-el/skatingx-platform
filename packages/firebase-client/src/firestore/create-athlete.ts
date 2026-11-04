@@ -19,7 +19,7 @@ export class AthleteIdCollisionError extends Error {
 /**
  * Create a new athlete from the profile form and make that athlete the active one.
  * A blank start date or bio is left off the document, so the card shows a dash.
- * Companion documents match the ones bootstrap creates for the first athlete.
+ * Companion documents are created here. A new account's bootstrap does not create an athlete.
  */
 export async function createAthlete(
   db: Firestore,

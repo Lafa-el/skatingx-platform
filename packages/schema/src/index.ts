@@ -72,7 +72,6 @@ export {
 } from "./defaults";
 
 export {
-  createDefaultAthleteProfile,
   createDefaultGamification,
   createDefaultTrainingState,
   createDefaultUserSettings,

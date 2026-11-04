@@ -1,11 +1,12 @@
 import { setPlanFocus } from "@skatingx/firebase-client";
-import { DEFAULT_ATHLETE_ID, todayDateString } from "@skatingx/schema";
+import { todayDateString } from "@skatingx/schema";
 import { mondayOfWeek, normalizeTrainingState, type PlanFocus } from "@skatingx/skating-domain";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useTrainingState, useUserSettings } from "@/app/providers/FirestoreProvider";
 import { requireActor } from "@/hooks/actionPrecondition";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 /** Shared with the analysis hub so ignoring a suggestion in either place hides it in both. */
@@ -91,7 +92,7 @@ export function usePlanFocus(): readonly [PlanFocus | null, (focus: PlanFocus) =
   const { data: settings } = useUserSettings();
   const { data: raw, loading } = useTrainingState();
   const [failed, setFailed] = useState(false);
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const athleteId = activeAthleteIdOf(settings);
 
   const state = raw ? normalizeTrainingState(raw) : null;
   const stored = state?.planFocus ?? null;
@@ -101,6 +102,7 @@ export function usePlanFocus(): readonly [PlanFocus | null, (focus: PlanFocus) =
 
   const choose = useCallback(
     (next: PlanFocus) => {
+      if (!athleteId) return;
       setFailed(false);
       void (async () => {
         try {

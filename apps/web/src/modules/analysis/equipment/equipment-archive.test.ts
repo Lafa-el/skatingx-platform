@@ -66,9 +66,17 @@ describe("isArchiveRecord keeps only a complete local row", () => {
     const complete = record("equip-ok", "2026-10-19T06:00:00.000Z");
     const broken = { id: "equip-bad", createdAt: "2026-10-19T06:00:00.000Z", symptomKey: "slide", athleteId: "lindsay" };
     storage.setItem(equipmentArchiveKey("user-1"), JSON.stringify([broken, complete]));
-    const read = readEquipmentArchive(storage, "user-1");
+    const read = readEquipmentArchive(storage, "user-1", "lindsay");
     expect(read.map((row) => row.id)).toEqual(["equip-ok"]);
     expect(read[0]?.offsets.leftFront).toBe("");
+  });
+
+  it("returns nothing when there is no current athlete, and skips another athlete's rows", () => {
+    const storage = memory();
+    rememberEquipmentRecord(storage, "user-1", record("equip-ok", "2026-10-19T06:00:00.000Z"));
+    expect(readEquipmentArchive(storage, "user-1", null)).toEqual([]);
+    expect(readEquipmentArchive(storage, "user-1", "athlete-9")).toEqual([]);
+    expect(readEquipmentArchive(storage, "user-1", "lindsay").map((row) => row.id)).toEqual(["equip-ok"]);
   });
 });
 

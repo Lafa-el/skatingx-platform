@@ -82,7 +82,7 @@ beforeEach(() => {
   state.records = [];
   state.dropped = 0;
   state.mode = "ok";
-  state.settings = {};
+  state.settings = { activeAthleteId: "lindsay" };
   state.subscribed = [];
   state.save.mockReset();
   state.save.mockImplementation(() => Promise.resolve());
@@ -316,24 +316,22 @@ describe("equipment page", () => {
         ruleHints: [],
       });
 
-    it("settings without an athlete id: read and delete go to lindsay, as before", async () => {
-      window.confirm = () => true;
+    it("settings without an athlete id do not open a lindsay history", () => {
       state.uid = "user-1";
       state.db = {};
+      state.settings = {};
       state.records = [oldRecord()];
-      const user = userEvent.setup();
       renderPage();
-      expect(state.subscribed).toEqual(["lindsay"]);
-      await user.click(screen.getByRole("button", { name: "删除记录" }));
-      await waitFor(() => expect(state.remove).toHaveBeenCalledWith({}, "user-1", "lindsay", "equip-1"));
+      expect(state.subscribed).toEqual([]);
+      expect(state.remove).not.toHaveBeenCalled();
     });
 
-    it("settings that are not available: lindsay", () => {
+    it("settings that are not available do not open a lindsay history", () => {
       state.uid = "user-1";
       state.db = {};
       state.settings = null;
       renderPage();
-      expect(state.subscribed).toEqual(["lindsay"]);
+      expect(state.subscribed).toEqual([]);
     });
 
     it("settings name athlete-9: the subscription and the delete go to athlete-9", async () => {
