@@ -22,6 +22,7 @@ type Hook = { data: unknown; loading: boolean; error: string | null };
 const h = vi.hoisted(() => {
   const ready = (data: unknown): Hook => ({ data, loading: false, error: null });
   const base = () => ({
+    athleteId: "skater" as string | null,
     settings: ready({ language: "zh", isPro: false }),
     profile: ready({ displayName: "Sample Skater" }),
     gamification: ready({ points: 120, streakDays: 3 }),
@@ -47,6 +48,12 @@ vi.mock("@/app/providers/FirestoreProvider", () => ({
   useAthleteProfile: () => h.state.profile,
   useGamification: () => h.state.gamification,
   useTrainingState: () => h.state.training,
+  useActiveAthlete: () => ({
+    athleteId: h.state.athleteId,
+    loading: false,
+    error: null,
+    profile: h.state.profile,
+  }),
 }));
 vi.mock("@/hooks/useRewardsShop", () => ({ useRewardsShop: () => h.state.shop }));
 vi.mock("@/hooks/useTrainingRecords", () => ({ useTrainingRecords: () => h.state.records }));
@@ -288,6 +295,15 @@ describe("DashboardPage: empty and loading states", () => {
     h.state.profile = { data: null, loading: true, error: null };
     renderPage();
     expect(screen.getByText("Loading your dashboard…")).toBeTruthy();
+  });
+
+  it("with no athlete, the athlete card asks to add one and shows no name", () => {
+    h.state.athleteId = null;
+    h.state.profile = h.ready(null);
+    renderPage();
+    expect(card("运动员").getByText("还没有运动员")).toBeTruthy();
+    expect(card("运动员").getByRole("link", { name: "添加运动员" }).getAttribute("href")).toBe("/athlete");
+    expect(card("运动员").queryByText("Sample Skater")).toBeNull();
   });
 
   it("an error from the data layer is shown as an alert, exactly as received", () => {

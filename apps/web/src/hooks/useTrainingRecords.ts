@@ -5,7 +5,6 @@ import {
   trainingRecordsCollectionRef,
 } from "@skatingx/firebase-client";
 import {
-  DEFAULT_ATHLETE_ID,
   DEFAULT_TRAINING_DISTANCES,
   type DistanceRecordsDocument,
 } from "@skatingx/schema";
@@ -19,6 +18,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { useLocale } from "@/hooks/useLocale";
 import { type RecordsMessageKey, tRecords } from "@/shared/i18n/records-messages";
 
@@ -33,8 +33,8 @@ export type DistanceRecordsMap = Record<string, DistanceRecordsDocument>;
 
 export function useTrainingRecords() {
   const { uid } = useAuth();
-  const { data: settings } = useUserSettings();
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const { data: settings, loading: settingsLoading } = useUserSettings();
+  const athleteId = activeAthleteIdOf(settings);
 
   const [recordsByDistance, setRecordsByDistance] = useState<DistanceRecordsMap>(
     {},
@@ -44,7 +44,10 @@ export function useTrainingRecords() {
   const [ensuring, setEnsuring] = useState(false);
 
   useEffect(() => {
-    if (!uid) {
+    if (settingsLoading) {
+      return;
+    }
+    if (!uid || !athleteId) {
       setRecordsByDistance({});
       setLoading(false);
       return;
@@ -129,7 +132,7 @@ export function useTrainingRecords() {
       cancelled = true;
       unsubscribe();
     };
-  }, [uid, athleteId]);
+  }, [uid, athleteId, settingsLoading]);
 
   const language = useLocale();
   const error = errorNote

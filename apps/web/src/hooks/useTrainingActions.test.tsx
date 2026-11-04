@@ -123,13 +123,13 @@ describe("useTrainingActions: working", () => {
     expect(result.current.actionError).toBeNull();
   });
 
-  it("without a chosen athlete it writes for the default one", async () => {
+  it("without a chosen athlete it writes nothing", async () => {
     h.state.settings = { language: "zh" };
     const { result } = renderHook(() => useTrainingActions());
     await act(async () => {
-      await result.current.addTask("run");
+      await expect(result.current.addTask("run")).rejects.toThrow();
     });
-    expect(h.addTrainingTask.mock.calls[0]?.[0]).toMatchObject({ athleteId: "lindsay" });
+    expect(h.addTrainingTask).not.toHaveBeenCalled();
   });
 
   it("clearing removes the message, and a new attempt starts without it", async () => {

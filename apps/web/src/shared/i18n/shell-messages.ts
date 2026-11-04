@@ -17,6 +17,7 @@ const zh = {
   "shell.athlete.active": "当前",
   "shell.athlete.switchFailed": "没能切换，请再试一次。",
   "shell.athlete.profileLink": "运动员档案 →",
+  "shell.athlete.none": "暂无运动员",
 
   "shell.placeholder.default": "占位页面：原有功能将在后续阶段迁移。",
 } as const;
@@ -33,6 +34,7 @@ const en: Record<ShellKey, string> = {
   "shell.athlete.active": "Active",
   "shell.athlete.switchFailed": "Could not switch athletes. Try again.",
   "shell.athlete.profileLink": "Athlete profile →",
+  "shell.athlete.none": "No athlete yet",
 
   "shell.placeholder.default": "Placeholder page — legacy logic will be migrated in a later phase.",
 };

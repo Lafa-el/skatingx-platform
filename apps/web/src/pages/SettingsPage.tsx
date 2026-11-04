@@ -1,5 +1,4 @@
 import { getFirebaseAuth, requestPasswordResetEmail } from "@skatingx/firebase-client";
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { Button, Card, ErrorNotice, StatusTag } from "@skatingx/ui";
 import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
@@ -7,6 +6,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useReloadUserSettings } from "@/app/providers/FirestoreProvider";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
+import { NoAthleteNotice } from "@/components/NoAthleteNotice";
 import { LanguageSetting } from "@/components/LanguageSetting";
 import { ParentPinManager } from "@/components/ParentPinManager";
 import { useAthleteProfile } from "@/hooks/firestore";
@@ -128,7 +128,7 @@ export function SettingsPage() {
   const activeAthleteId =
     typeof settings?.activeAthleteId === "string" && settings.activeAthleteId.length > 0
       ? settings.activeAthleteId
-      : DEFAULT_ATHLETE_ID;
+      : null;
 
   async function handleBindSubmit(event: FormEvent) {
     event.preventDefault();
@@ -385,6 +385,10 @@ export function SettingsPage() {
       </Card>
 
       <Card variant="raised" title={t("settings.group.athlete")}>
+        {!planLoading && activeAthleteId == null && !profileError ? (
+          <NoAthleteNotice />
+        ) : (
+        <>
         <dl className="grid gap-2 text-sm">
           <div className="flex items-center justify-between gap-4">
             <dt className="text-brand-navy/70">{t("settings.athlete.name")}</dt>
@@ -405,6 +409,8 @@ export function SettingsPage() {
         >
           {t("settings.athlete.open")}
         </Link>
+        </>
+        )}
       </Card>
 
       <Card variant="raised" title={t("settings.group.plan")}>

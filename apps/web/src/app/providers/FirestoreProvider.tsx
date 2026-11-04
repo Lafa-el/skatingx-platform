@@ -15,7 +15,7 @@ import type {
   TrainingState,
   UserSettings,
 } from "@skatingx/schema";
-import { DEFAULT_ATHLETE_ID, todayDateString } from "@skatingx/schema";
+import { todayDateString } from "@skatingx/schema";
 import {
   createContext,
   useContext,
@@ -31,6 +31,7 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { tAuth } from "@/shared/i18n/auth-messages";
 import { tShell } from "@/shared/i18n/shell-messages";
 import { type Locale, toLocale } from "@/shared/i18n/translator";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 /**
@@ -69,7 +70,7 @@ type FirestoreContextValue = {
   profile: FirestoreHookState<AthleteProfile>;
   gamification: FirestoreHookState<Gamification>;
   trainingState: FirestoreHookState<TrainingState>;
-  activeAthleteId: string;
+  activeAthleteId: string | null;
   /** Re-subscribe to `settings/main` only. Does not run bootstrap, so it cannot create documents. */
   reloadSettings: () => void;
 };
@@ -99,8 +100,7 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
   // out, the slice still shows the previous user's settings for one render; this tells that apart.
   const settingsUidRef = useRef<string | null>(null);
 
-  const activeAthleteId =
-    settings.data?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const activeAthleteId = activeAthleteIdOf(settings.data);
 
   const listenToSettings = useCallback((userId: string) => {
     const db = getFirestoreDb();
@@ -205,8 +205,16 @@ export function FirestoreProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (activeAthleteId === null) {
+      subscribedAthleteRef.current = null;
+      setProfile({ data: null, loading: false, error: null });
+      setGamification({ data: null, loading: false, error: null });
+      setTrainingState({ data: null, loading: false, error: null });
+      return;
+    }
+
     // A settings reload that keeps the same id must not blank the cards, so only a real change resets.
-    if (subscribedAthleteRef.current !== null && subscribedAthleteRef.current !== activeAthleteId) {
+    if (subscribedAthleteRef.current !== activeAthleteId) {
       setProfile({ data: null, loading: true, error: null });
       setGamification({ data: null, loading: true, error: null });
       setTrainingState({ data: null, loading: true, error: null });
@@ -303,16 +311,16 @@ export function useTrainingState(): FirestoreHookState<TrainingState> {
 
 /** Active athlete id from settings + profile snapshot for shell UI. */
 export function useActiveAthlete(): {
-  athleteId: string;
+  athleteId: string | null;
   profile: FirestoreHookState<AthleteProfile>;
   loading: boolean;
   error: string | null;
 } {
   const { activeAthleteId, profile, settings } = useFirestoreContext();
   return {
-    athleteId: activeAthleteId,
+    athleteId: settings.loading ? null : activeAthleteId,
     profile,
-    loading: settings.loading || profile.loading,
+    loading: settings.loading || (activeAthleteId !== null && profile.loading),
     error: settings.error ?? profile.error,
   };
 }

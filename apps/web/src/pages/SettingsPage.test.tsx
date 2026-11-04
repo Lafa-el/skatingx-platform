@@ -741,16 +741,19 @@ describe("SettingsPage athlete", () => {
 });
 
 describe("SettingsPage athlete: what is missing or failed", () => {
-  it("with no activeAthleteId saved, the id line shows the default athlete, not a dash", () => {
+  it("with no activeAthleteId saved, the section says there is no athlete", () => {
     h.settings = { language: "zh", isPro: false, parentPinEnabled: false };
+    h.profile = { data: null, loading: false, error: null };
     renderSettings();
-    expect(dd("运动员 ID")).toBe("lindsay");
+    expect(screen.getByText("还没有运动员")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "添加运动员" }).getAttribute("href")).toBe("/athlete");
   });
 
-  it("an empty activeAthleteId is the default too", () => {
+  it("an empty activeAthleteId is no athlete either", () => {
     h.settings = { ...h.settings, activeAthleteId: "" };
+    h.profile = { data: null, loading: false, error: null };
     renderSettings();
-    expect(dd("运动员 ID")).toBe("lindsay");
+    expect(screen.getByText("还没有运动员")).toBeTruthy();
   });
 
   it("a failed profile read shows an error line, in both languages", () => {

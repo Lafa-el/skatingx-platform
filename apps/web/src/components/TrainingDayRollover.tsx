@@ -4,7 +4,7 @@ import {
   normalizeTrainingState,
   runDayRolloverIfNeeded,
 } from "@skatingx/firebase-client";
-import { DEFAULT_ATHLETE_ID, todayDateString } from "@skatingx/schema";
+import { todayDateString } from "@skatingx/schema";
 import { compareDateStrings, planGenerationSkip } from "@skatingx/skating-domain";
 import { useEffect, useRef } from "react";
 
@@ -14,6 +14,7 @@ import {
   useTrainingState,
   useUserSettings,
 } from "@/app/providers/FirestoreProvider";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { useLocale } from "@/hooks/useLocale";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
@@ -36,10 +37,10 @@ export function TrainingDayRollover() {
   // call for the same thing; a different focus does, because the first call will give up on it.
   const generating = useRef<string | null>(null);
 
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const athleteId = activeAthleteIdOf(settings);
 
   useEffect(() => {
-    if (!uid || !ready || loading || !training) {
+    if (!uid || !ready || loading || !training || !athleteId) {
       return;
     }
 
@@ -77,7 +78,7 @@ export function TrainingDayRollover() {
   }, [uid, ready, loading, training, athleteId]);
 
   useEffect(() => {
-    if (!uid || !ready || loading || !training) {
+    if (!uid || !ready || loading || !training || !athleteId) {
       return;
     }
 

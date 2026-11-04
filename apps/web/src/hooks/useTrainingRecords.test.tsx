@@ -10,7 +10,7 @@ type Handlers = { next: (snap: unknown) => void; error: (err: Error) => void };
 const h = vi.hoisted(() => {
   const base = () => ({
     uid: "uid-1" as string | null,
-    settings: { language: "zh" } as Record<string, unknown> | null,
+    settings: { language: "zh", activeAthleteId: "athlete-1" } as Record<string, unknown> | null,
     db: {} as object | null,
     ensure: (async () => undefined) as () => Promise<unknown>,
     handlers: [] as Handlers[],
@@ -46,20 +46,20 @@ describe("useTrainingRecords: errors", () => {
     const { result, rerender } = renderHook(() => useTrainingRecords());
     await waitFor(() => expect(result.current.error).toBe(UNAVAILABLE.zh));
 
-    h.state.settings = { language: "en" };
+    h.state.settings = { language: "en", activeAthleteId: "athlete-1" };
     rerender();
     expect(result.current.error).toBe(UNAVAILABLE.en);
   });
 
   it("a failure that is not an Error is reported as loading failing, in the language", async () => {
-    h.state.settings = { language: "en" };
+    h.state.settings = { language: "en", activeAthleteId: "athlete-1" };
     h.state.ensure = async () => {
       throw "boom";
     };
     const { result, rerender } = renderHook(() => useTrainingRecords());
     await waitFor(() => expect(result.current.error).toBe(LOAD_FAILED.en));
 
-    h.state.settings = { language: "zh" };
+    h.state.settings = { language: "zh", activeAthleteId: "athlete-1" };
     rerender();
     expect(result.current.error).toBe(LOAD_FAILED.zh);
   });
@@ -70,7 +70,7 @@ describe("useTrainingRecords: errors", () => {
     };
     const { result, rerender } = renderHook(() => useTrainingRecords());
     await waitFor(() => expect(result.current.error).toBe("permission-denied"));
-    h.state.settings = { language: "en" };
+    h.state.settings = { language: "en", activeAthleteId: "athlete-1" };
     rerender();
     expect(result.current.error).toBe("permission-denied");
   });

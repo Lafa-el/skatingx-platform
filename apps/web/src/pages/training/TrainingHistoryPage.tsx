@@ -77,7 +77,7 @@ export function TrainingHistoryPage() {
   const uid = user?.uid ?? null;
 
   useEffect(() => {
-    if (!uid || !db || athleteLoading) return;
+    if (!uid || !db || athleteLoading || !athleteId) return;
     let active = true;
     setLane({ status: "loading" });
     const stop = subscribeToTaskHistoryMonth(
@@ -113,7 +113,7 @@ export function TrainingHistoryPage() {
     (Boolean(uid) && db !== null && (athleteLoading || gamification.loading || lane.status === "loading") && !showFailure);
 
   const removeDay = () => {
-    if (!uid || !db || !selectedDay || deleting) return;
+    if (!uid || !db || !selectedDay || deleting || !athleteId) return;
     guard("deleteTaskHistory", () => {
       if (!window.confirm(t("training.history.delete.confirm"))) return;
       setDeleting(true);
@@ -250,7 +250,7 @@ export function TrainingHistoryPage() {
         ) : null}
       </Card>
 
-      {view === "ledger" && uid && db ? (
+      {view === "ledger" && uid && db && athleteId ? (
         <PointsLedgerPanel
           db={db}
           userId={uid}

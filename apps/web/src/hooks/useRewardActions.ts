@@ -1,9 +1,9 @@
 import { redeemReward } from "@skatingx/firebase-client";
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { useLocale } from "@/hooks/useLocale";
 import { type ShopMessageKey, tShop } from "@/shared/i18n/shop-messages";
 
@@ -29,7 +29,7 @@ export function useRewardActions() {
       : tShop(language, errorNote.key)
     : null;
 
-  const athleteId = settings?.activeAthleteId ?? DEFAULT_ATHLETE_ID;
+  const athleteId = activeAthleteIdOf(settings);
 
   const redeem = useCallback(
     async (rewardId: string, rewardName: string, cost: number) => {
@@ -38,6 +38,9 @@ export function useRewardActions() {
       setLastSuccess(null);
       try {
         // Inside the try: "not signed in" and "no data service" are shown to the user too.
+        if (!athleteId) {
+          throw new ActionPreconditionError("unavailable");
+        }
         const result = await redeemReward(
           { ...requireActor(uid), athleteId },
           rewardId,
