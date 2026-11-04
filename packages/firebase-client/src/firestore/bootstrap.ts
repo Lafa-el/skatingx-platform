@@ -1,9 +1,7 @@
 import {
-  createDefaultAthleteProfile,
   createDefaultGamification,
   createDefaultTrainingState,
   createDefaultUserSettings,
-  DEFAULT_ATHLETE_ID,
 } from "@skatingx/schema";
 import {
   getDoc,
@@ -15,7 +13,6 @@ import {
 
 import {
   athleteGamificationRef,
-  athleteProfileRef,
   settingsRef,
   trainingStateRef,
 } from "./refs";
@@ -90,13 +87,14 @@ export async function provisionAthleteCompanions(
 }
 
 /**
- * Create default settings + Lindsay athlete documents for a new auth user.
- * Idempotent: existing documents are left unchanged.
+ * Ensure settings exist for an auth user. A new account gets settings only:
+ * no athlete profile and no companion documents, and no activeAthleteId, so the
+ * app opens on the empty state until the user adds someone.
+ * Idempotent: an existing settings document is left unchanged.
  */
 export async function bootstrapUserDocuments(
   db: Firestore,
   userId: string,
-  athleteId: string = DEFAULT_ATHLETE_ID,
 ): Promise<BootstrapResult> {
   const created: string[] = [];
   const existing: string[] = [];
@@ -105,21 +103,6 @@ export async function bootstrapUserDocuments(
   const settingsPath = settingsRef(db, userId);
   const settingsResult = await ensureDocument(settingsPath, settingsData, true);
   (settingsResult === "created" ? created : existing).push("settings/main");
-
-  // An existing account is left alone. Recreating the default athlete here would
-  // bring back someone the user deleted on the next visit.
-  if (settingsResult === "created") {
-    const profileData = createDefaultAthleteProfile(athleteId, userId);
-    const profilePath = athleteProfileRef(db, userId, athleteId);
-    const profileResult = await ensureDocument(profilePath, profileData, true);
-    (profileResult === "created" ? created : existing).push(
-      `athletes/${athleteId}/profile/main`,
-    );
-
-    const companions = await provisionAthleteCompanions(db, userId, athleteId);
-    created.push(...companions.created);
-    existing.push(...companions.existing);
-  }
 
   return { created, existing };
 }

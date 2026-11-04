@@ -1,4 +1,3 @@
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
 import { equipmentSymptomKeys, type EquipmentHistoryRecord } from "@skatingx/skating-domain";
 
 /** Per-user browser archive. Not the legacy `blaze-equipment-history-v1` key. */
@@ -25,7 +24,8 @@ function isArchiveRecord(value: unknown): value is EquipmentHistoryRecord {
     typeof record.createdAt === "string" &&
     typeof record.symptomKey === "string" &&
     symptomKeys.has(record.symptomKey) &&
-    record.athleteId === DEFAULT_ATHLETE_ID &&
+    typeof record.athleteId === "string" &&
+    record.athleteId.length > 0 &&
     isStringRecord(record.offsets, ["leftFront", "leftRear", "rightFront", "rightRear"]) &&
     isStringRecord(record.bend, ["front", "middle", "rear"]) &&
     Array.isArray(record.leftRocker) &&
@@ -33,7 +33,7 @@ function isArchiveRecord(value: unknown): value is EquipmentHistoryRecord {
   );
 }
 
-export function readEquipmentArchive(storage: Storage, userId: string): EquipmentHistoryRecord[] {
+function readStoredArchive(storage: Storage, userId: string): EquipmentHistoryRecord[] {
   try {
     const raw = storage.getItem(equipmentArchiveKey(userId));
     if (!raw) return [];
@@ -44,6 +44,16 @@ export function readEquipmentArchive(storage: Storage, userId: string): Equipmen
     // A corrupt archive should not block the cloud list. The next successful save replaces it.
     return [];
   }
+}
+
+/** Rows for this athlete. No current athlete means nothing to show, not the old default person. */
+export function readEquipmentArchive(
+  storage: Storage,
+  userId: string,
+  athleteId: string | null,
+): EquipmentHistoryRecord[] {
+  if (!athleteId) return [];
+  return readStoredArchive(storage, userId).filter((record) => record.athleteId === athleteId);
 }
 
 /** Cloud records win when the same id exists in both places. Newest first, capped at 30. */
@@ -62,13 +72,13 @@ export function rememberEquipmentRecord(
   userId: string,
   record: EquipmentHistoryRecord,
 ): EquipmentHistoryRecord[] {
-  const next = mergeEquipmentHistory(readEquipmentArchive(storage, userId), [record]);
+  const next = mergeEquipmentHistory(readStoredArchive(storage, userId), [record]);
   storage.setItem(equipmentArchiveKey(userId), JSON.stringify(next));
   return next;
 }
 
 export function forgetEquipmentRecord(storage: Storage, userId: string, recordId: string): EquipmentHistoryRecord[] {
-  const next = readEquipmentArchive(storage, userId).filter((record) => record.id !== recordId);
+  const next = readStoredArchive(storage, userId).filter((record) => record.id !== recordId);
   storage.setItem(equipmentArchiveKey(userId), JSON.stringify(next));
   return next;
 }

@@ -703,15 +703,15 @@ describe("analysis hub: which athlete the equipment history is read for", () => 
     expect(state.equipmentAthletes).toEqual(["athlete-9"]);
   });
 
-  it("reads lindsay when settings name no athlete, or are not available", () => {
+  it("does not read equipment when settings name no athlete, or are not available", () => {
     readyEmpty();
     state.settings = {};
     const first = render(renderHub());
-    expect(state.equipmentAthletes).toEqual(["lindsay"]);
+    expect(state.equipmentAthletes).toEqual([]);
     first.unmount();
     state.settings = null;
     render(renderHub());
-    expect(state.equipmentAthletes).toEqual(["lindsay", "lindsay"]);
+    expect(state.equipmentAthletes).toEqual([]);
   });
 
   it("opens a new equipment subscription when the athlete changes", () => {

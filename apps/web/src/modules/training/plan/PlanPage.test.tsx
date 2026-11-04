@@ -615,16 +615,18 @@ describe("plan page: which athlete the equipment feedback is read for", () => {
     expect(state.equipmentAthletes).toEqual(["athlete-9"]);
   });
 
-  it("reads the default athlete when settings name none", () => {
+  it("does not read equipment when settings name no athlete", () => {
     state.settings = {};
     renderPage();
-    expect(state.equipmentAthletes).toEqual(["lindsay"]);
+    expect(state.equipmentAthletes).toEqual([]);
+    expect(state.historySubscriptions).toBe(0);
   });
 
-  it("reads the default athlete when settings are not available", () => {
+  it("does not read equipment when settings are not available", () => {
     state.settings = null;
     renderPage();
-    expect(state.equipmentAthletes).toEqual(["lindsay"]);
+    expect(state.equipmentAthletes).toEqual([]);
+    expect(state.historySubscriptions).toBe(0);
   });
 
   it("moves the equipment subscription to the new athlete when settings change, and releases the old one", () => {

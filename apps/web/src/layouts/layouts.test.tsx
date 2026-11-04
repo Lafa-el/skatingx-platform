@@ -7,7 +7,10 @@ import { render, screen, within } from "@/test/dom";
 import { AnalysisLayout } from "./AnalysisLayout";
 import { TrainingLayout } from "./TrainingLayout";
 
-const state = vi.hoisted(() => ({ locale: "zh" as "zh" | "en" }));
+const state = vi.hoisted(() => ({
+  locale: "zh" as "zh" | "en",
+  athleteId: "lindsay" as string | null,
+}));
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
 // These tests are about the section tabs. The analysis gate stays unlocked so the outlet still mounts.
 vi.mock("@/hooks/useIsPro", () => ({
@@ -18,11 +21,12 @@ vi.mock("@/components/Header", () => ({ Header: () => null }));
 vi.mock("@/components/BottomNav", () => ({ BottomNav: () => null }));
 vi.mock("@/components/SideNav", () => ({ SideNav: () => null }));
 vi.mock("@/hooks/firestore", () => ({
-  useActiveAthlete: () => ({ athleteId: "lindsay", loading: false, error: null }),
+  useActiveAthlete: () => ({ athleteId: state.athleteId, loading: false, error: null }),
 }));
 
 afterEach(() => {
   state.locale = "zh";
+  state.athleteId = "lindsay";
 });
 
 function renderLayout(path: string, layout: React.ReactElement) {
@@ -91,6 +95,23 @@ describe("TrainingLayout", () => {
       ]);
       unmount();
     }
+  });
+});
+
+describe("layouts with no current athlete", () => {
+  it("shows the empty notice in Chinese and does not mount the page", () => {
+    state.athleteId = null;
+    renderLayout("/training", <TrainingLayout />);
+    expect(screen.getByText("还没有运动员")).toBeTruthy();
+    expect(screen.queryByText("page")).toBeNull();
+  });
+
+  it("shows the empty notice in English on the analysis layout", () => {
+    state.locale = "en";
+    state.athleteId = null;
+    renderLayout("/analysis", <AnalysisLayout />);
+    expect(screen.getByText("No athlete yet")).toBeTruthy();
+    expect(screen.queryByText("page")).toBeNull();
   });
 });
 
