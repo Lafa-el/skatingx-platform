@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Card and button classes live in the shared UI package. */
+@source "../../../../packages/ui/src";
+
+/*
+ * Same UI v1 tokens as apps/web (docs/design/ui-redesign-v1.md).
+ * Navy text on flame. Flame is not used as small text on ice.
+ */
+@theme {
+  --color-brand-navy: #081c33;
+  --color-brand-flame: #ff3e2c;
+  --color-brand-flame-hover: #ff5a49;
+  --color-brand-energy: #ff9e1b;
+  --color-brand-ice: #fff1e8;
+  --color-brand-track: #ffede2;
+
+  --color-status-danger: #c8102e;
+  --color-status-danger-tint: #ffe9ec;
+  --color-status-pending-tint: #ffe3bd;
+  --color-status-success: #0b6b3a;
+  --color-status-success-tint: #c9f0da;
+
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+
+  --shadow-card: 0 1px 2px rgb(8 28 51 / 0.06), 0 4px 16px rgb(8 28 51 / 0.06);
+}
+
+@utility sx-numeric {
+  font-style: italic;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+@utility sx-energy-gradient {
+  background-image: linear-gradient(135deg, var(--color-brand-flame), var(--color-brand-energy));
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  background-color: var(--color-brand-ice);
+  color: var(--color-brand-navy);
+}
+
+#root {
+  min-height: 100dvh;
+}
