@@ -15,6 +15,7 @@ import { legacyColourClasses } from "@/test/legacyLook";
 const state = vi.hoisted(() => ({
   locale: "zh" as "zh" | "en",
   uid: "user-1" as string | null,
+  settings: { activeAthleteId: "lindsay" } as { activeAthleteId?: string } | null,
   db: {} as object | null,
   save: vi.fn((_db: unknown, _record: unknown) => Promise.resolve()),
   release: vi.fn(() => Promise.resolve()),
@@ -29,6 +30,9 @@ state.load.mockImplementation(state.loadEngine);
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => state.locale }));
 vi.mock("@/app/providers/AuthProvider", () => ({
   useAuth: () => ({ uid: state.uid, loading: false, firebaseReady: Boolean(state.uid) }),
+}));
+vi.mock("@/app/providers/FirestoreProvider", () => ({
+  useUserSettings: () => ({ data: state.settings, loading: false, error: null }),
 }));
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => state.db,
@@ -64,6 +68,7 @@ afterEach(() => {
   Reflect.deleteProperty(HTMLVideoElement.prototype, "videoHeight");
   state.locale = "zh";
   state.uid = "user-1";
+  state.settings = { activeAthleteId: "lindsay" };
   state.db = {};
   state.save.mockClear();
   state.load.mockReset(); // also drops any mockImplementationOnce a failing test never consumed
@@ -408,6 +413,22 @@ describe("biomechanics page", () => {
       await screen.findByText("已保存这次分析。");
       expect(state.save).toHaveBeenCalledTimes(2);
       log.mockRestore();
+    });
+
+    it("saves the current athlete, and does not save when there is none", async () => {
+      state.settings = { activeAthleteId: "ann-k3x9a2" };
+      state.forcedAngles = { lean: 12, knee: 100 };
+      const { user, takeKeyframe } = await started();
+      await takeKeyframe();
+      await user.click(button(SAVE));
+      await screen.findByText("已保存这次分析。");
+      expect(state.save.mock.calls[0]?.[1]).toMatchObject({ athleteId: "ann-k3x9a2" });
+
+      state.settings = {};
+      state.save.mockClear();
+      await takeKeyframe();
+      await user.click(button(SAVE));
+      expect(state.save).not.toHaveBeenCalled();
     });
 
     it("with at least one readable frame a single click saves, with no confirmation", async () => {

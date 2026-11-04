@@ -276,6 +276,11 @@ export function AnalysisHubPage() {
 
   useEffect(() => {
     if (!uid) return;
+    if (!athleteId) {
+      setAnalyses({ status: "ready", records: [] });
+      setAnalysesDropped(0);
+      return;
+    }
     const db = getFirestoreDb();
     if (!db) {
       setAnalyses({ status: "error" });
@@ -285,6 +290,7 @@ export function AnalysisHubPage() {
     return subscribeToSavedAnalyses(
       db,
       uid,
+      athleteId,
       (rows, dropped) => {
         setAnalysesDropped(dropped);
         setAnalyses({ status: "ready", records: rows.flatMap((row) => {
@@ -298,7 +304,7 @@ export function AnalysisHubPage() {
         setAnalyses({ status: "error" });
       },
     );
-  }, [uid, analysesAttempt]);
+  }, [uid, analysesAttempt, athleteId]);
 
   useEffect(() => {
     if (!uid) return;

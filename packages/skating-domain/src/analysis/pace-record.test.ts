@@ -27,6 +27,7 @@ function recordFor(next: PaceAnalysis) {
   return buildPaceAnalysisRecord({
     id: "pace-500-abc",
     ownerUserId: "alice",
+    athleteId: "lindsay",
     createdAt: "2026-10-19T04:59:13.497Z",
     distance: "500",
     splits: [1, 1, 1, 1, 1],
@@ -40,7 +41,7 @@ describe("pace analysis record", () => {
     expect(paceProvenanceModel).toEqual(baselinePoseParameters);
   });
 
-  it("builds a user-level pace record for lindsay with an ISO createdAt", () => {
+  it("builds a pace record for the athlete it is given", () => {
     const distance = "500" as const;
     const splits = [7.2, 9.3, 9.5, 10.4, 11.2];
     const benchmark = pacingDistanceConfigs[distance].defaults;
@@ -51,6 +52,7 @@ describe("pace analysis record", () => {
     const record = buildPaceAnalysisRecord({
       id: "pace-500-abc",
       ownerUserId: "alice",
+      athleteId: "ann-k3x9a2",
       createdAt: "2026-10-19T04:59:13.497Z",
       distance,
       splits,
@@ -58,7 +60,7 @@ describe("pace analysis record", () => {
       analysis: result.analysis,
     });
 
-    expect(record.athleteId).toBe("lindsay");
+    expect(record.athleteId).toBe("ann-k3x9a2");
     expect(record.provenance.schemaVersion).toBe("skatingx-analysis-contract-v1");
     expect(record.provenance.algorithmVersion).toBe("legacy-pace-port-1");
     expect(record.pace.rating).toBe("needs-work");
@@ -114,6 +116,7 @@ describe("pace analysis record", () => {
     const record = buildPaceAnalysisRecord({
       id: "pace-500-abc",
       ownerUserId: "alice",
+      athleteId: "lindsay",
       createdAt: "2026-10-19T04:59:13.497Z",
       distance: "500",
       splits,
@@ -138,6 +141,7 @@ describe("pace analysis record", () => {
     const record = buildPaceAnalysisRecord({
       id: `pace-${distance}-abc`,
       ownerUserId: "alice",
+      athleteId: "lindsay",
       createdAt: "2026-10-19T04:59:13.497Z",
       distance,
       splits: series,
@@ -152,6 +156,7 @@ describe("pace analysis record", () => {
     const good = {
       id: "pace-500-abc",
       ownerUserId: "alice",
+      athleteId: "lindsay",
       createdAt: "2026-10-19T04:59:13.497Z",
       distance: "500" as const,
       splits: [1, 1, 1, 1, 1],
@@ -197,6 +202,7 @@ describe("pace analysis record", () => {
       buildPaceAnalysisRecord({
         id: "pace-500-abc",
         ownerUserId: "alice",
+        athleteId: "lindsay",
         createdAt: "2026-10-19",
         distance: "500",
         splits: [1, 1, 1, 1, 1],
@@ -208,6 +214,7 @@ describe("pace analysis record", () => {
       buildPaceAnalysisRecord({
         id: "pace-500-abc",
         ownerUserId: "alice",
+        athleteId: "lindsay",
         createdAt: new Date("2026-10-19T04:59:13.497Z").toISOString(),
         distance: "500",
         splits: [1, 1, 1, 1, 1],

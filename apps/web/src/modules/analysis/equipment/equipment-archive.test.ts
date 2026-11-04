@@ -25,6 +25,7 @@ function record(id: string, createdAt: string): EquipmentHistoryRecord {
   return buildEquipmentHistoryRecord({
     id,
     ownerUserId: "user-1",
+    athleteId: "lindsay",
     createdAt,
     symptomKey: "slide",
     symptomText: "",

@@ -425,9 +425,11 @@ export function EquipmentPage() {
       setStatusKey("equipment.status.signedOut");
       return;
     }
+    if (!athleteId) return;
     const record = buildEquipmentHistoryRecord({
       id: `equip-${crypto.randomUUID()}`,
       ownerUserId: uid,
+      athleteId,
       createdAt: new Date().toISOString(),
       ...draft,
     });

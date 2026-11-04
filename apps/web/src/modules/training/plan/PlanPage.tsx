@@ -138,6 +138,7 @@ export function PlanPage() {
     const stopAnalyses = subscribeToSavedAnalyses(
       db,
       uid,
+      athleteId,
       (rows) => {
         analyses = [...rows];
         failed.analyses = false;

@@ -82,7 +82,7 @@ describe("biomechanics sampling", () => {
     expect(MAX_POSE_KEYFRAMES).toBe(10);
   });
 
-  it("saves lindsay, an ISO timestamp, the pose parameter block, and the sampled frames", () => {
+  it("saves the given athlete, an ISO timestamp, the pose parameter block, and the sampled frames", () => {
     const sample = samplePoseFrame({
       tracking: emptyTrackingState(),
       support: emptySupportTracker(),
@@ -93,10 +93,11 @@ describe("biomechanics sampling", () => {
     const record = buildBiomechAnalysisRecord({
       id: "biomech-abc",
       ownerUserId: "user-1",
+      athleteId: "ann-k3x9a2",
       createdAt: "2026-10-19T07:00:00.000Z",
       samples: [sample],
     });
-    expect(record.athleteId).toBe("lindsay");
+    expect(record.athleteId).toBe("ann-k3x9a2");
     expect(record.createdAt).toBe("2026-10-19T07:00:00.000Z");
     expect(record.provenance.algorithmVersion).toBe("legacy-biomech-port-1");
     expect(record.provenance.model).toMatchObject({

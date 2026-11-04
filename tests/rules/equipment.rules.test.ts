@@ -31,6 +31,7 @@ function equipmentDoc(overrides: Record<string, unknown> = {}): EquipmentHistory
     ...buildEquipmentHistoryRecord({
       id: recordId,
       ownerUserId: "alice",
+      athleteId: "lindsay",
       createdAt: "2026-10-19T06:00:00.000Z",
       symptomKey: "slide",
       symptomText: "弯道咬冰不足，弯中有向外侧滑的感觉。",
@@ -114,7 +115,24 @@ describe("athletes/lindsay/equipment/main/records/{recordId}", () => {
     await assertFails(setDoc(doc(db, path), equipmentDoc({ athleteId: "other" })));
   });
 
-  it("does not leave another athlete id's equipment history on the broad owner rule", async () => {
+  it("lets the owner create and read a record on a new athlete path when the field matches", async () => {
+    const athleteId = "ann-k3x9a2";
+    const next = `${USERS}/alice/athletes/${athleteId}/equipment/main/records/${recordId}`;
+    const db = env.authenticatedContext("alice").firestore();
+    const created = equipmentDoc({ athleteId });
+    await assertSucceeds(setDoc(doc(db, next), created));
+    await assertSucceeds(getDoc(doc(db, next)));
+  });
+
+  it("denies a record whose athleteId does not match the path, either way", async () => {
+    const athleteId = "ann-k3x9a2";
+    const next = `${USERS}/alice/athletes/${athleteId}/equipment/main/records/${recordId}`;
+    const db = env.authenticatedContext("alice").firestore();
+    await assertFails(setDoc(doc(db, path), equipmentDoc({ athleteId })));
+    await assertFails(setDoc(doc(db, next), equipmentDoc()));
+  });
+
+  it("does not leave a non-contract equipment document on the broad owner rule", async () => {
     const db = env.authenticatedContext("alice").firestore();
     await assertFails(
       setDoc(doc(db, `${USERS}/alice/athletes/other/equipment/main/records/equip-1`), { n: 1 }),

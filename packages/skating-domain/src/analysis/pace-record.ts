@@ -1,5 +1,3 @@
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
-
 import {
   PACE_ALGORITHM_VERSION,
   pacingDistanceConfigs,
@@ -36,7 +34,7 @@ const analysisIdPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export interface PaceAnalysisRecord {
   readonly id: string;
   readonly ownerUserId: string;
-  readonly athleteId: typeof DEFAULT_ATHLETE_ID;
+  readonly athleteId: string;
   /** ISO-8601 string. Not a Firestore Timestamp. */
   readonly createdAt: string;
   /**
@@ -77,6 +75,7 @@ export interface PaceAnalysisRecord {
 export function buildPaceAnalysisRecord(input: {
   id: string;
   ownerUserId: string;
+  athleteId: string;
   createdAt: string;
   distance: PaceDistance;
   splits: readonly number[];
@@ -85,6 +84,9 @@ export function buildPaceAnalysisRecord(input: {
 }): PaceAnalysisRecord {
   if (!analysisIdPattern.test(input.id) || input.id.length > 64) {
     throw new Error("Pace analysis id is not a valid Firestore id.");
+  }
+  if (!analysisIdPattern.test(input.athleteId) || input.athleteId.length > 64) {
+    throw new Error("Pace analysis athleteId is not a valid Firestore id.");
   }
   // Same shape as firestore.rules `validIsoCreatedAt`. Date.parse would accept a date-only string.
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(input.createdAt)) {
@@ -124,7 +126,7 @@ export function buildPaceAnalysisRecord(input: {
   return {
     id: input.id,
     ownerUserId: input.ownerUserId,
-    athleteId: DEFAULT_ATHLETE_ID,
+    athleteId: input.athleteId,
     createdAt: input.createdAt,
     distance: input.distance,
     provenance,

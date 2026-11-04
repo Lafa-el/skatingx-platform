@@ -25,7 +25,9 @@ import { Button, Card } from "@skatingx/ui";
 import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
+import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { tAnalysis } from "@/shared/i18n/analysis-messages";
 import { tBiomech, type BiomechMessageKey } from "@/shared/i18n/biomech-messages";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
@@ -98,6 +100,8 @@ function reasonKey(reason: PoseKeyframeSample["unreadableReason"]): BiomechMessa
 export function BiomechanicsPage() {
   const locale = useLocale();
   const { uid } = useAuth();
+  const { data: settings } = useUserSettings();
+  const athleteId = activeAthleteIdOf(settings);
   const fileRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
@@ -504,6 +508,7 @@ export function BiomechanicsPage() {
       setStatus("biomech.status.signedOut");
       return;
     }
+    if (!athleteId) return;
     const database = getFirestoreDb();
     if (!database) {
       setStatus("biomech.status.unavailable");
@@ -514,6 +519,7 @@ export function BiomechanicsPage() {
       const record = buildBiomechAnalysisRecord({
         id: `biomech-${crypto.randomUUID()}`,
         ownerUserId: uid,
+        athleteId,
         createdAt: new Date().toISOString(),
         samples,
       });

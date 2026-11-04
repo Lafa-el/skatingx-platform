@@ -23,7 +23,8 @@ service cloud.firestore {
       }
 
       // Athlete documents stay owner-writable. equipment/main/records/{id} is not included:
-      // only the lindsay path below may write that document, and only in the contract shape.
+      // the equipment-history match below is the only writer of that document, for any
+      // athlete id, and only in the contract shape.
       match /athletes/{athleteId} {
         allow read, write: if isOwner();
       }
@@ -220,7 +221,7 @@ service cloud.firestore {
       // analyses/{analysisId}: user-level, 6 segments (ADR-005 §1).
       // Field checks follow AnalysisRecord in docs/migration/analysis/contract-types.ts.
       // createdAt is an ISO-8601 string from Date.toISOString(), not a Timestamp.
-      // athleteId is lindsay for this port.
+      // athleteId is a validId. Ownership is isOwner plus ownerUserId.
       // A pace document and a biomechanics document are two exact key sets. Pose frames
       // are a list of at most 10 (the on-page sample cap). Each item is checked for
       // timeSeconds and readable only. Landmark maps are not unrolled: 10 frames times
@@ -266,18 +267,16 @@ service cloud.firestore {
           ];
       }
 
-      // Rules have no loop. Eight is above the two findings this slice writes.
+      // Rules have no loop. Four is every biomechanics code; pace writes at most two.
+      // The list used to allow eight. Two walks of that list, plus validId(athleteId),
+      // pushed a pace update over the rules engine's 1000-expression cap.
       function validFindings(items, id) {
         return items is list
-          && items.size() <= 8
+          && items.size() <= 4
           && (items.size() < 1 || validFinding(items[0], id))
           && (items.size() < 2 || validFinding(items[1], id))
           && (items.size() < 3 || validFinding(items[2], id))
-          && (items.size() < 4 || validFinding(items[3], id))
-          && (items.size() < 5 || validFinding(items[4], id))
-          && (items.size() < 6 || validFinding(items[5], id))
-          && (items.size() < 7 || validFinding(items[6], id))
-          && (items.size() < 8 || validFinding(items[7], id));
+          && (items.size() < 4 || validFinding(items[3], id));
       }
 
       // Segments per race distance: 500m has 5, 777m has 7, 1000m has 9.
@@ -334,7 +333,7 @@ service cloud.firestore {
                            'provenance', 'findings', 'pace'])
           && d.id == id
           && d.ownerUserId == userId
-          && d.athleteId == 'lindsay'
+          && validId(d.athleteId)
           && validIsoCreatedAt(d.createdAt)
           && d.distance in ['500', '777', '1000']
           && validAnalysisProvenance(d.provenance)
@@ -372,7 +371,7 @@ service cloud.firestore {
                            'provenance', 'findings', 'poseFrames'])
           && d.id == id
           && d.ownerUserId == userId
-          && d.athleteId == 'lindsay'
+          && validId(d.athleteId)
           && validIsoCreatedAt(d.createdAt)
           && validAnalysisProvenance(d.provenance)
           && d.provenance.algorithmVersion == 'legacy-biomech-port-1'
@@ -393,8 +392,9 @@ service cloud.firestore {
                       && request.resource.data.ownerUserId == resource.data.ownerUserId;
       }
 
-      // athletes/lindsay/equipment/main/records/{recordId}: 10 segments (ADR-005 §1, §9).
-      // Same idea as analyses/{id}: exact keys, ISO createdAt, lindsay, contract provenance.
+      // athletes/{athleteId}/equipment/main/records/{recordId}: 10 segments (ADR-005 §1, §9).
+      // Same idea as analyses/{id}: exact keys, ISO createdAt, athleteId equal to the path,
+      // contract provenance.
       // Pose does not run here; the model block is still required by AnalysisProvenance.
       // Gauge points and rule hints are lists with a size cap only. Unrolling every
       // point and every hint exceeds the rules engine's 1000-expression evaluation cap.
@@ -411,7 +411,7 @@ service cloud.firestore {
         return value is string && value.size() <= max;
       }
 
-      function validEquipmentHistory(id, d) {
+      function validEquipmentHistory(id, d, athleteId) {
         return validId(id)
           && exactKeys(d, ['id', 'ownerUserId', 'athleteId', 'createdAt', 'updatedAt',
                            'provenance', 'symptomKey', 'symptomText', 'height', 'weight',
@@ -420,7 +420,7 @@ service cloud.firestore {
                            'missingCore', 'ruleHints', 'findings'])
           && d.id == id
           && d.ownerUserId == userId
-          && d.athleteId == 'lindsay'
+          && d.athleteId == athleteId
           && validIsoCreatedAt(d.createdAt)
           && validIsoCreatedAt(d.updatedAt)
           && validAnalysisProvenance(d.provenance)
@@ -456,10 +456,10 @@ service cloud.firestore {
           && d.findings[0].code == 'equipment.symptom.' + d.symptomKey;
       }
 
-      match /athletes/lindsay/equipment/main/records/{recordId} {
+      match /athletes/{athleteId}/equipment/main/records/{recordId} {
         allow read, delete: if isOwner();
-        allow create: if isOwner() && validEquipmentHistory(recordId, request.resource.data);
-        allow update: if isOwner() && validEquipmentHistory(recordId, request.resource.data)
+        allow create: if isOwner() && validEquipmentHistory(recordId, request.resource.data, athleteId);
+        allow update: if isOwner() && validEquipmentHistory(recordId, request.resource.data, athleteId)
                       && createdAtUnchanged()
                       && request.resource.data.athleteId == resource.data.athleteId
                       && request.resource.data.ownerUserId == resource.data.ownerUserId;

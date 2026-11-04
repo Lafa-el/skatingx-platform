@@ -52,6 +52,8 @@ const state = vi.hoisted(() => ({
   settings: { activeAthleteId: "lindsay" } as { activeAthleteId?: string } | null,
   // The athlete id each equipment subscription was opened for.
   equipmentAthletes: [] as unknown[],
+  // The athlete id each saved-analysis subscription was opened for.
+  analysisAthletes: [] as unknown[],
   // The training state the plan focus is stored on (ADR-008). A tiny store so a write re-renders.
   training: { value: null as Record<string, unknown> | null, listeners: new Set<() => void>() },
   setPlanFocus: vi.fn(),
@@ -92,9 +94,11 @@ vi.mock("@skatingx/firebase-client", () => ({
   subscribeToSavedAnalyses: (
     _db: unknown,
     _uid: unknown,
+    athlete: unknown,
     onData: (rows: AnalysisRow[], dropped: number) => void,
     onError: (error: unknown) => void,
   ) => {
+    state.analysisAthletes.push(athlete);
     if (state.analysesMode === "ready") onData(state.analyses, state.analysesDropped);
     if (state.analysesMode === "error") onError(new Error("read"));
     return () => undefined;
@@ -144,6 +148,7 @@ afterEach(() => {
   state.equipmentDropped = 0;
   state.settings = { activeAthleteId: "lindsay" };
   state.equipmentAthletes = [];
+  state.analysisAthletes = [];
   sessionStorage.clear();
   window.localStorage.removeItem(HIDDEN_FEEDBACK_KEY);
 });
@@ -703,15 +708,17 @@ describe("analysis hub: which athlete the equipment history is read for", () => 
     expect(state.equipmentAthletes).toEqual(["athlete-9"]);
   });
 
-  it("does not read equipment when settings name no athlete, or are not available", () => {
+  it("does not read equipment or analyses when settings name no athlete, or are not available", () => {
     readyEmpty();
     state.settings = {};
     const first = render(renderHub());
     expect(state.equipmentAthletes).toEqual([]);
+    expect(state.analysisAthletes).toEqual([]);
     first.unmount();
     state.settings = null;
     render(renderHub());
     expect(state.equipmentAthletes).toEqual([]);
+    expect(state.analysisAthletes).toEqual([]);
   });
 
   it("opens a new equipment subscription when the athlete changes", () => {

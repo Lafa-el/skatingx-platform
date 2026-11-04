@@ -1,5 +1,3 @@
-import { DEFAULT_ATHLETE_ID } from "@skatingx/schema";
-
 import { paceProvenanceModel } from "./pace-record";
 
 export const EQUIPMENT_ALGORITHM_VERSION = "legacy-equipment-port-1" as const;
@@ -47,7 +45,7 @@ export interface EquipmentGaugePoint {
 export interface EquipmentHistoryRecord {
   readonly id: string;
   readonly ownerUserId: string;
-  readonly athleteId: typeof DEFAULT_ATHLETE_ID;
+  readonly athleteId: string;
   /** ISO-8601 string. Not a Firestore Timestamp. */
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -107,6 +105,7 @@ export function equipmentSymptomCode(key: string): string | undefined {
 export function buildEquipmentHistoryRecord(input: {
   id: string;
   ownerUserId: string;
+  athleteId: string;
   createdAt: string;
   symptomKey: EquipmentSymptomKey;
   symptomText: string;
@@ -128,6 +127,9 @@ export function buildEquipmentHistoryRecord(input: {
   if (!recordIdPattern.test(input.id) || input.id.length > 64) {
     throw new Error("Equipment record id is not a valid Firestore id.");
   }
+  if (!recordIdPattern.test(input.athleteId) || input.athleteId.length > 64) {
+    throw new Error("Equipment record athleteId is not a valid Firestore id.");
+  }
   if (Number.isNaN(Date.parse(input.createdAt))) {
     throw new Error("Equipment record createdAt must be an ISO-8601 string.");
   }
@@ -135,7 +137,7 @@ export function buildEquipmentHistoryRecord(input: {
   return {
     id: input.id,
     ownerUserId: input.ownerUserId,
-    athleteId: DEFAULT_ATHLETE_ID,
+    athleteId: input.athleteId,
     createdAt: input.createdAt,
     updatedAt: input.createdAt,
     provenance: {
