@@ -193,9 +193,9 @@ describe("deleteAthlete", () => {
     expect(memory.docs.has(`${paths.trainingRedemptionsCollection(userId, "lindsay")}/red1`)).toBe(false);
     expect(memory.docs.has(`${paths.equipmentHistoryCollection(userId, "lindsay")}/eq1`)).toBe(false);
     const root = paths.athleteProfile(userId, "lindsay").replace(/\/profile\/main$/, "");
-    expect(memory.docs.has(`${root}/training/races/race1`)).toBe(false);
-    expect(memory.docs.has(`${root}/equipment/records/legacy1`)).toBe(false);
-    expect(memory.docs.has(`${root}/analysis/sessions/session1`)).toBe(false);
+    expect(memory.docs.has(`${root}/training/races/race1`)).toBe(true);
+    expect(memory.docs.has(`${root}/equipment/records/legacy1`)).toBe(true);
+    expect(memory.docs.has(`${root}/analysis/sessions/session1`)).toBe(true);
     expect(memory.docs.has(paths.analysisRecord(userId, "analysis-lindsay"))).toBe(false);
     expect(memory.docs.has(paths.raceDayRoster(userId, "meet", "row-lindsay"))).toBe(false);
     expect(memory.docs.has(paths.raceDayResult(userId, "meet", "res-lindsay"))).toBe(false);

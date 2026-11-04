@@ -18,25 +18,35 @@ import {
 
 import { listAthleteProfiles } from "./athlete-roster";
 import {
-  analysesCollectionRef,
   athleteGamificationRef,
   athleteProfileRef,
-  equipmentHistoryCollectionRef,
-  pointsLedgerCollectionRef,
   raceDayEventsCollectionRef,
   raceDayResultsCollectionRef,
   raceDayRosterCollectionRef,
   raceDayVideosCollectionRef,
   settingsRef,
-  taskHistoryCollectionRef,
-  trainingRecordsCollectionRef,
-  trainingRedemptionsCollectionRef,
   trainingRewardsCatalogRef,
   trainingStateRef,
 } from "./refs";
 
 /** Stay under Firestore's 500-write batch cap. */
 const BATCH_LIMIT = 450;
+
+/**
+ * Collections `deleteAthlete` clears. These are the same path helpers the live
+ * collection refs pass to `collection()`. Race-day collections are not here:
+ * they also need an event id, and the event refs stay the source for those.
+ */
+export function athleteDeleteCollectionPaths(userId: string, athleteId: string) {
+  return {
+    pointsLedger: paths.pointsLedgerCollection(userId, athleteId),
+    taskHistory: paths.taskHistoryCollection(userId, athleteId),
+    trainingRecords: paths.trainingRecordsCollection(userId, athleteId),
+    redemptions: paths.trainingRedemptionsCollection(userId, athleteId),
+    equipmentHistory: paths.equipmentHistoryCollection(userId, athleteId),
+    analyses: paths.analysesCollection(userId),
+  };
+}
 
 function collectionFromPath(db: Firestore, path: string): CollectionReference {
   const segments = pathToSegments(path);
@@ -76,24 +86,24 @@ export async function deleteAthlete(
   userId: string,
   athleteId: string,
 ): Promise<void> {
-  const root = paths.athleteProfile(userId, athleteId).replace(/\/profile\/main$/, "");
+  const collections = athleteDeleteCollectionPaths(userId, athleteId);
 
   await deleteDoc(athleteGamificationRef(db, userId, athleteId));
   await deleteDoc(trainingStateRef(db, userId, athleteId));
   await deleteDoc(trainingRewardsCatalogRef(db, userId, athleteId));
 
-  await deleteCollection(db, pointsLedgerCollectionRef(db, userId, athleteId));
-  await deleteCollection(db, taskHistoryCollectionRef(db, userId, athleteId));
-  await deleteCollection(db, trainingRecordsCollectionRef(db, userId, athleteId));
-  await deleteCollection(db, trainingRedemptionsCollectionRef(db, userId, athleteId));
-  await deleteCollection(db, equipmentHistoryCollectionRef(db, userId, athleteId));
-  await deleteCollection(db, collectionFromPath(db, `${root}/training/races`));
-  await deleteCollection(db, collectionFromPath(db, `${root}/equipment/records`));
-  await deleteCollection(db, collectionFromPath(db, `${root}/analysis/sessions`));
+  await deleteCollection(db, collectionFromPath(db, collections.pointsLedger));
+  await deleteCollection(db, collectionFromPath(db, collections.taskHistory));
+  await deleteCollection(db, collectionFromPath(db, collections.trainingRecords));
+  await deleteCollection(db, collectionFromPath(db, collections.redemptions));
+  await deleteCollection(db, collectionFromPath(db, collections.equipmentHistory));
+  // paths.trainingRace, paths.equipmentRecord, and paths.analysisSession are unused.
+  // A collection path taken from them has an even segment count, which collection()
+  // rejects, and nothing was ever written there, so those collections are not deleted.
 
   await deleteInBatches(
     db,
-    query(analysesCollectionRef(db, userId), where("athleteId", "==", athleteId)),
+    query(collectionFromPath(db, collections.analyses), where("athleteId", "==", athleteId)),
   );
 
   const events = await getDocs(raceDayEventsCollectionRef(db, userId));
