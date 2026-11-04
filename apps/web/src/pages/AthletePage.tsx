@@ -26,11 +26,12 @@ export function AthletePage() {
 
   const loading = activeLoading || profileLoading || settingsLoading;
   const error = activeError ?? profileError ?? settingsError;
-  const [editing, setEditing] = useState(false);
-  const canEdit = !loading && !error && profile != null && uid != null;
+  const [panel, setPanel] = useState<"closed" | "edit" | "add">("closed");
+  const ready = !loading && !error && uid != null;
+  const canEdit = ready && profile != null;
 
   useEffect(() => {
-    setEditing(false);
+    setPanel("closed");
   }, [athleteId]);
 
   return (
@@ -109,19 +110,34 @@ export function AthletePage() {
           <AthleteFacts profile={profile} loading={loading} locale={locale} />
         </dl>
       </Card>
-      {canEdit && !editing ? (
-        <Button variant="outline" className="mt-4" onClick={() => setEditing(true)}>
-          {tAthlete(locale, "athlete.action.edit")}
-        </Button>
+      {ready && panel === "closed" ? (
+        <div className="mt-4 flex flex-wrap gap-3">
+          {canEdit ? (
+            <Button variant="outline" onClick={() => setPanel("edit")}>
+              {tAthlete(locale, "athlete.action.edit")}
+            </Button>
+          ) : null}
+          <Button variant="outline" onClick={() => setPanel("add")}>
+            {tAthlete(locale, "athlete.action.add")}
+          </Button>
+        </div>
       ) : null}
-      {canEdit && editing && profile && uid ? (
+      {canEdit && panel === "edit" && profile && uid ? (
         <AthleteProfileForm
           profile={profile}
           userId={uid}
           athleteId={athleteId}
           locale={locale}
-          onCancel={() => setEditing(false)}
-          onSaved={() => setEditing(false)}
+          onCancel={() => setPanel("closed")}
+          onSaved={() => setPanel("closed")}
+        />
+      ) : null}
+      {ready && panel === "add" && uid ? (
+        <AthleteProfileForm
+          userId={uid}
+          locale={locale}
+          onCancel={() => setPanel("closed")}
+          onSaved={() => setPanel("closed")}
         />
       ) : null}
     </section>

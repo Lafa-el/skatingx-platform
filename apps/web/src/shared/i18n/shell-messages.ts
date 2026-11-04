@@ -15,7 +15,7 @@ const zh = {
 
   "shell.athlete.listLabel": "选择运动员",
   "shell.athlete.active": "当前",
-  "shell.athlete.switchingLater": "多运动员切换：后续阶段提供。",
+  "shell.athlete.switchFailed": "没能切换，请再试一次。",
   "shell.athlete.profileLink": "运动员档案 →",
 
   "shell.placeholder.default": "占位页面：原有功能将在后续阶段迁移。",
@@ -31,7 +31,7 @@ const en: Record<ShellKey, string> = {
 
   "shell.athlete.listLabel": "Select athlete",
   "shell.athlete.active": "Active",
-  "shell.athlete.switchingLater": "Multi-athlete switching — coming in a later phase.",
+  "shell.athlete.switchFailed": "Could not switch athletes. Try again.",
   "shell.athlete.profileLink": "Athlete profile →",
 
   "shell.placeholder.default": "Placeholder page — legacy logic will be migrated in a later phase.",

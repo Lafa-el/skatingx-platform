@@ -30,7 +30,13 @@ const h = vi.hoisted(() => {
     }),
     settings: ready({ activeAthleteId: "athlete-1" }),
   });
-  return { ready, base, state: base(), updateAthleteProfile: vi.fn() };
+  return {
+    ready,
+    base,
+    state: base(),
+    updateAthleteProfile: vi.fn(),
+    createAthlete: vi.fn(async () => "new-id"),
+  };
 });
 
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => h.state.locale }));
@@ -45,11 +51,14 @@ vi.mock("@/components/FirestoreStatusBanner", () => ({ FirestoreStatusBanner: ()
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => ({}),
   updateAthleteProfile: h.updateAthleteProfile,
+  createAthlete: h.createAthlete,
 }));
 
 afterEach(() => {
   h.state = h.base();
   h.updateAthleteProfile.mockReset();
+  h.createAthlete.mockReset();
+  h.createAthlete.mockResolvedValue("new-id");
 });
 
 const term = (name: string) =>
@@ -205,16 +214,19 @@ describe("AthletePage", () => {
     h.state.profile = { data: h.base().profile.data, loading: true, error: null };
     const loading = render(<AthletePage />);
     expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加运动员" })).toBeNull();
     loading.unmount();
 
     h.state.profile = { data: h.base().profile.data, loading: false, error: "read failed" };
     const failed = render(<AthletePage />);
     expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加运动员" })).toBeNull();
     failed.unmount();
 
     h.state.profile = h.ready(null);
     render(<AthletePage />);
     expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+    expect(screen.getByRole("button", { name: "添加运动员" })).toBeTruthy();
   });
 
   it("opens a form prefilled from the profile, with an empty bio and start date left blank", async () => {
@@ -358,6 +370,69 @@ describe("AthletePage", () => {
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("没能保存，请再试一次。"));
     expect(input("姓名").value).toBe("Sample Skater");
     expect(screen.getByRole("button", { name: "保存" })).toBeTruthy();
+  });
+
+  it("opens an empty add form, saves through createAthlete, and hides edit while it is open", async () => {
+    const user = userEvent.setup();
+    render(<AthletePage />);
+    await user.click(screen.getByRole("button", { name: "添加运动员" }));
+    expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+    expect(input("姓名").value).toBe("");
+    expect(input("出生日期").value).toBe("");
+    expect(input("开始滑冰日期").value).toBe("");
+    expect(textArea("个人简介").value).toBe("");
+    expect(input("国家/地区").value).toBe("");
+    expect((screen.getByLabelText("项目") as HTMLSelectElement).value).toBe("short_track_speed_skating");
+    await user.type(input("姓名"), "Alex");
+    setControl(input("出生日期"), "2016-03-04");
+    await user.type(input("国家/地区"), "Canada");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => expect(h.createAthlete).toHaveBeenCalledTimes(1));
+    expect(h.updateAthleteProfile).not.toHaveBeenCalled();
+    expect(h.createAthlete).toHaveBeenCalledWith({}, "uid-123", {
+      displayName: "Alex",
+      birthDate: "2016-03-04",
+      skatingStartDate: "",
+      sport: "short_track_speed_skating",
+      country: "Canada",
+      bio: "",
+    });
+    expect(screen.queryByRole("button", { name: "保存" })).toBeNull();
+    expect(screen.getByRole("button", { name: "添加运动员" })).toBeTruthy();
+  });
+
+  it("cancel on the add form does not create an athlete", async () => {
+    const user = userEvent.setup();
+    render(<AthletePage />);
+    await user.click(screen.getByRole("button", { name: "添加运动员" }));
+    await user.type(input("姓名"), "Alex");
+    await user.click(screen.getByRole("button", { name: "取消" }));
+    expect(h.createAthlete).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "编辑" })).toBeTruthy();
+  });
+
+  it("edit and add are not open together", async () => {
+    const user = userEvent.setup();
+    render(<AthletePage />);
+    await user.click(screen.getByRole("button", { name: "编辑" }));
+    expect(screen.queryByRole("button", { name: "添加运动员" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "取消" }));
+    await user.click(screen.getByRole("button", { name: "添加运动员" }));
+    expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
+  });
+
+  it("keeps the add form when create fails", async () => {
+    h.createAthlete.mockRejectedValueOnce(new Error("unavailable"));
+    const user = userEvent.setup();
+    render(<AthletePage />);
+    await user.click(screen.getByRole("button", { name: "添加运动员" }));
+    await user.type(input("姓名"), "Alex");
+    setControl(input("出生日期"), "2016-03-04");
+    await user.type(input("国家/地区"), "Canada");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("没能添加，请再试一次。"));
+    expect(screen.getByRole("button", { name: "保存" })).toBeTruthy();
+    expect(input("姓名").value).toBe("Alex");
   });
 
   it("English form labels", async () => {

@@ -115,6 +115,12 @@ export {
 } from "./firestore/journal";
 export { updateUserSettings } from "./firestore/settings";
 export { updateAthleteProfile, type AthleteProfilePatch } from "./firestore/athlete-profile";
+export { AthleteIdCollisionError, createAthlete } from "./firestore/create-athlete";
+export {
+  athleteIdFromProfilePath,
+  subscribeToAthleteProfiles,
+  type AthleteRosterEntry,
+} from "./firestore/athlete-roster";
 export { ensurePointsOpeningBalance, probeLedgerEmpty, recordPointsChange } from "./firestore/points-ledger";
 export {
   pointsLedgerRowFromDocument,
