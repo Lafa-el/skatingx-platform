@@ -110,6 +110,14 @@ export const paths = {
   journalBodyStatus: (userId: string, statusId: string) =>
     `${prefix(userId)}/journal/main/bodyStatus/${statusId}`,
   journalBodyStatusCollection: (userId: string) => `${prefix(userId)}/journal/main/bodyStatus`,
+  /**
+   * ADR-006 §5. Same user-level journal, not under an athlete. The `main` segment makes the
+   * document path an even number of segments (`journal/main/weeklyReviews/{weekStart}`).
+   * `weekStart` is the Monday of that week.
+   */
+  journalWeeklyReview: (userId: string, weekStart: string) =>
+    `${prefix(userId)}/journal/main/weeklyReviews/${weekStart}`,
+  journalWeeklyReviewsCollection: (userId: string) => `${prefix(userId)}/journal/main/weeklyReviews`,
 } as const;
 
 /** Split a path string into Firestore `doc()` segments. */

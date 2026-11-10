@@ -63,4 +63,21 @@ describe("journal paths", () => {
     expect(status.includes("athlete")).toBe(false);
     expect(paths.journalBodyStatusCollection("alice")).toBe(status.slice(0, status.lastIndexOf("/")));
   });
+
+  it("keeps a weekly review beside the day collection, still with no athlete id", () => {
+    const review = paths.journalWeeklyReview("alice", "2026-11-09");
+    expect(review.split("/")).toEqual([
+      "artifacts",
+      PLATFORM_APP_ID,
+      "users",
+      "alice",
+      "journal",
+      "main",
+      "weeklyReviews",
+      "2026-11-09",
+    ]);
+    expect(review.split("/")).toHaveLength(8);
+    expect(review.includes("athlete")).toBe(false);
+    expect(paths.journalWeeklyReviewsCollection("alice")).toBe(review.slice(0, review.lastIndexOf("/")));
+  });
 });

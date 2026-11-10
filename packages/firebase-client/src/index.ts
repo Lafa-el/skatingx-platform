@@ -27,6 +27,8 @@ export {
   journalDayRef,
   journalDaysCollectionRef,
   journalSessionsCollectionRef,
+  journalWeeklyReviewRef,
+  journalWeeklyReviewsCollectionRef,
   settingsRef,
   taskHistoryCollectionRef,
   taskHistoryRef,
@@ -156,6 +158,16 @@ export {
   type BodyStatusWrite,
   type BodyStatusWriteFailure,
 } from "./firestore/journal-body-status";
+export {
+  buildWeeklyReviewWrite,
+  saveWeeklyReview,
+  subscribeToWeeklyReview,
+  weeklyReviewFromDocument,
+  type WeeklyReviewInput,
+  type WeeklyReviewRecord,
+  type WeeklyReviewWrite,
+  type WeeklyReviewWriteFailure,
+} from "./firestore/journal-weekly-reviews";
 export { updateUserSettings } from "./firestore/settings";
 export { updateAthleteProfile, type AthleteProfilePatch } from "./firestore/athlete-profile";
 export { AthleteIdCollisionError, createAthlete } from "./firestore/create-athlete";

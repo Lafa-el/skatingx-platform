@@ -161,6 +161,31 @@ describe("journal sessions", () => {
   });
 });
 
+describe("journal weekly reviews", () => {
+  const path = `${USERS}/alice/journal/main/weeklyReviews/2026-11-09`;
+
+  it("lets the owner read and write", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    await assertSucceeds(setDoc(doc(db, path), { weekStart: "2026-11-09", bestMoment: "起跑" }));
+    await assertSucceeds(getDoc(doc(db, path)));
+  });
+
+  it("denies another signed-in user", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), path), { weekStart: "2026-11-09", bestMoment: "起跑" });
+    });
+    const db = env.authenticatedContext("bob").firestore();
+    await assertFails(getDoc(doc(db, path)));
+    await assertFails(setDoc(doc(db, path), { bestMoment: "no" }));
+  });
+
+  it("denies unauthenticated access", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(db, path)));
+    await assertFails(setDoc(doc(db, path), { bestMoment: "no" }));
+  });
+});
+
 describe("paths outside the owner's subtree", () => {
   it.each([
     ["another app id", "artifacts/other-app/users/alice/settings/main"],

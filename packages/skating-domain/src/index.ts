@@ -16,6 +16,16 @@ export {
   type AthleteProfileFormInput,
 } from "./athlete-profile-form";
 export { compareDateStrings, previousDateString, todayDateString } from "./dates";
+export {
+  deriveWeeklyReviewStats,
+  type WeeklyReviewCoachNote,
+  type WeeklyReviewDay,
+  type WeeklyReviewDistance,
+  type WeeklyReviewSession,
+  type WeeklyReviewStats,
+  type WeeklyReviewStatsInput,
+  type WeeklyReviewTimeEntry,
+} from "./journal/weekly-review-stats";
 export { calculateStreakDays } from "./streak";
 export { clampPointsDeltas, type PointsLedgerDraft } from "./points-ledger";
 export {
