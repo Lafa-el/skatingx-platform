@@ -2,6 +2,7 @@ import {
   buildJournalDayWrite,
   getFirestoreDb,
   saveJournalDay,
+  setJournalDayCompleted,
   subscribeToJournal,
   type JournalDayInput,
   type JournalDayRecord,
@@ -9,7 +10,7 @@ import {
   type JournalWriteFailure,
 } from "@skatingx/firebase-client";
 import { todayDateString } from "@skatingx/schema";
-import { Button, Card, ErrorNotice } from "@skatingx/ui";
+import { Button, Card, ErrorNotice, StatusTag } from "@skatingx/ui";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -88,6 +89,11 @@ const CONTROL =
 
 const MONTH_TAG: Record<Locale, string> = { zh: "zh-CN", en: "en-US" };
 
+/** Existing document id when this date already has a day, otherwise the date string. */
+function journalDocumentId(entry: JournalDayRecord | null, date: string): string {
+  return entry?.id ?? date;
+}
+
 function monthOf(date: string): JournalMonth {
   const [year, month] = date.split("-").map(Number);
   return { year: year || 1970, month: month || 1 };
@@ -113,6 +119,7 @@ export function JournalCalendarPage() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [retry, setRetry] = useState(0);
+  const [toggleBusy, setToggleBusy] = useState(false);
 
   useEffect(() => {
     if (!uid || !db) {
@@ -213,7 +220,31 @@ export function JournalCalendarPage() {
 
       {selected && detail && uid && db && !loading && !failed ? (
         <Card title={formatCalendarDate(selected, locale)} className="mt-4">
-          <DayDetail detail={detail} t={t} />
+          <DayDetail
+            key={selected}
+            detail={detail}
+            t={t}
+            completed={entry?.isCompleted === true}
+            toggleBusy={toggleBusy}
+            onToggleCompleted={async () => {
+              if (!entry) return;
+              setToggleBusy(true);
+              try {
+                await setJournalDayCompleted(
+                  db,
+                  uid,
+                  journalDocumentId(entry, selected),
+                  entry.isCompleted !== true,
+                  new Date().toISOString(),
+                );
+              } catch (error) {
+                logActionFailure("journal", "complete", error);
+                throw error;
+              } finally {
+                setToggleBusy(false);
+              }
+            }}
+          />
           <JournalDayForm
             key={`${selected}:${entry?.id ?? "new"}`}
             date={selected}
@@ -224,7 +255,7 @@ export function JournalCalendarPage() {
                 creating: entry === null,
               });
               if (!built.ok) return built.field;
-              await saveJournalDay(db, uid, entry?.id ?? built.data.date, built.data);
+              await saveJournalDay(db, uid, journalDocumentId(entry, built.data.date), built.data);
               return null;
             }}
           />
@@ -278,14 +309,40 @@ function DayCell({
 function DayDetail({
   detail,
   t,
+  completed,
+  onToggleCompleted,
+  toggleBusy,
 }: {
   detail: JournalDayDetail;
   t: (key: JournalMessageKey) => string;
+  completed: boolean;
+  onToggleCompleted: () => Promise<void> | void;
+  toggleBusy: boolean;
 }) {
+  const [toggleError, setToggleError] = useState(false);
   const fields = FIELD_KEYS.filter((key) => detail[key] !== undefined);
   const reflection = detail.lindsayReflection;
+  const hasDiary = detail.date !== undefined;
   return (
     <div>
+      {hasDiary ? (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {completed ? <StatusTag tone="success">{t("journal.detail.completed")}</StatusTag> : null}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={toggleBusy}
+            aria-busy={toggleBusy}
+            onClick={() => {
+              setToggleError(false);
+              void Promise.resolve(onToggleCompleted()).catch(() => setToggleError(true));
+            }}
+          >
+            {t(completed ? "journal.detail.markIncomplete" : "journal.detail.markComplete")}
+          </Button>
+          {toggleError ? <ErrorNotice>{t("journal.detail.completeFailed")}</ErrorNotice> : null}
+        </div>
+      ) : null}
       {fields.length === 0 ? <p>{t("journal.detail.noDiary")}</p> : null}
       {fields.length > 0 ? (
         <dl className="grid gap-2">
@@ -335,6 +392,8 @@ function JournalDayForm({
   const [feeling, setFeeling] = useState(day?.overallFeeling !== undefined ? String(day.overallFeeling) : "");
   const [energy, setEnergy] = useState(day?.energy !== undefined ? String(day.energy) : "");
   const [trainingFocus, setTrainingFocus] = useState(day?.trainingFocus ?? "");
+  const [soreness, setSoreness] = useState(day?.soreness ?? "");
+  const [coachFeedback, setCoachFeedback] = useState(day?.coachFeedback ?? "");
   const [parentNote, setParentNote] = useState(day?.parentNote ?? "");
   const [bestThing, setBestThing] = useState(day?.lindsayReflection?.bestThing ?? "");
   const [needsWork, setNeedsWork] = useState(day?.lindsayReflection?.needsWork ?? "");
@@ -356,6 +415,8 @@ function JournalDayForm({
           date,
           overallFeeling: Number(feeling),
           trainingFocus,
+          soreness,
+          coachFeedback,
           parentNote,
           lindsayReflection: { bestThing, needsWork, tomorrowFocus },
         };
@@ -409,6 +470,15 @@ function JournalDayForm({
           ))}
         </select>
       </label>
+      <label className="grid gap-1 text-sm text-brand-navy" htmlFor="journal-soreness">
+        {t("journal.field.soreness")}
+        <textarea
+          id="journal-soreness"
+          className={CONTROL}
+          value={soreness}
+          onChange={(event) => setSoreness(event.target.value)}
+        />
+      </label>
       <label className="grid gap-1 text-sm text-brand-navy" htmlFor="journal-focus">
         {t("journal.field.trainingFocus")}
         <input
@@ -416,6 +486,15 @@ function JournalDayForm({
           className={CONTROL}
           value={trainingFocus}
           onChange={(event) => setTrainingFocus(event.target.value)}
+        />
+      </label>
+      <label className="grid gap-1 text-sm text-brand-navy" htmlFor="journal-coach">
+        {t("journal.field.coachFeedback")}
+        <textarea
+          id="journal-coach"
+          className={CONTROL}
+          value={coachFeedback}
+          onChange={(event) => setCoachFeedback(event.target.value)}
         />
       </label>
       <label className="grid gap-1 text-sm text-brand-navy" htmlFor="journal-parent">

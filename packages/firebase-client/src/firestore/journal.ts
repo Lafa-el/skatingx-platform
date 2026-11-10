@@ -20,6 +20,8 @@ export type JournalDayRecord = {
   trainingFocus?: string;
   coachFeedback?: string;
   parentNote?: string;
+  /** Present only when the stored value is true. False and a missing field are the same: not completed. */
+  isCompleted?: boolean;
   lindsayReflection?: JournalReflection;
 };
 
@@ -49,6 +51,8 @@ export type JournalDayInput = {
   energy?: number;
   trainingFocus?: string;
   parentNote?: string;
+  soreness?: string;
+  coachFeedback?: string;
   lindsayReflection?: JournalReflection;
 };
 
@@ -59,6 +63,8 @@ export type JournalDayWrite = {
   energy?: number;
   trainingFocus?: string;
   parentNote?: string;
+  soreness?: string;
+  coachFeedback?: string;
   lindsayReflection?: JournalReflection;
   createdAt?: string;
   isCompleted?: false;
@@ -117,6 +123,7 @@ export function journalDayFromDocument(id: string, data: unknown): JournalDayRec
   if (coachFeedback !== undefined) record.coachFeedback = coachFeedback;
   if (parentNote !== undefined) record.parentNote = parentNote;
   if (lindsayReflection !== undefined) record.lindsayReflection = lindsayReflection;
+  if (fields.isCompleted === true) record.isCompleted = true;
   return record;
 }
 
@@ -152,9 +159,13 @@ export function buildJournalDayWrite(
   if (input.energy !== undefined) data.energy = input.energy;
   const trainingFocus = presentText(input.trainingFocus);
   const parentNote = presentText(input.parentNote);
+  const soreness = presentText(input.soreness);
+  const coachFeedback = presentText(input.coachFeedback);
   const lindsayReflection = presentReflection(input.lindsayReflection);
   if (trainingFocus !== undefined) data.trainingFocus = trainingFocus;
   if (parentNote !== undefined) data.parentNote = parentNote;
+  if (soreness !== undefined) data.soreness = soreness;
+  if (coachFeedback !== undefined) data.coachFeedback = coachFeedback;
   if (lindsayReflection !== undefined) data.lindsayReflection = lindsayReflection;
   if (options.creating) {
     data.createdAt = options.now;
@@ -228,4 +239,22 @@ export async function saveJournalDay(
   data: JournalDayWrite,
 ): Promise<void> {
   await setDoc(journalDayRef(db, userId, documentId), toFirestoreData(data), { merge: true });
+}
+
+/**
+ * Merge only the completion flag and `updatedAt`. Other fields, including `createdAt`, stay as stored.
+ * `now` is the same clock the page passes to `buildJournalDayWrite`.
+ */
+export async function setJournalDayCompleted(
+  db: Firestore,
+  userId: string,
+  documentId: string,
+  completed: boolean,
+  now: string,
+): Promise<void> {
+  await setDoc(
+    journalDayRef(db, userId, documentId),
+    toFirestoreData({ isCompleted: completed, updatedAt: now }),
+    { merge: true },
+  );
 }

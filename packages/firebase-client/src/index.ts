@@ -104,6 +104,7 @@ export {
   journalDayFromDocument,
   journalSessionFromDocument,
   saveJournalDay,
+  setJournalDayCompleted,
   subscribeToJournal,
   type JournalDayInput,
   type JournalDayRecord,
