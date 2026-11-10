@@ -186,6 +186,11 @@ export {
   type WeeklyReviewWrite,
   type WeeklyReviewWriteFailure,
 } from "./firestore/journal-weekly-reviews";
+export {
+  readJournalExport,
+  type JournalExportCollection,
+  type JournalExportRead,
+} from "./firestore/journal-export";
 export { updateUserSettings } from "./firestore/settings";
 export { updateAthleteProfile, type AthleteProfilePatch } from "./firestore/athlete-profile";
 export { AthleteIdCollisionError, createAthlete } from "./firestore/create-athlete";

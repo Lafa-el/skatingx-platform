@@ -26,6 +26,15 @@ export {
   type WeeklyReviewStatsInput,
   type WeeklyReviewTimeEntry,
 } from "./journal/weekly-review-stats";
+export {
+  buildCollectionCsv,
+  buildExportJson,
+  filterExportByScope,
+  prepareExportScope,
+  type ExportScope,
+  type ExportScopeInput,
+  type JournalExportBundle,
+} from "./journal/export-format";
 export { calculateStreakDays } from "./streak";
 export { clampPointsDeltas, type PointsLedgerDraft } from "./points-ledger";
 export {

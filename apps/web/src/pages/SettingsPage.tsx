@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useReloadUserSettings } from "@/app/providers/FirestoreProvider";
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
+import { JournalExportCard } from "@/modules/settings/JournalExportCard";
 import { NoAthleteNotice } from "@/components/NoAthleteNotice";
 import { LanguageSetting } from "@/components/LanguageSetting";
 import { ParentPinManager } from "@/components/ParentPinManager";
@@ -383,6 +384,8 @@ export function SettingsPage() {
           <p className="mt-4 text-xs text-brand-navy/70">{t("settings.account.guestUid", { uid: uid?.slice(0, 8) ?? "—" })}</p>
         ) : null}
       </Card>
+
+      <JournalExportCard />
 
       <Card variant="raised" title={t("settings.group.athlete")}>
         {!planLoading && activeAthleteId == null && !profileError ? (
