@@ -130,14 +130,15 @@ describe("JournalLayout", () => {
     );
   }
 
-  it("names the two journal tabs and leaves the calendar exact", () => {
+  it("names the journal tabs and leaves the calendar exact", () => {
     renderJournal("/training/journal/coach-notes");
     const nav = screen.getByRole("navigation", { name: "日志分区" });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((link) => link.textContent)).toEqual(["日历", "教练笔记"]);
+    expect(links.map((link) => link.textContent)).toEqual(["日历", "教练笔记", "身体状态"]);
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "/training/journal",
       "/training/journal/coach-notes",
+      "/training/journal/body-status",
     ]);
     expect(links[0]?.getAttribute("aria-current")).toBeNull();
     expect(links[1]?.getAttribute("aria-current")).toBe("page");

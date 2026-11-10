@@ -46,6 +46,11 @@ const CoachNotesPage = lazy(() =>
     default: module.CoachNotesPage,
   })),
 );
+const BodyStatusPage = lazy(() =>
+  import("@/modules/journal/BodyStatusPage").then((module) => ({
+    default: module.BodyStatusPage,
+  })),
+);
 import { AthletePage } from "@/pages/AthletePage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -103,6 +108,14 @@ export function AppRouter() {
             element={
               <Suspense fallback={<div className="min-h-11" />}>
                 <CoachNotesPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="body-status"
+            element={
+              <Suspense fallback={<div className="min-h-11" />}>
+                <BodyStatusPage />
               </Suspense>
             }
           />

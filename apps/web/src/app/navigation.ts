@@ -71,12 +71,13 @@ const ANALYSIS_SUB_NAV: readonly NavSpec[] = [
 
 /**
  * Journal section tabs. The calendar uses an exact match (`end`) so it stays quiet on
- * `/training/journal/coach-notes`. Later journal pages add their own item here; nothing
- * points at a page that does not exist yet.
+ * later journal pages. Each later page adds its own item; nothing points at a page that
+ * does not exist yet.
  */
 export const JOURNAL_SUB_NAV: readonly NavSpec[] = [
   { to: "/training/journal", labelKey: "nav.journal.calendar", end: true },
   { to: "/training/journal/coach-notes", labelKey: "nav.journal.coachNotes" },
+  { to: "/training/journal/body-status", labelKey: "nav.journal.bodyStatus" },
 ];
 
 export function getTrainingSubNav(locale: Locale): NavItem[] {
