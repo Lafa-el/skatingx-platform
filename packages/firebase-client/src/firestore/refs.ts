@@ -264,6 +264,15 @@ export function journalSessionsCollectionRef(db: Firestore, userId: string): Col
   return collection(db, ...(segments as [string, ...string[]]));
 }
 
+export function journalCoachNoteRef(db: Firestore, userId: string, noteId: string): DocumentReference {
+  return docFromPath(db, paths.journalCoachNote(userId, noteId));
+}
+
+export function journalCoachNotesCollectionRef(db: Firestore, userId: string): CollectionReference {
+  const segments = pathToSegments(paths.journalCoachNotesCollection(userId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
 export function raceDayVideosCollectionRef(
   db: Firestore,
   userId: string,

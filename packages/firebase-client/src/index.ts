@@ -114,6 +114,22 @@ export {
   type JournalSnapshot,
   type JournalWriteFailure,
 } from "./firestore/journal";
+export {
+  COACH_NOTE_TAGS,
+  buildCoachNoteWrite,
+  coachNoteFromDocument,
+  createCoachNote,
+  deleteCoachNote,
+  subscribeToCoachNotes,
+  updateCoachNote,
+  type CoachNoteInput,
+  type CoachNotePriority,
+  type CoachNoteRecord,
+  type CoachNoteTag,
+  type CoachNoteSnapshot,
+  type CoachNoteWrite,
+  type CoachNoteWriteFailure,
+} from "./firestore/journal-coach-notes";
 export { updateUserSettings } from "./firestore/settings";
 export { updateAthleteProfile, type AthleteProfilePatch } from "./firestore/athlete-profile";
 export { AthleteIdCollisionError, createAthlete } from "./firestore/create-athlete";

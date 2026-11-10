@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getAnalysisSubNav, getPrimaryNav, getTrainingSubNav, isNavActive } from "./navigation";
+import { getAnalysisSubNav, getJournalSubNav, getPrimaryNav, getTrainingSubNav, isNavActive } from "./navigation";
 
 // The pre-Race-Day bottom navigation, written out literally (English). With the flag off the app
 // must match it exactly: that is the rollback guarantee in ADR-001 D3. Language changes the label
@@ -95,6 +95,20 @@ describe("sub navigation", () => {
       "商店",
     ]);
     expect(getAnalysisSubNav("zh").map((item) => item.label)).toEqual(["首页", "动作分析", "配速", "装备"]);
+  });
+});
+
+describe("journal sub-navigation", () => {
+  it("keeps the calendar exact, so coach notes do not light it up", () => {
+    const [calendar, notes] = getJournalSubNav("zh");
+    if (!calendar || !notes) throw new Error("journal sub-navigation is missing an item");
+    expect(calendar.to).toBe("/training/journal");
+    expect(calendar.end).toBe(true);
+    expect(notes.to).toBe("/training/journal/coach-notes");
+    expect(isNavActive("/training/journal", calendar)).toBe(true);
+    expect(isNavActive("/training/journal/coach-notes", calendar)).toBe(false);
+    expect(isNavActive("/training/journal/coach-notes", notes)).toBe(true);
+    expect(getJournalSubNav("en").map((item) => item.label)).toEqual(["Calendar", "Coach notes"]);
   });
 });
 
