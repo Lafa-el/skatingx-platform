@@ -14,6 +14,7 @@ import {
   journalDayFromDocument,
   journalSessionFromDocument,
   saveJournalDay,
+  setJournalDayCompleted,
   subscribeToJournal,
 } from "./journal";
 
@@ -36,6 +37,15 @@ describe("journal documents", () => {
     });
     expect(day).not.toHaveProperty("energy");
     expect(day).not.toHaveProperty("parentNote");
+    expect(day).not.toHaveProperty("isCompleted");
+  });
+
+  it("records isCompleted only when the stored value is true", () => {
+    expect(journalDayFromDocument("done", { date: "2026-06-08", isCompleted: true })?.isCompleted).toBe(true);
+    const open = journalDayFromDocument("open", { date: "2026-06-08", isCompleted: false });
+    const missing = journalDayFromDocument("missing", { date: "2026-06-08" });
+    expect(open).not.toHaveProperty("isCompleted");
+    expect(missing).not.toHaveProperty("isCompleted");
   });
 
   it("drops a day or session that has no real date, and keeps a session with no label", () => {
@@ -91,6 +101,30 @@ describe("buildJournalDayWrite", () => {
       expect(built.data).not.toHaveProperty("energy");
       expect(built.data).not.toHaveProperty("trainingFocus");
     }
+  });
+
+  it("writes soreness and coach feedback when they have text, and leaves blanks off the document", () => {
+    const filled = buildJournalDayWrite(
+      { ...base, soreness: " 小腿 ", coachFeedback: "弯道再收" },
+      { now: NOW, creating: false },
+    );
+    expect(filled).toEqual({
+      ok: true,
+      data: {
+        date: "2026-11-02",
+        overallFeeling: 3,
+        soreness: "小腿",
+        coachFeedback: "弯道再收",
+        updatedAt: NOW,
+      },
+    });
+    const blank = buildJournalDayWrite(
+      { ...base, soreness: "  ", coachFeedback: "" },
+      { now: NOW, creating: false },
+    );
+    if (!blank.ok) throw new Error("expected a valid write");
+    expect(blank.data).not.toHaveProperty("soreness");
+    expect(blank.data).not.toHaveProperty("coachFeedback");
   });
 
   it("an edit writes updatedAt only, and does not reopen the day", () => {
@@ -158,5 +192,16 @@ describe("subscribeToJournal", () => {
     expect(data).toEqual(built.data);
     expect(data).not.toHaveProperty("energy");
     expect(options).toEqual({ merge: true });
+  });
+
+  it("merges only isCompleted and updatedAt when the completion flag changes", async () => {
+    await setJournalDayCompleted({} as never, "user-1", "src-1", true, NOW);
+    expect(firestore.setDoc).toHaveBeenCalledTimes(1);
+    const [ref, data, options] = firestore.setDoc.mock.calls[0]!;
+    expect(ref.parts.at(-1)).toBe("src-1");
+    expect(data).toEqual({ isCompleted: true, updatedAt: NOW });
+    expect(options).toEqual({ merge: true });
+    expect(data).not.toHaveProperty("createdAt");
+    expect(data).not.toHaveProperty("overallFeeling");
   });
 });
