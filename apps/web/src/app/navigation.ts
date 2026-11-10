@@ -79,6 +79,7 @@ export const JOURNAL_SUB_NAV: readonly NavSpec[] = [
   { to: "/training/journal/coach-notes", labelKey: "nav.journal.coachNotes" },
   { to: "/training/journal/body-status", labelKey: "nav.journal.bodyStatus" },
   { to: "/training/journal/sessions", labelKey: "nav.journal.sessions" },
+  { to: "/training/journal/weekly-review", labelKey: "nav.journal.weeklyReview" },
 ];
 
 export function getTrainingSubNav(locale: Locale): NavItem[] {

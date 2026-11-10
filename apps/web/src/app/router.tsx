@@ -56,6 +56,11 @@ const SessionsPage = lazy(() =>
     default: module.SessionsPage,
   })),
 );
+const WeeklyReviewPage = lazy(() =>
+  import("@/modules/journal/WeeklyReviewPage").then((module) => ({
+    default: module.WeeklyReviewPage,
+  })),
+);
 import { AthletePage } from "@/pages/AthletePage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -129,6 +134,14 @@ export function AppRouter() {
             element={
               <Suspense fallback={<div className="min-h-11" />}>
                 <SessionsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="weekly-review"
+            element={
+              <Suspense fallback={<div className="min-h-11" />}>
+                <WeeklyReviewPage />
               </Suspense>
             }
           />
