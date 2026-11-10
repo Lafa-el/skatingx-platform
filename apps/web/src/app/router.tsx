@@ -28,6 +28,9 @@ const AnalysisPacingPage = lazy(() =>
 const AnalysisEquipmentPage = lazy(() =>
   import("@/pages/analysis/AnalysisEquipmentPage").then((module) => ({ default: module.AnalysisEquipmentPage })),
 );
+const AnalysisVideosPage = lazy(() =>
+  import("@/pages/analysis/AnalysisVideosPage").then((module) => ({ default: module.AnalysisVideosPage })),
+);
 const TrainingPlanPage = lazy(() =>
   import("@/pages/training/TrainingPlanPage").then((module) => ({ default: module.TrainingPlanPage })),
 );
@@ -186,6 +189,14 @@ export function AppRouter() {
           element={
             <Suspense fallback={<div className="min-h-11" />}>
               <AnalysisEquipmentPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="videos"
+          element={
+            <Suspense fallback={<div className="min-h-11" />}>
+              <AnalysisVideosPage />
             </Suspense>
           }
         />

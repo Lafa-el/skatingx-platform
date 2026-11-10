@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 import { AnalysisBiomechanicsPage } from "@/pages/analysis/AnalysisBiomechanicsPage";
 import { tBiomech } from "@/shared/i18n/biomech-messages";
@@ -18,6 +19,14 @@ const state = vi.hoisted(() => ({
   settings: { activeAthleteId: "lindsay" } as { activeAthleteId?: string } | null,
   db: {} as object | null,
   save: vi.fn((_db: unknown, _record: unknown) => Promise.resolve()),
+  library: vi.fn(async (..._args: unknown[]) => null as {
+    id: string;
+    title: string;
+    fileName?: string;
+    externalUrl?: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null),
   release: vi.fn(() => Promise.resolve()),
   prefetch: vi.fn(),
   forcedAngles: null as { lean: number | null; knee: number | null } | null,
@@ -37,6 +46,7 @@ vi.mock("@/app/providers/FirestoreProvider", () => ({
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => state.db,
   saveBiomechAnalysisRecord: (db: unknown, record: unknown) => state.save(db, record),
+  getVideoEntry: (...args: unknown[]) => state.library(...args),
 }));
 // Real sampling, except when a test names the angles of the next frame: a readable frame can still
 // miss one angle, and no hand-made set of landmarks gives that reliably.
@@ -71,6 +81,8 @@ afterEach(() => {
   state.settings = { activeAthleteId: "lindsay" };
   state.db = {};
   state.save.mockClear();
+  state.library.mockReset();
+  state.library.mockResolvedValue(null);
   state.load.mockReset(); // also drops any mockImplementationOnce a failing test never consumed
   // A test may leave the engine waiting for ever (the warmup timeout one); the next must not inherit it.
   state.load.mockImplementation(state.loadEngine);
@@ -125,10 +137,18 @@ function metadataArrives(width = 640) {
 const deliver = (onResults: (landmarks: unknown) => void) => act(() => onResults(null));
 
 /** Uploads a clip, starts the analysis and clicks the skater. Optionally waits for the model. */
-async function begin({ waitReady = true, readyState = 4 } = {}) {
+function renderPage(path = "/analysis/biomechanics") {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <AnalysisBiomechanicsPage />
+    </MemoryRouter>,
+  );
+}
+
+async function begin({ waitReady = true, readyState = 4, path = "/analysis/biomechanics" } = {}) {
   const user = userEvent.setup();
   stubBrowser(readyState);
-  const view = render(<AnalysisBiomechanicsPage />);
+  const view = renderPage(path);
   const input = document.querySelector("input[type=file]") as HTMLInputElement;
   await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
   metadataArrives();
@@ -144,8 +164,8 @@ async function begin({ waitReady = true, readyState = 4 } = {}) {
  * Each call moves the paused video to a later moment. The same time would replace the previous
  * sample instead of adding one.
  */
-async function started() {
-  const { user, onResults } = await begin();
+async function started(options?: { path?: string }) {
+  const { user, onResults } = await begin(options);
   let moment = 0;
   const takeKeyframe = async () => {
     const video = document.querySelector("video");
@@ -173,7 +193,7 @@ function fakeEngine(send: () => Promise<void> | void = () => undefined) {
 
 describe("biomechanics page", () => {
   it("keeps the analyse button waiting for a video and shows the idle warmup line", () => {
-    const view = render(<AnalysisBiomechanicsPage />);
+    const view = renderPage();
     const button = screen.getByRole("button", { name: "请先上传视频" });
     expect(button.hasAttribute("disabled")).toBe(true);
     expect(screen.getByText(/未启动/)).toBeTruthy();
@@ -192,7 +212,7 @@ describe("biomechanics page", () => {
 
   it("loads the local pose script only after the video is chosen and analysis starts", async () => {
     const user = userEvent.setup();
-    render(<AnalysisBiomechanicsPage />);
+    renderPage();
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     const file = new File(["video"], "clip.mp4", { type: "video/mp4" });
     await user.upload(input, file);
@@ -212,7 +232,7 @@ describe("biomechanics page", () => {
     state.load.mockImplementationOnce(() => pending);
     const user = userEvent.setup();
     stubBrowser(4);
-    render(<AnalysisBiomechanicsPage />);
+    renderPage();
     expect(screen.getByText(/未启动/)).toBeTruthy();
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
@@ -225,7 +245,7 @@ describe("biomechanics page", () => {
   it("reset after a ready engine returns the console to idle", async () => {
     const user = userEvent.setup();
     stubBrowser(4);
-    render(<AnalysisBiomechanicsPage />);
+    renderPage();
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
     metadataArrives();
@@ -244,7 +264,7 @@ describe("biomechanics page", () => {
 
   it("uses the English draft when the locale is English", () => {
     state.locale = "en";
-    render(<AnalysisBiomechanicsPage />);
+    renderPage();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Analysis · Biomechanics");
     expect(screen.getByRole("button", { name: "Choose a video first" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText(/Not started/)).toBeTruthy();
@@ -253,7 +273,7 @@ describe("biomechanics page", () => {
   it("closes Pose when the video is reset and when the page unmounts", async () => {
     state.release.mockClear();
     const user = userEvent.setup();
-    const view = render(<AnalysisBiomechanicsPage />);
+    const view = renderPage();
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
     metadataArrives();
@@ -459,7 +479,7 @@ describe("biomechanics page", () => {
   it("shows a retry after the warmup waits past the operational timeout", async () => {
     state.load.mockImplementation(() => new Promise(() => undefined));
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-    render(<AnalysisBiomechanicsPage />);
+    renderPage();
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     await act(async () => {
       fireEvent.change(input, { target: { files: [new File(["video"], "clip.mp4", { type: "video/mp4" })] } });
@@ -618,7 +638,7 @@ describe("sampling is refused before it changes anything", () => {
     state.load.mockImplementation(() => Promise.resolve(engine));
     stubBrowser(4);
     const user = userEvent.setup();
-    render(<AnalysisBiomechanicsPage />);
+    renderPage();
     await user.upload(document.querySelector("input[type=file]") as HTMLInputElement, new File(["v"], "clip.mp4", { type: "video/mp4" }));
     metadataArrives();
     await user.click(screen.getByRole("button", { name: "启动 Edge 视觉引擎分析" }));
@@ -662,7 +682,7 @@ describe("a warmup from an older round never closes the newer engine", () => {
     state.load.mockImplementationOnce(() => older.promise).mockImplementationOnce(() => newer.promise);
     stubBrowser(4);
     const user = userEvent.setup();
-    const view = render(<AnalysisBiomechanicsPage />);
+    const view = renderPage();
 
     await user.upload(fileInput(), clip());
     metadataArrives();
@@ -706,7 +726,7 @@ describe("a warmup from an older round never closes the newer engine", () => {
       const pending = deferred<ReturnType<typeof fakeEngine>>();
       state.load.mockImplementation(() => pending.promise);
       vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-      render(<AnalysisBiomechanicsPage />);
+      renderPage();
       await act(async () => {
         fireEvent.change(fileInput(), { target: { files: [clip()] } });
       });
@@ -796,7 +816,7 @@ describe("the start gate waits for a video that can be decoded", () => {
   async function chosen() {
     const user = userEvent.setup();
     stubBrowser(4);
-    render(<AnalysisBiomechanicsPage />);
+    renderPage();
     await user.upload(fileInput(), clip());
     return user;
   }
@@ -905,5 +925,59 @@ describe("the start gate waits for a video that can be decoded", () => {
       expect(screen.queryByRole("alert")).toBeNull();
       expect(screen.queryByText(UNPLAYABLE)).toBeNull();
     });
+  });
+});
+
+describe("library video", () => {
+  const entry = {
+    id: "Vid-1",
+    title: "冰上练习",
+    fileName: "clip.mp4",
+    externalUrl: "https://example.com/a",
+    createdAt: "2026-06-08T00:00:00.000Z",
+    updatedAt: "2026-06-08T00:00:00.000Z",
+  };
+
+  it("shows the library banner and writes that videoId when the file name matches", async () => {
+    state.library.mockResolvedValue(entry);
+    state.forcedAngles = { lean: 12, knee: 100 };
+    const { user, takeKeyframe } = await started({ path: "/analysis/biomechanics?video=Vid-1" });
+    expect(await screen.findByText("冰上练习")).toBeTruthy();
+    expect(screen.getByText(/外链视频无法直接分析/)).toBeTruthy();
+    expect(screen.getByText("文件名与这条记录一致。")).toBeTruthy();
+    await takeKeyframe();
+    await user.click(screen.getByRole("button", { name: "保存本次分析" }));
+    await screen.findByText("已保存这次分析。");
+    expect(state.save.mock.calls[0]?.[1]).toMatchObject({ videoId: "Vid-1" });
+  });
+
+  it("warns when the chosen file name differs, and still keeps the library id", async () => {
+    state.library.mockResolvedValue({ ...entry, fileName: "other.mp4" });
+    stubBrowser(4);
+    const user = userEvent.setup();
+    renderPage("/analysis/biomechanics?video=Vid-1");
+    expect(await screen.findByText("冰上练习")).toBeTruthy();
+    const input = document.querySelector("input[type=file]") as HTMLInputElement;
+    await user.upload(input, new File(["video"], "clip.mp4", { type: "video/mp4" }));
+    expect(screen.getByText("你选的文件名与这条记录的文件名不同，请确认是不是同一段视频。")).toBeTruthy();
+  });
+
+  it("shows no banner when the library entry is missing", async () => {
+    state.library.mockResolvedValue(null);
+    renderPage("/analysis/biomechanics?video=missing");
+    await waitFor(() => {
+      expect(state.library).toHaveBeenCalled();
+    });
+    expect(screen.queryByText(/外链视频无法直接分析/)).toBeNull();
+  });
+
+  it("does not write videoId when the page was opened on its own", async () => {
+    state.forcedAngles = { lean: 12, knee: 100 };
+    const { user, takeKeyframe } = await started();
+    await takeKeyframe();
+    await user.click(screen.getByRole("button", { name: "保存本次分析" }));
+    await screen.findByText("已保存这次分析。");
+    expect(state.save.mock.calls[0]?.[1]).not.toHaveProperty("videoId");
+    expect(state.library).not.toHaveBeenCalled();
   });
 });

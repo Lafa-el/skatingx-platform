@@ -29,6 +29,8 @@ export {
   journalSessionsCollectionRef,
   journalWeeklyReviewRef,
   journalWeeklyReviewsCollectionRef,
+  videoEntryRef,
+  videoEntriesCollectionRef,
   settingsRef,
   taskHistoryCollectionRef,
   taskHistoryRef,
@@ -96,6 +98,22 @@ export {
   type SavedAnalysisFrame,
   type SavedAnalysisSource,
 } from "./firestore/saved-analyses";
+export {
+  VIDEO_TAGS,
+  buildVideoWrite,
+  createVideo,
+  deleteVideo,
+  getVideoEntry,
+  subscribeToVideos,
+  updateVideo,
+  videoEntryFromDocument,
+  type VideoEntryInput,
+  type VideoEntryRecord,
+  type VideoEntryWrite,
+  type VideoSnapshot,
+  type VideoTag,
+  type VideoWriteFailure,
+} from "./firestore/videos";
 export {
   deleteEquipmentHistoryRecord,
   saveEquipmentHistoryRecord,

@@ -9,6 +9,7 @@ import { AnalysisBiomechDetailPage } from "./AnalysisBiomechDetailPage";
 
 const api = vi.hoisted(() => ({
   getSavedAnalysis: vi.fn(),
+  getVideoEntry: vi.fn(async (..._args: unknown[]) => null as { id: string; title: string } | null),
 }));
 
 vi.mock("@/hooks/useLocale", () => ({ useLocale: () => "zh" }));
@@ -18,6 +19,7 @@ vi.mock("@/app/providers/AuthProvider", () => ({
 vi.mock("@skatingx/firebase-client", () => ({
   getFirestoreDb: () => ({}),
   getSavedAnalysis: (...args: unknown[]) => api.getSavedAnalysis(...args),
+  getVideoEntry: (...args: unknown[]) => api.getVideoEntry(...args),
 }));
 
 afterEach(() => {
@@ -122,5 +124,22 @@ describe("AnalysisBiomechDetailPage", () => {
     });
     expect(screen.getByRole("link", { name: "返回总览" }).getAttribute("href")).toBe("/analysis");
     expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  it("links a record that names a library video back to the video center", async () => {
+    api.getSavedAnalysis.mockResolvedValue({ ...record, videoId: "Vid-1" });
+    api.getVideoEntry.mockResolvedValue({ id: "Vid-1", title: "冰上练习" });
+    renderDetail();
+    const link = await screen.findByRole("link", { name: "来源视频：《冰上练习》" });
+    expect(link.getAttribute("href")).toBe("/analysis/videos");
+  });
+
+  it("still links back when the library title cannot be read", async () => {
+    api.getSavedAnalysis.mockResolvedValue({ ...record, videoId: "Vid-1" });
+    api.getVideoEntry.mockResolvedValue(null);
+    renderDetail();
+    const link = await screen.findByRole("link", { name: "回到视频中心" });
+    expect(link.getAttribute("href")).toBe("/analysis/videos");
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

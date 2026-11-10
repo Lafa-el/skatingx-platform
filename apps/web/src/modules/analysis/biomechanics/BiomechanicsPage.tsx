@@ -20,9 +20,10 @@ import {
   type SupportTracker,
   type TrackingState,
 } from "@skatingx/skating-domain";
-import { getFirestoreDb, saveBiomechAnalysisRecord } from "@skatingx/firebase-client";
+import { getFirestoreDb, getVideoEntry, saveBiomechAnalysisRecord, type VideoEntryRecord } from "@skatingx/firebase-client";
 import { Button, Card } from "@skatingx/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useUserSettings } from "@/app/providers/FirestoreProvider";
@@ -121,6 +122,12 @@ export function BiomechanicsPage() {
   const inFlightRef = useRef(false);
   const warmupTimerRef = useRef(0);
 
+  const { search } = useLocation();
+  const libraryVideoId = useMemo(() => {
+    const value = new URLSearchParams(search).get("video")?.trim() ?? "";
+    return value.length > 0 ? value : null;
+  }, [search]);
+  const [libraryVideo, setLibraryVideo] = useState<VideoEntryRecord | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
@@ -149,6 +156,30 @@ export function BiomechanicsPage() {
   // null = the browser has not said yet. A chosen file is not proof of a playable video: only the
   // video element's own metadata (with a video track) or error event is, so the start gate waits.
   const [videoDecodable, setVideoDecodable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!libraryVideoId || !uid) {
+      setLibraryVideo(null);
+      return;
+    }
+    const database = getFirestoreDb();
+    if (!database) {
+      setLibraryVideo(null);
+      return;
+    }
+    let cancelled = false;
+    void getVideoEntry(database, uid, libraryVideoId)
+      .then((entry) => {
+        if (!cancelled) setLibraryVideo(entry);
+      })
+      .catch((error: unknown) => {
+        logActionFailure("biomechanics", "library-video", error);
+        if (!cancelled) setLibraryVideo(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [libraryVideoId, uid]);
 
   const ready = assessVideoInput({
     byteLength: fileName ? 1 : 0,
@@ -522,6 +553,7 @@ export function BiomechanicsPage() {
         athleteId,
         createdAt: new Date().toISOString(),
         samples,
+        ...(libraryVideo ? { videoId: libraryVideo.id } : {}),
       });
       await saveBiomechAnalysisRecord(database, record);
       setSavedSamples(samples);
@@ -546,6 +578,7 @@ export function BiomechanicsPage() {
       <div className="grid gap-6 xl:grid-cols-12">
         <Card className="xl:col-span-4" title={tBiomech(locale, "biomech.heading")}>
           <div className="grid gap-4">
+            {libraryVideo ? <LibraryVideoBanner video={libraryVideo} /> : null}
             <input
               ref={fileRef}
               type="file"
@@ -558,6 +591,16 @@ export function BiomechanicsPage() {
                 <div>
                   <p className="text-sm font-semibold text-brand-navy">{fileName}</p>
                   <p className="text-xs text-brand-navy/70">{tBiomech(locale, "biomech.upload.ready")}</p>
+                  {libraryVideo?.fileName && fileName ? (
+                    <p className="text-xs text-brand-navy/70">
+                      {tAnalysis(
+                        locale,
+                        fileName === libraryVideo.fileName
+                          ? "analysis.libraryVideo.match"
+                          : "analysis.libraryVideo.mismatch",
+                      )}
+                    </p>
+                  ) : null}
                 </div>
                 <Button variant="outline" onClick={reset}>
                   {tBiomech(locale, "biomech.upload.remove")}
@@ -837,6 +880,28 @@ export function BiomechanicsPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function isWebUrl(value: string): boolean {
+  return value.startsWith("http://") || value.startsWith("https://");
+}
+
+function LibraryVideoBanner({ video }: { video: VideoEntryRecord }) {
+  const locale = useLocale();
+  return (
+    <div className="rounded-control border border-brand-navy/15 p-3">
+      <p className="text-sm font-semibold text-brand-navy">{video.title}</p>
+      {video.fileName ? <p className="mt-1 text-sm text-brand-navy">{video.fileName}</p> : null}
+      {video.externalUrl && isWebUrl(video.externalUrl) ? (
+        <p className="mt-1 text-sm">
+          <a href={video.externalUrl} target="_blank" rel="noreferrer" className="underline">
+            {video.externalUrl}
+          </a>
+        </p>
+      ) : null}
+      <p className="mt-3 text-sm text-brand-navy/70">{tAnalysis(locale, "analysis.libraryVideo.hint")}</p>
     </div>
   );
 }

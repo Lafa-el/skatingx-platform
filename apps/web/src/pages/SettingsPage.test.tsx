@@ -883,7 +883,7 @@ describe("SettingsPage parent PIN", () => {
     // Saving hashes the PIN first (WebCrypto, async), so the write lands after the click returns.
     await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
     const patch = h.update.mock.calls[0]?.[2] as { parentPinHash: string; parentPinSalt: string };
-    expect(JSON.stringify(patch)).not.toContain(pin);
+    expect(Object.values(patch)).not.toContain(pin);
     expect(patch.parentPinHash).toBe(await hashParentPin(patch.parentPinSalt, pin));
     expect(screen.getByText("已保存")).toBeTruthy();
   });

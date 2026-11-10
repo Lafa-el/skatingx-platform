@@ -1,6 +1,7 @@
 import {
   getFirestoreDb,
   getSavedAnalysis,
+  getVideoEntry,
   type SavedAnalysisDetail,
   type SavedAnalysisFrame,
 } from "@skatingx/firebase-client";
@@ -22,6 +23,38 @@ import { logActionFailure } from "@/shared/utils/logActionFailure";
  * Read-only frames for one saved biomechanics record, opened from the hub.
  * The sampling tool stays the place a new session is recorded.
  */
+
+function LibrarySource({ videoId }: { videoId: string }) {
+  const locale = useLocale();
+  const { uid } = useAuth();
+  const [title, setTitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    const db = getFirestoreDb();
+    if (!db) return;
+    let cancelled = false;
+    void getVideoEntry(db, uid, videoId)
+      .then((entry) => {
+        if (!cancelled) setTitle(entry?.title ?? null);
+      })
+      .catch((error: unknown) => {
+        logActionFailure("biomechanics", "library-video", error);
+        if (!cancelled) setTitle(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid, videoId]);
+
+  return (
+    <p className="mt-4">
+      <Link className={CTA_CLASS} to="/analysis/videos">
+        {title ? tAnalysis(locale, "analysis.libraryVideo.source", { title }) : tAnalysis(locale, "analysis.libraryVideo.back")}
+      </Link>
+    </p>
+  );
+}
 
 const CTA_CLASS =
   "inline-flex min-h-11 items-center text-sm font-semibold text-brand-navy underline underline-offset-2";
@@ -213,6 +246,7 @@ export function AnalysisBiomechDetailPage() {
               )}
             </div>
           </dl>
+          {record.videoId ? <LibrarySource videoId={record.videoId} /> : null}
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[40rem] border-collapse text-left text-sm text-brand-navy">
               <thead>
