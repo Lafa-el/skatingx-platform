@@ -365,10 +365,14 @@ service cloud.firestore {
           && (items.size() < 10 || validPoseFrame(items[9]));
       }
 
+      // videoId is an optional link back to the user's video library. Older records omit it.
       function validBiomechAnalysisRecord(id, d) {
         return validId(id)
-          && exactKeys(d, ['id', 'ownerUserId', 'athleteId', 'createdAt',
-                           'provenance', 'findings', 'poseFrames'])
+          && d.keys().hasOnly(['id', 'ownerUserId', 'athleteId', 'createdAt',
+                               'provenance', 'findings', 'poseFrames', 'videoId'])
+          && d.keys().hasAll(['id', 'ownerUserId', 'athleteId', 'createdAt',
+                              'provenance', 'findings', 'poseFrames'])
+          && (!('videoId' in d) || (d.videoId is string && d.videoId.size() >= 1 && d.videoId.size() <= 64))
           && d.id == id
           && d.ownerUserId == userId
           && validId(d.athleteId)

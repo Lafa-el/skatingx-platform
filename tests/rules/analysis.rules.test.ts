@@ -330,3 +330,26 @@ describe("analyses athleteId", () => {
     await assertFails(setDoc(doc(db, biomechPath), { ...created, athleteId: NEW_ATHLETE }));
   });
 });
+
+describe("analyses videoId", () => {
+  it("lets a biomechanics record carry an optional library id, and still accepts one without it", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    await assertSucceeds(
+      setDoc(doc(db, `${USERS}/alice/analyses/biomech-video`), { ...biomechDoc("lindsay", "biomech-video"), videoId: "AbC123" }),
+    );
+    await assertSucceeds(setDoc(doc(db, `${USERS}/alice/analyses/biomech-plain`), biomechDoc("lindsay", "biomech-plain")));
+  });
+
+  it("rejects a videoId that is not a 1 to 64 character string", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    const target = `${USERS}/alice/analyses/biomech-video`;
+    await assertFails(setDoc(doc(db, target), { ...biomechDoc("lindsay", "biomech-video"), videoId: 12 }));
+    await assertFails(setDoc(doc(db, target), { ...biomechDoc("lindsay", "biomech-video"), videoId: "" }));
+    await assertFails(setDoc(doc(db, target), { ...biomechDoc("lindsay", "biomech-video"), videoId: "a".repeat(65) }));
+  });
+
+  it("rejects a pace record that carries videoId", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    await assertFails(setDoc(doc(db, path), paceDoc({ videoId: "AbC123" })));
+  });
+});

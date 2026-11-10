@@ -31,6 +31,8 @@ export interface BiomechAnalysisRecord {
     readonly model: typeof paceProvenanceModel;
   };
   readonly poseFrames: readonly BiomechPoseFrame[];
+  /** Library entry id from `addDoc`. Absent when the analysis was not opened from the library. */
+  readonly videoId?: string;
   readonly findings: readonly {
     readonly code: "biomech.knee.high" | "biomech.lean.high" | "biomech.pelvis.high" | "biomech.frame.unreadable";
     readonly analysisId: string;
@@ -64,6 +66,7 @@ export function buildBiomechAnalysisRecord(input: {
   athleteId: string;
   createdAt: string;
   samples: readonly PoseKeyframeSample[];
+  videoId?: string;
 }): BiomechAnalysisRecord {
   if (!analysisIdPattern.test(input.id) || input.id.length > 64) {
     throw new Error("Biomechanics analysis id is not a valid Firestore id.");
@@ -77,6 +80,7 @@ export function buildBiomechAnalysisRecord(input: {
   if (input.samples.length > 10) {
     throw new Error("Biomechanics analysis keeps at most 10 sampled frames.");
   }
+  const videoId = libraryVideoId(input.videoId);
 
   const aggregate = aggregateKeyframes(input.samples);
   const findings: BiomechAnalysisRecord["findings"][number][] = [];
@@ -103,5 +107,16 @@ export function buildBiomechAnalysisRecord(input: {
     },
     poseFrames: input.samples.map(frameOf),
     findings,
+    ...(videoId ? { videoId } : {}),
   };
+}
+
+/** A library id, including the mixed case `addDoc` assigns. Missing stays off the record. */
+function libraryVideoId(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const videoId = value.trim();
+  if (videoId.length < 1 || videoId.length > 64) {
+    throw new Error("Biomechanics analysis videoId must be 1 to 64 characters.");
+  }
+  return videoId;
 }

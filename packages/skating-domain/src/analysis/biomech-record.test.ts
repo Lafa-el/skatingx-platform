@@ -53,3 +53,26 @@ describe("buildBiomechAnalysisRecord pelvis.high", () => {
     expect(codes({ ...highKneeLean, pelvisHeight: 70 })).toEqual(["biomech.knee.high", "biomech.lean.high"]);
   });
 });
+
+describe("buildBiomechAnalysisRecord videoId", () => {
+  const base = {
+    id: "biomech-abc",
+    ownerUserId: "user-1",
+    athleteId: "lindsay",
+    createdAt: "2026-10-19T07:00:00.000Z",
+    samples: [] as const,
+  };
+
+  it("copies a library id, including the mixed case addDoc assigns", () => {
+    expect(buildBiomechAnalysisRecord({ ...base, videoId: "AbC-1" }).videoId).toBe("AbC-1");
+  });
+
+  it("omits the field when no library id was given", () => {
+    expect(buildBiomechAnalysisRecord(base)).not.toHaveProperty("videoId");
+  });
+
+  it("rejects an empty string and one longer than 64 characters", () => {
+    expect(() => buildBiomechAnalysisRecord({ ...base, videoId: "   " })).toThrow(/videoId/);
+    expect(() => buildBiomechAnalysisRecord({ ...base, videoId: "a".repeat(65) })).toThrow(/videoId/);
+  });
+});

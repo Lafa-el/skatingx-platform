@@ -291,6 +291,15 @@ export function journalWeeklyReviewsCollectionRef(db: Firestore, userId: string)
   return collection(db, ...(segments as [string, ...string[]]));
 }
 
+export function videoEntryRef(db: Firestore, userId: string, videoId: string): DocumentReference {
+  return docFromPath(db, paths.videoEntry(userId, videoId));
+}
+
+export function videoEntriesCollectionRef(db: Firestore, userId: string): CollectionReference {
+  const segments = pathToSegments(paths.videoEntriesCollection(userId));
+  return collection(db, ...(segments as [string, ...string[]]));
+}
+
 export function raceDayVideosCollectionRef(
   db: Firestore,
   userId: string,

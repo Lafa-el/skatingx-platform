@@ -297,6 +297,34 @@ describe("getSavedAnalysis", () => {
     expect(await getSavedAnalysis(db, "user-1", "gone")).toBeNull();
   });
 
+  it("passes videoId through a biomechanics record and leaves a pace record without it", () => {
+    const biomech = savedAnalysisFromDocument("doc-v", {
+      id: "bio-v",
+      createdAt: "2026-10-10T00:00:00.000Z",
+      findings: [],
+      poseFrames: [],
+      videoId: "AbC-1",
+    });
+    expect(biomech?.videoId).toBe("AbC-1");
+    expect(
+      savedAnalysisFromDocument("doc-plain", {
+        id: "bio-plain",
+        createdAt: "2026-10-10T00:00:00.000Z",
+        findings: [],
+        poseFrames: [],
+      }),
+    ).not.toHaveProperty("videoId");
+    expect(
+      savedAnalysisFromDocument("doc-pace", {
+        id: "pace-v",
+        createdAt: "2026-10-10T00:00:00.000Z",
+        findings: [],
+        pace: { rating: "moderate" },
+        videoId: "AbC-1",
+      }),
+    ).not.toHaveProperty("videoId");
+  });
+
   it("returns null when the document is malformed", async () => {
     firestoreMock.getDoc.mockResolvedValue({
       id: "bad",

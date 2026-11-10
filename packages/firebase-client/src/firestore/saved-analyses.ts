@@ -39,6 +39,8 @@ export type SavedAnalysisSource = FeedbackSource & {
     readonly benchmarkTotalSeconds: number | null;
     readonly trainingEmphasisRatio: string | null;
   } | null;
+  /** Set on a biomechanics document that was saved from the video library. Pace documents never carry it. */
+  readonly videoId?: string;
 };
 
 /** One stored pose frame, in the same shape the sampling tool saved. */
@@ -192,6 +194,7 @@ export function savedAnalysisFromDocument(docId: string, data: Record<string, un
   const kind: SavedAnalysisSource["kind"] | null = hasPace && !hasBiomech ? "pace" : hasBiomech && !hasPace ? "biomech" : null;
   if (!kind) return null;
   const id = typeof data.id === "string" && data.id.length > 0 ? data.id : docId;
+  const videoId = kind === "biomech" ? libraryVideoId(data.videoId) : undefined;
   return {
     kind,
     id,
@@ -200,7 +203,14 @@ export function savedAnalysisFromDocument(docId: string, data: Record<string, un
     findings: findingCodes(data.findings),
     biomech: kind === "biomech" ? biomechAverages(data.poseFrames) : null,
     pace: kind === "pace" ? paceDetail(data.pace) : null,
+    ...(videoId ? { videoId } : {}),
   };
+}
+
+function libraryVideoId(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const videoId = value.trim();
+  return videoId.length > 0 ? videoId : undefined;
 }
 
 /**

@@ -157,6 +157,7 @@ describe("AnalysisLayout", () => {
       "动作分析",
       "配速",
       "装备",
+      "视频中心",
     ]);
   });
 
@@ -169,6 +170,7 @@ describe("AnalysisLayout", () => {
       "Biomechanics",
       "Pacing",
       "Equipment",
+      "Videos",
     ]);
   });
 });
