@@ -136,6 +136,31 @@ describe("journal body status", () => {
   });
 });
 
+describe("journal sessions", () => {
+  const path = `${USERS}/alice/journal/main/sessions/sess-1`;
+
+  it("lets the owner read and write", async () => {
+    const db = env.authenticatedContext("alice").firestore();
+    await assertSucceeds(setDoc(doc(db, path), { date: "2026-06-08", sessionLabel: "冰上" }));
+    await assertSucceeds(getDoc(doc(db, path)));
+  });
+
+  it("denies another signed-in user", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), path), { date: "2026-06-08", sessionLabel: "冰上" });
+    });
+    const db = env.authenticatedContext("bob").firestore();
+    await assertFails(getDoc(doc(db, path)));
+    await assertFails(setDoc(doc(db, path), { sessionLabel: "no" }));
+  });
+
+  it("denies unauthenticated access", async () => {
+    const db = env.unauthenticatedContext().firestore();
+    await assertFails(getDoc(doc(db, path)));
+    await assertFails(setDoc(doc(db, path), { sessionLabel: "no" }));
+  });
+});
+
 describe("paths outside the owner's subtree", () => {
   it.each([
     ["another app id", "artifacts/other-app/users/alice/settings/main"],
