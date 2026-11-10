@@ -46,4 +46,21 @@ describe("journal paths", () => {
     expect(note.includes("athlete")).toBe(false);
     expect(paths.journalCoachNotesCollection("alice")).toBe(note.slice(0, note.lastIndexOf("/")));
   });
+
+  it("keeps body status beside the day collection, still with no athlete id", () => {
+    const status = paths.journalBodyStatus("alice", "status-1");
+    expect(status.split("/")).toEqual([
+      "artifacts",
+      PLATFORM_APP_ID,
+      "users",
+      "alice",
+      "journal",
+      "main",
+      "bodyStatus",
+      "status-1",
+    ]);
+    expect(status.split("/")).toHaveLength(8);
+    expect(status.includes("athlete")).toBe(false);
+    expect(paths.journalBodyStatusCollection("alice")).toBe(status.slice(0, status.lastIndexOf("/")));
+  });
 });

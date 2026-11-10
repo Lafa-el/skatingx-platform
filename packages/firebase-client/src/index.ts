@@ -130,6 +130,21 @@ export {
   type CoachNoteWrite,
   type CoachNoteWriteFailure,
 } from "./firestore/journal-coach-notes";
+export {
+  BODY_SORENESS_AREAS,
+  bodyStatusFromDocument,
+  buildBodyStatusWrite,
+  createBodyStatus,
+  deleteBodyStatus,
+  subscribeToBodyStatus,
+  updateBodyStatus,
+  type BodyStatusInput,
+  type BodyStatusRecord,
+  type BodyStatusSnapshot,
+  type BodyStatusSorenessArea,
+  type BodyStatusWrite,
+  type BodyStatusWriteFailure,
+} from "./firestore/journal-body-status";
 export { updateUserSettings } from "./firestore/settings";
 export { updateAthleteProfile, type AthleteProfilePatch } from "./firestore/athlete-profile";
 export { AthleteIdCollisionError, createAthlete } from "./firestore/create-athlete";

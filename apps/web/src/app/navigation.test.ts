@@ -108,7 +108,17 @@ describe("journal sub-navigation", () => {
     expect(isNavActive("/training/journal", calendar)).toBe(true);
     expect(isNavActive("/training/journal/coach-notes", calendar)).toBe(false);
     expect(isNavActive("/training/journal/coach-notes", notes)).toBe(true);
-    expect(getJournalSubNav("en").map((item) => item.label)).toEqual(["Calendar", "Coach notes"]);
+    expect(isNavActive("/training/journal/body-status", calendar)).toBe(false);
+    expect(getJournalSubNav("zh").map((item) => item.to)).toEqual([
+      "/training/journal",
+      "/training/journal/coach-notes",
+      "/training/journal/body-status",
+    ]);
+    expect(getJournalSubNav("en").map((item) => item.label)).toEqual([
+      "Calendar",
+      "Coach notes",
+      "Body status",
+    ]);
   });
 });
 
