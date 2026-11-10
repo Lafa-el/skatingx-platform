@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@/test/dom";
 
 import { AnalysisLayout } from "./AnalysisLayout";
+import { JournalLayout } from "./JournalLayout";
 import { TrainingLayout } from "./TrainingLayout";
 
 const state = vi.hoisted(() => ({
@@ -112,6 +113,35 @@ describe("layouts with no current athlete", () => {
     renderLayout("/analysis", <AnalysisLayout />);
     expect(screen.getByText("No athlete yet")).toBeTruthy();
     expect(screen.queryByText("page")).toBeNull();
+  });
+});
+
+describe("JournalLayout", () => {
+  function renderJournal(path: string) {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/training/journal" element={<JournalLayout />}>
+            <Route index element={<p>calendar page</p>} />
+            <Route path="coach-notes" element={<p>notes page</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it("names the two journal tabs and leaves the calendar exact", () => {
+    renderJournal("/training/journal/coach-notes");
+    const nav = screen.getByRole("navigation", { name: "日志分区" });
+    const links = within(nav).getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual(["日历", "教练笔记"]);
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/training/journal",
+      "/training/journal/coach-notes",
+    ]);
+    expect(links[0]?.getAttribute("aria-current")).toBeNull();
+    expect(links[1]?.getAttribute("aria-current")).toBe("page");
+    expect(screen.getByText("notes page")).toBeTruthy();
   });
 });
 

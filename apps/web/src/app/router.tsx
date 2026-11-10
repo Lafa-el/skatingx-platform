@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { RaceDayRoute } from "@/app/RaceDayRoute";
 import { AppShell } from "@/layouts/AppShell";
 import { AnalysisLayout } from "@/layouts/AnalysisLayout";
+import { JournalLayout } from "@/layouts/JournalLayout";
 import { TrainingLayout } from "@/layouts/TrainingLayout";
 import { AiCoachPage } from "@/pages/AiCoachPage";
 const AnalysisHubPage = lazy(() =>
@@ -38,6 +39,11 @@ const TrainingHistoryPage = lazy(() =>
 const JournalCalendarPage = lazy(() =>
   import("@/modules/journal/JournalCalendarPage").then((module) => ({
     default: module.JournalCalendarPage,
+  })),
+);
+const CoachNotesPage = lazy(() =>
+  import("@/modules/journal/CoachNotesPage").then((module) => ({
+    default: module.CoachNotesPage,
   })),
 );
 import { AthletePage } from "@/pages/AthletePage";
@@ -83,14 +89,24 @@ export function AppRouter() {
         <Route path="academy" element={<TrainingAcademyPage />} />
         <Route path="records" element={<TrainingRecordsPage />} />
         <Route path="shop" element={<TrainingShopPage />} />
-        <Route
-          path="journal"
-          element={
-            <Suspense fallback={<div className="min-h-11" />}>
-              <JournalCalendarPage />
-            </Suspense>
-          }
-        />
+        <Route path="journal" element={<JournalLayout />}>
+          <Route
+            index
+            element={
+              <Suspense fallback={<div className="min-h-11" />}>
+                <JournalCalendarPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="coach-notes"
+            element={
+              <Suspense fallback={<div className="min-h-11" />}>
+                <CoachNotesPage />
+              </Suspense>
+            }
+          />
+        </Route>
       </Route>
 
       <Route path="/analysis" element={<AnalysisLayout />}>

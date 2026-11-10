@@ -29,4 +29,21 @@ describe("journal paths", () => {
       "sessions",
     ]);
   });
+
+  it("keeps coach notes beside the day collection, still with no athlete id", () => {
+    const note = paths.journalCoachNote("alice", "note-1");
+    expect(note.split("/")).toEqual([
+      "artifacts",
+      PLATFORM_APP_ID,
+      "users",
+      "alice",
+      "journal",
+      "main",
+      "coachNotes",
+      "note-1",
+    ]);
+    expect(note.split("/")).toHaveLength(8);
+    expect(note.includes("athlete")).toBe(false);
+    expect(paths.journalCoachNotesCollection("alice")).toBe(note.slice(0, note.lastIndexOf("/")));
+  });
 });

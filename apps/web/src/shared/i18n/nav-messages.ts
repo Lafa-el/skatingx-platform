@@ -1,9 +1,9 @@
 import { createTranslator, type Resources } from "./translator";
 
 /**
- * Navigation labels: the bottom bar, the Training and Analysis sub-navigation, and their
- * accessible names. The Race Day tab label is not here; it comes from the Race Day core resource
- * so that module's text stays in one place.
+ * Navigation labels: the bottom bar, the Training, Journal, and Analysis sub-navigation, and
+ * their accessible names. The Race Day tab label is not here; it comes from the Race Day core
+ * resource so that module's text stays in one place.
  *
  * `zh` defines the keys and `en` is typed against them, so a missing or extra translation is a
  * compile error rather than a blank tab.
@@ -24,6 +24,10 @@ const zh = {
   "nav.training.academy": "学院",
   "nav.training.records": "纪录",
   "nav.training.shop": "商店",
+
+  "nav.journal.section": "日志分区",
+  "nav.journal.calendar": "日历",
+  "nav.journal.coachNotes": "教练笔记",
 
   "nav.analysis.section": "分析分区",
   "nav.analysis.hub": "首页",
@@ -50,6 +54,10 @@ const en: Record<NavKey, string> = {
   "nav.training.academy": "Academy",
   "nav.training.records": "Records",
   "nav.training.shop": "Shop",
+
+  "nav.journal.section": "Journal sections",
+  "nav.journal.calendar": "Calendar",
+  "nav.journal.coachNotes": "Coach notes",
 
   "nav.analysis.section": "Analysis sections",
   "nav.analysis.hub": "Hub",
