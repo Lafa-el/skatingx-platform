@@ -134,11 +134,12 @@ describe("JournalLayout", () => {
     renderJournal("/training/journal/coach-notes");
     const nav = screen.getByRole("navigation", { name: "日志分区" });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((link) => link.textContent)).toEqual(["日历", "教练笔记", "身体状态"]);
+    expect(links.map((link) => link.textContent)).toEqual(["日历", "教练笔记", "身体状态", "训练课"]);
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "/training/journal",
       "/training/journal/coach-notes",
       "/training/journal/body-status",
+      "/training/journal/sessions",
     ]);
     expect(links[0]?.getAttribute("aria-current")).toBeNull();
     expect(links[1]?.getAttribute("aria-current")).toBe("page");

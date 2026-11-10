@@ -51,6 +51,11 @@ const BodyStatusPage = lazy(() =>
     default: module.BodyStatusPage,
   })),
 );
+const SessionsPage = lazy(() =>
+  import("@/modules/journal/SessionsPage").then((module) => ({
+    default: module.SessionsPage,
+  })),
+);
 import { AthletePage } from "@/pages/AthletePage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -116,6 +121,14 @@ export function AppRouter() {
             element={
               <Suspense fallback={<div className="min-h-11" />}>
                 <BodyStatusPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="sessions"
+            element={
+              <Suspense fallback={<div className="min-h-11" />}>
+                <SessionsPage />
               </Suspense>
             }
           />

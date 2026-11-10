@@ -1,5 +1,5 @@
 import { isRealDateString } from "@skatingx/skating-domain";
-import { onSnapshot, setDoc, type Firestore } from "firebase/firestore";
+import { addDoc, deleteDoc, doc, onSnapshot, setDoc, type Firestore } from "firebase/firestore";
 
 import { journalDayRef, journalDaysCollectionRef, journalSessionsCollectionRef } from "./refs";
 import { toFirestoreData } from "./sanitize";
@@ -31,12 +31,111 @@ export type JournalReflection = {
   tomorrowFocus?: string;
 };
 
-/** A training session from the journal, not from the training plan. */
+/** Preset focus tags. Anything else is dropped, not rejected. Stored values stay these spellings. */
+export const SESSION_FOCUS_TAGS = [
+  "start",
+  "500m",
+  "1000m",
+  "1500m",
+  "corner_entry",
+  "corner_drift",
+  "follow_skating",
+  "footwork",
+  "edges",
+  "jumps",
+  "spins",
+  "program",
+  "speed_work",
+  "endurance",
+] as const;
+
+export type JournalSessionFocusTag = (typeof SESSION_FOCUS_TAGS)[number];
+
+export const SESSION_TYPES = ["ice", "dryland", "private_lesson", "competition", "recovery", "rest"] as const;
+
+export type JournalSessionType = (typeof SESSION_TYPES)[number];
+
+/**
+ * One training session under `journal/main/sessions`, not a training-plan session.
+ * Several sessions may share a date. Optional numbers are present only when they parsed
+ * as a real measurement. Boolean flags are present only when stored as true.
+ */
 export type JournalSessionRecord = {
   id: string;
   date: string;
+  sessionType?: JournalSessionType;
   sessionLabel?: string;
+  location?: string;
+  durationMinutes?: number;
+  iceTimeMinutes?: number;
+  drylandMinutes?: number;
+  intensity?: number;
+  technicalFocus?: string;
+  mainSet?: string;
+  startsPractice?: true;
+  cornerFocus?: true;
+  straightawayFocus?: true;
+  relayPractice?: true;
+  raceSimulation?: true;
+  lapTimesNote?: string;
+  equipmentNote?: string;
+  recoveryNote?: string;
+  focusTags?: string[];
+  coachName?: string;
+  notes?: string;
 };
+
+export type JournalSessionInput = {
+  date: string;
+  sessionType?: string;
+  sessionLabel?: string;
+  location?: string;
+  durationMinutes?: number | string;
+  iceTimeMinutes?: number | string;
+  drylandMinutes?: number | string;
+  intensity?: number | string;
+  technicalFocus?: string;
+  mainSet?: string;
+  startsPractice?: boolean;
+  cornerFocus?: boolean;
+  straightawayFocus?: boolean;
+  relayPractice?: boolean;
+  raceSimulation?: boolean;
+  lapTimesNote?: string;
+  equipmentNote?: string;
+  recoveryNote?: string;
+  focusTags?: readonly string[];
+  coachName?: string;
+  notes?: string;
+};
+
+export type JournalSessionWrite = {
+  date: string;
+  sessionType: JournalSessionType;
+  updatedAt: string;
+  sessionLabel?: string;
+  location?: string;
+  durationMinutes?: number;
+  iceTimeMinutes?: number;
+  drylandMinutes?: number;
+  intensity?: number;
+  technicalFocus?: string;
+  mainSet?: string;
+  startsPractice?: true;
+  cornerFocus?: true;
+  straightawayFocus?: true;
+  relayPractice?: true;
+  raceSimulation?: true;
+  lapTimesNote?: string;
+  equipmentNote?: string;
+  recoveryNote?: string;
+  focusTags?: string[];
+  coachName?: string;
+  notes?: string;
+  createdAt?: string;
+};
+
+export type JournalSessionWriteFailure = "date";
 
 export type JournalSnapshot = {
   days: readonly JournalDayRecord[];
@@ -127,15 +226,185 @@ export function journalDayFromDocument(id: string, data: unknown): JournalDayRec
   return record;
 }
 
+const SESSION_FLAGS = [
+  "startsPractice",
+  "cornerFocus",
+  "straightawayFocus",
+  "relayPractice",
+  "raceSimulation",
+] as const;
+
+const FOCUS_TAG_SET = new Set<string>(SESSION_FOCUS_TAGS);
+
+/** Empty, blank, and non-numeric input stay unset. `Number("")` is 0, and 0 is never stored. */
+function numericValue(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "number") return value;
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  return Number(trimmed);
+}
+
+/** A real measurement. Zero, negatives, and anything that is not finite stay off the document. */
+function presentMeasure(value: unknown): number | undefined {
+  const number = numericValue(value);
+  if (number === undefined || !Number.isFinite(number) || number <= 0) return undefined;
+  return number;
+}
+
+/** An integer inside the inclusive range. Anything else is dropped, not reported. */
+function presentInteger(value: unknown, min: number, max: number): number | undefined {
+  const number = numericValue(value);
+  if (number === undefined || !Number.isInteger(number) || number < min || number > max) return undefined;
+  return number;
+}
+
+/** Missing or unknown types become ice on a write. A read leaves a missing type missing. */
+function sessionTypeOf(value: unknown): JournalSessionType {
+  return SESSION_TYPES.includes(value as JournalSessionType) ? (value as JournalSessionType) : "ice";
+}
+
+function presentFocusTags(value: readonly string[] | undefined): string[] | undefined {
+  if (!value) return undefined;
+  const selected = new Set(value);
+  const kept = SESSION_FOCUS_TAGS.filter((tag) => selected.has(tag));
+  return kept.length > 0 ? [...kept] : undefined;
+}
+
+function focusTagsFromDocument(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const kept = value.filter((tag): tag is string => typeof tag === "string" && FOCUS_TAG_SET.has(tag));
+  return kept.length > 0 ? kept : undefined;
+}
+
+type SessionText = {
+  sessionLabel?: string;
+  location?: string;
+  technicalFocus?: string;
+  mainSet?: string;
+  lapTimesNote?: string;
+  equipmentNote?: string;
+  recoveryNote?: string;
+  coachName?: string;
+  notes?: string;
+};
+
+function assignSessionText(record: SessionText, fields: Record<string, unknown> | JournalSessionInput) {
+  const sessionLabel = presentText(fields.sessionLabel);
+  const location = presentText(fields.location);
+  const technicalFocus = presentText(fields.technicalFocus);
+  const mainSet = presentText(fields.mainSet);
+  const lapTimesNote = presentText(fields.lapTimesNote);
+  const equipmentNote = presentText(fields.equipmentNote);
+  const recoveryNote = presentText(fields.recoveryNote);
+  const coachName = presentText(fields.coachName);
+  const notes = presentText(fields.notes);
+  if (sessionLabel !== undefined) record.sessionLabel = sessionLabel;
+  if (location !== undefined) record.location = location;
+  if (technicalFocus !== undefined) record.technicalFocus = technicalFocus;
+  if (mainSet !== undefined) record.mainSet = mainSet;
+  if (lapTimesNote !== undefined) record.lapTimesNote = lapTimesNote;
+  if (equipmentNote !== undefined) record.equipmentNote = equipmentNote;
+  if (recoveryNote !== undefined) record.recoveryNote = recoveryNote;
+  if (coachName !== undefined) record.coachName = coachName;
+  if (notes !== undefined) record.notes = notes;
+}
+
 /** A session document, or null when it has no real `date`. A missing label is kept missing. */
 export function journalSessionFromDocument(id: string, data: unknown): JournalSessionRecord | null {
   if (data === null || typeof data !== "object") return null;
   const fields = data as Record<string, unknown>;
   if (typeof fields.date !== "string" || !isRealDateString(fields.date)) return null;
   const record: JournalSessionRecord = { id, date: fields.date };
-  const sessionLabel = presentText(fields.sessionLabel);
-  if (sessionLabel !== undefined) record.sessionLabel = sessionLabel;
+  if (typeof fields.sessionType === "string" && fields.sessionType.trim().length > 0) {
+    record.sessionType = sessionTypeOf(fields.sessionType);
+  }
+  const durationMinutes = presentMeasure(fields.durationMinutes);
+  const iceTimeMinutes = presentMeasure(fields.iceTimeMinutes);
+  const drylandMinutes = presentMeasure(fields.drylandMinutes);
+  const intensity = presentInteger(fields.intensity, 1, 5);
+  const focusTags = focusTagsFromDocument(fields.focusTags);
+  if (durationMinutes !== undefined) record.durationMinutes = durationMinutes;
+  if (iceTimeMinutes !== undefined) record.iceTimeMinutes = iceTimeMinutes;
+  if (drylandMinutes !== undefined) record.drylandMinutes = drylandMinutes;
+  if (intensity !== undefined) record.intensity = intensity;
+  if (focusTags !== undefined) record.focusTags = focusTags;
+  for (const flag of SESSION_FLAGS) {
+    if (fields[flag] === true) record[flag] = true;
+  }
+  assignSessionText(record, fields);
   return record;
+}
+
+function journalSessionRef(db: Firestore, userId: string, sessionId: string) {
+  return doc(journalSessionsCollectionRef(db, userId), sessionId);
+}
+
+/**
+ * A real date is the only hard check. An unknown session type becomes `ice`. Intensity outside
+ * 1–5 is dropped, not defaulted. Blank text, zero, and illegal numbers stay off the document.
+ * Flags are written only when true. A new session also gets `createdAt`; an edit only moves `updatedAt`.
+ */
+export function buildJournalSessionWrite(
+  input: JournalSessionInput,
+  options: { now: string; creating: boolean },
+): { ok: true; data: JournalSessionWrite } | { ok: false; field: JournalSessionWriteFailure } {
+  const date = input.date.trim();
+  if (!isRealDateString(date)) return { ok: false, field: "date" };
+  const data: JournalSessionWrite = {
+    date,
+    sessionType: sessionTypeOf(input.sessionType),
+    updatedAt: options.now,
+  };
+  const durationMinutes = presentMeasure(input.durationMinutes);
+  const iceTimeMinutes = presentMeasure(input.iceTimeMinutes);
+  const drylandMinutes = presentMeasure(input.drylandMinutes);
+  const intensity = presentInteger(input.intensity, 1, 5);
+  const focusTags = presentFocusTags(input.focusTags);
+  if (durationMinutes !== undefined) data.durationMinutes = durationMinutes;
+  if (iceTimeMinutes !== undefined) data.iceTimeMinutes = iceTimeMinutes;
+  if (drylandMinutes !== undefined) data.drylandMinutes = drylandMinutes;
+  if (intensity !== undefined) data.intensity = intensity;
+  if (focusTags !== undefined) data.focusTags = focusTags;
+  for (const flag of SESSION_FLAGS) {
+    if (input[flag] === true) data[flag] = true;
+  }
+  assignSessionText(data, input);
+  if (options.creating) data.createdAt = options.now;
+  return { ok: true, data };
+}
+
+/** `addDoc` assigns the id. A date that is not a real day is refused and nothing is written. */
+export async function createJournalSession(
+  db: Firestore,
+  userId: string,
+  input: JournalSessionInput,
+  now: string,
+): Promise<{ ok: true; id: string } | { ok: false; field: JournalSessionWriteFailure }> {
+  const built = buildJournalSessionWrite(input, { now, creating: true });
+  if (!built.ok) return built;
+  const ref = await addDoc(journalSessionsCollectionRef(db, userId), toFirestoreData(built.data));
+  return { ok: true, id: ref.id };
+}
+
+/** Merge the edited fields and `updatedAt`. `createdAt` is not sent, so the original time stays. */
+export async function updateJournalSession(
+  db: Firestore,
+  userId: string,
+  sessionId: string,
+  input: JournalSessionInput,
+  now: string,
+): Promise<{ ok: true } | { ok: false; field: JournalSessionWriteFailure }> {
+  const built = buildJournalSessionWrite(input, { now, creating: false });
+  if (!built.ok) return built;
+  await setDoc(journalSessionRef(db, userId, sessionId), toFirestoreData(built.data), { merge: true });
+  return { ok: true };
+}
+
+/** Ownership is the rules' job. This does not read the session first, and it does not touch the diary. */
+export async function deleteJournalSession(db: Firestore, userId: string, sessionId: string): Promise<void> {
+  await deleteDoc(journalSessionRef(db, userId, sessionId));
 }
 
 /**

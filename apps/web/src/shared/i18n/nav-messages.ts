@@ -29,6 +29,7 @@ const zh = {
   "nav.journal.calendar": "日历",
   "nav.journal.coachNotes": "教练笔记",
   "nav.journal.bodyStatus": "身体状态",
+  "nav.journal.sessions": "训练课",
 
   "nav.analysis.section": "分析分区",
   "nav.analysis.hub": "首页",
@@ -60,6 +61,7 @@ const en: Record<NavKey, string> = {
   "nav.journal.calendar": "Calendar",
   "nav.journal.coachNotes": "Coach notes",
   "nav.journal.bodyStatus": "Body status",
+  "nav.journal.sessions": "Sessions",
 
   "nav.analysis.section": "Analysis sections",
   "nav.analysis.hub": "Hub",
