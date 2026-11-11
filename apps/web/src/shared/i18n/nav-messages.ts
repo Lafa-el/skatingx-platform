@@ -38,6 +38,7 @@ const zh = {
   "nav.analysis.pacing": "配速",
   "nav.analysis.equipment": "装备",
   "nav.analysis.videos": "视频中心",
+  "nav.analysis.camps": "训练营",
 } as const;
 
 type NavKey = keyof typeof zh;
@@ -72,6 +73,7 @@ const en: Record<NavKey, string> = {
   "nav.analysis.pacing": "Pacing",
   "nav.analysis.equipment": "Equipment",
   "nav.analysis.videos": "Videos",
+  "nav.analysis.camps": "Camps",
 };
 
 export type NavMessageKey = NavKey;

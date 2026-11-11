@@ -31,6 +31,8 @@ export {
   journalWeeklyReviewsCollectionRef,
   videoEntryRef,
   videoEntriesCollectionRef,
+  campRef,
+  campsCollectionRef,
   settingsRef,
   taskHistoryCollectionRef,
   taskHistoryRef,
@@ -114,6 +116,22 @@ export {
   type VideoTag,
   type VideoWriteFailure,
 } from "./firestore/videos";
+export {
+  CAMP_TYPES,
+  buildCampWrite,
+  campFromDocument,
+  createCamp,
+  deleteCamp,
+  getCamp,
+  subscribeToCamps,
+  updateCamp,
+  type CampInput,
+  type CampRecord,
+  type CampSnapshot,
+  type CampTypeSuggestion,
+  type CampWrite,
+  type CampWriteFailure,
+} from "./firestore/camps";
 export {
   deleteEquipmentHistoryRecord,
   saveEquipmentHistoryRecord,

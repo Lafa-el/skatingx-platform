@@ -29,6 +29,7 @@ const LEGACY_ANALYSIS = [
   { to: "/analysis/pacing", label: "Pacing" },
   { to: "/analysis/equipment", label: "Equipment" },
   { to: "/analysis/videos", label: "Videos" },
+  { to: "/analysis/camps", label: "Camps" },
 ];
 
 const withoutLabel = <T extends { label: string }>(items: T[]) =>
@@ -95,7 +96,7 @@ describe("sub navigation", () => {
       "纪录",
       "商店",
     ]);
-    expect(getAnalysisSubNav("zh").map((item) => item.label)).toEqual(["首页", "动作分析", "配速", "装备", "视频中心"]);
+    expect(getAnalysisSubNav("zh").map((item) => item.label)).toEqual(["首页", "动作分析", "配速", "装备", "视频中心", "训练营"]);
   });
 });
 
