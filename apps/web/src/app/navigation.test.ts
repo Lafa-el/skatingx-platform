@@ -29,7 +29,7 @@ const LEGACY_ANALYSIS = [
   { to: "/analysis/pacing", label: "Pacing" },
   { to: "/analysis/equipment", label: "Equipment" },
   { to: "/analysis/videos", label: "Videos" },
-  { to: "/analysis/camps", label: "Camps" },
+  { to: "/analysis/camps", label: "Camps", matchPrefix: true },
 ];
 
 const withoutLabel = <T extends { label: string }>(items: T[]) =>
@@ -97,6 +97,16 @@ describe("sub navigation", () => {
       "商店",
     ]);
     expect(getAnalysisSubNav("zh").map((item) => item.label)).toEqual(["首页", "动作分析", "配速", "装备", "视频中心", "训练营"]);
+  });
+
+  it("keeps the camps tab active on a camp stats page", () => {
+    const camps = getAnalysisSubNav("en").find((item) => item.to === "/analysis/camps");
+    if (!camps) throw new Error("camps tab is missing");
+    expect(camps.matchPrefix).toBe(true);
+    expect(isNavActive("/analysis/camps", camps)).toBe(true);
+    expect(isNavActive("/analysis/camps/camp-1", camps)).toBe(true);
+    expect(isNavActive("/analysis/videos", camps)).toBe(false);
+    expect(isNavActive("/analysis/camp", camps)).toBe(false);
   });
 });
 

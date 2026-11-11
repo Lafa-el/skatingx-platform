@@ -68,7 +68,7 @@ const ANALYSIS_SUB_NAV: readonly NavSpec[] = [
   { to: "/analysis/pacing", labelKey: "nav.analysis.pacing" },
   { to: "/analysis/equipment", labelKey: "nav.analysis.equipment" },
   { to: "/analysis/videos", labelKey: "nav.analysis.videos" },
-  { to: "/analysis/camps", labelKey: "nav.analysis.camps" },
+  { to: "/analysis/camps", labelKey: "nav.analysis.camps", matchPrefix: true },
 ];
 
 /**
