@@ -23,7 +23,9 @@ export function SubNav({ items, label }: SubNavProps) {
         <NavLink
           key={item.to}
           to={item.to}
-          end={item.end ?? (item.to === "/training" || item.to === "/analysis")}
+          end={
+            item.matchPrefix ? false : (item.end ?? (item.to === "/training" || item.to === "/analysis"))
+          }
           className={({ isActive }) =>
             [
               "relative inline-flex min-h-11 items-center whitespace-nowrap rounded-control px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-navy",

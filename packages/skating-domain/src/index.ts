@@ -27,6 +27,18 @@ export {
   type WeeklyReviewTimeEntry,
 } from "./journal/weekly-review-stats";
 export {
+  deriveCampStats,
+  type CampPbChange,
+  type CampStats,
+  type CampStatsDay,
+  type CampStatsDistance,
+  type CampStatsInput,
+  type CampStatsNote,
+  type CampStatsSession,
+  type CampStatsTimeEntry,
+  type CampTechIssue,
+} from "./journal/camp-stats";
+export {
   buildCollectionCsv,
   buildExportJson,
   filterExportByScope,

@@ -11,6 +11,7 @@ import {
 } from "@skatingx/firebase-client";
 import { Button, Card, ErrorNotice } from "@skatingx/ui";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { useLocale } from "@/hooks/useLocale";
@@ -20,6 +21,8 @@ import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 const CONTROL =
   "min-h-11 w-full rounded-control border border-brand-navy/50 bg-white px-3 text-brand-navy";
+const LINK_CLASS =
+  "inline-flex min-h-11 items-center text-sm font-semibold text-brand-navy underline underline-offset-2";
 
 type Editor = { mode: "create" } | { mode: "edit"; id: string };
 
@@ -135,6 +138,9 @@ export function CampsPage() {
                     </p>
                     {camp.location ? <p className="mt-2">{camp.location}</p> : null}
                     <div className="mt-3 flex flex-wrap gap-2">
+                      <Link className={LINK_CLASS} to={`/analysis/camps/${camp.id}`}>
+                        {t("analysis.camps.action.stats")}
+                      </Link>
                       <Button variant="outline" onClick={() => setEditor({ mode: "edit", id: camp.id })}>
                         {t("analysis.camps.action.edit")}
                       </Button>

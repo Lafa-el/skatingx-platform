@@ -1,10 +1,19 @@
 // @vitest-environment happy-dom
 import { fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 
 import { render, screen, userEvent, waitFor } from "@/test/dom";
 
 import { CampsPage } from "./CampsPage";
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <CampsPage />
+    </MemoryRouter>,
+  );
+}
 
 const db = {};
 
@@ -88,26 +97,30 @@ describe("CampsPage", () => {
 
   it("lists camps newest start date first", async () => {
     state.camps = [earlier, later];
-    render(<CampsPage />);
+    renderPage();
     const titles = await screen.findAllByRole("heading", { level: 3 });
     expect(titles.map((title) => title.textContent)).toEqual(["八月营", "六月营"]);
+    expect(screen.getAllByRole("link", { name: "查看统计" }).map((link) => link.getAttribute("href"))).toEqual([
+      "/analysis/camps/late",
+      "/analysis/camps/early",
+    ]);
     expect(screen.getByText("上海")).toBeTruthy();
     expect(screen.getByText("回国集训")).toBeTruthy();
   });
 
   it("shows the empty and loading states", async () => {
-    const pending = render(<CampsPage />);
+    const pending = renderPage();
     expect(screen.getByText("正在读取训练营。")).toBeTruthy();
     pending.unmount();
     state.camps = [];
-    render(<CampsPage />);
+    renderPage();
     expect(await screen.findByText("还没有训练营。")).toBeTruthy();
   });
 
   it("creates, edits, and deletes a camp", async () => {
     state.camps = [later];
     const user = userEvent.setup();
-    render(<CampsPage />);
+    renderPage();
     await screen.findByRole("heading", { level: 3, name: "八月营" });
 
     await user.click(screen.getByRole("button", { name: "新增训练营" }));
@@ -145,7 +158,7 @@ describe("CampsPage", () => {
     state.camps = [];
     state.create.mockResolvedValueOnce({ ok: false, field: "dates" });
     const user = userEvent.setup();
-    render(<CampsPage />);
+    renderPage();
     await user.click(await screen.findByRole("button", { name: "新增训练营" }));
     await user.type(screen.getByLabelText("名称"), "新营");
     await user.type(screen.getByLabelText("类型"), "夏令营");
@@ -160,7 +173,7 @@ describe("CampsPage", () => {
   it("shows a read failure and a retry", async () => {
     state.fail = true;
     const user = userEvent.setup();
-    render(<CampsPage />);
+    renderPage();
     expect(await screen.findByText("训练营没有读出来。")).toBeTruthy();
     state.fail = false;
     state.camps = [];
