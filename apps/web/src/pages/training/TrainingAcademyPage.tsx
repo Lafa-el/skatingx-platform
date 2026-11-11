@@ -3,11 +3,12 @@ import {
   localizeAcademyItem,
   localizeStageLabel,
   type AcademyItem,
+  type AcademyStage,
   type WeekdayKey,
 } from "@skatingx/content";
-import { hasAcademyItemImportedToday } from "@skatingx/skating-domain";
+import { hasAcademyItemImportedToday, resolveRoutineModuleLink } from "@skatingx/skating-domain";
 import { Button, Card, ErrorNotice, Notice, StatusTag } from "@skatingx/ui";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { FirestoreStatusBanner } from "@/components/FirestoreStatusBanner";
@@ -36,6 +37,22 @@ const WEEKDAYS: { key: WeekdayKey; labelKey: AcademyMessageKey }[] = [
 
 const stages = getAcademyStages();
 
+const chipClass =
+  "rounded-md border border-brand-navy/15 bg-brand-ice px-2 py-0.5 text-xs text-brand-navy/80";
+
+/** Day-plan index n and task index i are the routine id `{stage}-w{n}-t{i}`. */
+function linkedRoutineDrill(
+  stage: AcademyStage,
+  planIndex: number,
+  taskIndex: number,
+): { itemId: string; moduleId: string } | null {
+  const itemId = resolveRoutineModuleLink(`${stage.id}-w${planIndex}-t${taskIndex}`);
+  if (!itemId) return null;
+  const module = stage.modules.find((entry) => entry.items.some((item) => item.id === itemId));
+  if (!module) return null;
+  return { itemId, moduleId: module.id };
+}
+
 export function TrainingAcademyPage() {
   const { isPro, language } = useIsPro();
   const t = (key: AcademyMessageKey, params?: Record<string, string | number>) =>
@@ -56,7 +73,16 @@ export function TrainingAcademyPage() {
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(
     stages[0]?.modules[0]?.id ?? null,
   );
+  const [scrollTargetId, setScrollTargetId] = useState<string | null>(null);
   const [routineWeekday, setRoutineWeekday] = useState<WeekdayKey>("tuesday");
+
+  useEffect(() => {
+    if (!scrollTargetId) return;
+    const node = document.getElementById(scrollTargetId);
+    if (!node) return;
+    node.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+    setScrollTargetId(null);
+  }, [expandedModuleId, scrollTargetId]);
 
   const todayTasks = rawState?.todayTasks ?? [];
 
@@ -200,6 +226,7 @@ export function TrainingAcademyPage() {
                     return (
                       <div
                         key={item.id}
+                        id={item.id}
                         className="rounded-control border border-brand-navy/10 bg-brand-ice p-3"
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -297,7 +324,7 @@ export function TrainingAcademyPage() {
           </div>
 
           <div className="mt-4 space-y-3">
-            {stage.weeklyRoutine.dayPlans.map((plan) => (
+            {stage.weeklyRoutine.dayPlans.map((plan, planIndex) => (
               <Card variant="raised"
                 key={plan.id}
                 title={`${localized(language, { zh: plan.dayLabelZh, en: plan.dayLabelEn })} · ${localized(language, { zh: plan.titleZh, en: plan.titleEn })}`}
@@ -306,15 +333,31 @@ export function TrainingAcademyPage() {
                   {localized(language, { zh: plan.durationZh, en: plan.durationEn })}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {localized(language, { zh: plan.taskLabelsZh, en: plan.taskLabelsEn }).map((label, index) => (
-                    <span
-                      // The Chinese label is the stable key: the English ones need not be unique.
-                      key={plan.taskLabelsZh[index]}
-                      className="rounded-md border border-brand-navy/15 bg-brand-ice px-2 py-0.5 text-xs text-brand-navy/80"
-                    >
-                      {label}
-                    </span>
-                  ))}
+                  {localized(language, { zh: plan.taskLabelsZh, en: plan.taskLabelsEn }).map((label, index) => {
+                    // The Chinese label is the stable key: the English ones need not be unique.
+                    const key = plan.taskLabelsZh[index];
+                    const link = stage ? linkedRoutineDrill(stage, planIndex, index) : null;
+                    if (!link) {
+                      return (
+                        <span key={key} className={chipClass}>
+                          {label}
+                        </span>
+                      );
+                    }
+                    return (
+                      <button
+                        type="button"
+                        key={key}
+                        className={`${chipClass} min-h-11 hover:border-brand-navy/40`}
+                        onClick={() => {
+                          setExpandedModuleId(link.moduleId);
+                          setScrollTargetId(link.itemId);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
                 <Button variant="brand"
                   type="button"
