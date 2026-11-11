@@ -5,11 +5,12 @@ import {
 } from "@skatingx/firebase-client";
 import {
   buildAcademyImportCandidate,
-  matchRoutineTaskLabel,
+  resolveRoutineModuleLink,
+  routineItemIdForDayPlanTask,
   type AcademyImportCandidate,
 } from "@skatingx/skating-domain";
 import type { AcademyItem, AcademyStage, WeekdayKey } from "@skatingx/content";
-import { getWeekdayRoutineItems } from "@skatingx/content";
+import { flattenStageItems, getWeekdayRoutineItems } from "@skatingx/content";
 import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -148,11 +149,12 @@ export function useAcademyImport() {
         return refuse("importWeekdayRoutine", "academy.error.proRequired");
       }
       const routineItems = getWeekdayRoutineItems(stage, weekday);
+      const drills = flattenStageItems(stage);
       const candidates: AcademyImportCandidate[] = [];
 
       for (const routineItem of routineItems) {
-        // Matching is done on the Chinese label in both languages.
-        const matched = matchRoutineTaskLabel(stage, routineItem.taskLabelZh);
+        const itemId = resolveRoutineModuleLink(routineItem.routineItemId);
+        const matched = itemId ? drills.find((item) => item.id === itemId) : undefined;
         if (matched) {
           candidates.push(buildAcademyImportCandidate(matched, language));
         } else {
@@ -180,9 +182,12 @@ export function useAcademyImport() {
       if (!plan) {
         return refuse("importDayPlan", "academy.error.planNotFound", "plan-not-found");
       }
+      const drills = flattenStageItems(stage);
       const candidates: AcademyImportCandidate[] = [];
       for (const [index, taskLabelZh] of plan.taskLabelsZh.entries()) {
-        const matched = matchRoutineTaskLabel(stage, taskLabelZh);
+        const routineItemId = routineItemIdForDayPlanTask(stage.id, plan.id, index);
+        const itemId = routineItemId ? resolveRoutineModuleLink(routineItemId) : undefined;
+        const matched = itemId ? drills.find((item) => item.id === itemId) : undefined;
         if (matched) {
           candidates.push(buildAcademyImportCandidate(matched, language));
         } else {

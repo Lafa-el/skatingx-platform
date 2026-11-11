@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { getAcademyStages } from "@skatingx/content";
+import { resolveRoutineModuleLink } from "@skatingx/skating-domain";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -397,6 +398,28 @@ describe("TrainingAcademyPage (other)", () => {
       .some((element) => element.closest("div.rounded-control") !== null);
     expect(inOpenDrill).toBe(true);
     expect(screen.getByText(first.descriptionZh)).toBeTruthy();
+  });
+
+  it("a routine task chip opens the linked drill", async () => {
+    setSettings("zh", true);
+    const user = userEvent.setup();
+    renderPage();
+    const taskIndex = 1;
+    const label = plan0.taskLabelsZh[taskIndex]!;
+    const itemId = resolveRoutineModuleLink(`${stage.id}-w0-t${taskIndex}`);
+    expect(itemId).toBeTruthy();
+    expect(document.getElementById(itemId!)).toBeNull();
+    const heading = screen.getByRole("heading", {
+      level: 3,
+      name: `${plan0.dayLabelZh} · ${plan0.titleZh}`,
+    });
+    await user.click(within(heading.closest("article")!).getByRole("button", { name: label }));
+    const node = document.getElementById(itemId!);
+    expect(node).toBeTruthy();
+    expect(node?.className).toContain("rounded-control");
+    expect(node?.textContent).toContain(
+      stage.modules.flatMap((module) => module.items).find((item) => item.id === itemId)?.titleZh,
+    );
   });
 
   it("a module can be folded and opened again", async () => {

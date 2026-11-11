@@ -112,6 +112,11 @@ export {
   type AcademyImportCandidate,
 } from "./academy";
 export {
+  ROUTINE_MODULE_LINKS,
+  resolveRoutineModuleLink,
+  routineItemIdForDayPlanTask,
+} from "./routine-module-links";
+export {
   buildRaceSummary,
   countByVerification,
   createPendingProvenance,

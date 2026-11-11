@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-import { getAcademyStages, getWeekdayRoutineItems } from "@skatingx/content";
+import { flattenStageItems, getAcademyStages, getWeekdayRoutineItems } from "@skatingx/content";
+import { ROUTINE_MODULE_LINKS } from "@skatingx/skating-domain";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { act, renderHook } from "@/test/dom";
@@ -347,7 +348,7 @@ describe("useAcademyImport: a routine label that matches no drill", () => {
 
 describe("useAcademyImport: matching a routine label to a drill", () => {
   const drill = stage.modules[0]!.items[0]!;
-  // The English label matches nothing; only the Chinese one names the drill.
+  // The Chinese label is a real drill title. The routine id is not in the reviewed table.
   const only = {
     ...stage,
     weeklyRoutine: {
@@ -367,16 +368,45 @@ describe("useAcademyImport: matching a routine label to a drill", () => {
       ],
     },
   };
-  const last = () => h.importAcademyTasks.mock.calls.at(-1)?.[1] as { academyItemId: string; text: string }[];
+  const last = () =>
+    h.importAcademyTasks.mock.calls.at(-1)?.[1] as { academyItemId: string; text: string; tags: string[] }[];
 
-  it("is done on the Chinese label in English mode too, and imports the drill under its English title", async () => {
-    h.state.settings = { language: "en", isPro: true, activeAthleteId: "athlete-9" };
+  it("an unreviewed routine id stays a plain label even when the Chinese text is a drill title", async () => {
     const { result } = renderHook(() => useAcademyImport());
     await act(() => result.current.importDayPlan(only, "y-wp-9"));
     expect(last()).toHaveLength(1);
-    expect(last()[0]).toMatchObject({ academyItemId: drill.id, text: drill.titleEn });
+    expect(last()[0]?.academyItemId).not.toBe(drill.id);
+    expect(last()[0]?.academyItemId.startsWith("plan-fallback-y-wp-9-")).toBe(true);
+    expect(last()[0]?.tags).toEqual(["academy-routine"]);
+
     await act(() => result.current.importWeekdayRoutine(only, "tuesday"));
-    expect(last()[0]).toMatchObject({ academyItemId: drill.id, text: drill.titleEn });
+    expect(last()[0]).toMatchObject({
+      academyItemId: "routine-fallback-y-w9-t0",
+      tags: ["academy-routine"],
+    });
+    expect(last()[0]?.academyItemId).not.toBe(drill.id);
+
+    h.state.settings = { language: "en", isPro: true, activeAthleteId: "athlete-9" };
+    const en = renderHook(() => useAcademyImport());
+    await act(() => en.result.current.importWeekdayRoutine(only, "tuesday"));
+    expect(last()[0]).toMatchObject({
+      academyItemId: "routine-fallback-y-w9-t0",
+      text: "Qxz Move 3 sets",
+      tags: ["academy-routine"],
+    });
+  });
+
+  it("a reviewed routine item imports the linked drill", async () => {
+    const routineItemId = `${stage.id}-w0-t0`;
+    const linkedId = ROUTINE_MODULE_LINKS[routineItemId];
+    const linked = flattenStageItems(stage).find((entry) => entry.id === linkedId);
+    expect(linked, routineItemId).toBeTruthy();
+    const { result } = renderHook(() => useAcademyImport());
+    await act(() => result.current.importDayPlan(stage, plan.id));
+    expect(last()[0]).toMatchObject({ academyItemId: linked!.id, text: linked!.titleZh });
+    await act(() => result.current.importWeekdayRoutine(stage, plan.weekday));
+    expect(getWeekdayRoutineItems(stage, plan.weekday)[0]?.routineItemId).toBe(routineItemId);
+    expect(last()[0]).toMatchObject({ academyItemId: linked!.id, text: linked!.titleZh });
   });
 
   it("each unmatched label in a plan gets its own English text, not the first one's", async () => {
