@@ -44,6 +44,7 @@ const state = vi.hoisted(() => ({
   },
   setPlanFocus: vi.fn(),
   setPlanFocusFails: false,
+  profile: null as { birthDate?: string } | null,
 }));
 
 const thisMonday = () => mondayOfWeek(todayDateString());
@@ -79,6 +80,7 @@ vi.mock("@/app/providers/FirestoreProvider", async () => {
       error: state.training.error,
     }),
     useUserSettings: () => ({ data: state.settings, loading: false, error: null }),
+    useAthleteProfile: () => ({ data: state.profile, loading: false, error: null }),
   };
 });
 // Only what the page may use. It has no check-in function to call: touching one would throw here.
@@ -154,6 +156,7 @@ afterEach(() => {
   state.training.error = null;
   state.setPlanFocus.mockClear();
   state.setPlanFocusFails = false;
+  state.profile = null;
   state.onAnalyses = null;
   state.onEquipment = null;
   state.settings = { activeAthleteId: "lindsay" };
@@ -628,6 +631,36 @@ describe("plan page: which athlete the equipment feedback is read for", () => {
     renderPage();
     expect(state.equipmentAthletes).toEqual([]);
     expect(state.historySubscriptions).toBe(0);
+  });
+
+  it("an 11-13 birth date shows that stage's day plans, and Thursday and Sunday stay rest", () => {
+    vi.setSystemTime(SUNDAY);
+    state.profile = { birthDate: "2015-01-14" };
+    setTraining(leanWeek([], { lastLoginDate: "2026-11-01", planGeneratedDate: "2026-11-01" }));
+    const view = renderPage();
+    const list = cards(view.container);
+    expect(list).toHaveLength(7);
+    expect(list[MON]!.textContent).toContain("最大力量储备");
+    expect(list[MON]!.textContent).toContain("90分钟");
+    expect(list[MON]!.textContent).toContain("上肢拉力");
+    expect(list[TUE]!.textContent).toContain("专项爆发与敏捷");
+    expect(list[WED]!.textContent).toContain("主动恢复与预防");
+    expect(list[WED]!.textContent).not.toContain("休息日，不生成任务");
+    expect(list[THU]!.textContent).toContain("专项耐力与抗阻");
+    expect(list[THU]!.textContent).toContain("休息日，不生成任务");
+    expect(list[4]!.textContent).toContain("综合力量与速度");
+    expect(list[5]!.textContent).toContain("比赛模拟与高光");
+    expect(list[SUN]!.textContent).toContain("深度恢复日");
+    expect(list[SUN]!.textContent).toContain("休息日，不生成任务");
+    expect(view.container.textContent).not.toContain("周一（冰前30min + 上冰60min）");
+  });
+
+  it("without a birth date the old Junior D cards stay", () => {
+    state.profile = {};
+    setTraining(leanWeek([]));
+    const view = renderPage();
+    expect(cards(view.container)[MON]!.textContent).toContain("周一（冰前30min + 上冰60min）");
+    expect(view.container.textContent).not.toContain("最大力量储备");
   });
 
   it("moves the equipment subscription to the new athlete when settings change, and releases the old one", () => {

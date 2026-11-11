@@ -64,6 +64,7 @@ vi.mock("@/app/providers/FirestoreProvider", async () => {
       error: state.training.error,
     }),
     useUserSettings: () => ({ data: { activeAthleteId: "lindsay" }, loading: false, error: null }),
+    useAthleteProfile: () => ({ data: null, loading: false, error: null }),
   };
 });
 // Reads and the one focus write the page already had. Nothing else exists here, so any other write throws.

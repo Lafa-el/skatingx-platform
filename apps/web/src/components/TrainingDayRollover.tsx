@@ -5,11 +5,12 @@ import {
   runDayRolloverIfNeeded,
 } from "@skatingx/firebase-client";
 import { todayDateString } from "@skatingx/schema";
-import { compareDateStrings, planGenerationSkip } from "@skatingx/skating-domain";
+import { compareDateStrings, getRealAge, planGenerationSkip, stageIdForRealAge } from "@skatingx/skating-domain";
 import { useEffect, useRef } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import {
+  useAthleteProfile,
   useFirestoreStatus,
   useTrainingState,
   useUserSettings,
@@ -30,8 +31,14 @@ export function TrainingDayRollover() {
   const { uid } = useAuth();
   const { ready } = useFirestoreStatus();
   const { data: settings } = useUserSettings();
+  const { data: profile } = useAthleteProfile();
   const { data: training, loading } = useTrainingState();
   const locale = useLocale();
+  // No birth date, or the profile has not arrived: stageId stays null and today uses the old
+  // template. A birth date that shows up after today's tasks are written takes effect tomorrow,
+  // the same way a focus switch does, because that day is already marked generated.
+  const today = todayDateString();
+  const stageId = profile?.birthDate ? stageIdForRealAge(getRealAge(profile.birthDate, today)) : null;
   const lastRunKey = useRef<string | null>(null);
   // What is being generated right now. A snapshot that arrives meanwhile does not start a second
   // call for the same thing; a different focus does, because the first call will give up on it.
@@ -84,14 +91,13 @@ export function TrainingDayRollover() {
 
     const state = normalizeTrainingState(training);
     const focus = state.planFocus;
-    const today = todayDateString();
     // The same rules the transaction applies, asked first so a state that needs nothing costs no
     // transaction. The transaction asks again on the server's copy.
     if (!focus || planGenerationSkip(state, focus, today) !== null) {
       return;
     }
 
-    const key = `${uid}:${athleteId}:${today}:${focus}`;
+    const key = `${uid}:${athleteId}:${today}:${focus}:${stageId ?? "none"}`;
     if (generating.current === key) {
       return;
     }
@@ -105,10 +111,10 @@ export function TrainingDayRollover() {
     void (async () => {
       // Loaded here and not at the top: this component is in the first-screen bundle, and the entry
       // table and its copy are the plan module's. Only a user with a focus pays for them.
-      const { planCandidatesFor } = await import("@/modules/training/plan/plan-candidates");
+      const { planCandidatesForStage } = await import("@/modules/training/plan/plan-candidates");
       return generatePlanTasksIfNeeded(
         { db, userId: uid, athleteId },
-        { focus, candidates: planCandidatesFor(focus, today, locale) },
+        { focus, candidates: planCandidatesForStage(stageId, focus, today, locale) },
         today,
       );
     })()
@@ -120,7 +126,7 @@ export function TrainingDayRollover() {
       .finally(() => {
         if (generating.current === key) generating.current = null;
       });
-  }, [uid, ready, loading, training, athleteId, locale]);
+  }, [uid, ready, loading, training, athleteId, locale, today, stageId]);
 
   return null;
 }

@@ -1,7 +1,9 @@
+import { getAcademyStage, getWeekdayRoutineItems, type WeekdayKey } from "@skatingx/content";
 import { todayDateString } from "@skatingx/schema";
 import {
   deriveRaceWeekFeedback,
   deriveTrainingFeedback,
+  getRealAge,
   mondayOfWeek,
   normalizeTrainingState,
   PLAN_FOCUSES,
@@ -9,6 +11,7 @@ import {
   planDayDate,
   planDayProgress,
   planDays,
+  stageIdForRealAge,
   type PlanDayProgress,
   previousDateString,
   trainingFeedbackKey,
@@ -29,17 +32,20 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
-import { useTrainingState, useUserSettings } from "@/app/providers/FirestoreProvider";
+import { useAthleteProfile, useTrainingState, useUserSettings } from "@/app/providers/FirestoreProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { useRaceWeekEvents } from "@/hooks/useRaceWeekEvents";
 import { formatCalendarDate } from "@/shared/i18n/format";
+import { localized } from "@/shared/i18n/localized";
 import { tPlan, type PlanMessageKey } from "@/shared/i18n/plan-messages";
+import type { Locale } from "@/shared/i18n/translator";
 import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
 import { dayCopy } from "./plan-day-copy";
 import { dayEntries } from "./plan-day-entries";
 import { useHiddenFeedback, usePlanFocus } from "./plan-session";
+import { PLAN_FOCUS_SHAPE } from "./plan-shape";
 
 const FOCUS_TITLE: Record<PlanFocus, PlanMessageKey> = {
   lean: "plan.focus.lean.title",
@@ -110,10 +116,80 @@ function progressLine(
   }
 }
 
+const WEEK_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const satisfies readonly WeekdayKey[];
+
+const WEEKDAY_SUFFIX: Record<WeekdayKey, "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"> = {
+  monday: "mon",
+  tuesday: "tue",
+  wednesday: "wed",
+  thursday: "thu",
+  friday: "fri",
+  saturday: "sat",
+  sunday: "sun",
+};
+
+const STAGE_BODY: Record<WeekdayKey, PlanMessageKey> = {
+  monday: "plan.stage.age11to13.mon.body",
+  tuesday: "plan.stage.age11to13.tue.body",
+  wednesday: "plan.stage.age11to13.wed.body",
+  thursday: "plan.stage.age11to13.thu.body",
+  friday: "plan.stage.age11to13.fri.body",
+  saturday: "plan.stage.age11to13.sat.body",
+  sunday: "plan.stage.age11to13.sun.body",
+};
+
+type ShownDay = {
+  id: string;
+  when: string;
+  kind: string;
+  intensity: PlanMessageKey;
+  body: PlanMessageKey;
+  generates: boolean;
+};
+
+/** The old Junior D cards. When and kind are already in the active language. */
+function templateDays(locale: Locale, focus: PlanFocus): ShownDay[] {
+  return planDays(focus).map((day) => {
+    const copy = dayCopy(day.id);
+    return {
+      id: day.id,
+      when: tPlan(locale, copy.when),
+      kind: tPlan(locale, copy.kind),
+      intensity: copy.intensity,
+      body: copy.body,
+      generates: dayEntries(day.id).some((entry) => entry.generate !== false),
+    };
+  });
+}
+
+/**
+ * Age 11–13 cards, Monday through Sunday. Titles and durations come from that stage's day plans.
+ * A recovery surface is shown and does not generate, which is Thursday and Sunday in the old skeleton.
+ */
+function age11Days(locale: Locale, focus: PlanFocus): ShownDay[] | null {
+  const stage = getAcademyStage("age11_13");
+  if (!stage) return null;
+  return WEEK_ORDER.map((weekday) => {
+    const plan = stage.weeklyRoutine.dayPlans.find((item) => item.weekday === weekday);
+    const shape = PLAN_FOCUS_SHAPE[focus][weekday];
+    return {
+      id: `age11_13_${WEEKDAY_SUFFIX[weekday]}`,
+      when: plan
+        ? `${localized(locale, { zh: plan.dayLabelZh, en: plan.dayLabelEn })} ${localized(locale, { zh: plan.durationZh, en: plan.durationEn })}`
+        : "",
+      kind: plan ? localized(locale, { zh: plan.titleZh, en: plan.titleEn }) : "",
+      intensity: shape.intensity,
+      body: STAGE_BODY[weekday],
+      generates: shape.surface !== "recovery" && getWeekdayRoutineItems(stage, weekday).length > 0,
+    };
+  });
+}
+
 export function PlanPage() {
   const locale = useLocale();
   const { uid } = useAuth();
   const { data: settings } = useUserSettings();
+  const { data: profile } = useAthleteProfile();
   const { data: rawState, loading: stateLoading, error: stateError } = useTrainingState();
   const athleteId = activeAthleteIdOf(settings);
   const [focus, setFocus, focusStatus] = usePlanFocus();
@@ -184,6 +260,8 @@ export function PlanPage() {
   }, [uid, athleteId]);
 
   const today = todayDateString();
+  // Same rule as generation: no birth date keeps the old template for today.
+  const stageId = profile?.birthDate ? stageIdForRealAge(getRealAge(profile.birthDate, today)) : null;
   const monday = mondayOfWeek(today);
   const hasPastDays = today !== monday;
   const historyKey = `${uid ?? ""}:${athleteId}:${monday}:${today}`;
@@ -217,7 +295,7 @@ export function PlanPage() {
     : history?.key === historyKey
       ? history
       : { key: historyKey, status: "loading", days: new Map() };
-  const days = focus ? planDays(focus) : [];
+  const days = !focus ? [] : stageId === "age11_13" ? (age11Days(locale, focus) ?? templateDays(locale, focus)) : templateDays(locale, focus);
   const suggestions = deriveTrainingFeedback(sources, focus).filter((item) => !hidden.has(trainingFeedbackKey(item)));
   const title = focus ? tPlan(locale, FOCUS_TITLE[focus]) : tPlan(locale, "plan.week.choose");
   // Race week suggestion: derived on every render and never stored. Until this week's focus is known
@@ -359,13 +437,12 @@ export function PlanPage() {
         {focus ? (
           <ul className="grid gap-3 md:grid-cols-2">
             {days.map((day) => {
-              const copy = dayCopy(day.id);
               const date = planDayDate(monday, day.id);
               const isToday = date === today;
               const progress = planDayProgress({
                 date,
                 today,
-                generates: dayEntries(day.id).some((entry) => entry.generate !== false),
+                generates: day.generates,
                 state,
                 archive: pastRead.days,
               });
@@ -383,19 +460,19 @@ export function PlanPage() {
                   className={`rounded-card border p-4 ${isToday ? "border-brand-navy" : "border-brand-navy/10"}`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <p className="font-semibold text-brand-navy">{tPlan(locale, copy.when)}</p>
+                    <p className="font-semibold text-brand-navy">{day.when}</p>
                     <p className="text-sm text-brand-navy/80">
                       {formatCalendarDate(date, locale)}
                       {isToday ? ` · ${tPlan(locale, "plan.progress.today")}` : ""}
                     </p>
                   </div>
                   <p className="mt-2 text-sm text-brand-navy/80">
-                    {tPlan(locale, copy.kind)}
+                    {day.kind}
                     {" · "}
                     {tPlan(locale, "plan.intensity")}
-                    {tPlan(locale, copy.intensity)}
+                    {tPlan(locale, day.intensity)}
                   </p>
-                  <p className="mt-2 text-sm text-brand-navy">{tPlan(locale, copy.body)}</p>
+                  <p className="mt-2 text-sm text-brand-navy">{tPlan(locale, day.body)}</p>
                   {line ? (
                     <p data-progress={progress.kind} className="mt-3 text-sm font-semibold text-brand-navy">
                       {line}
