@@ -52,7 +52,7 @@ export function TrainingAcademyPage() {
     clearLastResult,
   } = useAcademyImport();
 
-  const [stageId, setStageId] = useState(stages[0]?.id ?? "age4_6");
+  const [stageId, setStageId] = useState(stages[0]?.id ?? "age4_7");
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(
     stages[0]?.modules[0]?.id ?? null,
   );

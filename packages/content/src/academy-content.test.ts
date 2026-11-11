@@ -36,9 +36,9 @@ const squash = (text: string) =>
     .replace(/：/g, ":");
 
 describe("academy content: both languages are complete", () => {
-  it("has the three stages the legacy app has", () => {
+  it("has the five stages", () => {
     expect(ACADEMY_STAGES.map((s) => s.id)).toEqual(legacy.zh.map((s) => s.id));
-    expect(ACADEMY_STAGES).toHaveLength(3);
+    expect(ACADEMY_STAGES).toHaveLength(5);
   });
 
   it("every stage has an age range in both languages, taken from the legacy source", () => {
