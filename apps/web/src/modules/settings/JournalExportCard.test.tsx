@@ -64,7 +64,9 @@ describe("JournalExportCard", () => {
     render(<JournalExportCard />);
     await user.click(screen.getByRole("button", { name: "日期范围" }));
     await user.click(screen.getByRole("button", { name: "下载" }));
-    expect(screen.getByRole("alert").textContent).toContain("开始不能晚于结束");
+    // The range check runs after the export module loads, so the alert is not in the same tick.
+    const alert = await screen.findByRole("alert", undefined, { timeout: 3000 });
+    expect(alert.textContent).toContain("开始不能晚于结束");
     expect(state.download).not.toHaveBeenCalled();
     expect(state.read).not.toHaveBeenCalled();
   });
