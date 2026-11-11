@@ -35,41 +35,42 @@ export function buildAcademyImportCandidate(
   };
 }
 
-/** Legacy-aligned fuzzy match: routine label string → academy item. */
+/**
+ * Legacy-aligned fuzzy match: routine label string → academy item.
+ * Three passes, strongest first, each pass walking every drill in module order.
+ * A weak keyword must not win just because its drill is listed before the exact title.
+ */
 export function matchRoutineTaskLabel(
   stage: AcademyStage,
   taskLabel: string,
 ): AcademyItem | null {
   const items = flattenStageItems(stage);
   const taskNameShort = taskLabel.split(" ")[0] ?? taskLabel;
+  const cleanTask = taskLabel.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "");
+  const cleanTaskShort = taskNameShort.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "");
+  const keywords = taskLabel
+    .split(/[/+、，()（）\s]/)
+    .map((keyword) => keyword.trim())
+    .filter((keyword) => keyword.length >= 2);
+  const firstThreeZh = taskLabel.match(/[\u4e00-\u9fa5]{3}/);
 
-  for (const item of items) {
-    const cleanItem = item.titleZh.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "");
-    const cleanTask = taskLabel.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "");
-    const cleanTaskShort = taskNameShort.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "");
+  const passes: ((item: AcademyItem) => boolean)[] = [
+    (item) => {
+      const cleanItem = item.titleZh.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, "");
+      return (
+        cleanItem.includes(cleanTask) ||
+        cleanTask.includes(cleanItem) ||
+        Boolean(cleanTaskShort && cleanItem.includes(cleanTaskShort))
+      );
+    },
+    (item) => keywords.some((keyword) => item.titleZh.includes(keyword) || item.titleEn.includes(keyword)),
+    (item) => Boolean(firstThreeZh && item.titleZh.includes(firstThreeZh[0])),
+  ];
 
-    if (
-      cleanItem.includes(cleanTask) ||
-      cleanTask.includes(cleanItem) ||
-      (cleanTaskShort && cleanItem.includes(cleanTaskShort))
-    ) {
-      return item;
-    }
-
-    const keywords = taskLabel
-      .split(/[/+、，()（）\s]/)
-      .map((k) => k.trim())
-      .filter((k) => k.length >= 2);
-    if (keywords.some((kw) => item.titleZh.includes(kw) || item.titleEn.includes(kw))) {
-      return item;
-    }
-
-    const firstThreeZh = taskLabel.match(/[\u4e00-\u9fa5]{3}/);
-    if (firstThreeZh && item.titleZh.includes(firstThreeZh[0])) {
-      return item;
-    }
+  for (const matches of passes) {
+    const hit = items.find(matches);
+    if (hit) return hit;
   }
-
   return null;
 }
 

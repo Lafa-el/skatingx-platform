@@ -21,10 +21,10 @@ import {
 } from "@/shared/i18n/training-home-messages";
 
 /**
- * Featured reference picks, not the athlete's current stage (Lindsay is age11_16).
+ * Featured reference picks, not the athlete's current stage (Lindsay is age11_13).
  * Stay on this featured stage for now; change the lookup if the card later follows the current stage.
  */
-const FEATURED_ACADEMY_STAGE_ID = "age7_10";
+const FEATURED_ACADEMY_STAGE_ID = "age11_13";
 
 /** A count with its unit: the language's singular or plural form, chosen by the number. */
 function countKey(

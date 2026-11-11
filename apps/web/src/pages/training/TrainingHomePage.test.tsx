@@ -75,8 +75,8 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
-// The home card shows the featured age7_10 stage by id, not by list position.
-const stage = getAcademyStages().find((item) => item.id === "age7_10") ?? getAcademyStages()[0]!;
+// The home card shows the featured age11_13 stage by id, not by list position.
+const stage = getAcademyStages().find((item) => item.id === "age11_13") ?? getAcademyStages()[0]!;
 
 const card = (title: string) => {
   const article = screen.getByRole("heading", { level: 3, name: title }).closest("article");
@@ -125,15 +125,15 @@ describe("TrainingHomePage: Chinese", () => {
 
   it("academy card names the reference stage and its age range as stored", () => {
     renderPage();
-    expect(stage.id).toBe("age7_10");
+    expect(stage.id).toBe("age11_13");
     expect(card("学院").getByText(`参考阶段：${stage.labelZh}（${stage.ageRangeZh}）`)).toBeTruthy();
   });
 
-  it("keeps the featured age7_10 stage when the stage list order changes", () => {
+  it("keeps the featured age11_13 stage when the stage list order changes", () => {
     academy.swapped = true;
     const listed = getAcademyStages();
-    expect(listed[1]?.id).not.toBe("age7_10");
-    const featured = listed.find((item) => item.id === "age7_10");
+    expect(listed[1]?.id).not.toBe("age11_13");
+    const featured = listed.find((item) => item.id === "age11_13");
     expect(featured).toBeTruthy();
     renderPage();
     expect(card("学院").getByText(`参考阶段：${featured!.labelZh}（${featured!.ageRangeZh}）`)).toBeTruthy();
