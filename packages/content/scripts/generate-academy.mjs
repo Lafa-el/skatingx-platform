@@ -27,9 +27,12 @@ const DAY_MAP = {
 };
 
 function inferCategory(tag, moduleName) {
+  // Module name only. A dryland drill can mention corners in its tags and must stay off the ice.
+  if (/冰上/.test(moduleName)) return "ice";
   const t = `${tag}${moduleName}`.toLowerCase();
   if (/recovery|恢复|拉伸|foam|冰浴|stretch/i.test(t)) return "recovery";
-  if (/mobility|柔韧|flex|髋|踝/i.test(t)) return "mobility";
+  // A strength module can name the hip or ankle. Do not let that word pull the drill into mobility.
+  if (/mobility|柔韧|flex|髋|踝/i.test(t) && !/力量/.test(moduleName)) return "mobility";
   if (/tech|技术|摆臂|蹬|弯道|站位/i.test(t)) return "technique";
   if (/力量|squat|硬拉|引体|power|strength|max/i.test(t)) return "strength";
   return "dryland";
@@ -67,7 +70,7 @@ function buildStages() {
           targetEn: ei.target,
           tagsZh: parseTags(zi.tag).map(zhText),
           tagsEn: parseTags(ei.tag),
-          difficultyLevel: z.id === "age4_6" ? 3 : z.id === "age7_10" ? 6 : 8,
+          difficultyLevel: z.id === "age4_7" ? 3 : z.id === "age8_10" ? 6 : 8,
         };
       });
       return {

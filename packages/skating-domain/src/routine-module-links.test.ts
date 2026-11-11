@@ -11,13 +11,13 @@ import {
 const EXPECTED_COUNTS: Record<string, number> = {
   age4_7: 15,
   age8_10: 20,
-  age11_13: 20,
+  age11_13: 34,
   age14_16: 8,
   age17_18: 0,
 };
 
 describe("ROUTINE_MODULE_LINKS", () => {
-  it("has a reviewed link for every routine item, 15/20/20/8/0", () => {
+  it("has a reviewed link for every routine item, 15/20/34/8/0", () => {
     const counts: Record<string, number> = {};
     for (const stage of ACADEMY_STAGES) {
       const ids = new Set<string>();
@@ -35,7 +35,7 @@ describe("ROUTINE_MODULE_LINKS", () => {
       counts[stage.id] = ids.size;
     }
     expect(counts).toEqual(EXPECTED_COUNTS);
-    expect(Object.keys(ROUTINE_MODULE_LINKS)).toHaveLength(63);
+    expect(Object.keys(ROUTINE_MODULE_LINKS)).toHaveLength(77);
   });
 
   it("each value is a drill that exists in the same stage", () => {
@@ -48,7 +48,7 @@ describe("ROUTINE_MODULE_LINKS", () => {
     }
   });
 
-  it("agrees with matchRoutineTaskLabel on all 63 labels", () => {
+  it("agrees with matchRoutineTaskLabel on all 77 labels", () => {
     let seen = 0;
     for (const stage of ACADEMY_STAGES) {
       for (const plan of stage.weeklyRoutine.dayPlans) {
@@ -60,7 +60,7 @@ describe("ROUTINE_MODULE_LINKS", () => {
         });
       }
     }
-    expect(seen).toBe(63);
+    expect(seen).toBe(77);
   });
 
   it("parses a real day-plan id and rejects one that is not that shape", () => {

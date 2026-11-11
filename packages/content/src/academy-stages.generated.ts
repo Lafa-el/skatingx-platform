@@ -41,7 +41,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Balance",
               "Coord"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m0-i1",
@@ -60,7 +60,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Proprioception",
               "Ankle"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m0-i2",
@@ -79,7 +79,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Balance",
               "Posture"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m0-i3",
@@ -96,7 +96,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Core"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           }
         ]
       },
@@ -125,7 +125,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Mimic",
               "Posture"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m1-i1",
@@ -145,7 +145,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Swing",
               "Coord"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m1-i2",
@@ -164,7 +164,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Ice",
               "Feel"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m1-i3",
@@ -183,7 +183,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Push",
               "Direction"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m1-i4",
@@ -202,7 +202,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Static",
               "Power"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m1-i5",
@@ -219,7 +219,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Stance"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           }
         ]
       },
@@ -247,7 +247,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Agility",
               "Cadence"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m2-i1",
@@ -266,7 +266,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Reaction",
               "Agility"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m2-i2",
@@ -285,7 +285,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Jumping",
               "Coord"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m2-i3",
@@ -304,7 +304,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Core",
               "Stability"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           }
         ]
       },
@@ -332,7 +332,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Hips",
               "Flex"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m3-i1",
@@ -351,7 +351,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Ankle",
               "Mobility"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m3-i2",
@@ -371,7 +371,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Stretch",
               "Spine"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           }
         ]
       },
@@ -398,7 +398,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Legs"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           },
           {
             "id": "age4_7-m4-i1",
@@ -417,7 +417,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Glute",
               "Medius"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 3
           }
         ]
       }
@@ -629,7 +629,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Core",
               "Control"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m0-i1",
@@ -648,7 +648,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Push",
               "Tech"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m0-i2",
@@ -666,7 +666,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Cornering"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m0-i3",
@@ -684,7 +684,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Arm",
               "Rhythm"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m0-i4",
@@ -702,7 +702,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Power"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m0-i5",
@@ -720,7 +720,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Endurance"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           }
         ]
       },
@@ -748,7 +748,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Single",
               "Leg"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m1-i1",
@@ -766,7 +766,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Lateral",
               "Power"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m1-i2",
@@ -774,7 +774,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "titleEn": "Glute Bridges",
             "descriptionZh": "仰卧屈膝，脚跟踩地，臀部发力将髋部顶起至大腿与躯干呈一直线。顶峰收缩1秒。",
             "descriptionEn": "Squeeze glutes at the top to train hip extension power.",
-            "category": "mobility",
+            "category": "strength",
             "targetZh": "3组 x 15次",
             "targetEn": "3 sets x 15 reps",
             "tagsZh": [
@@ -784,7 +784,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Hips"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m1-i3",
@@ -802,7 +802,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Explosive"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m1-i4",
@@ -821,7 +821,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Upper",
               "Body"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           }
         ]
       },
@@ -848,7 +848,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Core"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m2-i1",
@@ -866,7 +866,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Coordination"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m2-i2",
@@ -884,7 +884,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Specific",
               "Core"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m2-i3",
@@ -902,7 +902,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Cardio"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           }
         ]
       },
@@ -930,7 +930,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Lateral",
               "Plyo"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m3-i1",
@@ -949,7 +949,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
               "Quick",
               "Feet"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m3-i2",
@@ -967,7 +967,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Agility"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           }
         ]
       },
@@ -994,7 +994,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Aerobic"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m4-i1",
@@ -1012,7 +1012,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Acceleration"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           },
           {
             "id": "age8_10-m4-i2",
@@ -1030,7 +1030,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Fartlek"
             ],
-            "difficultyLevel": 8
+            "difficultyLevel": 6
           }
         ]
       }
@@ -1305,6 +1305,132 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "tagsEn": [
               "Upper",
               "Body"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m0-i1",
+            "titleZh": "慢速离心深蹲进阶",
+            "titleEn": "Slow Eccentric Squat Progression",
+            "descriptionZh": "下蹲用3-4秒缓慢离心，再稳住躯干站起。先把动作质量做对，再增加次数。",
+            "descriptionEn": "Lower for 3-4 seconds, then stand with the trunk steady. Get the pattern right before adding reps.",
+            "category": "strength",
+            "targetZh": "4组 x 6次",
+            "targetEn": "4 sets x 6 reps",
+            "tagsZh": [
+              "离心",
+              "自重",
+              "下肢力量"
+            ],
+            "tagsEn": [
+              "Eccentric",
+              "Bodyweight",
+              "Legs"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m0-i2",
+            "titleZh": "自重保加利亚分腿蹲",
+            "titleEn": "Bodyweight Bulgarian Split Squat",
+            "descriptionZh": "后脚搭在凳上，前腿控制下蹲与站起。上身保持直立，膝盖朝向脚尖方向。",
+            "descriptionEn": "Rear foot on a bench, front leg controls the lower and the stand. Keep the chest tall and the knee toward the toes.",
+            "category": "strength",
+            "targetZh": "4组 x 每侧8次",
+            "targetEn": "4 sets x 8 reps/side",
+            "tagsZh": [
+              "单腿",
+              "自重",
+              "下肢力量"
+            ],
+            "tagsEn": [
+              "Single-leg",
+              "Bodyweight",
+              "Legs"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m0-i3",
+            "titleZh": "弹力带臀推",
+            "titleEn": "Banded Hip Thrust",
+            "descriptionZh": "弹力带置于髋前，仰卧顶髋至躯干与大腿成一直线。顶起时夹紧臀肌，不靠腰部代偿。",
+            "descriptionEn": "Band across the hips. Drive up until the trunk and thigh line up, squeezing the glutes instead of the lower back.",
+            "category": "strength",
+            "targetZh": "4组 x 10次",
+            "targetEn": "4 sets x 10 reps",
+            "tagsZh": [
+              "臀肌",
+              "弹力带",
+              "自重"
+            ],
+            "tagsEn": [
+              "Glutes",
+              "Band",
+              "Bodyweight"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m0-i4",
+            "titleZh": "侧向跨跳进阶",
+            "titleEn": "Lateral Bound Progression",
+            "descriptionZh": "单腿向侧跨出并稳住落地，再连续回到起始侧。步幅加大时仍保持髋、膝、踝在一条线上。",
+            "descriptionEn": "Bound sideways onto one leg and stick the landing, then return. A longer bound still keeps the hip, knee, and ankle in line.",
+            "category": "strength",
+            "targetZh": "4组 x 每侧8次",
+            "targetEn": "4 sets x 8 reps/side",
+            "tagsZh": [
+              "侧向",
+              "自重",
+              "爆发"
+            ],
+            "tagsEn": [
+              "Lateral",
+              "Bodyweight",
+              "Power"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m0-i5",
+            "titleZh": "单腿臀桥进阶",
+            "titleEn": "Single-leg Glute Bridge Progression",
+            "descriptionZh": "单腿撑地把髋顶起，另一腿伸直。停在最高点1秒，骨盆保持水平。",
+            "descriptionEn": "Drive the hips up on one leg, the other leg straight. Pause one second at the top and keep the pelvis level.",
+            "category": "strength",
+            "targetZh": "4组 x 每侧8次",
+            "targetEn": "4 sets x 8 reps/side",
+            "tagsZh": [
+              "臀肌",
+              "单腿",
+              "自重"
+            ],
+            "tagsEn": [
+              "Glutes",
+              "Single-leg",
+              "Bodyweight"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m0-i6",
+            "titleZh": "自重深蹲跳",
+            "titleEn": "Bodyweight Squat Jump",
+            "descriptionZh": "下蹲后垂直跳起，落地时安静屈膝缓冲。先求落地稳定，再求高度。",
+            "descriptionEn": "Jump straight up from the squat and land quietly with bent knees. Stick the landing before chasing height.",
+            "category": "strength",
+            "targetZh": "4组 x 6次",
+            "targetEn": "4 sets x 6 reps",
+            "tagsZh": [
+              "跳跃",
+              "自重",
+              "爆发"
+            ],
+            "tagsEn": [
+              "Jump",
+              "Bodyweight",
+              "Power"
             ],
             "difficultyLevel": 8
           }
@@ -1647,6 +1773,183 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "difficultyLevel": 8
           }
         ]
+      },
+      {
+        "id": "age11_13-mod-5",
+        "titleZh": "六、 冰上技术",
+        "titleEn": "6. On-Ice Technique",
+        "descriptionZh": "",
+        "descriptionEn": "",
+        "items": [
+          {
+            "id": "age11_13-m5-i0",
+            "titleZh": "起跑（站位、发令反应、第一步蹬伸）",
+            "titleEn": "Start (Stance, Reaction, First Push)",
+            "descriptionZh": "听发令后从静止站位完成第一步蹬伸，重心前移再接滑行。每次之间完全停稳再起。",
+            "descriptionEn": "From a still stance, react and finish the first push, then glide. Reset fully before the next start.",
+            "category": "ice",
+            "targetZh": "6-8次",
+            "targetEn": "6-8 reps",
+            "tagsZh": [
+              "起跑",
+              "反应",
+              "冰感"
+            ],
+            "tagsEn": [
+              "Start",
+              "Reaction",
+              "Ice"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m5-i1",
+            "titleZh": "弯道入口路线",
+            "titleEn": "Corner Entry Line",
+            "descriptionZh": "进弯前选好入弯点，沿设定路线压进弯道。不提前切进，也不漂出路线。",
+            "descriptionEn": "Pick the entry point before the corner and hold the set line in. Do not dive early or drift wide.",
+            "category": "ice",
+            "targetZh": "4组",
+            "targetEn": "4 sets",
+            "tagsZh": [
+              "弯道",
+              "路线",
+              "冰感"
+            ],
+            "tagsEn": [
+              "Corner",
+              "Entry",
+              "Ice"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m5-i2",
+            "titleZh": "外刃压刃",
+            "titleEn": "Outside Edge Pressure",
+            "descriptionZh": "用外侧刃稳定压住冰面，身体向圆心倾斜。刃要咬住冰，不打滑。",
+            "descriptionEn": "Hold the outside edge on the ice with the body leaning into the corner. The edge stays set, without skidding.",
+            "category": "ice",
+            "targetZh": "4组",
+            "targetEn": "4 sets",
+            "tagsZh": [
+              "外刃",
+              "压刃",
+              "冰感"
+            ],
+            "tagsEn": [
+              "Edge",
+              "Pressure",
+              "Ice"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m5-i3",
+            "titleZh": "低姿滑行",
+            "titleEn": "Low Skating Position",
+            "descriptionZh": "保持低重心滑行，躯干稳定，视线向前。姿势先稳定，再谈速度。",
+            "descriptionEn": "Skate low, with a steady trunk and eyes forward. Hold the shape before adding speed.",
+            "category": "ice",
+            "targetZh": "4圈",
+            "targetEn": "4 laps",
+            "tagsZh": [
+              "低姿",
+              "滑行",
+              "冰感"
+            ],
+            "tagsEn": [
+              "Posture",
+              "Glide",
+              "Ice"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m5-i4",
+            "titleZh": "交叉步节奏",
+            "titleEn": "Crossover Rhythm",
+            "descriptionZh": "弯道交叉步按固定节拍完成，步频均匀。左右脚交接清楚，不拖步。",
+            "descriptionEn": "Corner crossovers stay on a set beat, with an even cadence. The foot change is clean, without dragging.",
+            "category": "ice",
+            "targetZh": "4组",
+            "targetEn": "4 sets",
+            "tagsZh": [
+              "交叉步",
+              "节奏",
+              "冰感"
+            ],
+            "tagsEn": [
+              "Crossover",
+              "Rhythm",
+              "Ice"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m5-i5",
+            "titleZh": "直道—弯道衔接",
+            "titleEn": "Straight-to-Corner Transition",
+            "descriptionZh": "直道最后一步直接接入弯道第一步。速度不掉，路线不晃。",
+            "descriptionEn": "The last straight step becomes the first corner step. Speed holds, and the line does not wobble.",
+            "category": "ice",
+            "targetZh": "4组",
+            "targetEn": "4 sets",
+            "tagsZh": [
+              "衔接",
+              "直道",
+              "弯道"
+            ],
+            "tagsEn": [
+              "Transition",
+              "Straight",
+              "Corner"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m5-i6",
+            "titleZh": "出弯加速",
+            "titleEn": "Corner Exit Acceleration",
+            "descriptionZh": "出弯后沿切线加速，第一步蹬伸做完整，再回到直道节奏。",
+            "descriptionEn": "Accelerate on the exit tangent, finish the first push, then settle back into the straight rhythm.",
+            "category": "ice",
+            "targetZh": "4组",
+            "targetEn": "4 sets",
+            "tagsZh": [
+              "出弯",
+              "加速",
+              "冰感"
+            ],
+            "tagsEn": [
+              "Exit",
+              "Speed",
+              "Ice"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age11_13-m5-i7",
+            "titleZh": "技术圈",
+            "titleEn": "Technique Laps",
+            "descriptionZh": "同一路线按慢速、中速、计时三档完成。慢速看动作，中速看节奏，计时看稳定发挥。",
+            "descriptionEn": "Skate the same line at three gears: slow, medium, and timed. Slow is for the pattern, medium for rhythm, timed for a steady effort.",
+            "category": "ice",
+            "targetZh": "4组",
+            "targetEn": "4 sets",
+            "tagsZh": [
+              "技术圈",
+              "节奏",
+              "冰感"
+            ],
+            "tagsEn": [
+              "Laps",
+              "Rhythm",
+              "Ice"
+            ],
+            "difficultyLevel": 8
+          }
+        ]
       }
     ],
     "weeklyRoutine": {
@@ -1665,6 +1968,21 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "routineItemId": "age11_13-w0-t1",
             "taskLabelZh": "负重平板支撑 / 健腹轮抗伸展 1分钟",
             "taskLabelEn": "Weighted Plank / Ab Wheel 1 min"
+          },
+          {
+            "routineItemId": "age11_13-w0-t2",
+            "taskLabelZh": "慢速离心深蹲进阶 4组",
+            "taskLabelEn": "Slow Eccentric Squat Progression 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w0-t3",
+            "taskLabelZh": "自重保加利亚分腿蹲 4组",
+            "taskLabelEn": "Bodyweight Bulgarian Split Squat 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w0-t4",
+            "taskLabelZh": "弹力带臀推 4组x10次",
+            "taskLabelEn": "Banded Hip Thrust 4x10"
           }
         ],
         "tuesday": [
@@ -1687,6 +2005,21 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "routineItemId": "age11_13-w1-t3",
             "taskLabelZh": "医药球侧向抛掷 4组",
             "taskLabelEn": "Med Ball Rotational Throws 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w1-t4",
+            "taskLabelZh": "起跑（站位、发令反应、第一步蹬伸） 6-8次",
+            "taskLabelEn": "Start (Stance, Reaction, First Push) 6-8 reps"
+          },
+          {
+            "routineItemId": "age11_13-w1-t5",
+            "taskLabelZh": "交叉步节奏 4组",
+            "taskLabelEn": "Crossover Rhythm 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w1-t6",
+            "taskLabelZh": "技术圈 4组",
+            "taskLabelEn": "Technique Laps 4 sets"
           }
         ],
         "wednesday": [
@@ -1731,6 +2064,16 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "routineItemId": "age11_13-w3-t3",
             "taskLabelZh": "抗旋转核心训练（Pallof Press） 4组",
             "taskLabelEn": "Pallof Press (Anti-Rotation) 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w3-t4",
+            "taskLabelZh": "直道—弯道衔接 4组",
+            "taskLabelEn": "Straight-to-Corner Transition 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w3-t5",
+            "taskLabelZh": "低姿滑行 4圈",
+            "taskLabelEn": "Low Skating Position 4 laps"
           }
         ],
         "friday": [
@@ -1738,6 +2081,21 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "routineItemId": "age11_13-w4-t0",
             "taskLabelZh": "悬垂举腿 / 俄罗斯转体 4组",
             "taskLabelEn": "Hanging Leg Raises / Russian Twists 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w4-t1",
+            "taskLabelZh": "侧向跨跳进阶 4组",
+            "taskLabelEn": "Lateral Bound Progression 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w4-t2",
+            "taskLabelZh": "单腿臀桥进阶 4组",
+            "taskLabelEn": "Single-leg Glute Bridge Progression 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w4-t3",
+            "taskLabelZh": "自重深蹲跳 4组",
+            "taskLabelEn": "Bodyweight Squat Jump 4 sets"
           }
         ],
         "saturday": [
@@ -1750,6 +2108,21 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "routineItemId": "age11_13-w5-t1",
             "taskLabelZh": "敏捷梯/锥桶组合变向（In-Out-Cut） 6趟",
             "taskLabelEn": "Agility Cuts (In-Out-Cut) 6 laps"
+          },
+          {
+            "routineItemId": "age11_13-w5-t2",
+            "taskLabelZh": "弯道入口路线 4组",
+            "taskLabelEn": "Corner Entry Line 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w5-t3",
+            "taskLabelZh": "外刃压刃 4组",
+            "taskLabelEn": "Outside Edge Pressure 4 sets"
+          },
+          {
+            "routineItemId": "age11_13-w5-t4",
+            "taskLabelZh": "出弯加速 4组",
+            "taskLabelEn": "Corner Exit Acceleration 4 sets"
           }
         ],
         "sunday": [
@@ -1782,11 +2155,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "weekday": "monday",
           "taskLabelsZh": [
             "上肢拉力训练（引体向上/划船） 3组",
-            "负重平板支撑 / 健腹轮抗伸展 1分钟"
+            "负重平板支撑 / 健腹轮抗伸展 1分钟",
+            "慢速离心深蹲进阶 4组",
+            "自重保加利亚分腿蹲 4组",
+            "弹力带臀推 4组x10次"
           ],
           "taskLabelsEn": [
             "Pull-ups / Rows 3 sets",
-            "Weighted Plank / Ab Wheel 1 min"
+            "Weighted Plank / Ab Wheel 1 min",
+            "Slow Eccentric Squat Progression 4 sets",
+            "Bodyweight Bulgarian Split Squat 4 sets",
+            "Banded Hip Thrust 4x10"
           ]
         },
         {
@@ -1802,13 +2181,19 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "敏捷梯/锥桶组合变向（In-Out-Cut） 5趟",
             "侧向跳跃（连贯性单腿） 4组",
             "壶铃摇摆（Kettlebell Swing） 4组",
-            "医药球侧向抛掷 4组"
+            "医药球侧向抛掷 4组",
+            "起跑（站位、发令反应、第一步蹬伸） 6-8次",
+            "交叉步节奏 4组",
+            "技术圈 4组"
           ],
           "taskLabelsEn": [
             "Agility Cuts (In-Out-Cut) 5 laps",
             "Continuous Lateral Bounds 4 sets",
             "Kettlebell Swings 4 sets",
-            "Med Ball Rotational Throws 4 sets"
+            "Med Ball Rotational Throws 4 sets",
+            "Start (Stance, Reaction, First Push) 6-8 reps",
+            "Crossover Rhythm 4 sets",
+            "Technique Laps 4 sets"
           ]
         },
         {
@@ -1846,13 +2231,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "滑行板高强度间歇（HIIT） 10组",
             "动感单车冲刺（Sprint Intervals） 10组",
             "靠墙静蹲（负重/单腿/TRX） 3组",
-            "抗旋转核心训练（Pallof Press） 4组"
+            "抗旋转核心训练（Pallof Press） 4组",
+            "直道—弯道衔接 4组",
+            "低姿滑行 4圈"
           ],
           "taskLabelsEn": [
             "Slide Board HIIT 10 sets",
             "Spin Bike Sprints 10 sets",
             "Wall-sit (Weighted/Single-leg/TRX) 3 sets",
-            "Pallof Press (Anti-Rotation) 4 sets"
+            "Pallof Press (Anti-Rotation) 4 sets",
+            "Straight-to-Corner Transition 4 sets",
+            "Low Skating Position 4 laps"
           ]
         },
         {
@@ -1865,10 +2254,16 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "durationEn": "90 mins",
           "weekday": "friday",
           "taskLabelsZh": [
-            "悬垂举腿 / 俄罗斯转体 4组"
+            "悬垂举腿 / 俄罗斯转体 4组",
+            "侧向跨跳进阶 4组",
+            "单腿臀桥进阶 4组",
+            "自重深蹲跳 4组"
           ],
           "taskLabelsEn": [
-            "Hanging Leg Raises / Russian Twists 4 sets"
+            "Hanging Leg Raises / Russian Twists 4 sets",
+            "Lateral Bound Progression 4 sets",
+            "Single-leg Glute Bridge Progression 4 sets",
+            "Bodyweight Squat Jump 4 sets"
           ]
         },
         {
@@ -1882,11 +2277,17 @@ export const ACADEMY_STAGES: AcademyStage[] = [
           "weekday": "saturday",
           "taskLabelsZh": [
             "400米/800米田径场冲刺 4组",
-            "敏捷梯/锥桶组合变向（In-Out-Cut） 6趟"
+            "敏捷梯/锥桶组合变向（In-Out-Cut） 6趟",
+            "弯道入口路线 4组",
+            "外刃压刃 4组",
+            "出弯加速 4组"
           ],
           "taskLabelsEn": [
             "400m/800m Track Sprints 4 sets",
-            "Agility Cuts (In-Out-Cut) 6 laps"
+            "Agility Cuts (In-Out-Cut) 6 laps",
+            "Corner Entry Line 4 sets",
+            "Outside Edge Pressure 4 sets",
+            "Corner Exit Acceleration 4 sets"
           ]
         },
         {
@@ -2010,7 +2411,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "titleEn": "Barbell Hip Thrusts",
             "descriptionZh": "冰上推进力的核心来源，强调顶峰收缩1-2秒。",
             "descriptionEn": "The source of on-ice propulsion. 1-2s pause at the top.",
-            "category": "mobility",
+            "category": "strength",
             "targetZh": "4组 x 10次",
             "targetEn": "4 sets x 10 reps",
             "tagsZh": [
