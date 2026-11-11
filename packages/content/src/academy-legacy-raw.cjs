@@ -430,6 +430,42 @@ module.exports = {
               target: '3组 x 8-10次',
               tag: '上肢力量',
               desc: '速滑起跑和冲刺阶段需要强有力的上肢摆臂协同。'
+            },
+            {
+              name: '慢速离心深蹲进阶',
+              target: '4组 x 6次',
+              tag: '离心 自重 下肢力量',
+              desc: '下蹲用3-4秒缓慢离心，再稳住躯干站起。先把动作质量做对，再增加次数。'
+            },
+            {
+              name: '自重保加利亚分腿蹲',
+              target: '4组 x 每侧8次',
+              tag: '单腿 自重 下肢力量',
+              desc: '后脚搭在凳上，前腿控制下蹲与站起。上身保持直立，膝盖朝向脚尖方向。'
+            },
+            {
+              name: '弹力带臀推',
+              target: '4组 x 10次',
+              tag: '臀肌 弹力带 自重',
+              desc: '弹力带置于髋前，仰卧顶髋至躯干与大腿成一直线。顶起时夹紧臀肌，不靠腰部代偿。'
+            },
+            {
+              name: '侧向跨跳进阶',
+              target: '4组 x 每侧8次',
+              tag: '侧向 自重 爆发',
+              desc: '单腿向侧跨出并稳住落地，再连续回到起始侧。步幅加大时仍保持髋、膝、踝在一条线上。'
+            },
+            {
+              name: '单腿臀桥进阶',
+              target: '4组 x 每侧8次',
+              tag: '臀肌 单腿 自重',
+              desc: '单腿撑地把髋顶起，另一腿伸直。停在最高点1秒，骨盆保持水平。'
+            },
+            {
+              name: '自重深蹲跳',
+              target: '4组 x 6次',
+              tag: '跳跃 自重 爆发',
+              desc: '下蹲后垂直跳起，落地时安静屈膝缓冲。先求落地稳定，再求高度。'
             }
           ]
         },
@@ -554,6 +590,59 @@ module.exports = {
               desc: '大强度训练后加速乳酸代谢和微小炎症恢复。'
             }
           ]
+        },
+        {
+          name: '六、 冰上技术',
+          items: [
+            {
+              name: '起跑 (站位、发令反应、第一步蹬伸)',
+              target: '6-8次',
+              tag: '起跑 反应 冰感',
+              desc: '听发令后从静止站位完成第一步蹬伸，重心前移再接滑行。每次之间完全停稳再起。'
+            },
+            {
+              name: '弯道入口路线',
+              target: '4组',
+              tag: '弯道 路线 冰感',
+              desc: '进弯前选好入弯点，沿设定路线压进弯道。不提前切进，也不漂出路线。'
+            },
+            {
+              name: '外刃压刃',
+              target: '4组',
+              tag: '外刃 压刃 冰感',
+              desc: '用外侧刃稳定压住冰面，身体向圆心倾斜。刃要咬住冰，不打滑。'
+            },
+            {
+              name: '低姿滑行',
+              target: '4圈',
+              tag: '低姿 滑行 冰感',
+              desc: '保持低重心滑行，躯干稳定，视线向前。姿势先稳定，再谈速度。'
+            },
+            {
+              name: '交叉步节奏',
+              target: '4组',
+              tag: '交叉步 节奏 冰感',
+              desc: '弯道交叉步按固定节拍完成，步频均匀。左右脚交接清楚，不拖步。'
+            },
+            {
+              name: '直道—弯道衔接',
+              target: '4组',
+              tag: '衔接 直道 弯道',
+              desc: '直道最后一步直接接入弯道第一步。速度不掉，路线不晃。'
+            },
+            {
+              name: '出弯加速',
+              target: '4组',
+              tag: '出弯 加速 冰感',
+              desc: '出弯后沿切线加速，第一步蹬伸做完整，再回到直道节奏。'
+            },
+            {
+              name: '技术圈',
+              target: '4组',
+              tag: '技术圈 节奏 冰感',
+              desc: '同一路线按慢速、中速、计时三档完成。慢速看动作，中速看节奏，计时看稳定发挥。'
+            }
+          ]
         }
       ],
       weeklyPlan: [
@@ -563,7 +652,10 @@ module.exports = {
           duration: '90分钟',
           tasks: [
             '上肢拉力训练 (引体向上/划船) 3组',
-            '负重平板支撑 / 健腹轮抗伸展 1分钟'
+            '负重平板支撑 / 健腹轮抗伸展 1分钟',
+            '慢速离心深蹲进阶 4组',
+            '自重保加利亚分腿蹲 4组',
+            '弹力带臀推 4组x10次'
           ]
         },
         {
@@ -574,7 +666,10 @@ module.exports = {
             '敏捷梯/锥桶组合变向 (In-Out-Cut) 5趟',
             '侧向跳跃 (连贯性单腿) 4组',
             '壶铃摇摆 (Kettlebell Swing) 4组',
-            '医药球侧向抛掷 4组'
+            '医药球侧向抛掷 4组',
+            '起跑 (站位、发令反应、第一步蹬伸) 6-8次',
+            '交叉步节奏 4组',
+            '技术圈 4组'
           ]
         },
         {
@@ -596,7 +691,9 @@ module.exports = {
             '滑行板高强度间歇 (HIIT) 10组',
             '动感单车冲刺 (Sprint Intervals) 10组',
             '靠墙静蹲 (负重/单腿/TRX) 3组',
-            '抗旋转核心训练 (Pallof Press) 4组'
+            '抗旋转核心训练 (Pallof Press) 4组',
+            '直道—弯道衔接 4组',
+            '低姿滑行 4圈'
           ]
         },
         {
@@ -604,7 +701,10 @@ module.exports = {
           title: '综合力量与速度',
           duration: '90分钟',
           tasks: [
-            '悬垂举腿 / 俄罗斯转体 4组'
+            '悬垂举腿 / 俄罗斯转体 4组',
+            '侧向跨跳进阶 4组',
+            '单腿臀桥进阶 4组',
+            '自重深蹲跳 4组'
           ]
         },
         {
@@ -613,7 +713,10 @@ module.exports = {
           duration: '90分钟',
           tasks: [
             '400米/800米田径场冲刺 4组',
-            '敏捷梯/锥桶组合变向 (In-Out-Cut) 6趟'
+            '敏捷梯/锥桶组合变向 (In-Out-Cut) 6趟',
+            '弯道入口路线 4组',
+            '外刃压刃 4组',
+            '出弯加速 4组'
           ]
         },
         {
@@ -1168,6 +1271,42 @@ module.exports = {
               target: '3 sets x 8-10 reps',
               tag: 'Upper Body',
               desc: 'Upper body synergy required for starts and sprints.'
+            },
+            {
+              name: 'Slow Eccentric Squat Progression',
+              target: '4 sets x 6 reps',
+              tag: 'Eccentric Bodyweight Legs',
+              desc: 'Lower for 3-4 seconds, then stand with the trunk steady. Get the pattern right before adding reps.'
+            },
+            {
+              name: 'Bodyweight Bulgarian Split Squat',
+              target: '4 sets x 8 reps/side',
+              tag: 'Single-leg Bodyweight Legs',
+              desc: 'Rear foot on a bench, front leg controls the lower and the stand. Keep the chest tall and the knee toward the toes.'
+            },
+            {
+              name: 'Banded Hip Thrust',
+              target: '4 sets x 10 reps',
+              tag: 'Glutes Band Bodyweight',
+              desc: 'Band across the hips. Drive up until the trunk and thigh line up, squeezing the glutes instead of the lower back.'
+            },
+            {
+              name: 'Lateral Bound Progression',
+              target: '4 sets x 8 reps/side',
+              tag: 'Lateral Bodyweight Power',
+              desc: 'Bound sideways onto one leg and stick the landing, then return. A longer bound still keeps the hip, knee, and ankle in line.'
+            },
+            {
+              name: 'Single-leg Glute Bridge Progression',
+              target: '4 sets x 8 reps/side',
+              tag: 'Glutes Single-leg Bodyweight',
+              desc: 'Drive the hips up on one leg, the other leg straight. Pause one second at the top and keep the pelvis level.'
+            },
+            {
+              name: 'Bodyweight Squat Jump',
+              target: '4 sets x 6 reps',
+              tag: 'Jump Bodyweight Power',
+              desc: 'Jump straight up from the squat and land quietly with bent knees. Stick the landing before chasing height.'
             }
           ]
         },
@@ -1292,6 +1431,59 @@ module.exports = {
               desc: 'Accelerate lactic acid metabolism after high-intensity days.'
             }
           ]
+        },
+        {
+          name: '6. On-Ice Technique',
+          items: [
+            {
+              name: 'Start (Stance, Reaction, First Push)',
+              target: '6-8 reps',
+              tag: 'Start Reaction Ice',
+              desc: 'From a still stance, react and finish the first push, then glide. Reset fully before the next start.'
+            },
+            {
+              name: 'Corner Entry Line',
+              target: '4 sets',
+              tag: 'Corner Entry Ice',
+              desc: 'Pick the entry point before the corner and hold the set line in. Do not dive early or drift wide.'
+            },
+            {
+              name: 'Outside Edge Pressure',
+              target: '4 sets',
+              tag: 'Edge Pressure Ice',
+              desc: 'Hold the outside edge on the ice with the body leaning into the corner. The edge stays set, without skidding.'
+            },
+            {
+              name: 'Low Skating Position',
+              target: '4 laps',
+              tag: 'Posture Glide Ice',
+              desc: 'Skate low, with a steady trunk and eyes forward. Hold the shape before adding speed.'
+            },
+            {
+              name: 'Crossover Rhythm',
+              target: '4 sets',
+              tag: 'Crossover Rhythm Ice',
+              desc: 'Corner crossovers stay on a set beat, with an even cadence. The foot change is clean, without dragging.'
+            },
+            {
+              name: 'Straight-to-Corner Transition',
+              target: '4 sets',
+              tag: 'Transition Straight Corner',
+              desc: 'The last straight step becomes the first corner step. Speed holds, and the line does not wobble.'
+            },
+            {
+              name: 'Corner Exit Acceleration',
+              target: '4 sets',
+              tag: 'Exit Speed Ice',
+              desc: 'Accelerate on the exit tangent, finish the first push, then settle back into the straight rhythm.'
+            },
+            {
+              name: 'Technique Laps',
+              target: '4 sets',
+              tag: 'Laps Rhythm Ice',
+              desc: 'Skate the same line at three gears: slow, medium, and timed. Slow is for the pattern, medium for rhythm, timed for a steady effort.'
+            }
+          ]
         }
       ],
       weeklyPlan: [
@@ -1301,7 +1493,10 @@ module.exports = {
           duration: '90 mins',
           tasks: [
             'Pull-ups / Rows 3 sets',
-            'Weighted Plank / Ab Wheel 1 min'
+            'Weighted Plank / Ab Wheel 1 min',
+            'Slow Eccentric Squat Progression 4 sets',
+            'Bodyweight Bulgarian Split Squat 4 sets',
+            'Banded Hip Thrust 4x10'
           ]
         },
         {
@@ -1312,7 +1507,10 @@ module.exports = {
             'Agility Cuts (In-Out-Cut) 5 laps',
             'Continuous Lateral Bounds 4 sets',
             'Kettlebell Swings 4 sets',
-            'Med Ball Rotational Throws 4 sets'
+            'Med Ball Rotational Throws 4 sets',
+            'Start (Stance, Reaction, First Push) 6-8 reps',
+            'Crossover Rhythm 4 sets',
+            'Technique Laps 4 sets'
           ]
         },
         {
@@ -1334,7 +1532,9 @@ module.exports = {
             'Slide Board HIIT 10 sets',
             'Spin Bike Sprints 10 sets',
             'Wall-sit (Weighted/Single-leg/TRX) 3 sets',
-            'Pallof Press (Anti-Rotation) 4 sets'
+            'Pallof Press (Anti-Rotation) 4 sets',
+            'Straight-to-Corner Transition 4 sets',
+            'Low Skating Position 4 laps'
           ]
         },
         {
@@ -1342,7 +1542,10 @@ module.exports = {
           title: 'Combo Power',
           duration: '90 mins',
           tasks: [
-            'Hanging Leg Raises / Russian Twists 4 sets'
+            'Hanging Leg Raises / Russian Twists 4 sets',
+            'Lateral Bound Progression 4 sets',
+            'Single-leg Glute Bridge Progression 4 sets',
+            'Bodyweight Squat Jump 4 sets'
           ]
         },
         {
@@ -1351,7 +1554,10 @@ module.exports = {
           duration: '90 mins',
           tasks: [
             '400m/800m Track Sprints 4 sets',
-            'Agility Cuts (In-Out-Cut) 6 laps'
+            'Agility Cuts (In-Out-Cut) 6 laps',
+            'Corner Entry Line 4 sets',
+            'Outside Edge Pressure 4 sets',
+            'Corner Exit Acceleration 4 sets'
           ]
         },
         {

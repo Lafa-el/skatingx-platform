@@ -41,6 +41,17 @@ describe("academy content: both languages are complete", () => {
     expect(ACADEMY_STAGES).toHaveLength(5);
   });
 
+  it("difficulty follows the stage: age4_7 is 3, age8_10 is 6, and the rest are 8", () => {
+    for (const stage of ACADEMY_STAGES) {
+      const expected = stage.id === "age4_7" ? 3 : stage.id === "age8_10" ? 6 : 8;
+      for (const module of stage.modules) {
+        for (const item of module.items) {
+          expect(item.difficultyLevel, item.id).toBe(expected);
+        }
+      }
+    }
+  });
+
   it("every stage has an age range in both languages, taken from the legacy source", () => {
     ACADEMY_STAGES.forEach((stage, i) => {
       expect(stage.ageRangeZh, stage.id).toBe(legacy.zh[i]!.age);
@@ -66,7 +77,7 @@ describe("academy content: both languages are complete", () => {
       });
     });
     // Guards the loops above against passing on empty data.
-    expect(seen).toBe(63);
+    expect(seen).toBe(77);
   });
 
   it("every weekday routine item carries the same two labels as its day plan, in the same order", () => {
@@ -79,7 +90,7 @@ describe("academy content: both languages are complete", () => {
         seen += items.length;
       }
     }
-    expect(seen).toBe(63);
+    expect(seen).toBe(77);
   });
 });
 
@@ -102,7 +113,7 @@ describe("academy content: drill tags in both languages", () => {
       });
     });
     // Guards the loops above against passing on empty data.
-    expect(seen).toBe(66);
+    expect(seen).toBe(80);
   });
 });
 
@@ -173,6 +184,6 @@ describe("academy content: Chinese punctuation (ADR-004 A5)", () => {
         });
       });
     });
-    expect(seen).toBe(66);
+    expect(seen).toBe(80);
   });
 });
