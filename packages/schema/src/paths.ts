@@ -124,6 +124,12 @@ export const paths = {
    */
   videoEntry: (userId: string, videoId: string) => `${prefix(userId)}/videos/${videoId}`,
   videoEntriesCollection: (userId: string) => `${prefix(userId)}/videos`,
+  /**
+   * User-level camp list for analysis, not under an athlete and not under the journal.
+   * `camps/{id}` is 6 segments, so the generic owner rule covers it.
+   */
+  camp: (userId: string, campId: string) => `${prefix(userId)}/camps/${campId}`,
+  campsCollection: (userId: string) => `${prefix(userId)}/camps`,
 } as const;
 
 /** Split a path string into Firestore `doc()` segments. */

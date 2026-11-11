@@ -158,6 +158,7 @@ describe("AnalysisLayout", () => {
       "配速",
       "装备",
       "视频中心",
+      "训练营",
     ]);
   });
 
@@ -171,6 +172,7 @@ describe("AnalysisLayout", () => {
       "Pacing",
       "Equipment",
       "Videos",
+      "Camps",
     ]);
   });
 });
