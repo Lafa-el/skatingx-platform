@@ -1,56 +1,9 @@
 import { readFileSync } from "node:fs";
 
-import { PLAN_DAYS } from "@skatingx/skating-domain";
+import { getAcademyStage } from "@skatingx/content";
 import { describe, expect, it } from "vitest";
 
-import { planCandidatesFor, planCandidatesForStage } from "./plan-candidates";
-import { PLAN_DAY_ENTRIES } from "./plan-day-entries";
-
-describe("planCandidatesFor", () => {
-  it("turns the weekday's entries into strings in the language of the day it is called in", () => {
-    // 2026-10-26 is a Monday.
-    expect(planCandidatesFor("lean", "2026-10-26", "zh").slice(0, 2)).toEqual([
-      { planEntryId: "jd_tech_mon.1", text: "动态热身与髋踝激活", description: "冰前" },
-      { planEntryId: "jd_tech_mon.2", text: "干地滑行姿势", target: "6组20秒", description: "冰前" },
-    ]);
-    expect(planCandidatesFor("lean", "2026-10-26", "en").slice(0, 2)).toEqual([
-      { planEntryId: "jd_tech_mon.1", text: "Dynamic warm-up and hip and ankle activation", description: "Land warm-up" },
-      { planEntryId: "jd_tech_mon.2", text: "Dry-land skating posture", target: "6 sets of 20 seconds", description: "Land warm-up" },
-    ]);
-  });
-
-  it("gives the same entry ids in both languages", () => {
-    for (const day of ["2026-10-26", "2026-10-27", "2026-10-29", "2026-10-31"]) {
-      expect(planCandidatesFor("bounce", day, "zh").map((c) => c.planEntryId)).toEqual(
-        planCandidatesFor("bounce", day, "en").map((c) => c.planEntryId),
-      );
-    }
-  });
-
-  it("generates nothing on a rest day, and every other day gets at most five tasks", () => {
-    expect(planCandidatesFor("lean", "2026-11-01", "zh")).toEqual([]);
-    for (const focus of ["lean", "bounce", "endurance"] as const) {
-      for (let day = 26; day <= 31; day += 1) {
-        const count = planCandidatesFor(focus, `2026-10-${day}`, "zh").length;
-        expect(count).toBeGreaterThan(0);
-        expect(count).toBeLessThanOrEqual(5);
-      }
-    }
-  });
-
-  it("only ever produces ids that exist in the entry table", () => {
-    const known = new Set(Object.values(PLAN_DAY_ENTRIES).flatMap((entries) => entries.map((entry) => entry.id)));
-    expect(PLAN_DAYS).toHaveLength(21);
-    for (const candidate of planCandidatesFor("endurance", "2026-10-31", "zh")) {
-      expect(known.has(candidate.planEntryId)).toBe(true);
-    }
-  });
-
-  it("does not read the PRO flag", () => {
-    const source = readFileSync(new URL("./plan-candidates.ts", import.meta.url), "utf8");
-    expect(source).not.toMatch(/isPro|useIsPro/);
-  });
-});
+import { linkedItemCategory, planCandidatesForStage } from "./plan-candidates";
 
 const DATES = {
   monday: "2026-10-26",
@@ -114,14 +67,141 @@ describe("planCandidatesForStage", () => {
     }
   });
 
-  it("leaves every other stage on the old template", () => {
-    for (const stageId of ["age8_10", null]) {
-      for (const focus of ["lean", "bounce", "endurance"] as const) {
-        for (const date of Object.values(DATES)) {
-          expect(planCandidatesForStage(stageId, focus, date, "zh")).toEqual(planCandidatesFor(focus, date, "zh"));
-          expect(planCandidatesForStage(stageId, focus, date, "en")).toEqual(planCandidatesFor(focus, date, "en"));
-        }
-      }
+  it("reads a shared drill's category, and returns null for an unknown id", () => {
+    const stage = getAcademyStage("age14_16");
+    expect(stage).toBeTruthy();
+    expect(linkedItemCategory(stage!, "shared-m0-i0")).toBe("recovery");
+    expect(linkedItemCategory(stage!, "shared-m1-i0")).toBe("dryland");
+    expect(linkedItemCategory(stage!, "age14_16-m0-i0")).toBe(stage!.modules[0]!.items[0]!.category);
+    expect(linkedItemCategory(stage!, "missing")).toBeNull();
+  });
+
+  it("puts the shared warm-up first on an endurance Saturday", () => {
+    expect(planCandidatesForStage("age14_16", "endurance", DATES.saturday, "zh").map((candidate) => candidate.planEntryId)).toEqual([
+      "age14_16-w5-t0",
+      "age14_16-w5-t1",
+      "age14_16-w5-t2",
+      "age14_16-w5-t3",
+    ]);
+  });
+
+  it("does not read the PRO flag", () => {
+    const source = readFileSync(new URL("./plan-candidates.ts", import.meta.url), "utf8");
+    expect(source).not.toMatch(/isPro|useIsPro/);
+  });
+
+});
+
+type WeekIds = Record<keyof typeof DATES, readonly string[]>;
+type FocusIds = Record<"lean" | "bounce" | "endurance", WeekIds>;
+
+const EMPTY_WEEK: WeekIds = {
+  monday: [],
+  tuesday: [],
+  wednesday: [],
+  thursday: [],
+  friday: [],
+  saturday: [],
+  sunday: [],
+};
+
+const AGE4_7_IDS: FocusIds = {
+  lean: {
+    ...EMPTY_WEEK,
+    tuesday: ["age4_7-w0-t1", "age4_7-w0-t4", "age4_7-w0-t3", "age4_7-w0-t0", "age4_7-w0-t2"],
+    thursday: ["age4_7-w1-t1", "age4_7-w1-t0", "age4_7-w1-t2", "age4_7-w1-t4", "age4_7-w1-t3"],
+    saturday: ["age4_7-w2-t0", "age4_7-w2-t2", "age4_7-w2-t3", "age4_7-w2-t1", "age4_7-w2-t4"],
+  },
+  bounce: {
+    ...EMPTY_WEEK,
+    tuesday: ["age4_7-w0-t1", "age4_7-w0-t4", "age4_7-w0-t0", "age4_7-w0-t2", "age4_7-w0-t3"],
+    thursday: ["age4_7-w1-t4", "age4_7-w1-t1", "age4_7-w1-t2", "age4_7-w1-t0", "age4_7-w1-t3"],
+    saturday: ["age4_7-w2-t1", "age4_7-w2-t4", "age4_7-w2-t0", "age4_7-w2-t2", "age4_7-w2-t3"],
+  },
+  endurance: {
+    ...EMPTY_WEEK,
+    tuesday: ["age4_7-w0-t1", "age4_7-w0-t4", "age4_7-w0-t0", "age4_7-w0-t2"],
+    thursday: ["age4_7-w1-t3", "age4_7-w1-t1", "age4_7-w1-t2", "age4_7-w1-t4"],
+    saturday: ["age4_7-w2-t0", "age4_7-w2-t2", "age4_7-w2-t3", "age4_7-w2-t1"],
+  },
+};
+
+const AGE8_10_IDS: FocusIds = {
+  lean: {
+    ...EMPTY_WEEK,
+    monday: ["age8_10-w0-t0", "age8_10-w0-t1", "age8_10-w0-t2", "age8_10-w0-t3"],
+    tuesday: ["age8_10-w1-t0", "age8_10-w1-t1", "age8_10-w1-t2"],
+    thursday: ["age8_10-w2-t2", "age8_10-w2-t3", "age8_10-w2-t4", "age8_10-w2-t0", "age8_10-w2-t1"],
+    friday: ["age8_10-w3-t3", "age8_10-w3-t0", "age8_10-w3-t1", "age8_10-w3-t2"],
+    saturday: ["age8_10-w4-t2", "age8_10-w4-t3", "age8_10-w4-t0", "age8_10-w4-t1"],
+  },
+  bounce: {
+    ...EMPTY_WEEK,
+    monday: ["age8_10-w0-t0", "age8_10-w0-t1", "age8_10-w0-t2", "age8_10-w0-t3"],
+    tuesday: ["age8_10-w1-t0", "age8_10-w1-t1", "age8_10-w1-t2"],
+    thursday: ["age8_10-w2-t0", "age8_10-w2-t1", "age8_10-w2-t2", "age8_10-w2-t3", "age8_10-w2-t4"],
+    friday: ["age8_10-w3-t3", "age8_10-w3-t0", "age8_10-w3-t1", "age8_10-w3-t2"],
+    saturday: ["age8_10-w4-t2", "age8_10-w4-t3", "age8_10-w4-t0", "age8_10-w4-t1"],
+  },
+  endurance: {
+    ...EMPTY_WEEK,
+    monday: ["age8_10-w0-t0", "age8_10-w0-t1", "age8_10-w0-t2", "age8_10-w0-t3"],
+    tuesday: ["age8_10-w1-t0", "age8_10-w1-t1", "age8_10-w1-t2"],
+    thursday: ["age8_10-w2-t2", "age8_10-w2-t3", "age8_10-w2-t4", "age8_10-w2-t0"],
+    friday: ["age8_10-w3-t3", "age8_10-w3-t0", "age8_10-w3-t1", "age8_10-w3-t2"],
+    saturday: ["age8_10-w4-t2", "age8_10-w4-t3", "age8_10-w4-t0", "age8_10-w4-t1"],
+  },
+};
+
+const AGE14_16_IDS: FocusIds = {
+  lean: {
+    ...EMPTY_WEEK,
+    monday: ["age14_16-w0-t0", "age14_16-w0-t1", "age14_16-w0-t2", "age14_16-w0-t3", "age14_16-w0-t4"],
+    tuesday: ["age14_16-w1-t0", "age14_16-w1-t1", "age14_16-w1-t2"],
+    thursday: ["age14_16-w3-t0", "age14_16-w3-t1", "age14_16-w3-t2", "age14_16-w3-t3"],
+    friday: ["age14_16-w4-t0", "age14_16-w4-t1", "age14_16-w4-t3", "age14_16-w4-t2"],
+    saturday: ["age14_16-w5-t0", "age14_16-w5-t1", "age14_16-w5-t2", "age14_16-w5-t3"],
+  },
+  bounce: {
+    ...EMPTY_WEEK,
+    monday: ["age14_16-w0-t0", "age14_16-w0-t1", "age14_16-w0-t2", "age14_16-w0-t3", "age14_16-w0-t4"],
+    tuesday: ["age14_16-w1-t0", "age14_16-w1-t1", "age14_16-w1-t2"],
+    thursday: ["age14_16-w3-t0", "age14_16-w3-t1", "age14_16-w3-t2", "age14_16-w3-t3"],
+    friday: ["age14_16-w4-t2", "age14_16-w4-t0", "age14_16-w4-t1", "age14_16-w4-t3"],
+    saturday: ["age14_16-w5-t0", "age14_16-w5-t1", "age14_16-w5-t2", "age14_16-w5-t3"],
+  },
+  endurance: {
+    ...EMPTY_WEEK,
+    monday: ["age14_16-w0-t0", "age14_16-w0-t1", "age14_16-w0-t2", "age14_16-w0-t3"],
+    tuesday: ["age14_16-w1-t0", "age14_16-w1-t1", "age14_16-w1-t2"],
+    thursday: ["age14_16-w3-t0", "age14_16-w3-t1", "age14_16-w3-t2", "age14_16-w3-t3"],
+    friday: ["age14_16-w4-t0", "age14_16-w4-t1", "age14_16-w4-t3", "age14_16-w4-t2"],
+    saturday: ["age14_16-w5-t0", "age14_16-w5-t1", "age14_16-w5-t2", "age14_16-w5-t3"],
+  },
+};
+
+function expectStageIds(stageId: string | null, table: FocusIds) {
+  for (const focus of ["lean", "bounce", "endurance"] as const) {
+    for (const [weekday, date] of Object.entries(DATES)) {
+      const expected = table[focus][weekday as keyof typeof DATES];
+      const zh = planCandidatesForStage(stageId, focus, date, "zh");
+      const en = planCandidatesForStage(stageId, focus, date, "en");
+      expect(zh.map((candidate) => candidate.planEntryId)).toEqual(expected);
+      expect(en.map((candidate) => candidate.planEntryId)).toEqual(expected);
+      if (focus === "endurance") expect(zh.length).toBeLessThanOrEqual(4);
     }
+  }
+}
+
+describe("planCandidatesForStage, every stage", () => {
+  it("sorts 4-7, 8-10 and 14-16 by the same focus rule, and caps endurance at four", () => {
+    expectStageIds("age4_7", AGE4_7_IDS);
+    expectStageIds("age8_10", AGE8_10_IDS);
+    expectStageIds("age14_16", AGE14_16_IDS);
+  });
+
+  it("generates nothing for 17-18 and for a missing stage", () => {
+    expectStageIds("age17_18", { lean: EMPTY_WEEK, bounce: EMPTY_WEEK, endurance: EMPTY_WEEK });
+    expectStageIds(null, { lean: EMPTY_WEEK, bounce: EMPTY_WEEK, endurance: EMPTY_WEEK });
   });
 });

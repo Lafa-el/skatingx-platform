@@ -24,7 +24,7 @@ export function addDaysToDateString(dateId: DateString, days: number): DateStrin
   return todayDateString(date);
 }
 
-/** The calendar day a template day (`jd_tech_wed`) falls on in the week that starts on `monday`. */
+/** The calendar day a plan day id (`jd_tech_wed` or `age11_13_mon`) falls on in the week that starts on `monday`. */
 export function planDayDate(monday: DateString, dayId: string): DateString {
   const suffix = dayId.slice(dayId.lastIndexOf("_") + 1);
   if (!Object.hasOwn(WEEKDAY_OFFSET, suffix)) throw new Error(`unknown-plan-day:${dayId}`);

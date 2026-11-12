@@ -10,19 +10,11 @@ import { createTaskId } from "../tasks";
  */
 
 export type PlanTaskCandidate = {
-  /** Stable, language-independent entry id such as `jd_tech_mon.1`. */
+  /** Stable, language-independent entry id such as `age11_13-w0-t0`. */
   planEntryId: string;
   text: string;
   target?: string;
   description?: string;
-};
-
-const WEEKDAY_SUFFIX = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
-
-const FOCUS_PREFIX: Record<TrainingPlanFocus, string> = {
-  lean: "jd_tech",
-  bounce: "jd_speed",
-  endurance: "jd_race",
 };
 
 function parseLocalDate(dateId: DateString): Date {
@@ -36,11 +28,6 @@ export function mondayOfWeek(dateId: DateString): DateString {
   const sinceMonday = (date.getDay() + 6) % 7;
   date.setDate(date.getDate() - sinceMonday);
   return todayDateString(date);
-}
-
-/** The template day id (`jd_tech_mon`) that a focus lays on the weekday of `dateId`. */
-export function planDayIdFor(focus: TrainingPlanFocus, dateId: DateString): string {
-  return `${FOCUS_PREFIX[focus]}_${WEEKDAY_SUFFIX[parseLocalDate(dateId).getDay()]}`;
 }
 
 export type PlanGenerationSkip =

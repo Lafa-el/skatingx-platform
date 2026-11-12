@@ -6,10 +6,8 @@ import {
   buildTaskFromPlanCandidate,
   filterNewPlanCandidates,
   mondayOfWeek,
-  planDayIdFor,
   planGenerationSkip,
 } from "./plan-tasks";
-import { PLAN_DAYS } from "./plan-template";
 
 describe("mondayOfWeek", () => {
   it("returns the Monday of a Monday-to-Sunday week", () => {
@@ -21,20 +19,6 @@ describe("mondayOfWeek", () => {
 
   it("crosses a month and a year", () => {
     expect(mondayOfWeek("2026-01-01")).toBe("2025-12-29");
-  });
-});
-
-describe("planDayIdFor", () => {
-  it("lays each focus on the weekday of the date, and every id is a real template day", () => {
-    expect(planDayIdFor("lean", "2026-10-26")).toBe("jd_tech_mon");
-    expect(planDayIdFor("bounce", "2026-10-29")).toBe("jd_speed_thu");
-    expect(planDayIdFor("endurance", "2026-11-01")).toBe("jd_race_sun");
-    const ids = new Set(PLAN_DAYS.map((day) => day.id));
-    for (const focus of ["lean", "bounce", "endurance"] as const) {
-      for (let day = 26; day <= 31; day += 1) {
-        expect(ids.has(planDayIdFor(focus, `2026-10-${day}`))).toBe(true);
-      }
-    }
   });
 });
 

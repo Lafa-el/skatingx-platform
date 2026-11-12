@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { PLAN_DAYS, PLAN_FOCUSES, planDayById, planDays } from "./plan-template";
+import { PLAN_DAYS, PLAN_FOCUSES, planDayById } from "./plan-template";
 
 describe("plan template", () => {
-  it("keeps 21 client day cards, seven for each focus", () => {
+  it("keeps 21 day ids for history, seven for each focus", () => {
     expect(PLAN_DAYS).toHaveLength(21);
     expect(new Set(PLAN_DAYS.map((day) => day.id)).size).toBe(21);
     for (const focus of PLAN_FOCUSES) {
-      expect(planDays(focus)).toHaveLength(7);
+      expect(PLAN_DAYS.filter((day) => day.focus === focus)).toHaveLength(7);
     }
   });
 
