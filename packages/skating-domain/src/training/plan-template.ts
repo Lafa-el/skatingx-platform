@@ -1,8 +1,6 @@
 /**
- * Junior D week templates from the legacy planning tab. The 21 day cards stay
- * on the client. Ids and focus are kept because the points history resolves a
- * stored `plan-checkin` refId back to a focus and weekday; points are no longer
- * awarded from here (ADR-008).
+ * The 21 day cards are retired. These 21 ids stay so the points history can
+ * resolve a stored `plan-checkin` refId. Points are no longer awarded from here (ADR-008).
  */
 
 export const PLAN_FOCUSES = ["lean", "bounce", "endurance"] as const;
@@ -39,10 +37,6 @@ export const PLAN_DAYS: readonly PlanDayTemplate[] = [
   { id: "jd_race_sat", focus: "endurance" },
   { id: "jd_race_sun", focus: "endurance" },
 ];
-
-export function planDays(focus: PlanFocus): readonly PlanDayTemplate[] {
-  return PLAN_DAYS.filter((day) => day.focus === focus);
-}
 
 export function planDayById(taskId: string): PlanDayTemplate | undefined {
   return PLAN_DAYS.find((day) => day.id === taskId);

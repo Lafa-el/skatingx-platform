@@ -18,6 +18,14 @@ export type PlanDayShape = {
   readonly intensity: PlanMessageKey;
 };
 
+/** Surface words stored on a generated task. `off-ice` stays for tasks already written by the old template. */
+export const PLAN_SURFACE_LABEL = {
+  "off-ice": "plan.surface.offIce",
+  "on-ice": "plan.surface.onIce",
+  land: "plan.surface.land",
+  recovery: "plan.surface.recovery",
+} as const satisfies Record<string, PlanMessageKey>;
+
 const LEAN_WEEK: Record<WeekdayKey, PlanDayShape> = {
   monday: { surface: "on-ice", intensity: "plan.intensity.mid" },
   tuesday: { surface: "land", intensity: "plan.intensity.mid" },

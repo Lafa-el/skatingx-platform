@@ -87,6 +87,7 @@ describe("TrainingDayRollover", () => {
 // 2026-10-28 is a Wednesday; the week's Monday is 2026-10-26. Thursday is the next day, same week.
 const WEDNESDAY = new Date(2026, 9, 28, 12, 0, 0);
 const THURSDAY = new Date(2026, 9, 29, 12, 0, 0);
+const SATURDAY = new Date(2026, 9, 31, 12, 0, 0);
 const SUNDAY = new Date(2026, 10, 1, 12, 0, 0);
 
 function readyWeek(over: Record<string, unknown> = {}) {
@@ -105,45 +106,28 @@ describe("TrainingDayRollover: plan task generation", () => {
     vi.setSystemTime(WEDNESDAY);
   });
 
-  it("generates today's tasks for the focus on the state, in the user's language", async () => {
+  it("generates no tasks when the athlete has no birth date", async () => {
+    h.profile = null;
     h.training = readyWeek();
     render(<TrainingDayRollover />);
     await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(1));
-    const [ctx, input, today] = h.generate.mock.calls[0] as [unknown, { focus: string; candidates: { planEntryId: string; text: string }[] }, string];
+    const [ctx, input, today] = h.generate.mock.calls[0] as [unknown, { focus: string; candidates: unknown[] }, string];
     expect(ctx).toMatchObject({ userId: "u1", athleteId: "a1" });
     expect(today).toBe("2026-10-28");
     expect(input.focus).toBe("lean");
-    // Wednesday of the lean week has four entries, written as strings in Chinese.
-    expect(input.candidates.map((c) => c.planEntryId)).toEqual([
-      "jd_tech_wed.1",
-      "jd_tech_wed.2",
-      "jd_tech_wed.3",
-      "jd_tech_wed.4",
-    ]);
-    expect(input.candidates.every((c) => typeof c.text === "string" && c.text.length > 0)).toBe(true);
-    expect(input.candidates[0]?.text).toMatch(/[\u4e00-\u9fff]/);
-    // A day that is already today's needs no rollover.
+    expect(input.candidates).toEqual([]);
     expect(h.rollover).not.toHaveBeenCalled();
   });
 
-  // The race-week suggestion only sets this focus (docs/design/race-day-linkages.md 2.c); the tasks
-  // come from this same generation, from the race template.
-  it("generates the race-week template when the chosen focus is endurance", async () => {
-    h.training = readyWeek({ planFocus: "endurance" });
-    render(<TrainingDayRollover />);
-    await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(1));
-    const input = h.generate.mock.calls[0]?.[1] as { focus: string; candidates: { planEntryId: string; text: string }[] };
-    expect(input.focus).toBe("endurance");
-    expect(input.candidates.length).toBeGreaterThan(0);
-    expect(input.candidates.every((c) => c.planEntryId.startsWith("jd_race_wed."))).toBe(true);
-  });
-
   it("writes the candidates in English when the language is English", async () => {
+    vi.setSystemTime(THURSDAY);
     h.locale = "en";
-    h.training = readyWeek();
+    h.profile = { birthDate: "2015-01-14" };
+    h.training = readyWeek({ lastLoginDate: "2026-10-29" });
     render(<TrainingDayRollover />);
     await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(1));
     const input = h.generate.mock.calls[0]?.[1] as { candidates: { text: string }[] };
+    expect(input.candidates.length).toBeGreaterThan(0);
     expect(input.candidates[0]?.text).not.toMatch(/[\u4e00-\u9fff]/);
   });
 
@@ -219,6 +203,18 @@ describe("TrainingDayRollover: plan task generation", () => {
     h.training = readyWeek({ todayTasks: [{ id: "m" }] });
     view.rerender(<TrainingDayRollover />);
     await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(2));
+  });
+
+  it("a 14-16 birth date generates Saturday's routine items", async () => {
+    vi.setSystemTime(SATURDAY);
+    h.profile = { birthDate: "2012-01-14" };
+    h.training = readyWeek({ lastLoginDate: "2026-10-31" });
+    render(<TrainingDayRollover />);
+    await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(1));
+    const ids = (h.generate.mock.calls[0]?.[1] as { candidates: { planEntryId: string }[] }).candidates.map(
+      (candidate) => candidate.planEntryId,
+    );
+    expect(ids).toEqual(["age14_16-w5-t0", "age14_16-w5-t1", "age14_16-w5-t2", "age14_16-w5-t3"]);
   });
 
   it("an 11-13 birth date generates Thursday's routine items", async () => {

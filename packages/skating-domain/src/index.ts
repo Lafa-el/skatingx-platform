@@ -66,7 +66,6 @@ export {
   PLAN_FOCUSES,
   PLAN_WEEK_NUMBER,
   planDayById,
-  planDays,
   type PlanDayTemplate,
   type PlanFocus,
 } from "./training/plan-template";
@@ -74,7 +73,6 @@ export {
   buildTaskFromPlanCandidate,
   filterNewPlanCandidates,
   mondayOfWeek,
-  planDayIdFor,
   planGenerationSkip,
   type PlanGenerationSkip,
   type PlanTaskCandidate,

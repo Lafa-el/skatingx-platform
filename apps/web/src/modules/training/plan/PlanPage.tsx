@@ -1,4 +1,4 @@
-import { getAcademyStage, getWeekdayRoutineItems, type WeekdayKey } from "@skatingx/content";
+import { getAcademyStage, getWeekdayRoutineItems, type AcademyStage, type WeekdayKey } from "@skatingx/content";
 import { todayDateString } from "@skatingx/schema";
 import {
   deriveRaceWeekFeedback,
@@ -10,7 +10,6 @@ import {
   PLAN_WEEK_NUMBER,
   planDayDate,
   planDayProgress,
-  planDays,
   stageIdForRealAge,
   type PlanDayProgress,
   previousDateString,
@@ -42,8 +41,6 @@ import type { Locale } from "@/shared/i18n/translator";
 import { activeAthleteIdOf } from "@/shared/activeAthleteId";
 import { logActionFailure } from "@/shared/utils/logActionFailure";
 
-import { dayCopy } from "./plan-day-copy";
-import { dayEntries } from "./plan-day-entries";
 import { useHiddenFeedback, usePlanFocus } from "./plan-session";
 import { PLAN_FOCUS_SHAPE } from "./plan-shape";
 
@@ -147,39 +144,26 @@ type ShownDay = {
   generates: boolean;
 };
 
-/** The old Junior D cards. When and kind are already in the active language. */
-function templateDays(locale: Locale, focus: PlanFocus): ShownDay[] {
-  return planDays(focus).map((day) => {
-    const copy = dayCopy(day.id);
-    return {
-      id: day.id,
-      when: tPlan(locale, copy.when),
-      kind: tPlan(locale, copy.kind),
-      intensity: copy.intensity,
-      body: copy.body,
-      generates: dayEntries(day.id).some((entry) => entry.generate !== false),
-    };
-  });
-}
+const GENERIC_BODY: PlanMessageKey = "plan.stage.generic.body";
 
 /**
- * Age 11–13 cards, Monday through Sunday. Titles and durations come from that stage's day plans.
- * A recovery surface is shown and does not generate, which is Wednesday and Sunday on this routine.
+ * One stage's cards, Monday through Sunday. Titles and durations come from that stage's day plans.
+ * A recovery surface is shown and does not generate. A weekday with no routine is shown as rest.
+ * Age 11–13 keeps its own body lines; every other stage uses the generic line until those are written.
  */
-function age11Days(locale: Locale, focus: PlanFocus): ShownDay[] | null {
-  const stage = getAcademyStage("age11_13");
+function stageDays(locale: Locale, focus: PlanFocus, stage: AcademyStage | null): ShownDay[] | null {
   if (!stage) return null;
   return WEEK_ORDER.map((weekday) => {
     const plan = stage.weeklyRoutine.dayPlans.find((item) => item.weekday === weekday);
     const shape = PLAN_FOCUS_SHAPE[focus][weekday];
     return {
-      id: `age11_13_${WEEKDAY_SUFFIX[weekday]}`,
+      id: `${stage.id}_${WEEKDAY_SUFFIX[weekday]}`,
       when: plan
         ? `${localized(locale, { zh: plan.dayLabelZh, en: plan.dayLabelEn })} ${localized(locale, { zh: plan.durationZh, en: plan.durationEn })}`
         : "",
       kind: plan ? localized(locale, { zh: plan.titleZh, en: plan.titleEn }) : "",
       intensity: shape.intensity,
-      body: STAGE_BODY[weekday],
+      body: stage.id === "age11_13" ? STAGE_BODY[weekday] : GENERIC_BODY,
       generates: shape.surface !== "recovery" && getWeekdayRoutineItems(stage, weekday).length > 0,
     };
   });
@@ -260,8 +244,9 @@ export function PlanPage() {
   }, [uid, athleteId]);
 
   const today = todayDateString();
-  // Same rule as generation: no birth date keeps the old template for today.
+  // No birth date shows a prompt and generates no tasks.
   const stageId = profile?.birthDate ? stageIdForRealAge(getRealAge(profile.birthDate, today)) : null;
+  const stage = stageId ? (getAcademyStage(stageId) ?? null) : null;
   const monday = mondayOfWeek(today);
   const hasPastDays = today !== monday;
   const historyKey = `${uid ?? ""}:${athleteId}:${monday}:${today}`;
@@ -295,7 +280,7 @@ export function PlanPage() {
     : history?.key === historyKey
       ? history
       : { key: historyKey, status: "loading", days: new Map() };
-  const days = !focus ? [] : stageId === "age11_13" ? (age11Days(locale, focus) ?? templateDays(locale, focus)) : templateDays(locale, focus);
+  const days = !focus ? [] : (stageDays(locale, focus, stage) ?? []);
   const suggestions = deriveTrainingFeedback(sources, focus).filter((item) => !hidden.has(trainingFeedbackKey(item)));
   const title = focus ? tPlan(locale, FOCUS_TITLE[focus]) : tPlan(locale, "plan.week.choose");
   // Race week suggestion: derived on every render and never stored. Until this week's focus is known
@@ -394,7 +379,14 @@ export function PlanPage() {
     <div className="grid gap-6 lg:grid-cols-12">
       <section className="grid content-start gap-4 lg:col-span-4">
         <header className="grid gap-2">
-          <h1 className="text-xl font-bold text-brand-navy">{tPlan(locale, "plan.title")}</h1>
+          <h1 className="text-xl font-bold text-brand-navy">
+            {stage
+              ? localized(locale, {
+                  zh: `${stage.labelZh}（${stage.ageRangeZh}）`,
+                  en: `${stage.labelEn} (${stage.ageRangeEn})`,
+                })
+              : tPlan(locale, "plan.title.generic")}
+          </h1>
           <p className="text-sm text-brand-navy/80">{tPlan(locale, "plan.intro")}</p>
         </header>
         <div className="grid gap-3">
@@ -434,7 +426,13 @@ export function PlanPage() {
         <p className="text-sm text-brand-navy/80">
           {focus ? tPlan(locale, FOCUS_SUMMARY[focus]) : tPlan(locale, "plan.week.disclaimer")}
         </p>
-        {focus ? (
+        {!focus ? (
+          <Card title={tPlan(locale, "plan.week.choose")}>
+            <p>{tPlan(locale, focusStatus.loading ? "plan.focus.loading" : "plan.empty")}</p>
+          </Card>
+        ) : !stage ? (
+          <p role="status">{tPlan(locale, "plan.noStage")}</p>
+        ) : (
           <ul className="grid gap-3 md:grid-cols-2">
             {days.map((day) => {
               const date = planDayDate(monday, day.id);
@@ -482,10 +480,6 @@ export function PlanPage() {
               );
             })}
           </ul>
-        ) : (
-          <Card title={tPlan(locale, "plan.week.choose")}>
-            <p>{tPlan(locale, focusStatus.loading ? "plan.focus.loading" : "plan.empty")}</p>
-          </Card>
         )}
         {focus ? (
           <div className="grid gap-2 border-t border-brand-navy/10 pt-4">

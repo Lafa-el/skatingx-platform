@@ -1660,8 +1660,8 @@ export const ACADEMY_STAGES: AcademyStage[] = [
       },
       {
         "id": "age11_13-mod-4",
-        "titleZh": "六、 冰上技术",
-        "titleEn": "6. On-Ice Technique",
+        "titleZh": "五、 冰上技术",
+        "titleEn": "5. On-Ice Technique",
         "descriptionZh": "",
         "descriptionEn": "",
         "items": [

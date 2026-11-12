@@ -551,7 +551,7 @@ module.exports = {
           ]
         },
         {
-          name: '六、 冰上技术',
+          name: '五、 冰上技术',
           items: [
             {
               name: '起跑 (站位、发令反应、第一步蹬伸)',
@@ -1452,7 +1452,7 @@ module.exports = {
           ]
         },
         {
-          name: '6. On-Ice Technique',
+          name: '5. On-Ice Technique',
           items: [
             {
               name: 'Start (Stance, Reaction, First Push)',

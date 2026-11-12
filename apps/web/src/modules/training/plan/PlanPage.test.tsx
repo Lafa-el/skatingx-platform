@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { todayDateString } from "@skatingx/schema";
-import { mondayOfWeek, PLAN_DAYS } from "@skatingx/skating-domain";
+import { mondayOfWeek } from "@skatingx/skating-domain";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
@@ -8,7 +8,6 @@ import { TrainingPlanPage } from "@/pages/training/TrainingPlanPage";
 import { act, render, screen, userEvent, within } from "@/test/dom";
 import { legacyColourClasses } from "@/test/legacyLook";
 
-import { PLAN_DAY_COPY } from "./plan-day-copy";
 import planPageSource from "./PlanPage.tsx?raw";
 
 type Row = { id: string; text: string; completed: boolean; source?: string };
@@ -133,8 +132,8 @@ vi.mock("@skatingx/firebase-client", () => ({
   },
 }));
 
-// A Wednesday: 2026-10-26 is the Monday of the week, so Monday and Tuesday are past and Thursday on is later.
-const WEDNESDAY = new Date(2026, 9, 28, 12, 0, 0);
+// A Thursday: Wednesday is this stage's rest day, so today's progress is read on a day that generates.
+const THURSDAY = new Date(2026, 9, 29, 12, 0, 0);
 const SUNDAY = new Date(2026, 10, 1, 12, 0, 0);
 
 beforeEach(() => {
@@ -142,8 +141,9 @@ beforeEach(() => {
   // can run after ours and would count its stop into this test.
   state.stopHistory.mockClear();
   state.historySubscriptions = 0;
+  state.profile = { birthDate: "2015-01-14" };
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(WEDNESDAY);
+  vi.setSystemTime(THURSDAY);
 });
 
 afterEach(() => {
@@ -182,8 +182,8 @@ function leanWeek(todayTasks: Row[], over: Record<string, unknown> = {}) {
   return {
     planFocus: "lean",
     planFocusWeek: "2026-10-26",
-    planGeneratedDate: "2026-10-28",
-    lastLoginDate: "2026-10-28",
+    planGeneratedDate: "2026-10-29",
+    lastLoginDate: "2026-10-29",
     todayTasks,
     ...over,
   };
@@ -198,14 +198,10 @@ const THU = 3;
 const SUN = 6;
 
 describe("training plan page", () => {
-  it("covers every client day card with copy, and stores none of the card text", () => {
-    expect(Object.keys(PLAN_DAY_COPY).sort()).toEqual(PLAN_DAYS.map((day) => day.id).sort());
-  });
-
   it("waits for a focus, then shows seven cards with no check-in, no points and no balance", async () => {
     const user = userEvent.setup({ advanceTimers: () => undefined });
     const view = renderPage();
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Junior D 阶段训练模板");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("专项基础阶段（11-13岁）");
     expect(screen.getByText(/请在左侧选择本周训练侧重/)).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: /技术基础与弯道控制/ }));
@@ -275,9 +271,9 @@ describe("training plan page", () => {
     state.locale = "en";
     setTraining(leanWeek([plan("a", true), plan("b", false)]));
     const view = renderPage();
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Junior D training template");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Foundational Specialty Stage (Age 11-13)");
     expect(screen.queryByRole("region", { name: "Suggestions from analysis" })).toBeNull();
-    expect(within(cards(view.container)[WED]!).getByText("1 of 2 done")).toBeTruthy();
+    expect(within(cards(view.container)[THU]!).getByText("1 of 2 done")).toBeTruthy();
     expect(within(cards(view.container)[TUE]!).getByText("Loading…")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open today's tasks" }).getAttribute("href")).toBe("/training/tasks");
     expect(screen.getByText(/counts every task of the day, including tasks you added and Academy tasks/)).toBeTruthy();
@@ -289,7 +285,7 @@ describe("plan progress, today", () => {
   it("follows the task list: ticking a task on the tasks page moves the count here", () => {
     setTraining(leanWeek([plan("a", false), plan("b", false), plan("c", false)]));
     const view = renderPage();
-    const today = () => cards(view.container)[WED]!;
+    const today = () => cards(view.container)[THU]!;
     expect(within(today()).getByText("已完成 0 / 3")).toBeTruthy();
 
     setTraining(leanWeek([plan("a", true), plan("b", false), plan("c", false)]));
@@ -305,25 +301,25 @@ describe("plan progress, today", () => {
   it("counts only plan tasks, not the ones the user added", () => {
     setTraining(leanWeek([plan("a", true), manual("m1", true), manual("m2", false)]));
     const view = renderPage();
-    expect(within(cards(view.container)[WED]!).getByText("全部完成（1 / 1）")).toBeTruthy();
+    expect(within(cards(view.container)[THU]!).getByText("全部完成（1 / 1）")).toBeTruthy();
   });
 
   it("says 'not generated' before anything was generated", () => {
     setTraining(leanWeek([manual("m", false)], { planGeneratedDate: undefined }));
     const view = renderPage();
-    expect(within(cards(view.container)[WED]!).getByText("未生成")).toBeTruthy();
+    expect(within(cards(view.container)[THU]!).getByText("未生成")).toBeTruthy();
   });
 
   it("says 'generated, then cleared' when every plan task was deleted", () => {
     setTraining(leanWeek([manual("m", false)]));
     const view = renderPage();
-    expect(within(cards(view.container)[WED]!).getByText("已生成，已被清空")).toBeTruthy();
+    expect(within(cards(view.container)[THU]!).getByText("已生成，已被清空")).toBeTruthy();
   });
 
   it("does not show yesterday's list as today's before the day has rolled over", () => {
     setTraining(leanWeek([plan("a", true)], { lastLoginDate: "2026-10-27", planGeneratedDate: "2026-10-27" }));
     const view = renderPage();
-    expect(within(cards(view.container)[WED]!).getByText("未生成")).toBeTruthy();
+    expect(within(cards(view.container)[THU]!).getByText("未生成")).toBeTruthy();
   });
 
   it("says it is loading, and that it could not be read, instead of showing an empty day", () => {
@@ -337,7 +333,7 @@ describe("plan progress, today", () => {
     state.training.loading = false;
     state.training.error = "permission-denied";
     setTraining(leanWeek([plan("a", true)]));
-    expect(within(cards(view.container)[WED]!).getByText("没有读出来")).toBeTruthy();
+    expect(within(cards(view.container)[THU]!).getByText("没有读出来")).toBeTruthy();
     expect(screen.getByText("今天的任务没有读出来，今日完成度暂时不可用。")).toBeTruthy();
   });
 
@@ -347,13 +343,13 @@ describe("plan progress, today", () => {
     expect(cards(view.container).map((card) => card.getAttribute("aria-current"))).toEqual([
       null,
       null,
+      null,
       "date",
       null,
       null,
       null,
-      null,
     ]);
-    expect(within(cards(view.container)[WED]!).getByText(/10月28日.*今天|今天/)).toBeTruthy();
+    expect(within(cards(view.container)[THU]!).getByText(/10月29日/)).toBeTruthy();
   });
 });
 
@@ -361,7 +357,7 @@ describe("plan progress, past days", () => {
   it("reads Monday to yesterday from the day archive, and releases it with the page", () => {
     setTraining(leanWeek([]));
     const view = renderPage();
-    expect(state.history?.args).toEqual([{}, "user-1", "lindsay", "2026-10-26", "2026-10-27"]);
+    expect(state.history?.args).toEqual([{}, "user-1", "lindsay", "2026-10-26", "2026-10-28"]);
     view.unmount();
     // Every read that was opened has been closed (a development double mount opens two).
     expect(state.historySubscriptions).toBeGreaterThan(0);
@@ -413,7 +409,7 @@ describe("plan progress, past days", () => {
     expect(within(cards(view.container)[MON]!).queryByText("无记录")).toBeNull();
     expect(screen.getByText(/本周前几天的记录没有读出来/)).toBeTruthy();
     // Today still comes from the live state.
-    expect(within(cards(view.container)[WED]!).getByText("已生成，已被清空")).toBeTruthy();
+    expect(within(cards(view.container)[THU]!).getByText("已生成，已被清空")).toBeTruthy();
     expect(log).toHaveBeenCalled();
     log.mockRestore();
   });
@@ -431,12 +427,11 @@ describe("plan progress, later days and rest days", () => {
   it("shows only the schedule for later days, with no progress line", () => {
     setTraining(leanWeek([plan("a", true)]));
     const view = renderPage();
-    for (const index of [THU, 4, 5, SUN]) {
+    for (const index of [4, 5, SUN]) {
       const card = cards(view.container)[index]!;
       expect(card.querySelector("[data-progress]")).toBeNull();
       expect(card.textContent).toMatch(/强度：/);
     }
-    expect(cards(view.container)[THU]!.querySelector("[data-progress]")).toBeNull();
   });
 
   it("says a rest day lays no tasks when it is today, and not 'cleared' or 'no record'", () => {
@@ -655,12 +650,43 @@ describe("plan page: which athlete the equipment feedback is read for", () => {
     expect(view.container.textContent).not.toContain("周一（冰前30min + 上冰60min）");
   });
 
-  it("without a birth date the old Junior D cards stay", () => {
+  it("without a birth date shows a prompt and no day cards", () => {
     state.profile = {};
     setTraining(leanWeek([]));
     const view = renderPage();
-    expect(cards(view.container)[MON]!.textContent).toContain("周一（冰前30min + 上冰60min）");
-    expect(view.container.textContent).not.toContain("最大力量储备");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("训练计划");
+    expect(screen.getByRole("status").textContent).toContain("请先在运动员档案里填写出生日期，计划按年龄段生成。");
+    expect(cards(view.container)).toHaveLength(0);
+  });
+
+  it("a 14-16 birth date shows that stage's title, and Wednesday and Sunday stay rest", () => {
+    vi.setSystemTime(SUNDAY);
+    state.profile = { birthDate: "2012-01-14" };
+    setTraining(leanWeek([], { lastLoginDate: "2026-11-01", planGeneratedDate: "2026-11-01" }));
+    const view = renderPage();
+    const list = cards(view.container);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("专项提高阶段（14-16岁）");
+    expect(list).toHaveLength(7);
+    expect(list[MON]!.textContent).toContain("最大力量储备");
+    expect(list[MON]!.textContent).not.toContain("休息日，不生成任务");
+    expect(list[WED]!.textContent).toContain("休息日，不生成任务");
+    expect(list[THU]!.textContent).not.toContain("休息日，不生成任务");
+    expect(list[SUN]!.textContent).toContain("休息日，不生成任务");
+  });
+
+  it("a 4-7 birth date shows three routine days and four rest days", () => {
+    vi.setSystemTime(SUNDAY);
+    state.profile = { birthDate: "2022-01-14" };
+    setTraining(leanWeek([], { lastLoginDate: "2026-11-01", planGeneratedDate: "2026-11-01" }));
+    const view = renderPage();
+    const list = cards(view.container);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("启蒙阶段（4-7岁）");
+    expect(list).toHaveLength(7);
+    const rest = list.filter((card) => card.textContent?.includes("休息日，不生成任务"));
+    expect(rest).toHaveLength(4);
+    expect(list[TUE]!.textContent).toContain("体态与冰感基础");
+    expect(list[THU]!.textContent).toContain("动态平衡与反应");
+    expect(list[5]!.textContent).toContain("综合协调与力量");
   });
 
   it("moves the equipment subscription to the new athlete when settings change, and releases the old one", () => {
