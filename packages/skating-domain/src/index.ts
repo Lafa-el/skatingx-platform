@@ -115,6 +115,7 @@ export {
   resolveRoutineModuleLink,
   routineItemIdForDayPlanTask,
 } from "./routine-module-links";
+export { ACADEMY_CATALOG_LINKS, resolveCatalogForAcademyItem } from "./catalog-mapping";
 export {
   buildRaceSummary,
   countByVerification,

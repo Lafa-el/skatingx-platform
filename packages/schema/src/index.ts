@@ -32,6 +32,8 @@ export type {
   RockerReadings,
 } from "./equipment";
 
+export type { CatalogKind, CatalogRef } from "./catalog";
+
 export type {
   Race,
   Reward,
