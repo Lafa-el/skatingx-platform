@@ -125,14 +125,23 @@ const WEEKDAY_SUFFIX: Record<WeekdayKey, "mon" | "tue" | "wed" | "thu" | "fri" |
   sunday: "sun",
 };
 
-const STAGE_BODY: Record<WeekdayKey, PlanMessageKey> = {
-  monday: "plan.stage.age11to13.mon.body",
-  tuesday: "plan.stage.age11to13.tue.body",
-  wednesday: "plan.stage.age11to13.wed.body",
-  thursday: "plan.stage.age11to13.thu.body",
-  friday: "plan.stage.age11to13.fri.body",
-  saturday: "plan.stage.age11to13.sat.body",
-  sunday: "plan.stage.age11to13.sun.body",
+function stageBodies(stage: "age4to7" | "age8to10" | "age11to13" | "age14to16"): Record<WeekdayKey, PlanMessageKey> {
+  return {
+    monday: `plan.stage.${stage}.mon.body`,
+    tuesday: `plan.stage.${stage}.tue.body`,
+    wednesday: `plan.stage.${stage}.wed.body`,
+    thursday: `plan.stage.${stage}.thu.body`,
+    friday: `plan.stage.${stage}.fri.body`,
+    saturday: `plan.stage.${stage}.sat.body`,
+    sunday: `plan.stage.${stage}.sun.body`,
+  };
+}
+
+const STAGE_BODIES: Record<string, Record<WeekdayKey, PlanMessageKey>> = {
+  age4_7: stageBodies("age4to7"),
+  age8_10: stageBodies("age8to10"),
+  age11_13: stageBodies("age11to13"),
+  age14_16: stageBodies("age14to16"),
 };
 
 type ShownDay = {
@@ -149,7 +158,7 @@ const GENERIC_BODY: PlanMessageKey = "plan.stage.generic.body";
 /**
  * One stage's cards, Monday through Sunday. Titles and durations come from that stage's day plans.
  * A recovery surface is shown and does not generate. A weekday with no routine is shown as rest.
- * Age 11–13 keeps its own body lines; every other stage uses the generic line until those are written.
+ * A stage without its own lines uses the generic line.
  */
 function stageDays(locale: Locale, focus: PlanFocus, stage: AcademyStage | null): ShownDay[] | null {
   if (!stage) return null;
@@ -163,7 +172,7 @@ function stageDays(locale: Locale, focus: PlanFocus, stage: AcademyStage | null)
         : "",
       kind: plan ? localized(locale, { zh: plan.titleZh, en: plan.titleEn }) : "",
       intensity: shape.intensity,
-      body: stage.id === "age11_13" ? STAGE_BODY[weekday] : GENERIC_BODY,
+      body: STAGE_BODIES[stage.id]?.[weekday] ?? GENERIC_BODY,
       generates: shape.surface !== "recovery" && getWeekdayRoutineItems(stage, weekday).length > 0,
     };
   });

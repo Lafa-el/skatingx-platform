@@ -668,10 +668,13 @@ describe("plan page: which athlete the equipment feedback is read for", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("专项提高阶段（14-16岁）");
     expect(list).toHaveLength(7);
     expect(list[MON]!.textContent).toContain("最大力量储备");
+    expect(list[MON]!.textContent).toContain("最大力量");
     expect(list[MON]!.textContent).not.toContain("休息日，不生成任务");
     expect(list[WED]!.textContent).toContain("休息日，不生成任务");
+    expect(list[WED]!.textContent).toContain("主动恢复");
     expect(list[THU]!.textContent).not.toContain("休息日，不生成任务");
     expect(list[SUN]!.textContent).toContain("休息日，不生成任务");
+    expect(list[SUN]!.textContent).toContain("深度恢复");
   });
 
   it("a 4-7 birth date shows three routine days and four rest days", () => {
@@ -685,8 +688,42 @@ describe("plan page: which athlete the equipment feedback is read for", () => {
     const rest = list.filter((card) => card.textContent?.includes("休息日，不生成任务"));
     expect(rest).toHaveLength(4);
     expect(list[TUE]!.textContent).toContain("体态与冰感基础");
+    expect(list[TUE]!.textContent).toContain("基本站位");
     expect(list[THU]!.textContent).toContain("动态平衡与反应");
+    expect(list[THU]!.textContent).toContain("动态平衡");
     expect(list[5]!.textContent).toContain("综合协调与力量");
+    expect(list[5]!.textContent).toContain("综合协调");
+    expect(list[MON]!.textContent).toContain("休息");
+    expect(list[WED]!.textContent).toContain("休息");
+    expect(list[4]!.textContent).toContain("休息");
+    expect(list[SUN]!.textContent).toContain("休息");
+  });
+
+  it("an 8-10 birth date shows that stage's lines, and Wednesday and Sunday stay rest", () => {
+    vi.setSystemTime(SUNDAY);
+    state.profile = { birthDate: "2018-01-14" };
+    setTraining(leanWeek([], { lastLoginDate: "2026-11-01", planGeneratedDate: "2026-11-01" }));
+    const view = renderPage();
+    const list = cards(view.container);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("进阶阶段（8-10岁）");
+    expect(list).toHaveLength(7);
+    expect(list[MON]!.textContent).toContain("专项技术规范");
+    expect(list[THU]!.textContent).toContain("爆发力");
+    expect(list[5]!.textContent).toContain("速度和节奏");
+    expect(list[WED]!.textContent).toContain("休息日，不生成任务");
+    expect(list[SUN]!.textContent).toContain("休息日，不生成任务");
+  });
+
+  it("a 17-18 birth date shows seven rest days and the generic line", () => {
+    vi.setSystemTime(SUNDAY);
+    state.profile = { birthDate: "2009-01-14" };
+    setTraining(leanWeek([], { lastLoginDate: "2026-11-01", planGeneratedDate: "2026-11-01" }));
+    const view = renderPage();
+    const list = cards(view.container);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("竞技阶段（17-18岁）");
+    expect(list).toHaveLength(7);
+    expect(list.filter((card) => card.textContent?.includes("休息日，不生成任务"))).toHaveLength(7);
+    expect(list.every((card) => card.textContent?.includes("按本阶段的周安排训练。"))).toBe(true);
   });
 
   it("moves the equipment subscription to the new athlete when settings change, and releases the old one", () => {
