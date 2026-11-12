@@ -18,6 +18,7 @@ const zh = {
   "academy.stage.focus": "风格",
 
   "academy.modules.title": "训练模块",
+  "academy.shared.title": "共享内容",
   "academy.item.add": "导入今日",
   "academy.item.added": "已添加",
 
@@ -27,6 +28,7 @@ const zh = {
   "academy.category.mobility": "灵活性",
   "academy.category.technique": "技术",
   "academy.category.recovery": "恢复",
+  "academy.category.parent": "家长必读",
 
   "academy.routine.proTag": "（PRO）",
   "academy.routine.intro": "参考周计划 — 可随时浏览；批量导入需要 PRO。",
@@ -71,6 +73,7 @@ const en: Record<AcademyKey, string> = {
   "academy.stage.focus": "Focus",
 
   "academy.modules.title": "Training modules",
+  "academy.shared.title": "Shared content",
   "academy.item.add": "Add to today",
   "academy.item.added": "Added",
 
@@ -80,6 +83,7 @@ const en: Record<AcademyKey, string> = {
   "academy.category.mobility": "Mobility",
   "academy.category.technique": "Technique",
   "academy.category.recovery": "Recovery",
+  "academy.category.parent": "Parent Guide",
 
   "academy.routine.proTag": "(PRO)",
   "academy.routine.intro": "Reference weekly plans — browse anytime; bulk import requires PRO.",

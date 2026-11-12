@@ -400,6 +400,44 @@ describe("TrainingAcademyPage (other)", () => {
     expect(screen.getByText(first.descriptionZh)).toBeTruthy();
   });
 
+  it("shows the shared modules on a stage page, and the parent card has no import button", () => {
+    renderPage();
+    expect(screen.getByRole("heading", { level: 2, name: "共享内容" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /一、 放松、恢复与伤病预防/ })).toBeTruthy();
+    const parent = screen.getByRole("heading", { level: 3, name: "三、 家长必读" }).closest("article");
+    expect(parent).toBeTruthy();
+    expect(within(parent!).queryByRole("button", { name: "导入今日" })).toBeNull();
+    expect(within(parent!).getByText("赛前补水指南")).toBeTruthy();
+  });
+
+  it("an 14-16 Wednesday chip opens the shared recovery drill", async () => {
+    setSettings("zh", true);
+    const user = userEvent.setup();
+    renderPage();
+    const stage14 = stages.find((entry) => entry.id === "age14_16")!;
+    await user.click(screen.getByRole("button", { name: stage14.ageRangeZh }));
+    const plan = stage14.weeklyRoutine.dayPlans[2]!;
+    const label = plan.taskLabelsZh[0]!;
+    expect(document.getElementById("shared-m0-i3")).toBeNull();
+    const heading = screen.getByRole("heading", { level: 3, name: `${plan.dayLabelZh} · ${plan.titleZh}` });
+    await user.click(within(heading.closest("article")!).getByRole("button", { name: label }));
+    const node = document.getElementById("shared-m0-i3");
+    expect(node?.textContent).toContain("核心-骨盆控制与激活");
+  });
+
+  it("an 11-13 Wednesday chip still opens the shared recovery drill", async () => {
+    setSettings("zh", true);
+    const user = userEvent.setup();
+    renderPage();
+    const stage11 = stages.find((entry) => entry.id === "age11_13")!;
+    await user.click(screen.getByRole("button", { name: stage11.ageRangeZh }));
+    const plan = stage11.weeklyRoutine.dayPlans[2]!;
+    const label = plan.taskLabelsZh[0]!;
+    const heading = screen.getByRole("heading", { level: 3, name: `${plan.dayLabelZh} · ${plan.titleZh}` });
+    await user.click(within(heading.closest("article")!).getByRole("button", { name: label }));
+    expect(document.getElementById("shared-m0-i3")?.textContent).toContain("核心-骨盆控制与激活");
+  });
+
   it("a routine task chip opens the linked drill", async () => {
     setSettings("zh", true);
     const user = userEvent.setup();

@@ -551,47 +551,6 @@ module.exports = {
           ]
         },
         {
-          name: '五、 放松、恢复与伤病预防',
-          items: [
-            {
-              name: '筋膜枪与泡沫轴 (深层组织松解)',
-              target: '15-20分钟',
-              tag: '促进循环',
-              desc: '针对股四头肌、腘绳肌、臀大肌进行深层放松。'
-            },
-            {
-              name: '静态拉伸 (全面柔韧性)',
-              target: '10-15分钟',
-              tag: '肌肉延展',
-              desc: '保持肌肉弹性，预防关节活动度受限导致的拉伤。'
-            },
-            {
-              name: '髋部屈肌深层拉伸 (Couch Stretch)',
-              target: '每侧 45-60秒',
-              tag: '髋关节 柔韧',
-              desc: '针对长期处于低姿态导致的髋部屈肌紧张，进行深度沙发拉伸，极大地缓解下背部压力。'
-            },
-            {
-              name: '核心-骨盆控制与激活 (Bird-Dog)',
-              target: '3组 x 每侧10次',
-              tag: '骨盆中立 稳定',
-              desc: '鸟狗式伸展，专注于保持骨盆的中立位和核心深层肌群的激活，防止滑行中塌腰代偿。'
-            },
-            {
-              name: '踝关节强化与本体感觉进阶',
-              target: '3组 x 15次',
-              tag: '踝关节 预防崴脚',
-              desc: '单脚站立于平衡垫上进行抛接球或闭眼保持，极大增强踝关节周围微小肌群的力量与稳定性。'
-            },
-            {
-              name: '冰浴与冷热交替浴',
-              target: '10分钟',
-              tag: '消除炎症',
-              desc: '大强度训练后加速乳酸代谢和微小炎症恢复。'
-            }
-          ]
-        },
-        {
           name: '六、 冰上技术',
           items: [
             {
@@ -799,6 +758,53 @@ module.exports = {
               desc: '强迫下肢在疲劳和高阻力状态下维持爆发力和高步频。'
             }
           ]
+        },
+        {
+          name: '三、 专项核心与耐力进阶',
+          items: [
+            {
+              name: '滑行板高强度间歇进阶',
+              target: '10组 x 50秒',
+              tag: '无氧耐力',
+              desc: '全力滑行五十秒，只休息二十秒。组间保持步频，最后两组不降速，把抗乳酸的时间拉长。'
+            },
+            {
+              name: '动感单车冲刺进阶',
+              target: '12组 x 25秒',
+              tag: '绝对速度',
+              desc: '二十五秒最大功率，三十五秒慢骑。做功比上一阶段多五秒，组数加到十二组。'
+            },
+            {
+              name: '靠墙静蹲进阶',
+              target: '4组 x 2-2.5分钟',
+              tag: '专项耐力',
+              desc: '大腿接近与地面平行，可加轻负荷或改成单腿。每组比上一阶段大约多半分钟。'
+            },
+            {
+              name: 'Pallof 抗旋转进阶',
+              target: '4组 x 15次/侧',
+              tag: '抗旋转 核心',
+              desc: '弹力带侧向站立，双手推出后停两秒。阻力比上一阶段更大，躯干仍不被带走。'
+            },
+            {
+              name: '悬垂举腿进阶',
+              target: '4组 x 12次',
+              tag: '核心控制',
+              desc: '悬垂后把双腿抬平，下放放慢。次数比合在一起的旧动作少，幅度要求更完整。'
+            },
+            {
+              name: '俄罗斯转体进阶',
+              target: '4组 x 20次',
+              tag: '核心控制',
+              desc: '身体后倾，持药球转到肘接近地面。比旧的十五次多五次，速度放稳，不借甩臂。'
+            },
+            {
+              name: '400米/800米田径场冲刺进阶',
+              target: '6组',
+              tag: '心肺极限',
+              desc: '四百米六组，或八百米四组，组间走回起点。比上一阶段多一组，用来把后程速度留住。'
+            }
+          ]
         }
       ],
       weeklyPlan: [
@@ -822,6 +828,60 @@ module.exports = {
             '连续跳箱训练 (Box Jumps) 4组x6次',
             '深跳 (Drop Jump) + 连续跳 4组',
             '阻力冲刺 (雪橇拖拽/降落伞) 8趟'
+          ]
+        },
+        {
+          day: '周三',
+          title: '主动恢复与预防',
+          duration: '45分钟',
+          tasks: [
+            '核心-骨盆控制与激活 (Bird-Dog) 3组',
+            '踝关节强化与本体感觉进阶 3组',
+            '髋部屈肌深层拉伸 (Couch Stretch) 每侧60秒',
+            '筋膜枪与泡沫轴 (深层组织松解) 20分'
+          ]
+        },
+        {
+          day: '周四',
+          title: '专项耐力与抗阻',
+          duration: '100分钟',
+          tasks: [
+            '滑行板高强度间歇进阶 10组',
+            '动感单车冲刺进阶 10组',
+            '靠墙静蹲进阶 3组',
+            'Pallof 抗旋转进阶 4组'
+          ]
+        },
+        {
+          day: '周五',
+          title: '综合力量与速度',
+          duration: '90分钟',
+          tasks: [
+            '悬垂举腿进阶 4组',
+            '俄罗斯转体进阶 4组',
+            '臀推 (杠铃/弹力带) 4组x10次',
+            '深跳 (Drop Jump) + 连续跳 4组'
+          ]
+        },
+        {
+          day: '周六',
+          title: '比赛模拟与高光',
+          duration: '90分钟',
+          tasks: [
+            '全身动态热身 10分钟',
+            '400米/800米田径场冲刺进阶 4组',
+            '阻力冲刺 (雪橇拖拽/降落伞) 8趟',
+            '连续跳箱训练 (Box Jumps) 4组x6次'
+          ]
+        },
+        {
+          day: '周日',
+          title: '深度恢复日',
+          duration: '60分钟',
+          tasks: [
+            '静态拉伸 (全面柔韧性) 15分',
+            '髋部屈肌深层拉伸 (Couch Stretch) 2组',
+            '冰浴与冷热交替浴 10分'
           ]
         }
       ]
@@ -1392,47 +1452,6 @@ module.exports = {
           ]
         },
         {
-          name: '5. Recovery & Injury Prevention',
-          items: [
-            {
-              name: 'Massage Gun & Foam Rolling',
-              target: '15-20 mins',
-              tag: 'Circulation',
-              desc: 'Deep tissue release for quads, hamstrings, and glutes.'
-            },
-            {
-              name: 'Static Stretching',
-              target: '10-15 mins',
-              tag: 'Flexibility',
-              desc: 'Maintain muscle elasticity and joint ROM.'
-            },
-            {
-              name: 'Couch Stretch (Deep Hip Flexors)',
-              target: '45-60s / side',
-              tag: 'Hip Mobility',
-              desc: 'Target tight hip flexors caused by prolonged low posture. Deep stretch to relieve lower back pressure.'
-            },
-            {
-              name: 'Core-Pelvic Activation (Bird-Dog)',
-              target: '3 sets x 10 reps/side',
-              tag: 'Stability',
-              desc: 'Maintain neutral pelvis and activate deep core to prevent lumbar compensation during skating.'
-            },
-            {
-              name: 'Advanced Ankle Proprioception',
-              target: '3 sets x 15 reps',
-              tag: 'Ankle Prev',
-              desc: 'Single-leg stand on balance pad with eyes closed or catching a ball. Strengthens micro-muscles to prevent sprains.'
-            },
-            {
-              name: 'Ice / Contrast Baths',
-              target: '10 mins',
-              tag: 'Recovery',
-              desc: 'Accelerate lactic acid metabolism after high-intensity days.'
-            }
-          ]
-        },
-        {
           name: '6. On-Ice Technique',
           items: [
             {
@@ -1640,6 +1659,53 @@ module.exports = {
               desc: 'Maintain high cadence under heavy fatigue and resistance.'
             }
           ]
+        },
+        {
+          name: '3. Specific Core and Endurance',
+          items: [
+            {
+              name: 'Advanced Slide-board HIIT',
+              target: '10 sets x 50 seconds',
+              tag: 'Anaerobic',
+              desc: 'Skate hard for fifty seconds and rest only twenty. Hold the cadence, including the last two sets, so the hard work lasts longer.'
+            },
+            {
+              name: 'Advanced Spin-bike Sprints',
+              target: '12 sets x 25 seconds',
+              tag: 'Top Speed',
+              desc: 'Twenty-five seconds at max power, thirty-five seconds easy. Five seconds longer than the previous stage, and two extra repeats.'
+            },
+            {
+              name: 'Advanced Wall Sit',
+              target: '4 sets x 2-2.5 mins',
+              tag: 'Isometric',
+              desc: 'Thighs near parallel, with a light load or one leg. Each set is about half a minute longer than the previous stage.'
+            },
+            {
+              name: 'Advanced Pallof Press',
+              target: '4 sets x 15/side',
+              tag: 'Anti-rotation Core',
+              desc: 'Stand side-on to the band, press out, and hold two seconds. The band is heavier than the previous stage, and the trunk still does not twist.'
+            },
+            {
+              name: 'Advanced Hanging Leg Raise',
+              target: '4 sets x 12 reps',
+              tag: 'Core Control',
+              desc: 'Hang, lift both legs level, and lower slowly. Fewer reps than the old combined drill, with a fuller range.'
+            },
+            {
+              name: 'Advanced Russian Twist',
+              target: '4 sets x 20 reps',
+              tag: 'Core Control',
+              desc: 'Lean back and rotate a medicine ball until the elbow nears the floor. Five more reps than the old set, steady, without flinging the arms.'
+            },
+            {
+              name: 'Advanced 400m/800m Track Sprints',
+              target: '6 sets',
+              tag: 'Aerobic Limit',
+              desc: 'Six repeats of 400 meters, or four of 800, walking back to the start. One more repeat than the previous stage, so the last lap still has speed.'
+            }
+          ]
         }
       ],
       weeklyPlan: [
@@ -1664,6 +1730,60 @@ module.exports = {
             'Drop Jump to Bound 4 sets',
             'Sled Pushes / Parachute Sprints 8 laps'
           ]
+        },
+        {
+          day: 'Wed',
+          title: 'Active Recovery',
+          duration: '45 mins',
+          tasks: [
+            'Core-Pelvic Activation (Bird-Dog) 3 sets',
+            'Advanced Ankle Proprioception 3 sets',
+            'Couch Stretch (Deep Hip Flexors) 60s/side',
+            'Massage Gun & Foam Rolling 20 mins'
+          ]
+        },
+        {
+          day: 'Thu',
+          title: 'Specific Endurance',
+          duration: '100 mins',
+          tasks: [
+            'Advanced Slide-board HIIT 10 sets',
+            'Advanced Spin-bike Sprints 10 sets',
+            'Advanced Wall Sit 3 sets',
+            'Advanced Pallof Press 4 sets'
+          ]
+        },
+        {
+          day: 'Fri',
+          title: 'Combo Power',
+          duration: '90 mins',
+          tasks: [
+            'Advanced Hanging Leg Raise 4 sets',
+            'Advanced Russian Twist 4 sets',
+            'Barbell Hip Thrusts 4x10',
+            'Drop Jump to Bound 4 sets'
+          ]
+        },
+        {
+          day: 'Sat',
+          title: 'Race Simulation',
+          duration: '90 mins',
+          tasks: [
+            'Full-body Dynamic Warm-up 10 mins',
+            'Advanced 400m/800m Track Sprints 4 sets',
+            'Sled Pushes / Parachute Sprints 8 laps',
+            'Box Jumps 4x6'
+          ]
+        },
+        {
+          day: 'Sun',
+          title: 'Deep Recovery',
+          duration: '60 mins',
+          tasks: [
+            'Static Stretching 15 mins',
+            'Couch Stretch (Deep Hip Flexors) 2 sets',
+            'Ice / Contrast Baths 10 mins'
+          ]
         }
       ]
     },
@@ -1680,5 +1800,261 @@ module.exports = {
       modules: [],
       weeklyPlan: []
     }
-  ]
+  ],
+  shared: {
+    zh: {
+      modules: [
+        {
+          name: '一、 放松、恢复与伤病预防',
+          items: [
+            {
+              name: '筋膜枪与泡沫轴 (深层组织松解)',
+              target: '15-20分钟',
+              tag: '促进循环',
+              desc: '针对股四头肌、腘绳肌、臀大肌进行深层放松。'
+            },
+            {
+              name: '静态拉伸 (全面柔韧性)',
+              target: '10-15分钟',
+              tag: '肌肉延展',
+              desc: '保持肌肉弹性，预防关节活动度受限导致的拉伤。'
+            },
+            {
+              name: '髋部屈肌深层拉伸 (Couch Stretch)',
+              target: '每侧 45-60秒',
+              tag: '髋关节 柔韧',
+              desc: '针对长期处于低姿态导致的髋部屈肌紧张，进行深度沙发拉伸，极大地缓解下背部压力。'
+            },
+            {
+              name: '核心-骨盆控制与激活 (Bird-Dog)',
+              target: '3组 x 每侧10次',
+              tag: '骨盆中立 稳定',
+              desc: '鸟狗式伸展，专注于保持骨盆的中立位和核心深层肌群的激活，防止滑行中塌腰代偿。'
+            },
+            {
+              name: '踝关节强化与本体感觉进阶',
+              target: '3组 x 15次',
+              tag: '踝关节 预防崴脚',
+              desc: '单脚站立于平衡垫上进行抛接球或闭眼保持，极大增强踝关节周围微小肌群的力量与稳定性。'
+            },
+            {
+              name: '冰浴与冷热交替浴',
+              target: '10分钟',
+              tag: '消除炎症',
+              desc: '大强度训练后加速乳酸代谢和微小炎症恢复。11–13 岁使用冷水浴请先征得家长同意；年龄更小的运动员不建议使用冷水浴。'
+            }
+          ]
+        },
+        {
+          name: '二、 热身与冷身',
+          items: [
+            {
+              name: '全身动态热身',
+              target: '8-10分钟',
+              tag: '热身 动态',
+              desc: '从头到脚做开合跳、高抬腿和行进间摆臂，把关节活动开，再进入正式训练。'
+            },
+            {
+              name: '髋踝激活热身',
+              target: '2组 x 每侧8次',
+              tag: '热身 激活',
+              desc: '做腿摆、绕环和弓步转体，让髋和踝在上冰或负重前先活动开。'
+            },
+            {
+              name: '冰前滑行姿势唤醒',
+              target: '2组 x 20秒',
+              tag: '热身 姿势',
+              desc: '在陆地摆出低姿，做几次原地蹬伸和摆臂，找回上冰前的身体位置。'
+            },
+            {
+              name: '训练后全身放松拉伸',
+              target: '8-10分钟',
+              tag: '拉伸 放松',
+              desc: '训练结束后按大腿、髋前、小腿的顺序把主要肌群拉到轻度牵拉，每处停住呼吸。'
+            },
+            {
+              name: '呼吸与放松整理',
+              target: '3-5分钟',
+              tag: '呼吸 整理',
+              desc: '坐或躺下，用慢呼吸把心率降下来，再简单回顾今天完成了什么。'
+            }
+          ]
+        },
+        {
+          name: '三、 家长必读',
+          items: [
+            {
+              name: '赛前补水指南',
+              target: '赛前阅读',
+              tag: '营养 补水',
+              desc: '赛前两小时喝一小瓶水，开赛前十五分钟再小口补一次。不要等口渴，也不要一次灌很多。'
+            },
+            {
+              name: '训练日饮食安排',
+              target: '训练日',
+              tag: '营养 饮食',
+              desc: '训练前一到两小时吃一份好消化的主食加少量蛋白质，训练后一小时内补一餐。空腹大强度训练不合适。'
+            },
+            {
+              name: '恢复餐怎么做',
+              target: '训练后',
+              tag: '营养 加餐',
+              desc: '训练后用主食、蛋白质和一份水果或蔬菜拼一餐，份量按当天训练量增减。这是加餐，不是额外的大餐。'
+            },
+            {
+              name: '各年龄段睡眠时长',
+              target: '每晚',
+              tag: '睡眠 作息',
+              desc: '11–13 岁争取每晚九小时，14–16 岁八到九小时，更小的孩子需要更长。固定上床时间比周末补觉有用。'
+            },
+            {
+              name: '赛前一晚的睡眠',
+              target: '赛前一晚',
+              tag: '睡眠 比赛',
+              desc: '赛前一晚按平时的时间睡，不临时提前很多，也不熬夜看录像。房间暗、凉、安静即可。'
+            },
+            {
+              name: '赛前紧张怎么应对',
+              target: '赛前',
+              tag: '心理 紧张',
+              desc: '紧张是身体在准备出发。用三次慢呼吸，再说出今天只盯住的一个动作。'
+            },
+            {
+              name: '胜负观与家长场边行为',
+              target: '比赛日',
+              tag: '心理 场边',
+              desc: '比完先问过程里做成了哪一件事，再谈名次。场边少喊技术口令，把指挥留给教练。'
+            }
+          ]
+        }
+      ]
+    },
+    en: {
+      modules: [
+        {
+          name: '1. Recovery & Injury Prevention',
+          items: [
+            {
+              name: 'Massage Gun & Foam Rolling',
+              target: '15-20 mins',
+              tag: 'Circulation',
+              desc: 'Deep tissue release for quads, hamstrings, and glutes.'
+            },
+            {
+              name: 'Static Stretching',
+              target: '10-15 mins',
+              tag: 'Flexibility',
+              desc: 'Maintain muscle elasticity and joint ROM.'
+            },
+            {
+              name: 'Couch Stretch (Deep Hip Flexors)',
+              target: '45-60s / side',
+              tag: 'Hip Mobility',
+              desc: 'Target tight hip flexors caused by prolonged low posture. Deep stretch to relieve lower back pressure.'
+            },
+            {
+              name: 'Core-Pelvic Activation (Bird-Dog)',
+              target: '3 sets x 10 reps/side',
+              tag: 'Stability',
+              desc: 'Maintain neutral pelvis and activate deep core to prevent lumbar compensation during skating.'
+            },
+            {
+              name: 'Advanced Ankle Proprioception',
+              target: '3 sets x 15 reps',
+              tag: 'Ankle Prev',
+              desc: 'Single-leg stand on balance pad with eyes closed or catching a ball. Strengthens micro-muscles to prevent sprains.'
+            },
+            {
+              name: 'Ice / Contrast Baths',
+              target: '10 mins',
+              tag: 'Recovery',
+              desc: 'Accelerate lactic acid metabolism after high-intensity days. For ages 11–13, a cold bath needs a parent\'s consent first. Younger athletes should not use a cold bath.'
+            }
+          ]
+        },
+        {
+          name: '2. Warm-up and Cool-down',
+          items: [
+            {
+              name: 'Full-body Dynamic Warm-up',
+              target: '8-10 mins',
+              tag: 'Warmup Dynamic',
+              desc: 'Open the joints with jumping jacks, high knees, and arm swings before the session starts.'
+            },
+            {
+              name: 'Hip and Ankle Activation',
+              target: '2 sets x 8/side',
+              tag: 'Warmup Activation',
+              desc: 'Leg swings, circles, and a lunge with a turn, so the hips and ankles are moving before ice or load.'
+            },
+            {
+              name: 'Pre-ice Skating Position Wake-up',
+              target: '2 sets x 20 seconds',
+              tag: 'Warmup Position',
+              desc: 'Hold a low position on land and rehearse a few pushes and arm swings before getting on the ice.'
+            },
+            {
+              name: 'Full-body Cool-down Stretch',
+              target: '8-10 mins',
+              tag: 'Stretch Relax',
+              desc: 'After training, ease the thighs, the front of the hips, and the calves into a light stretch and stay with the breath.'
+            },
+            {
+              name: 'Breathing and Wind-down',
+              target: '3-5 mins',
+              tag: 'Breathing Winddown',
+              desc: 'Sit or lie down, slow the breath until the heart rate drops, then note what the session covered.'
+            }
+          ]
+        },
+        {
+          name: '3. Parent Guide',
+          items: [
+            {
+              name: 'Pre-race Hydration Guide',
+              target: 'Read before race day',
+              tag: 'Nutrition Hydration',
+              desc: 'Drink a small bottle two hours before the race, then a few sips fifteen minutes out. Do not wait for thirst, and do not gulp a large amount at once.'
+            },
+            {
+              name: 'Training-day Meals',
+              target: 'Training days',
+              tag: 'Nutrition Meals',
+              desc: 'One to two hours before training, eat an easy carbohydrate with a little protein, and eat again within an hour after. A hard session on an empty stomach is a poor fit.'
+            },
+            {
+              name: 'How to Build a Recovery Meal',
+              target: 'After training',
+              tag: 'Nutrition Snack',
+              desc: 'After training, put a carbohydrate, some protein, and a fruit or vegetable on the plate, and scale the portion to the day\'s work. It is a top-up, not an extra feast.'
+            },
+            {
+              name: 'Sleep Hours by Age',
+              target: 'Every night',
+              tag: 'Sleep Schedule',
+              desc: 'Aim for nine hours at ages 11–13, eight to nine hours at 14–16, and more for younger children. A fixed bedtime beats catching up on weekends.'
+            },
+            {
+              name: 'The Night Before a Race',
+              target: 'Night before',
+              tag: 'Sleep Race',
+              desc: 'Go to bed at the usual time. Do not suddenly move bedtime much earlier, and do not stay up reviewing video. Dark, cool, and quiet is enough.'
+            },
+            {
+              name: 'Handling Pre-race Nerves',
+              target: 'Before the race',
+              tag: 'Mindset Nerves',
+              desc: 'Nerves mean the body is getting ready. Three slow breaths, then naming the one skill to watch today, helps more than being told to relax.'
+            },
+            {
+              name: 'Results and Sideline Behavior',
+              target: 'Race day',
+              tag: 'Mindset Sideline',
+              desc: 'After the race, ask which one thing in the process went well before talking about place. Keep technical instructions off the sideline and leave coaching to the coach.'
+            }
+          ]
+        }
+      ]
+    }
+  }
 };

@@ -27,6 +27,8 @@ const DAY_MAP = {
 };
 
 function inferCategory(tag, moduleName) {
+  // Before recovery: a parent note can mention recovery in its tags and must stay a parent note.
+  if (/家长|父母|parent/i.test(moduleName)) return "parent";
   // Module name only. A dryland drill can mention corners in its tags and must stay off the ice.
   if (/冰上/.test(moduleName)) return "ice";
   const t = `${tag}${moduleName}`.toLowerCase();
@@ -146,8 +148,53 @@ function buildStages() {
   });
 }
 
+function buildModule(zm, em, moduleId, itemId) {
+  if (em.items.length !== zm.items.length) {
+    throw new Error(`${moduleId}: ${zm.items.length} Chinese drills, ${em.items.length} English`);
+  }
+  const items = zm.items.map((zi, ii) => {
+    const ei = em.items[ii];
+    return {
+      id: itemId(ii),
+      titleZh: zhText(zi.name),
+      titleEn: ei.name,
+      descriptionZh: zhText(zi.desc),
+      descriptionEn: ei.desc,
+      category: inferCategory(zi.tag, zm.name),
+      targetZh: zhText(zi.target),
+      targetEn: ei.target,
+      tagsZh: parseTags(zi.tag).map(zhText),
+      tagsEn: parseTags(ei.tag),
+      difficultyLevel: 8,
+    };
+  });
+  return {
+    id: moduleId,
+    titleZh: zhText(zm.name),
+    titleEn: em.name,
+    descriptionZh: "",
+    descriptionEn: "",
+    items,
+  };
+}
+
+/** Shared modules have no weekly routine. Difficulty is 8 for every shared drill. */
+function buildShared() {
+  const zh = raw.shared.zh.modules;
+  const en = raw.shared.en.modules;
+  if (zh.length !== en.length) {
+    throw new Error(`shared: ${zh.length} Chinese modules, ${en.length} English`);
+  }
+  return zh.map((zm, mi) => buildModule(zm, en[mi], `shared-mod-${mi}`, (ii) => `shared-m${mi}-i${ii}`));
+}
+
 const stages = buildStages();
-const out = `/** Auto-generated from blaze-skate-training BLAZE_ACADEMY. Chinese brackets are full-width (ADR-004 A5). */\nimport type { AcademyStage } from "./academy-types";\n\nexport const ACADEMY_STAGES: AcademyStage[] = ${JSON.stringify(stages, null, 2)};\n`;
+const sharedModules = buildShared();
+const shared = {
+  trainingModules: sharedModules.slice(0, 2),
+  parentModule: sharedModules[2],
+};
+const out = `/** Auto-generated from blaze-skate-training BLAZE_ACADEMY. Chinese brackets are full-width (ADR-004 A5). */\nimport type { AcademySharedContent, AcademyStage } from "./academy-types";\n\nexport const ACADEMY_STAGES: AcademyStage[] = ${JSON.stringify(stages, null, 2)};\n\nexport const ACADEMY_SHARED: AcademySharedContent = ${JSON.stringify(shared, null, 2)};\n`;
 // `--out <file>` lets a test regenerate into a temporary file without touching the committed one.
 const outIndex = process.argv.indexOf("--out");
 const target =
