@@ -16,7 +16,7 @@ export interface TrainingTask {
   completedAt?: Timestamp;
   /** Stable id from `@skatingx/content` academy catalog */
   academyItemId?: string;
-  /** Stable, language-independent id of the plan template entry (`jd_tech_mon.1`) this task came from. */
+  /** Stable, language-independent id of the plan entry this task came from: a routine item id (e.g. `age11_13-w3-t4`) for plan tasks. `jd_*` ids survive only in points history. */
   planEntryId?: string;
   tags?: string[];
   /** @deprecated Use description */

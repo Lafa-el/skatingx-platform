@@ -1,6 +1,6 @@
 /**
  * Real age, in whole years, to an academy stage id.
- * Outside 4–18, or no age, there is no stage and the plan stays on the old template.
+ * Outside 4–18, or no age, there is no stage: the plan shows the birth-date prompt and generates nothing.
  */
 export function stageIdForRealAge(age: number | null): string | null {
   if (age === null || !Number.isInteger(age)) return null;
