@@ -1,0 +1,6423 @@
+{
+  "manifestSha256": "8a5a819709796c43041cbc8b108f2c3bfb5e35c491798efb165d2b576557f23f",
+  "objects": {
+    "blocks": [
+      {
+        "drillRefs": [
+          "DR-L001",
+          "DR-L003",
+          "DR-L020",
+          "DR-L012",
+          "DR-L010",
+          "DR-L015"
+        ],
+        "duration": "40–45 min",
+        "environment": "LAND",
+        "id": "BL-L001",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "慢跑/动态活动度→滑姿→弯道/交叉→侧向跳→垂直跳→10m加速；主旨是上冰准备而非疲劳",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_pre_ice_a_full"
+        },
+        "load": "Moderate",
+        "nameEn": "Pre-Ice A — Full",
+        "nameZh": "冰前A—完整45分钟",
+        "primaryObjectiveId": "OBJ09",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "LAND01",
+        "source": {
+          "row": 2,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L002",
+          "DR-L003",
+          "DR-L020",
+          "DR-L012"
+        ],
+        "duration": "30–40 min",
+        "environment": "LAND",
+        "id": "BL-L002",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "赛前、400m高强度日前或疲劳较高时使用；减少跳跃与冲刺量",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_pre_ice_b_light"
+        },
+        "load": "Low",
+        "nameEn": "Pre-Ice B — Light",
+        "nameZh": "冰前B—简化35–40分钟",
+        "primaryObjectiveId": "OBJ09",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "LAND01",
+        "source": {
+          "row": 3,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L034",
+          "DR-L036"
+        ],
+        "duration": "20–40 min",
+        "environment": "LAND",
+        "id": "BL-L003",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "恢复跑15–30min + 活动度/放松",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_post_ice_recovery_r"
+        },
+        "load": "Low",
+        "nameEn": "Post-Ice Recovery R",
+        "nameZh": "冰后恢复R",
+        "primaryObjectiveId": "OBJ16",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "LAND08",
+        "source": {
+          "row": 4,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L003",
+          "DR-L018",
+          "DR-L019",
+          "DR-L020",
+          "DR-L021"
+        ],
+        "duration": "15–20 min",
+        "environment": "LAND",
+        "id": "BL-L004",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "短道基础专项：低姿、单侧蹬伸、连续蹬、交叉、出弯",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_band_t1_basic_technique"
+        },
+        "load": "Moderate",
+        "nameEn": "Band T1 — Basic Technique",
+        "nameZh": "拉布带T1—基础技术",
+        "primaryObjectiveId": "OBJ01",
+        "secondaryObjectiveIds": [
+          "OBJ12"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 5,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L003",
+          "DR-L018",
+          "DR-L019",
+          "DR-L020",
+          "DR-L021",
+          "DR-L022"
+        ],
+        "duration": "18–25 min",
+        "environment": "LAND",
+        "id": "BL-L005",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "含最后10秒快速专项频率，强调动作质量",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_band_t2_specific"
+        },
+        "load": "Moderate",
+        "nameEn": "Band T2 — Specific",
+        "nameZh": "拉布带T2—专项20分钟",
+        "primaryObjectiveId": "OBJ14",
+        "secondaryObjectiveIds": [
+          "OBJ12"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 6,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L026"
+        ],
+        "duration": "10–15 min",
+        "environment": "LAND",
+        "id": "BL-L006",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "dead bug / side plank / bird dog / Pallof",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_core_c1"
+        },
+        "load": "Low",
+        "nameEn": "Core C1",
+        "nameZh": "核心C1—基础",
+        "primaryObjectiveId": "OBJ10",
+        "secondaryObjectiveIds": [
+          "OBJ13"
+        ],
+        "sectionId": "LAND06",
+        "source": {
+          "row": 7,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L027"
+        ],
+        "duration": "12–18 min",
+        "environment": "LAND",
+        "id": "BL-L007",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "在C1基础上增加单腿桥和低姿稳定",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_core_c2"
+        },
+        "load": "Moderate",
+        "nameEn": "Core C2",
+        "nameZh": "核心C2—强化",
+        "primaryObjectiveId": "OBJ13",
+        "secondaryObjectiveIds": [
+          "OBJ11"
+        ],
+        "sectionId": "LAND06",
+        "source": {
+          "row": 8,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L010",
+          "DR-L011",
+          "DR-L012",
+          "DR-L015"
+        ],
+        "duration": "20–30 min",
+        "environment": "LAND",
+        "id": "BL-L008",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "CMJ + broad jump + lateral bound + 10m acceleration",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_power_p1_foundation"
+        },
+        "load": "Moderate",
+        "nameEn": "Power P1 — Foundation",
+        "nameZh": "爆发P1—基础",
+        "primaryObjectiveId": "OBJ15",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "LAND03",
+        "source": {
+          "row": 9,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L010",
+          "DR-L012",
+          "DR-L013",
+          "DR-L014",
+          "DR-L015"
+        ],
+        "duration": "20–30 min",
+        "environment": "LAND",
+        "id": "BL-L009",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "CMJ + lateral bound + continuous skater jump + 5m/10m start；充分恢复",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_power_p2_specific"
+        },
+        "load": "High",
+        "nameEn": "Power P2 — Specific",
+        "nameZh": "爆发P2—专项",
+        "primaryObjectiveId": "OBJ15",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "LAND03",
+        "source": {
+          "row": 10,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Conditional"
+      },
+      {
+        "drillRefs": [
+          "DR-L003",
+          "DR-L014",
+          "DR-L015"
+        ],
+        "duration": "15–25 min",
+        "environment": "LAND",
+        "id": "BL-L010",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "起跑姿势保持 + 前三步/5m + 10m加速",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_start_s1"
+        },
+        "load": "Moderate",
+        "nameEn": "Start S1",
+        "nameZh": "起跑S1",
+        "primaryObjectiveId": "OBJ03",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "LAND04",
+        "source": {
+          "row": 11,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L004",
+          "DR-L005",
+          "DR-L006",
+          "DR-L007",
+          "DR-L008"
+        ],
+        "duration": "35–50 min",
+        "environment": "LAND",
+        "id": "BL-L011",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "split squat 3×6/side; SL RDL 3×6/side; step-up 3×6/side; lateral squat 2×8/side; calf raise 3×12",
+          "Source": "Existing training module",
+          "systemTemplateId": "stb_strength_l1"
+        },
+        "load": "Moderate",
+        "nameEn": "Strength L1",
+        "nameZh": "力量L1",
+        "primaryObjectiveId": "OBJ11",
+        "secondaryObjectiveIds": [
+          "OBJ10"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 12,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Conditional"
+      },
+      {
+        "drillRefs": [
+          "DR-L037",
+          "DR-L038"
+        ],
+        "duration": "8–15 min",
+        "environment": "LAND",
+        "id": "BL-L012",
+        "legacyAttributes": {
+          "Development": "Advanced/Elite",
+          "Notes": "仅作为方法性补充；默认对青少年隐藏；需合格专业人员监督",
+          "Source": "Existing/experimental module",
+          "systemTemplateId": "stb_b_strong_b1_supplemental"
+        },
+        "load": "Moderate",
+        "nameEn": "B-Strong B1 — Supplemental",
+        "nameZh": "B-Strong B1—补充",
+        "primaryObjectiveId": "OBJ14",
+        "secondaryObjectiveIds": [
+          "OBJ10"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 13,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-L028"
+        ],
+        "duration": "20–35 min",
+        "environment": "LAND",
+        "id": "BL-L013",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "适合速度耐力/无氧容量；根据目标调整配速和休息",
+          "Source": "Prior plan",
+          "systemTemplateId": "stb_interval_200_a"
+        },
+        "load": "High",
+        "nameEn": "200m Interval A",
+        "nameZh": "200米间歇A",
+        "primaryObjectiveId": "OBJ19",
+        "secondaryObjectiveIds": [
+          "OBJ18"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 14,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-L030"
+        ],
+        "duration": "25–40 min",
+        "environment": "LAND",
+        "id": "BL-L014",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "曾用4–5×400m、约2:30–3:00恢复；目的由配速+恢复共同定义",
+          "Source": "Prior plan",
+          "systemTemplateId": "stb_interval_400_a"
+        },
+        "load": "High",
+        "nameEn": "400m Interval A",
+        "nameZh": "400米间歇A",
+        "primaryObjectiveId": "OBJ19",
+        "secondaryObjectiveIds": [
+          "OBJ20"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 15,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-L033"
+        ],
+        "duration": "20–40 min",
+        "environment": "LAND",
+        "id": "BL-L015",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "低强度基础与恢复容量",
+          "Source": "Prior plan",
+          "systemTemplateId": "stb_easy_aerobic_run"
+        },
+        "load": "Low",
+        "nameEn": "Easy Aerobic Run",
+        "nameZh": "有氧跑A",
+        "primaryObjectiveId": "OBJ16",
+        "secondaryObjectiveIds": [],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 16,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L035"
+        ],
+        "duration": "10–20 min",
+        "environment": "LAND",
+        "id": "BL-L016",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "髋/踝/下肢活动度",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_mobility_r2"
+        },
+        "load": "Low",
+        "nameEn": "Mobility R2",
+        "nameZh": "活动度R2",
+        "primaryObjectiveId": "OBJ09",
+        "secondaryObjectiveIds": [],
+        "sectionId": "LAND08",
+        "source": {
+          "row": 17,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L005",
+          "DR-L009",
+          "DR-L008"
+        ],
+        "duration": "30–45 min",
+        "environment": "LAND",
+        "id": "BL-L017",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "后链、内收肌、小腿/比目鱼肌",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_strength_l2_posterior_adductor"
+        },
+        "load": "Moderate",
+        "nameEn": "Strength L2 — Posterior/Adductor",
+        "nameZh": "力量L2—后链与内收肌",
+        "primaryObjectiveId": "OBJ10",
+        "secondaryObjectiveIds": [
+          "OBJ12"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 18,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Conditional"
+      },
+      {
+        "drillRefs": [
+          "DR-L003"
+        ],
+        "duration": "15–25 min",
+        "environment": "LAND",
+        "id": "BL-L018",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "滑姿、单腿低姿、弯道姿势等长可在Exercise层组合",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_isometric_strength_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Isometric Strength A",
+        "nameZh": "等长力量A",
+        "primaryObjectiveId": "OBJ13",
+        "secondaryObjectiveIds": [
+          "OBJ14"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 19,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L007",
+          "DR-L009",
+          "DR-L005"
+        ],
+        "duration": "20–30 min",
+        "environment": "LAND",
+        "id": "BL-L019",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "短道侧向发力与髋/膝控制",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_adductor_hip_stability_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Adductor & Hip Stability A",
+        "nameZh": "内收肌与髋稳定A",
+        "primaryObjectiveId": "OBJ12",
+        "secondaryObjectiveIds": [
+          "OBJ11"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 20,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L008"
+        ],
+        "duration": "15–20 min",
+        "environment": "LAND",
+        "id": "BL-L020",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "踝刚度与小腿力量",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_ankle_soleus_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Ankle & Soleus A",
+        "nameZh": "踝与比目鱼肌A",
+        "primaryObjectiveId": "OBJ10",
+        "secondaryObjectiveIds": [
+          "OBJ11"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 21,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L003",
+          "DR-L020",
+          "DR-L021",
+          "DR-L012"
+        ],
+        "duration": "20–30 min",
+        "environment": "LAND",
+        "id": "BL-L021",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "弯道低姿、交叉、出弯、侧向爆发",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_corner_dryland_t3"
+        },
+        "load": "Moderate",
+        "nameEn": "Corner Dryland T3",
+        "nameZh": "弯道专项T3",
+        "primaryObjectiveId": "OBJ02",
+        "secondaryObjectiveIds": [
+          "OBJ14"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 22,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L018",
+          "DR-L019",
+          "DR-L022"
+        ],
+        "duration": "15–25 min",
+        "environment": "LAND",
+        "id": "BL-L022",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "蹬伸方向、重心转移、频率",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_straightaway_dryland_t4"
+        },
+        "load": "Moderate",
+        "nameEn": "Straightaway Dryland T4",
+        "nameZh": "直道专项T4",
+        "primaryObjectiveId": "OBJ01",
+        "secondaryObjectiveIds": [
+          "OBJ12"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 23,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L039"
+        ],
+        "duration": "20–35 min",
+        "environment": "LAND",
+        "id": "BL-L023",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "低姿与重复蹬伸；疲劳下保持动作",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_skating_strength_endurance_a"
+        },
+        "load": "High",
+        "nameEn": "Skating Strength-Endurance A",
+        "nameZh": "专项肌耐力A",
+        "primaryObjectiveId": "OBJ14",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 24,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-L023"
+        ],
+        "duration": "15–25 min",
+        "environment": "LAND",
+        "id": "BL-L024",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "技术优先",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_slide_board_technique_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Slide Board Technique A",
+        "nameZh": "滑板技术A",
+        "primaryObjectiveId": "OBJ01",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 25,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L024"
+        ],
+        "duration": "20–35 min",
+        "environment": "LAND",
+        "id": "BL-L025",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "专项肌耐力/有氧混合",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_slide_board_endurance_a"
+        },
+        "load": "High",
+        "nameEn": "Slide Board Endurance A",
+        "nameZh": "滑板耐力A",
+        "primaryObjectiveId": "OBJ14",
+        "secondaryObjectiveIds": [
+          "OBJ16"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 26,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Conditional"
+      },
+      {
+        "drillRefs": [
+          "DR-L025"
+        ],
+        "duration": "20–30 min",
+        "environment": "LAND",
+        "id": "BL-L026",
+        "legacyAttributes": {
+          "Development": "Advanced/Elite",
+          "Notes": "默认青少年隐藏",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_slide_board_lactate_a"
+        },
+        "load": "Very High",
+        "nameEn": "Slide Board Lactate A",
+        "nameZh": "滑板乳酸A",
+        "primaryObjectiveId": "OBJ20",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 27,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-L017",
+          "DR-L014",
+          "DR-L015"
+        ],
+        "duration": "20–30 min",
+        "environment": "LAND",
+        "id": "BL-L027",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "短促、高质量、充分恢复",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_reaction_acceleration_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Reaction & Acceleration A",
+        "nameZh": "反应与加速A",
+        "primaryObjectiveId": "OBJ06",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "LAND04",
+        "source": {
+          "row": 28,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L015",
+          "DR-L016"
+        ],
+        "duration": "20–30 min",
+        "environment": "LAND",
+        "id": "BL-L028",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "速度下降即停止",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_sprint_10_30m_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Sprint 10–30m A",
+        "nameZh": "10–30米冲刺A",
+        "primaryObjectiveId": "OBJ07",
+        "secondaryObjectiveIds": [
+          "OBJ08"
+        ],
+        "sectionId": "LAND04",
+        "source": {
+          "row": 29,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L029"
+        ],
+        "duration": "20–35 min",
+        "environment": "LAND",
+        "id": "BL-L029",
+        "legacyAttributes": {
+          "Development": "Advanced/Elite",
+          "Notes": "高代谢压力；非青少年默认",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_lactate_200_a"
+        },
+        "load": "Very High",
+        "nameEn": "Lactate 200 A",
+        "nameZh": "200米乳酸A",
+        "primaryObjectiveId": "OBJ20",
+        "secondaryObjectiveIds": [
+          "OBJ21"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 30,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-L031"
+        ],
+        "duration": "25–40 min",
+        "environment": "LAND",
+        "id": "BL-L030",
+        "legacyAttributes": {
+          "Development": "Advanced/Elite",
+          "Notes": "高代谢压力；非青少年默认",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_lactate_400_a"
+        },
+        "load": "Very High",
+        "nameEn": "Lactate 400 A",
+        "nameZh": "400米乳酸A",
+        "primaryObjectiveId": "OBJ20",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 31,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-L040"
+        ],
+        "duration": "25–40 min",
+        "environment": "LAND",
+        "id": "BL-L031",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "高强度—恢复—再高强度",
+          "Source": "Expanded",
+          "systemTemplateId": null
+        },
+        "load": "Very High",
+        "nameEn": "Repeated High-Intensity A",
+        "nameZh": "重复高强度A",
+        "primaryObjectiveId": "OBJ21",
+        "secondaryObjectiveIds": [
+          "OBJ19"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 32,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-L002",
+          "DR-L010",
+          "DR-L012",
+          "DR-L015"
+        ],
+        "duration": "20–30 min",
+        "environment": "LAND",
+        "id": "BL-L032",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "低量、保速度、不过度疲劳",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_competition_activation_a"
+        },
+        "load": "Low-Moderate",
+        "nameEn": "Competition Activation A",
+        "nameZh": "赛前激活A",
+        "primaryObjectiveId": "OBJ09",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "LAND01",
+        "source": {
+          "row": 33,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-L034",
+          "DR-L036"
+        ],
+        "duration": "20–35 min",
+        "environment": "LAND",
+        "id": "BL-L033",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "恢复优先",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_post_competition_recovery_a"
+        },
+        "load": "Low",
+        "nameEn": "Post-Competition Recovery A",
+        "nameZh": "赛后恢复A",
+        "primaryObjectiveId": "OBJ16",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "LAND08",
+        "source": {
+          "row": 34,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-I001",
+          "DR-I003",
+          "DR-I004",
+          "DR-I005"
+        ],
+        "duration": "30–45 min",
+        "environment": "ICE",
+        "id": "BL-I001",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "姿势、重心、蹬滑、单腿控制",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_basic_technique_a"
+        },
+        "load": "Low-Moderate",
+        "nameEn": "Basic Technique A",
+        "nameZh": "冰上基础技术A",
+        "primaryObjectiveId": "OBJ01",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "ICE02",
+        "source": {
+          "row": 35,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-I006",
+          "DR-I007",
+          "DR-I008",
+          "DR-I009"
+        ],
+        "duration": "30–45 min",
+        "environment": "ICE",
+        "id": "BL-I002",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "入弯→内倾/髋→交叉→出弯",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_corner_technique_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Corner Technique A",
+        "nameZh": "弯道技术A",
+        "primaryObjectiveId": "OBJ02",
+        "secondaryObjectiveIds": [
+          "OBJ13"
+        ],
+        "sectionId": "ICE03",
+        "source": {
+          "row": 36,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-I010",
+          "DR-I011",
+          "DR-I012"
+        ],
+        "duration": "20–35 min",
+        "environment": "ICE",
+        "id": "BL-I003",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "反应、前三步、半圈",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_start_ice_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Start Ice A",
+        "nameZh": "冰上起跑A",
+        "primaryObjectiveId": "OBJ03",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "ICE04",
+        "source": {
+          "row": 37,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-I013",
+          "DR-I014"
+        ],
+        "duration": "20–35 min",
+        "environment": "ICE",
+        "id": "BL-I004",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "助滑圈 + 最大速度圈；充分恢复",
+          "Source": "Prior plan",
+          "systemTemplateId": "stb_flying_speed_a"
+        },
+        "load": "High",
+        "nameEn": "Flying Speed A",
+        "nameZh": "飞行速度A",
+        "primaryObjectiveId": "OBJ08",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "ICE05",
+        "source": {
+          "row": 38,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-I015"
+        ],
+        "duration": "20–30 min",
+        "environment": "ICE",
+        "id": "BL-I005",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "例如3×3 laps，按圈速目标",
+          "Source": "Prior plan",
+          "systemTemplateId": "stb_three_lap_speed_a"
+        },
+        "load": "High",
+        "nameEn": "3-Lap Speed A",
+        "nameZh": "3圈速度A",
+        "primaryObjectiveId": "OBJ08",
+        "secondaryObjectiveIds": [
+          "OBJ19"
+        ],
+        "sectionId": "ICE05",
+        "source": {
+          "row": 39,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Conditional"
+      },
+      {
+        "drillRefs": [
+          "DR-I016"
+        ],
+        "duration": "20–35 min",
+        "environment": "ICE",
+        "id": "BL-I006",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "例如3×5 laps，按圈速目标",
+          "Source": "Prior plan",
+          "systemTemplateId": "stb_five_lap_speed_endurance_a"
+        },
+        "load": "High",
+        "nameEn": "5-Lap Speed Endurance A",
+        "nameZh": "5圈速度耐力A",
+        "primaryObjectiveId": "OBJ19",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "ICE06",
+        "source": {
+          "row": 40,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Conditional"
+      },
+      {
+        "drillRefs": [
+          "DR-I017"
+        ],
+        "duration": "20–35 min",
+        "environment": "ICE",
+        "id": "BL-I007",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "高代谢压力；教练控制剂量",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_seven_lap_lactate_a"
+        },
+        "load": "Very High",
+        "nameEn": "7-Lap Lactate A",
+        "nameZh": "7圈乳酸A",
+        "primaryObjectiveId": "OBJ20",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 41,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-I019"
+        ],
+        "duration": "30–45 min",
+        "environment": "ICE",
+        "id": "BL-I008",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "例如3×15 laps @ controlled target",
+          "Source": "Prior plan",
+          "systemTemplateId": "stb_fifteen_lap_specific_endurance_a"
+        },
+        "load": "High",
+        "nameEn": "15-Lap Specific Endurance A",
+        "nameZh": "15圈专项耐力A",
+        "primaryObjectiveId": "OBJ22",
+        "secondaryObjectiveIds": [
+          "OBJ16"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 42,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Conditional"
+      },
+      {
+        "drillRefs": [
+          "DR-I018"
+        ],
+        "duration": "25–40 min",
+        "environment": "ICE",
+        "id": "BL-I009",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "比赛专项",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_five_hundred_specific_a"
+        },
+        "load": "Very High",
+        "nameEn": "500m Specific A",
+        "nameZh": "500米专项A",
+        "primaryObjectiveId": "OBJ22",
+        "secondaryObjectiveIds": [
+          "OBJ20"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 43,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-I020"
+        ],
+        "duration": "25–40 min",
+        "environment": "ICE",
+        "id": "BL-I010",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "例如5+4圈",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_broken_500_a"
+        },
+        "load": "Very High",
+        "nameEn": "Broken 500 A",
+        "nameZh": "分段500A",
+        "primaryObjectiveId": "OBJ20",
+        "secondaryObjectiveIds": [
+          "OBJ22"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 44,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-I017",
+          "DR-I021"
+        ],
+        "duration": "30–45 min",
+        "environment": "ICE",
+        "id": "BL-I011",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "专项/分段组合",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_seven_seventy_seven_specific_a"
+        },
+        "load": "Very High",
+        "nameEn": "777m Specific A",
+        "nameZh": "777米专项A",
+        "primaryObjectiveId": "OBJ22",
+        "secondaryObjectiveIds": [
+          "OBJ20"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 45,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-I022"
+        ],
+        "duration": "25–40 min",
+        "environment": "ICE",
+        "id": "BL-I012",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "高强度重复与恢复能力",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_repeated_high_intensity_ice_a"
+        },
+        "load": "Very High",
+        "nameEn": "Repeated High-Intensity Ice A",
+        "nameZh": "冰上重复高强度A",
+        "primaryObjectiveId": "OBJ21",
+        "secondaryObjectiveIds": [
+          "OBJ20"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 46,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-I024",
+          "DR-I025"
+        ],
+        "duration": "20–35 min",
+        "environment": "ICE",
+        "id": "BL-I013",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "可用5次超越作为简化版本",
+          "Source": "Prior plan",
+          "systemTemplateId": "stb_passing_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Passing A",
+        "nameZh": "超越A",
+        "primaryObjectiveId": "OBJ04",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "ICE08",
+        "source": {
+          "row": 47,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-I026"
+        ],
+        "duration": "20–35 min",
+        "environment": "ICE",
+        "id": "BL-I014",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "跟滑、位置、线路",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_pack_skating_a"
+        },
+        "load": "Moderate",
+        "nameEn": "Pack Skating A",
+        "nameZh": "集团滑行A",
+        "primaryObjectiveId": "OBJ04",
+        "secondaryObjectiveIds": [
+          "OBJ21"
+        ],
+        "sectionId": "ICE08",
+        "source": {
+          "row": 48,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Yes"
+      },
+      {
+        "drillRefs": [
+          "DR-I027"
+        ],
+        "duration": "20–40 min",
+        "environment": "ICE",
+        "id": "BL-I015",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "高负荷，谨慎安排",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_race_simulation_a"
+        },
+        "load": "Very High",
+        "nameEn": "Race Simulation A",
+        "nameZh": "比赛模拟A",
+        "primaryObjectiveId": "OBJ22",
+        "secondaryObjectiveIds": [
+          "OBJ04"
+        ],
+        "sectionId": "ICE08",
+        "source": {
+          "row": 49,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-I019",
+          "DR-I016",
+          "DR-I015",
+          "DR-I024"
+        ],
+        "duration": "60–90 min",
+        "environment": "ICE",
+        "id": "BL-I016",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "来自既有冰上结构：3×15、3×5、3×3、超越×5；具体总量需教练按运动员调整",
+          "Source": "Actual-use structure",
+          "systemTemplateId": "stb_fifteen_five_three_passing_combo"
+        },
+        "load": "Very High",
+        "nameEn": "Endurance→Speed→Passing Combo",
+        "nameZh": "15圈→5圈→3圈→超越组合",
+        "primaryObjectiveId": "OBJ22",
+        "secondaryObjectiveIds": [
+          "OBJ04"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 50,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      },
+      {
+        "drillRefs": [
+          "DR-I010",
+          "DR-I013",
+          "DR-I015"
+        ],
+        "duration": "40–60 min",
+        "environment": "ICE",
+        "id": "BL-I017",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "用于速度/起跑日；质量优先",
+          "Source": "Prior plan",
+          "systemTemplateId": null
+        },
+        "load": "High",
+        "nameEn": "Start + Flying + 4-Lap Speed",
+        "nameZh": "起跑+飞行圈+4圈速度",
+        "primaryObjectiveId": "OBJ08",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "ICE05",
+        "source": {
+          "row": 51,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "Conditional"
+      },
+      {
+        "drillRefs": [
+          "DR-I023"
+        ],
+        "duration": "25–40 min",
+        "environment": "ICE",
+        "id": "BL-I018",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "控制前段，终段2–3圈加速",
+          "Source": "Expanded",
+          "systemTemplateId": "stb_fatigue_finish_a"
+        },
+        "load": "High",
+        "nameEn": "Fatigue Finish A",
+        "nameZh": "疲劳终段A",
+        "primaryObjectiveId": "OBJ22",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 52,
+          "sheet": "08_Blocks"
+        },
+        "taperCompatible": "No"
+      }
+    ],
+    "drills": [
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "5–15 laps",
+        "duration": "",
+        "energySystemId": "ES03",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG01;TAG02",
+        "id": "DR-I001",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "",
+          "Quality Rule": "Relaxed posture; no chasing speed"
+        },
+        "load": "Low",
+        "modality": "MOD11",
+        "nameEn": "Easy Ice Warm-up",
+        "nameZh": "冰上轻松热身",
+        "primaryObjectiveId": "OBJ16",
+        "rest": "",
+        "rpe": "2–3",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "ICE01",
+        "source": {
+          "row": 2,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Easy / conversational"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "9 laps",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG01;TAG18",
+        "id": "DR-I002",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Increase speed without losing posture"
+        },
+        "load": "Low",
+        "modality": "MOD11",
+        "nameEn": "Progressive Ice Warm-up",
+        "nameZh": "冰上渐进热身",
+        "primaryObjectiveId": "OBJ09",
+        "rest": "",
+        "rpe": "3–5",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "ICE01",
+        "source": {
+          "row": 3,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "3 easy + 3 moderate + 3 faster"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "2–4",
+        "distance": "3–6 laps/set",
+        "duration": "",
+        "energySystemId": "ES03",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG01;TAG03;TAG04",
+        "id": "DR-I003",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Stable hips; clean weight transfer"
+        },
+        "load": "Low",
+        "modality": "MOD11",
+        "nameEn": "Hands-Behind-Back Technique",
+        "nameZh": "背手技术滑",
+        "primaryObjectiveId": "OBJ01",
+        "rest": "2–3 min",
+        "rpe": "3–5",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "ICE02",
+        "source": {
+          "row": 4,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Technique first"
+      },
+      {
+        "defaultReps": "2–4/side",
+        "defaultSets": "2–3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES03",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG02;TAG06;TAG07",
+        "id": "DR-I004",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "",
+          "Quality Rule": "Stop if balance deteriorates"
+        },
+        "load": "Low",
+        "modality": "MOD11",
+        "nameEn": "One-Leg Glide Control",
+        "nameZh": "单腿滑行控制",
+        "primaryObjectiveId": "OBJ01",
+        "rest": "",
+        "rpe": "2–4",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "ICE02",
+        "source": {
+          "row": 5,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Smooth"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "3",
+        "distance": "2–4 laps",
+        "duration": "",
+        "energySystemId": "ES03",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG04;TAG06;TAG05",
+        "id": "DR-I005",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Avoid vertical bouncing"
+        },
+        "load": "Low",
+        "modality": "MOD11",
+        "nameEn": "Straightaway Push & Glide",
+        "nameZh": "直道蹬冰滑行",
+        "primaryObjectiveId": "OBJ01",
+        "rest": "2 min",
+        "rpe": "3–5",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "ICE02",
+        "source": {
+          "row": 6,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Long clean push"
+      },
+      {
+        "defaultReps": "4–6 entries",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES03",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG08;TAG10",
+        "id": "DR-I006",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Line before speed"
+        },
+        "load": "Low",
+        "modality": "MOD11",
+        "nameEn": "Corner Entry Drill",
+        "nameZh": "入弯线路练习",
+        "primaryObjectiveId": "OBJ02",
+        "rest": "2 min",
+        "rpe": "3–5",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "ICE03",
+        "source": {
+          "row": 7,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Consistent deep entry"
+      },
+      {
+        "defaultReps": "4–6 corners",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES03",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG09;TAG10;TAG11",
+        "id": "DR-I007",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "No forced lean beyond control"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "Lean & Hip Position Drill",
+        "nameZh": "内倾与髋位",
+        "primaryObjectiveId": "OBJ02",
+        "rest": "2 min",
+        "rpe": "4–5",
+        "secondaryObjectiveIds": [
+          "OBJ13"
+        ],
+        "sectionId": "ICE03",
+        "source": {
+          "row": 8,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Technical quality"
+      },
+      {
+        "defaultReps": "6–10 crossovers",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG12;TAG18",
+        "id": "DR-I008",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Maintain hip position"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "Continuous Crossover Drill",
+        "nameZh": "连续交叉步",
+        "primaryObjectiveId": "OBJ02",
+        "rest": "2–3 min",
+        "rpe": "4–6",
+        "secondaryObjectiveIds": [
+          "OBJ14"
+        ],
+        "sectionId": "ICE03",
+        "source": {
+          "row": 9,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Smooth rhythm"
+      },
+      {
+        "defaultReps": "1 exit",
+        "defaultSets": "4–6",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG13;TAG16;TAG04",
+        "id": "DR-I009",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Quality over volume"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "Corner Exit Acceleration",
+        "nameZh": "出弯加速",
+        "primaryObjectiveId": "OBJ07",
+        "rest": "Full recovery",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ02"
+        ],
+        "sectionId": "ICE03",
+        "source": {
+          "row": 10,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Fast but clean"
+      },
+      {
+        "defaultReps": "1 start",
+        "defaultSets": "4–8",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG14;TAG15",
+        "id": "DR-I010",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Reset stance each rep"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "Reaction Start",
+        "nameZh": "反应起跑",
+        "primaryObjectiveId": "OBJ06",
+        "rest": "1.5–3 min",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ03"
+        ],
+        "sectionId": "ICE04",
+        "source": {
+          "row": 11,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Fast reaction"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "4–6",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG15;TAG16",
+        "id": "DR-I011",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Stop if first-step quality drops"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "First 3 Steps",
+        "nameZh": "起跑前三步",
+        "primaryObjectiveId": "OBJ03",
+        "rest": "2–3 min",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "ICE04",
+        "source": {
+          "row": 12,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Technical max quality"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "3–6",
+        "distance": "Half lap",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG14;TAG16",
+        "id": "DR-I012",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Full recovery for speed quality"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "Start to Half Lap",
+        "nameZh": "起跑到半圈",
+        "primaryObjectiveId": "OBJ07",
+        "rest": "3–5 min",
+        "rpe": "6–8",
+        "secondaryObjectiveIds": [
+          "OBJ03"
+        ],
+        "sectionId": "ICE04",
+        "source": {
+          "row": 13,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Fast"
+      },
+      {
+        "defaultReps": "1 lap",
+        "defaultSets": "3–6",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG17;TAG18",
+        "id": "DR-I013",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Stop with material speed/technique drop"
+        },
+        "load": "High",
+        "modality": "MOD11",
+        "nameEn": "Flying Lap",
+        "nameZh": "助滑飞行圈",
+        "primaryObjectiveId": "OBJ08",
+        "rest": "3–5 min",
+        "rpe": "7–9",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "ICE05",
+        "source": {
+          "row": 14,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Max controlled speed"
+      },
+      {
+        "defaultReps": "1 lap",
+        "defaultSets": "3–5",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG17;TAG30",
+        "id": "DR-I014",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Full recovery"
+        },
+        "load": "High",
+        "modality": "MOD11",
+        "nameEn": "1-Lap Max Speed",
+        "nameZh": "一圈最大速度",
+        "primaryObjectiveId": "OBJ08",
+        "rest": "4–6 min",
+        "rpe": "8–9",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "ICE05",
+        "source": {
+          "row": 15,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Max / timed"
+      },
+      {
+        "defaultReps": "3 laps",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES02",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG17;TAG30",
+        "id": "DR-I015",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Speed quality before completion"
+        },
+        "load": "High",
+        "modality": "MOD11",
+        "nameEn": "3-Lap Speed",
+        "nameZh": "3圈速度",
+        "primaryObjectiveId": "OBJ08",
+        "rest": "3–5 min",
+        "rpe": "7–9",
+        "secondaryObjectiveIds": [
+          "OBJ19"
+        ],
+        "sectionId": "ICE05",
+        "source": {
+          "row": 16,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Conditional",
+        "target": "Fast / lap-time target"
+      },
+      {
+        "defaultReps": "5 laps",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES02",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG17;TAG30",
+        "id": "DR-I016",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Technique must remain controlled"
+        },
+        "load": "High",
+        "modality": "MOD11",
+        "nameEn": "5-Lap Speed Endurance",
+        "nameZh": "5圈速度耐力",
+        "primaryObjectiveId": "OBJ19",
+        "rest": "3–5 min",
+        "rpe": "7–9",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "ICE06",
+        "source": {
+          "row": 17,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Conditional",
+        "target": "High / target pace"
+      },
+      {
+        "defaultReps": "7 laps",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES02",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30;TAG22",
+        "id": "DR-I017",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "Not a default youth recommendation; coach-dosed",
+          "Quality Rule": "Stop for unsafe loss of control"
+        },
+        "load": "Very High",
+        "modality": "MOD11",
+        "nameEn": "7-Lap Lactate Tolerance",
+        "nameZh": "7圈乳酸耐受",
+        "primaryObjectiveId": "OBJ20",
+        "rest": "4–8 min",
+        "rpe": "8–10",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 18,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "Race-related high intensity"
+      },
+      {
+        "defaultReps": "9 laps",
+        "defaultSets": "1–3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG17;TAG30;TAG22",
+        "id": "DR-I018",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Quality and safety override planned reps"
+        },
+        "load": "Very High",
+        "modality": "MOD11",
+        "nameEn": "9-Lap 500m Specific",
+        "nameZh": "9圈500米专项",
+        "primaryObjectiveId": "OBJ22",
+        "rest": "6–10 min",
+        "rpe": "8–10",
+        "secondaryObjectiveIds": [
+          "OBJ20"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 19,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "500m-specific pace"
+      },
+      {
+        "defaultReps": "15 laps",
+        "defaultSets": "2–3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30",
+        "id": "DR-I019",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Keep technical form"
+        },
+        "load": "High",
+        "modality": "MOD11",
+        "nameEn": "15-Lap Specific Endurance",
+        "nameZh": "15圈专项耐力",
+        "primaryObjectiveId": "OBJ22",
+        "rest": "5–8 min",
+        "rpe": "6–8",
+        "secondaryObjectiveIds": [
+          "OBJ16"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 20,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Conditional",
+        "target": "Controlled specific pace"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "2–3",
+        "distance": "Example 5+4 laps",
+        "duration": "",
+        "energySystemId": "ES02",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG17;TAG30;TAG22",
+        "id": "DR-I020",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Use only with clear purpose"
+        },
+        "load": "Very High",
+        "modality": "MOD11",
+        "nameEn": "Broken 500m",
+        "nameZh": "分段500米",
+        "primaryObjectiveId": "OBJ20",
+        "rest": "30–90s intra / 6–10 min inter",
+        "rpe": "8–10",
+        "secondaryObjectiveIds": [
+          "OBJ22"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 21,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "Race pace segments"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "2–3",
+        "distance": "Example 7+5+2 laps",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30;TAG22",
+        "id": "DR-I021",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Technical quality under fatigue"
+        },
+        "load": "Very High",
+        "modality": "MOD11",
+        "nameEn": "Broken 777m",
+        "nameZh": "分段777米",
+        "primaryObjectiveId": "OBJ20",
+        "rest": "30–90s intra / 6–10 min inter",
+        "rpe": "8–10",
+        "secondaryObjectiveIds": [
+          "OBJ22"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 22,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "Race pace segments"
+      },
+      {
+        "defaultReps": "2–4 efforts",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30;TAG18",
+        "id": "DR-I022",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Track recovery and quality"
+        },
+        "load": "Very High",
+        "modality": "MOD11",
+        "nameEn": "Repeated High-Intensity Ice",
+        "nameZh": "冰上重复高强度",
+        "primaryObjectiveId": "OBJ21",
+        "rest": "2–5 min",
+        "rpe": "8–9",
+        "secondaryObjectiveIds": [
+          "OBJ20"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 23,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "High"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "2–3",
+        "distance": "10–20 laps",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG22;TAG30",
+        "id": "DR-I023",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Finish fast without reckless form"
+        },
+        "load": "High",
+        "modality": "MOD11",
+        "nameEn": "Fatigue Finish",
+        "nameZh": "疲劳终段加速",
+        "primaryObjectiveId": "OBJ22",
+        "rest": "5–8 min",
+        "rpe": "7–9",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "ICE07",
+        "source": {
+          "row": 24,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "No",
+        "target": "Controlled then final 2–3 hard"
+      },
+      {
+        "defaultReps": "1 pass",
+        "defaultSets": "4–8",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG19;TAG20;TAG16",
+        "id": "DR-I024",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Safe gap and agreed drill rules"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "Inside Pass Practice",
+        "nameZh": "内道超越练习",
+        "primaryObjectiveId": "OBJ04",
+        "rest": "2–3 min",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "ICE08",
+        "source": {
+          "row": 25,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Decision + acceleration"
+      },
+      {
+        "defaultReps": "1 pass",
+        "defaultSets": "4–8",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG19;TAG20;TAG16",
+        "id": "DR-I025",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Safe gap and agreed drill rules"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "Outside Pass Practice",
+        "nameZh": "外道超越练习",
+        "primaryObjectiveId": "OBJ04",
+        "rest": "2–3 min",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "ICE08",
+        "source": {
+          "row": 26,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Decision + acceleration"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "2–4",
+        "distance": "5–15 laps",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG20;TAG21",
+        "id": "DR-I026",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Control contact risk"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "Pack Skating",
+        "nameZh": "集团滑行",
+        "primaryObjectiveId": "OBJ04",
+        "rest": "3–5 min",
+        "rpe": "5–8",
+        "secondaryObjectiveIds": [
+          "OBJ21"
+        ],
+        "sectionId": "ICE08",
+        "source": {
+          "row": 27,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Positioning focus"
+      },
+      {
+        "defaultReps": "1 race",
+        "defaultSets": "1–4",
+        "distance": "Race distance",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG20;TAG19;TAG22",
+        "id": "DR-I027",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Dose sparingly"
+        },
+        "load": "Very High",
+        "modality": "MOD11",
+        "nameEn": "Race Simulation",
+        "nameZh": "比赛模拟",
+        "primaryObjectiveId": "OBJ22",
+        "rest": "Full/competition-like",
+        "rpe": "8–10",
+        "secondaryObjectiveIds": [
+          "OBJ04"
+        ],
+        "sectionId": "ICE08",
+        "source": {
+          "row": 28,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "Race conditions"
+      },
+      {
+        "defaultReps": "1 exchange",
+        "defaultSets": "4–10",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "ICE",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG20;TAG18",
+        "id": "DR-I028",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Safe spacing and communication"
+        },
+        "load": "Moderate",
+        "modality": "MOD11",
+        "nameEn": "Relay Exchange Drill",
+        "nameZh": "接力交接练习",
+        "primaryObjectiveId": "OBJ04",
+        "rest": "1–3 min",
+        "rpe": "4–7",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "ICE08",
+        "source": {
+          "row": 29,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Yes",
+        "target": "Technical"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "10–15 min",
+        "energySystemId": "ES03",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG01;TAG23;TAG31",
+        "id": "DR-L001",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "",
+          "Quality Rule": "Finish feeling better, not tired"
+        },
+        "load": "Low",
+        "modality": "MOD01",
+        "nameEn": "Full Pre-Ice Dynamic Warm-up",
+        "nameZh": "完整冰前动态热身",
+        "primaryObjectiveId": "OBJ09",
+        "rest": "",
+        "rpe": "2–4",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "LAND01",
+        "source": {
+          "row": 30,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Progressive"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "8–12 min",
+        "energySystemId": "ES03",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG01;TAG23",
+        "id": "DR-L002",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "",
+          "Quality Rule": "Low fatigue; taper compatible"
+        },
+        "load": "Low",
+        "modality": "MOD01",
+        "nameEn": "Light Pre-Ice Warm-up",
+        "nameZh": "简化冰前热身",
+        "primaryObjectiveId": "OBJ09",
+        "rest": "",
+        "rpe": "2–3",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "LAND01",
+        "source": {
+          "row": 31,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Light"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "20–40s",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG01;TAG29",
+        "id": "DR-L003",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Neutral trunk; stop if posture collapses"
+        },
+        "load": "Moderate",
+        "modality": "MOD01",
+        "nameEn": "Skating Position Hold",
+        "nameZh": "滑行低姿保持",
+        "primaryObjectiveId": "OBJ13",
+        "rest": "45–90s",
+        "rpe": "4–7",
+        "secondaryObjectiveIds": [
+          "OBJ14"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 32,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Technical isometric"
+      },
+      {
+        "defaultReps": "5–8/side",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG23;TAG32",
+        "id": "DR-L004",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Technique before load"
+        },
+        "load": "Moderate",
+        "modality": "MOD02",
+        "nameEn": "Split Squat Strength",
+        "nameZh": "分腿蹲力量",
+        "primaryObjectiveId": "OBJ11",
+        "rest": "1.5–3 min",
+        "rpe": "5–8",
+        "secondaryObjectiveIds": [
+          "OBJ10"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 33,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Conditional",
+        "target": "Controlled strength"
+      },
+      {
+        "defaultReps": "5–8/side",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG25;TAG23",
+        "id": "DR-L005",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Stable pelvis and spine"
+        },
+        "load": "Moderate",
+        "modality": "MOD02",
+        "nameEn": "Single-Leg RDL Strength",
+        "nameZh": "单腿RDL力量",
+        "primaryObjectiveId": "OBJ11",
+        "rest": "1.5–3 min",
+        "rpe": "5–8",
+        "secondaryObjectiveIds": [
+          "OBJ10"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 34,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Conditional",
+        "target": "Controlled strength"
+      },
+      {
+        "defaultReps": "5–8/side",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG23;TAG32",
+        "id": "DR-L006",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Knee tracks cleanly"
+        },
+        "load": "Moderate",
+        "modality": "MOD02",
+        "nameEn": "Step-Up Strength",
+        "nameZh": "登台阶力量",
+        "primaryObjectiveId": "OBJ11",
+        "rest": "1.5–3 min",
+        "rpe": "5–8",
+        "secondaryObjectiveIds": [
+          "OBJ10"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 35,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Conditional",
+        "target": "Strong drive"
+      },
+      {
+        "defaultReps": "6–10/side",
+        "defaultSets": "2–3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG23;TAG24",
+        "id": "DR-L007",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Hip control"
+        },
+        "load": "Moderate",
+        "modality": "MOD01",
+        "nameEn": "Lateral Squat Strength",
+        "nameZh": "侧向深蹲力量",
+        "primaryObjectiveId": "OBJ12",
+        "rest": "1–2 min",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ10"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 36,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Controlled"
+      },
+      {
+        "defaultReps": "8–15",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG26;TAG31",
+        "id": "DR-L008",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "No bouncing"
+        },
+        "load": "Moderate",
+        "modality": "MOD02",
+        "nameEn": "Calf/Soleus Strength",
+        "nameZh": "小腿/比目鱼肌力量",
+        "primaryObjectiveId": "OBJ10",
+        "rest": "1–2 min",
+        "rpe": "4–7",
+        "secondaryObjectiveIds": [
+          "OBJ11"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 37,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Full ROM"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "2–3",
+        "distance": "",
+        "duration": "15–30s/side",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG24;TAG27",
+        "id": "DR-L009",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Scale lever length"
+        },
+        "load": "Moderate",
+        "modality": "MOD01",
+        "nameEn": "Copenhagen Adductor",
+        "nameZh": "哥本哈根内收肌",
+        "primaryObjectiveId": "OBJ12",
+        "rest": "60–90s",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ13"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 38,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Technical"
+      },
+      {
+        "defaultReps": "3",
+        "defaultSets": "3–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG35",
+        "id": "DR-L010",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Stop if jump quality drops"
+        },
+        "load": "Moderate",
+        "modality": "MOD05",
+        "nameEn": "CMJ Quality Jumps",
+        "nameZh": "CMJ质量跳",
+        "primaryObjectiveId": "OBJ15",
+        "rest": "60–120s",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "LAND03",
+        "source": {
+          "row": 39,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Max quality"
+      },
+      {
+        "defaultReps": "3",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG33",
+        "id": "DR-L011",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Stick landing"
+        },
+        "load": "Moderate",
+        "modality": "MOD05",
+        "nameEn": "Broad Jump Quality",
+        "nameZh": "立定跳远质量组",
+        "primaryObjectiveId": "OBJ15",
+        "rest": "60–120s",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "LAND03",
+        "source": {
+          "row": 40,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Max quality"
+      },
+      {
+        "defaultReps": "3–5/side",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG34",
+        "id": "DR-L012",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Stable landing"
+        },
+        "load": "Moderate",
+        "modality": "MOD05",
+        "nameEn": "Lateral Bound Quality",
+        "nameZh": "侧向跨跳质量组",
+        "primaryObjectiveId": "OBJ15",
+        "rest": "60–120s",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ12"
+        ],
+        "sectionId": "LAND03",
+        "source": {
+          "row": 41,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Explosive"
+      },
+      {
+        "defaultReps": "4–8/side",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG34;TAG18",
+        "id": "DR-L013",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Stop with poor landing"
+        },
+        "load": "High",
+        "modality": "MOD05",
+        "nameEn": "Continuous Skater Jump",
+        "nameZh": "连续滑冰侧跳",
+        "primaryObjectiveId": "OBJ15",
+        "rest": "90–150s",
+        "rpe": "6–8",
+        "secondaryObjectiveIds": [
+          "OBJ14"
+        ],
+        "sectionId": "LAND03",
+        "source": {
+          "row": 42,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Conditional",
+        "target": "Fast + controlled"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "4–8",
+        "distance": "5m",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG15;TAG16",
+        "id": "DR-L014",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Full reset each rep"
+        },
+        "load": "Moderate",
+        "modality": "MOD07",
+        "nameEn": "5m Start",
+        "nameZh": "5米启动",
+        "primaryObjectiveId": "OBJ07",
+        "rest": "1.5–3 min",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ03"
+        ],
+        "sectionId": "LAND04",
+        "source": {
+          "row": 43,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Max acceleration"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "3–6",
+        "distance": "10m",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG16",
+        "id": "DR-L015",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Stop if slower"
+        },
+        "load": "Moderate",
+        "modality": "MOD07",
+        "nameEn": "10m Acceleration",
+        "nameZh": "10米加速",
+        "primaryObjectiveId": "OBJ07",
+        "rest": "2–3 min",
+        "rpe": "6–8",
+        "secondaryObjectiveIds": [
+          "OBJ08"
+        ],
+        "sectionId": "LAND04",
+        "source": {
+          "row": 44,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Max quality"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "3–6",
+        "distance": "20m",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG16;TAG17",
+        "id": "DR-L016",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Full recovery"
+        },
+        "load": "Moderate",
+        "modality": "MOD07",
+        "nameEn": "20m Acceleration",
+        "nameZh": "20米加速",
+        "primaryObjectiveId": "OBJ07",
+        "rest": "2–4 min",
+        "rpe": "6–8",
+        "secondaryObjectiveIds": [
+          "OBJ08"
+        ],
+        "sectionId": "LAND04",
+        "source": {
+          "row": 45,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Fast"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "4–8",
+        "distance": "5–10m",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG15;TAG16",
+        "id": "DR-L017",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Vary cue, not volume"
+        },
+        "load": "Moderate",
+        "modality": "MOD07",
+        "nameEn": "Reaction Start Sprint",
+        "nameZh": "反应启动冲刺",
+        "primaryObjectiveId": "OBJ06",
+        "rest": "1.5–3 min",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "LAND04",
+        "source": {
+          "row": 46,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Cue-based"
+      },
+      {
+        "defaultReps": "6–10/side",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG04;TAG23",
+        "id": "DR-L018",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Push laterally, stable torso"
+        },
+        "load": "Moderate",
+        "modality": "MOD03",
+        "nameEn": "Band Single-Side Push",
+        "nameZh": "弹力带单侧蹬伸",
+        "primaryObjectiveId": "OBJ12",
+        "rest": "45–90s",
+        "rpe": "4–6",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 47,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Technical resistance"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "15–30s",
+        "energySystemId": "ES04",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG04;TAG18",
+        "id": "DR-L019",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Maintain low position"
+        },
+        "load": "Moderate",
+        "modality": "MOD03",
+        "nameEn": "Band Alternating Push",
+        "nameZh": "弹力带连续左右蹬",
+        "primaryObjectiveId": "OBJ14",
+        "rest": "60–90s",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ01"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 48,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Smooth fast rhythm"
+      },
+      {
+        "defaultReps": "6–10",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG12;TAG10",
+        "id": "DR-L020",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Hip position before speed"
+        },
+        "load": "Low",
+        "modality": "MOD01",
+        "nameEn": "Dryland Crossover",
+        "nameZh": "陆地交叉步",
+        "primaryObjectiveId": "OBJ02",
+        "rest": "60–90s",
+        "rpe": "4–6",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 49,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Technical"
+      },
+      {
+        "defaultReps": "6–10/side",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG13;TAG04",
+        "id": "DR-L021",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Drive without torso twist"
+        },
+        "load": "Moderate",
+        "modality": "MOD03",
+        "nameEn": "Corner Exit Band Push",
+        "nameZh": "弹力带出弯蹬伸",
+        "primaryObjectiveId": "OBJ12",
+        "rest": "60–90s",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ02"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 50,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Technical power"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "8–12s",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG18",
+        "id": "DR-L022",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Short, crisp, fully recovered"
+        },
+        "load": "Moderate",
+        "modality": "MOD01",
+        "nameEn": "Fast Skating Frequency",
+        "nameZh": "快速专项频率",
+        "primaryObjectiveId": "OBJ09",
+        "rest": "60–120s",
+        "rpe": "6–8",
+        "secondaryObjectiveIds": [
+          "OBJ07"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 51,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Very fast"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "3",
+        "distance": "",
+        "duration": "30–60s",
+        "energySystemId": "ES03",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG03;TAG04;TAG18",
+        "id": "DR-L023",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Smooth lateral push"
+        },
+        "load": "Moderate",
+        "modality": "MOD10",
+        "nameEn": "Slide Board Technique",
+        "nameZh": "滑板技术",
+        "primaryObjectiveId": "OBJ01",
+        "rest": "60–90s",
+        "rpe": "4–6",
+        "secondaryObjectiveIds": [
+          "OBJ09"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 52,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Yes",
+        "target": "Technical"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "3–5",
+        "distance": "",
+        "duration": "45–90s",
+        "energySystemId": "ES04",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30;TAG18",
+        "id": "DR-L024",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Technique under fatigue"
+        },
+        "load": "High",
+        "modality": "MOD10",
+        "nameEn": "Slide Board Endurance",
+        "nameZh": "滑板专项耐力",
+        "primaryObjectiveId": "OBJ14",
+        "rest": "1–3 min",
+        "rpe": "6–8",
+        "secondaryObjectiveIds": [
+          "OBJ16"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 53,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Adult/coach",
+        "taperCompatible": "Conditional",
+        "target": "Sustainable"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "3–5",
+        "distance": "",
+        "duration": "30–60s",
+        "energySystemId": "ES02",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30",
+        "id": "DR-L025",
+        "legacyAttributes": {
+          "Development": "Advanced/Elite",
+          "Notes": "",
+          "Quality Rule": "Not youth default; dose carefully"
+        },
+        "load": "Very High",
+        "modality": "MOD10",
+        "nameEn": "Slide Board Lactate Tolerance",
+        "nameZh": "滑板乳酸耐受",
+        "primaryObjectiveId": "OBJ20",
+        "rest": "2–5 min",
+        "rpe": "8–10",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 54,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "High"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "10–15 min",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG27;TAG28;TAG29",
+        "id": "DR-L026",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "",
+          "Quality Rule": "No breath-holding"
+        },
+        "load": "Low",
+        "modality": "MOD01",
+        "nameEn": "Core C1",
+        "nameZh": "核心C1基础",
+        "primaryObjectiveId": "OBJ10",
+        "rest": "",
+        "rpe": "4–6",
+        "secondaryObjectiveIds": [
+          "OBJ13"
+        ],
+        "sectionId": "LAND06",
+        "source": {
+          "row": 55,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Quality"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "12–18 min",
+        "energySystemId": "ES01",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG27;TAG28;TAG29;TAG23",
+        "id": "DR-L027",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "",
+          "Quality Rule": "Stable pelvis"
+        },
+        "load": "Moderate",
+        "modality": "MOD01",
+        "nameEn": "Core C2",
+        "nameZh": "核心C2强化",
+        "primaryObjectiveId": "OBJ13",
+        "rest": "",
+        "rpe": "5–7",
+        "secondaryObjectiveIds": [
+          "OBJ11"
+        ],
+        "sectionId": "LAND06",
+        "source": {
+          "row": 56,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Quality"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "3–6",
+        "distance": "200m",
+        "duration": "",
+        "energySystemId": "ES02",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30",
+        "id": "DR-L028",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Purpose depends on pace/rest"
+        },
+        "load": "High",
+        "modality": "MOD06",
+        "nameEn": "200m Speed-Endurance Repeats",
+        "nameZh": "200米速度耐力间歇",
+        "primaryObjectiveId": "OBJ19",
+        "rest": "1:30–3:00",
+        "rpe": "7–9",
+        "secondaryObjectiveIds": [
+          "OBJ18"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 57,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Conditional",
+        "target": "High controlled"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "3–6",
+        "distance": "200m",
+        "duration": "",
+        "energySystemId": "ES02",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30",
+        "id": "DR-L029",
+        "legacyAttributes": {
+          "Development": "Advanced/Elite",
+          "Notes": "",
+          "Quality Rule": "Not youth default"
+        },
+        "load": "Very High",
+        "modality": "MOD06",
+        "nameEn": "200m Lactate Tolerance",
+        "nameZh": "200米乳酸耐受",
+        "primaryObjectiveId": "OBJ20",
+        "rest": "Short/controlled",
+        "rpe": "8–10",
+        "secondaryObjectiveIds": [
+          "OBJ21"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 58,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "High"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "3–5",
+        "distance": "400m",
+        "duration": "",
+        "energySystemId": "ES02",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30",
+        "id": "DR-L030",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Do not infer objective from distance alone"
+        },
+        "load": "High",
+        "modality": "MOD06",
+        "nameEn": "400m Anaerobic Repeats",
+        "nameZh": "400米无氧间歇",
+        "primaryObjectiveId": "OBJ19",
+        "rest": "2:30–4:00",
+        "rpe": "8–9",
+        "secondaryObjectiveIds": [
+          "OBJ20"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 59,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Conditional",
+        "target": "High controlled"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "2–5",
+        "distance": "400m",
+        "duration": "",
+        "energySystemId": "ES02",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30",
+        "id": "DR-L031",
+        "legacyAttributes": {
+          "Development": "Advanced/Elite",
+          "Notes": "",
+          "Quality Rule": "Not youth default; technique/safety first"
+        },
+        "load": "Very High",
+        "modality": "MOD06",
+        "nameEn": "400m Lactate Tolerance",
+        "nameZh": "400米乳酸耐受",
+        "primaryObjectiveId": "OBJ20",
+        "rest": "2:00–4:00",
+        "rpe": "9–10",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 60,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "Very high"
+      },
+      {
+        "defaultReps": "1",
+        "defaultSets": "3–6",
+        "distance": "800m",
+        "duration": "",
+        "energySystemId": "ES03",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG18",
+        "id": "DR-L032",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Use stage-appropriate volume"
+        },
+        "load": "High",
+        "modality": "MOD06",
+        "nameEn": "800m Aerobic-Power Repeats",
+        "nameZh": "800米有氧功率间歇",
+        "primaryObjectiveId": "OBJ17",
+        "rest": "2–4 min",
+        "rpe": "7–9",
+        "secondaryObjectiveIds": [
+          "OBJ16"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 61,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "No",
+        "target": "Hard aerobic"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "20–40 min",
+        "energySystemId": "ES03",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG18",
+        "id": "DR-L033",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "",
+          "Quality Rule": "Easy means easy"
+        },
+        "load": "Low",
+        "modality": "MOD06",
+        "nameEn": "Easy Aerobic Run",
+        "nameZh": "有氧慢跑",
+        "primaryObjectiveId": "OBJ16",
+        "rest": "",
+        "rpe": "2–4",
+        "secondaryObjectiveIds": [],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 62,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Conversational"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "15–30 min",
+        "energySystemId": "ES03",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG18",
+        "id": "DR-L034",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "",
+          "Quality Rule": "Recovery not conditioning"
+        },
+        "load": "Low",
+        "modality": "MOD15",
+        "nameEn": "Recovery Jog",
+        "nameZh": "恢复跑",
+        "primaryObjectiveId": "OBJ16",
+        "rest": "",
+        "rpe": "1–3",
+        "secondaryObjectiveIds": [],
+        "sectionId": "LAND08",
+        "source": {
+          "row": 63,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Very easy"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "10–20 min",
+        "energySystemId": "ES03",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG23;TAG31",
+        "id": "DR-L035",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "",
+          "Quality Rule": "Pain-free range"
+        },
+        "load": "Low",
+        "modality": "MOD14",
+        "nameEn": "Lower-Body Mobility",
+        "nameZh": "下肢活动度",
+        "primaryObjectiveId": "OBJ09",
+        "rest": "",
+        "rpe": "1–2",
+        "secondaryObjectiveIds": [],
+        "sectionId": "LAND08",
+        "source": {
+          "row": 64,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Easy"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "10–15 min",
+        "energySystemId": "ES03",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG23;TAG31",
+        "id": "DR-L036",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "",
+          "Quality Rule": "Down-regulate, no forcing"
+        },
+        "load": "Low",
+        "modality": "MOD14",
+        "nameEn": "Post-Ice Recovery Mobility",
+        "nameZh": "冰后恢复活动度",
+        "primaryObjectiveId": "OBJ09",
+        "rest": "",
+        "rpe": "1–2",
+        "secondaryObjectiveIds": [
+          "OBJ16"
+        ],
+        "sectionId": "LAND08",
+        "source": {
+          "row": 65,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Normal",
+        "taperCompatible": "Yes",
+        "target": "Easy"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "5–10 min",
+        "energySystemId": "ES03",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30",
+        "id": "DR-L037",
+        "legacyAttributes": {
+          "Development": "Advanced/Elite",
+          "Notes": "Hidden from youth default library",
+          "Quality Rule": "BFR is method, not objective"
+        },
+        "load": "Moderate",
+        "modality": "MOD13",
+        "nameEn": "BFR Supplemental Walk",
+        "nameZh": "BFR补充步行",
+        "primaryObjectiveId": "OBJ14",
+        "rest": "",
+        "rpe": "3–5",
+        "secondaryObjectiveIds": [],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 66,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Qualified professional only",
+        "taperCompatible": "No",
+        "target": "Low-intensity"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "1",
+        "distance": "",
+        "duration": "8–12 min",
+        "energySystemId": "ES04",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG32;TAG26",
+        "id": "DR-L038",
+        "legacyAttributes": {
+          "Development": "Advanced/Elite",
+          "Notes": "Hidden from youth default library",
+          "Quality Rule": "Strict protocol and screening"
+        },
+        "load": "Moderate",
+        "modality": "MOD13",
+        "nameEn": "BFR Supplemental Strength",
+        "nameZh": "BFR补充力量",
+        "primaryObjectiveId": "OBJ14",
+        "rest": "",
+        "rpe": "4–6",
+        "secondaryObjectiveIds": [
+          "OBJ10"
+        ],
+        "sectionId": "LAND02",
+        "source": {
+          "row": 67,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Qualified professional only",
+        "taperCompatible": "No",
+        "target": "Low-load protocol"
+      },
+      {
+        "defaultReps": "",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "4–8 min/set",
+        "energySystemId": "ES04",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG01;TAG04;TAG12;TAG30",
+        "id": "DR-L039",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Preserve skating posture"
+        },
+        "load": "High",
+        "modality": "MOD03",
+        "nameEn": "Skating Strength-Endurance Circuit",
+        "nameZh": "短道专项肌耐力循环",
+        "primaryObjectiveId": "OBJ14",
+        "rest": "2–4 min",
+        "rpe": "7–9",
+        "secondaryObjectiveIds": [
+          "OBJ05"
+        ],
+        "sectionId": "LAND05",
+        "source": {
+          "row": 68,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision",
+        "taperCompatible": "Conditional",
+        "target": "Moderate-high"
+      },
+      {
+        "defaultReps": "2–4 efforts",
+        "defaultSets": "2–4",
+        "distance": "",
+        "duration": "",
+        "energySystemId": "ES04",
+        "environment": "LAND",
+        "exerciseRefs": [],
+        "exerciseRefsSource": "source_not_provided",
+        "focusTags": "TAG30",
+        "id": "DR-L040",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "",
+          "Quality Rule": "Track recovery between efforts"
+        },
+        "load": "Very High",
+        "modality": "MOD06",
+        "nameEn": "Repeated High-Intensity Run",
+        "nameZh": "重复高强度跑",
+        "primaryObjectiveId": "OBJ21",
+        "rest": "2–5 min",
+        "rpe": "8–9",
+        "secondaryObjectiveIds": [
+          "OBJ19"
+        ],
+        "sectionId": "LAND07",
+        "source": {
+          "row": 69,
+          "sheet": "07_Drills"
+        },
+        "supervision": "Coach supervision required",
+        "taperCompatible": "No",
+        "target": "High"
+      }
+    ],
+    "exercises": [
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG01;TAG02",
+        "id": "EX-I001",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Easy Laps",
+        "nameZh": "轻松滑行",
+        "primaryObjectiveId": "OBJ16",
+        "sectionId": "ICE01",
+        "source": {
+          "row": 2,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG01;TAG18",
+        "id": "EX-I002",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Progressive Laps",
+        "nameZh": "渐进滑行",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "ICE01",
+        "source": {
+          "row": 3,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG02;TAG06",
+        "id": "EX-I003",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "One-Leg Glide",
+        "nameZh": "单腿滑行",
+        "primaryObjectiveId": "OBJ01",
+        "sectionId": "ICE02",
+        "source": {
+          "row": 4,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG07",
+        "id": "EX-I004",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Edge Control",
+        "nameZh": "刃控制",
+        "primaryObjectiveId": "OBJ01",
+        "sectionId": "ICE02",
+        "source": {
+          "row": 5,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG01;TAG29",
+        "id": "EX-I005",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Low Position Skating",
+        "nameZh": "低姿滑行",
+        "primaryObjectiveId": "OBJ01",
+        "sectionId": "ICE02",
+        "source": {
+          "row": 6,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG01;TAG03;TAG04",
+        "id": "EX-I006",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Hands-Behind-Back Skating",
+        "nameZh": "背手滑",
+        "primaryObjectiveId": "OBJ01",
+        "sectionId": "ICE02",
+        "source": {
+          "row": 7,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG04;TAG06",
+        "id": "EX-I007",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Push & Glide",
+        "nameZh": "蹬冰—滑行",
+        "primaryObjectiveId": "OBJ01",
+        "sectionId": "ICE02",
+        "source": {
+          "row": 8,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG03",
+        "id": "EX-I008",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Weight Transfer",
+        "nameZh": "重心转移",
+        "primaryObjectiveId": "OBJ01",
+        "sectionId": "ICE02",
+        "source": {
+          "row": 9,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG04",
+        "id": "EX-I009",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Straightaway Push",
+        "nameZh": "直道蹬冰",
+        "primaryObjectiveId": "OBJ01",
+        "sectionId": "ICE02",
+        "source": {
+          "row": 10,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG05",
+        "id": "EX-I010",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Recovery Leg Drill",
+        "nameZh": "回收腿练习",
+        "primaryObjectiveId": "OBJ01",
+        "sectionId": "ICE02",
+        "source": {
+          "row": 11,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG08",
+        "id": "EX-I011",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Corner Entry Line",
+        "nameZh": "入弯线路",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "ICE03",
+        "source": {
+          "row": 12,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG08;TAG10",
+        "id": "EX-I012",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Deep Entry",
+        "nameZh": "深进入弯",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "ICE03",
+        "source": {
+          "row": 13,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG09",
+        "id": "EX-I013",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Body Lean",
+        "nameZh": "弯道内倾",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "ICE03",
+        "source": {
+          "row": 14,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG10",
+        "id": "EX-I014",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Hip-In Drill",
+        "nameZh": "髋入弯",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "ICE03",
+        "source": {
+          "row": 15,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG11",
+        "id": "EX-I015",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Left-Leg Support",
+        "nameZh": "左腿支撑",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "ICE03",
+        "source": {
+          "row": 16,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG12",
+        "id": "EX-I016",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Crossover",
+        "nameZh": "交叉步",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "ICE03",
+        "source": {
+          "row": 17,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG12;TAG18",
+        "id": "EX-I017",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Continuous Crossover",
+        "nameZh": "连续交叉步",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "ICE03",
+        "source": {
+          "row": 18,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG13",
+        "id": "EX-I018",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Corner Exit",
+        "nameZh": "出弯",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "ICE03",
+        "source": {
+          "row": 19,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG13;TAG16",
+        "id": "EX-I019",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Exit Acceleration",
+        "nameZh": "出弯加速",
+        "primaryObjectiveId": "OBJ07",
+        "sectionId": "ICE03",
+        "source": {
+          "row": 20,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG14",
+        "id": "EX-I020",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Start Position",
+        "nameZh": "起跑姿势",
+        "primaryObjectiveId": "OBJ03",
+        "sectionId": "ICE04",
+        "source": {
+          "row": 21,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG14;TAG15",
+        "id": "EX-I021",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Reaction Start",
+        "nameZh": "反应起跑",
+        "primaryObjectiveId": "OBJ06",
+        "sectionId": "ICE04",
+        "source": {
+          "row": 22,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG15",
+        "id": "EX-I022",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "First Step",
+        "nameZh": "第一步",
+        "primaryObjectiveId": "OBJ03",
+        "sectionId": "ICE04",
+        "source": {
+          "row": 23,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG15;TAG16",
+        "id": "EX-I023",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "First 3 Steps",
+        "nameZh": "前三步",
+        "primaryObjectiveId": "OBJ07",
+        "sectionId": "ICE04",
+        "source": {
+          "row": 24,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG16",
+        "id": "EX-I024",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "First 5 Steps",
+        "nameZh": "前五步",
+        "primaryObjectiveId": "OBJ07",
+        "sectionId": "ICE04",
+        "source": {
+          "row": 25,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG14;TAG16",
+        "id": "EX-I025",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Start to Half Lap",
+        "nameZh": "起跑至半圈",
+        "primaryObjectiveId": "OBJ07",
+        "sectionId": "ICE04",
+        "source": {
+          "row": 26,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG17",
+        "id": "EX-I026",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Flying Half Lap",
+        "nameZh": "助滑半圈",
+        "primaryObjectiveId": "OBJ08",
+        "sectionId": "ICE05",
+        "source": {
+          "row": 27,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG17;TAG18",
+        "id": "EX-I027",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Flying Lap",
+        "nameZh": "助滑一圈",
+        "primaryObjectiveId": "OBJ08",
+        "sectionId": "ICE05",
+        "source": {
+          "row": 28,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG17",
+        "id": "EX-I028",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "One-Lap Max Speed",
+        "nameZh": "一圈最大速度",
+        "primaryObjectiveId": "OBJ08",
+        "sectionId": "ICE05",
+        "source": {
+          "row": 29,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG17;TAG30",
+        "id": "EX-I029",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Two-Lap Max Speed",
+        "nameZh": "两圈高速",
+        "primaryObjectiveId": "OBJ08",
+        "sectionId": "ICE05",
+        "source": {
+          "row": 30,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG17;TAG30",
+        "id": "EX-I030",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Three-Lap Speed",
+        "nameZh": "三圈速度",
+        "primaryObjectiveId": "OBJ08",
+        "sectionId": "ICE05",
+        "source": {
+          "row": 31,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG17;TAG30",
+        "id": "EX-I031",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Five-Lap Speed Endurance",
+        "nameZh": "五圈速度耐力",
+        "primaryObjectiveId": "OBJ19",
+        "sectionId": "ICE06",
+        "source": {
+          "row": 32,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG30",
+        "id": "EX-I032",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Seven-Lap High Intensity",
+        "nameZh": "七圈高强度",
+        "primaryObjectiveId": "OBJ20",
+        "sectionId": "ICE07",
+        "source": {
+          "row": 33,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG30;TAG22",
+        "id": "EX-I033",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Nine-Lap 500m Specific",
+        "nameZh": "九圈500m专项",
+        "primaryObjectiveId": "OBJ22",
+        "sectionId": "ICE07",
+        "source": {
+          "row": 34,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG30",
+        "id": "EX-I034",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Fifteen-Lap Specific Endurance",
+        "nameZh": "十五圈专项耐力",
+        "primaryObjectiveId": "OBJ22",
+        "sectionId": "ICE07",
+        "source": {
+          "row": 35,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG19;TAG20",
+        "id": "EX-I035",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Inside Pass",
+        "nameZh": "内道超越",
+        "primaryObjectiveId": "OBJ04",
+        "sectionId": "ICE08",
+        "source": {
+          "row": 36,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG19;TAG20",
+        "id": "EX-I036",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Outside Pass",
+        "nameZh": "外道超越",
+        "primaryObjectiveId": "OBJ04",
+        "sectionId": "ICE08",
+        "source": {
+          "row": 37,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG21;TAG20",
+        "id": "EX-I037",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Drafting",
+        "nameZh": "跟滑",
+        "primaryObjectiveId": "OBJ04",
+        "sectionId": "ICE08",
+        "source": {
+          "row": 38,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG20;TAG21",
+        "id": "EX-I038",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Pack Skating",
+        "nameZh": "集团滑行",
+        "primaryObjectiveId": "OBJ04",
+        "sectionId": "ICE08",
+        "source": {
+          "row": 39,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG22;TAG19",
+        "id": "EX-I039",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Last-Lap Finish",
+        "nameZh": "最后一圈终结",
+        "primaryObjectiveId": "OBJ04",
+        "sectionId": "ICE08",
+        "source": {
+          "row": 40,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "ICE",
+        "equipment": "Skates;Helmet;Cut-resistant gear",
+        "focusTags": "TAG20;TAG18",
+        "id": "EX-I040",
+        "legacyAttributes": {},
+        "modality": "MOD11",
+        "nameEn": "Relay Exchange",
+        "nameZh": "接力交接",
+        "primaryObjectiveId": "OBJ04",
+        "sectionId": "ICE08",
+        "source": {
+          "row": 41,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Running shoes",
+        "focusTags": "TAG01",
+        "id": "EX-L001",
+        "legacyAttributes": {},
+        "modality": "MOD06",
+        "nameEn": "Easy Jog",
+        "nameZh": "轻松慢跑",
+        "primaryObjectiveId": "OBJ16",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 42,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG01",
+        "id": "EX-L002",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Dynamic Warm-up",
+        "nameZh": "动态热身",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 43,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23",
+        "id": "EX-L003",
+        "legacyAttributes": {},
+        "modality": "MOD14",
+        "nameEn": "Hip Mobility",
+        "nameZh": "髋活动度",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 44,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG31",
+        "id": "EX-L004",
+        "legacyAttributes": {},
+        "modality": "MOD14",
+        "nameEn": "Ankle Mobility",
+        "nameZh": "踝活动度",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 45,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Band",
+        "focusTags": "TAG23",
+        "id": "EX-L005",
+        "legacyAttributes": {},
+        "modality": "MOD03",
+        "nameEn": "Glute Activation",
+        "nameZh": "臀肌激活",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 46,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23;TAG32",
+        "id": "EX-L006",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Walking Lunge",
+        "nameZh": "行进弓步",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 47,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23;TAG24",
+        "id": "EX-L007",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Lateral Lunge",
+        "nameZh": "侧弓步",
+        "primaryObjectiveId": "OBJ12",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 48,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG18;TAG23",
+        "id": "EX-L008",
+        "legacyAttributes": {},
+        "modality": "MOD07",
+        "nameEn": "Carioca",
+        "nameZh": "交叉步跑",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 49,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23",
+        "id": "EX-L009",
+        "legacyAttributes": {},
+        "modality": "MOD14",
+        "nameEn": "Leg Swing",
+        "nameZh": "摆腿",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 50,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG01;TAG29",
+        "id": "EX-L010",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Skating Position Activation",
+        "nameZh": "滑行低姿激活",
+        "primaryObjectiveId": "OBJ13",
+        "sectionId": "LAND01",
+        "source": {
+          "row": 51,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Dumbbell/Barbell optional",
+        "focusTags": "TAG23;TAG32",
+        "id": "EX-L011",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "Split Squat",
+        "nameZh": "分腿蹲",
+        "primaryObjectiveId": "OBJ11",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 52,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Bench + load optional",
+        "focusTags": "TAG23;TAG32",
+        "id": "EX-L012",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "Bulgarian Split Squat",
+        "nameZh": "保加利亚分腿蹲",
+        "primaryObjectiveId": "OBJ11",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 53,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Kettlebell/Dumbbell",
+        "focusTags": "TAG32",
+        "id": "EX-L013",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "Goblet Squat",
+        "nameZh": "高脚杯深蹲",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 54,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23;TAG32",
+        "id": "EX-L014",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Single-Leg Squat",
+        "nameZh": "单腿蹲",
+        "primaryObjectiveId": "OBJ11",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 55,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Barbell/Dumbbell",
+        "focusTags": "TAG25;TAG23",
+        "id": "EX-L015",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "RDL",
+        "nameZh": "罗马尼亚硬拉",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 56,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Dumbbell optional",
+        "focusTags": "TAG25;TAG23",
+        "id": "EX-L016",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "Single-Leg RDL",
+        "nameZh": "单腿罗马尼亚硬拉",
+        "primaryObjectiveId": "OBJ11",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 57,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Bench + load optional",
+        "focusTags": "TAG23",
+        "id": "EX-L017",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "Hip Thrust",
+        "nameZh": "髋推",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 58,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Box/Bench",
+        "focusTags": "TAG23;TAG32",
+        "id": "EX-L018",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "Step-Up",
+        "nameZh": "登台阶",
+        "primaryObjectiveId": "OBJ11",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 59,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Box/Bench",
+        "focusTags": "TAG23;TAG32",
+        "id": "EX-L019",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "Lateral Step-Up",
+        "nameZh": "侧向登台阶",
+        "primaryObjectiveId": "OBJ12",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 60,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23;TAG24",
+        "id": "EX-L020",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Lateral Squat",
+        "nameZh": "侧向深蹲",
+        "primaryObjectiveId": "OBJ12",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 61,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23;TAG24",
+        "id": "EX-L021",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Cossack Squat",
+        "nameZh": "哥萨克深蹲",
+        "primaryObjectiveId": "OBJ12",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 62,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Partner/Anchor",
+        "focusTags": "TAG25",
+        "id": "EX-L022",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Nordic Hamstring",
+        "nameZh": "北欧腘绳肌",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 63,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Bench",
+        "focusTags": "TAG24;TAG27",
+        "id": "EX-L023",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Copenhagen Plank",
+        "nameZh": "哥本哈根侧桥",
+        "primaryObjectiveId": "OBJ12",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 64,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Load optional",
+        "focusTags": "TAG26;TAG31",
+        "id": "EX-L024",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "Calf Raise",
+        "nameZh": "提踵",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 65,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG26;TAG31",
+        "id": "EX-L025",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Single-Leg Calf Raise",
+        "nameZh": "单腿提踵",
+        "primaryObjectiveId": "OBJ11",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 66,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Load optional",
+        "focusTags": "TAG26",
+        "id": "EX-L026",
+        "legacyAttributes": {},
+        "modality": "MOD02",
+        "nameEn": "Bent-Knee Soleus Raise",
+        "nameZh": "屈膝比目鱼肌提踵",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 67,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG01;TAG29",
+        "id": "EX-L027",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Skating Position Hold",
+        "nameZh": "滑行低姿静力保持",
+        "primaryObjectiveId": "OBJ13",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 68,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG01;TAG23",
+        "id": "EX-L028",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Single-Leg Low Position Hold",
+        "nameZh": "单腿低姿保持",
+        "primaryObjectiveId": "OBJ13",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 69,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG32",
+        "id": "EX-L029",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Split Squat Isometric",
+        "nameZh": "分腿蹲等长",
+        "primaryObjectiveId": "OBJ13",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 70,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG09;TAG10;TAG11",
+        "id": "EX-L030",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Corner Position Hold",
+        "nameZh": "弯道姿势静力保持",
+        "primaryObjectiveId": "OBJ13",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 71,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG35",
+        "id": "EX-L031",
+        "legacyAttributes": {},
+        "modality": "MOD05",
+        "nameEn": "Countermovement Jump",
+        "nameZh": "反向跳/CMJ",
+        "primaryObjectiveId": "OBJ15",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 72,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG35",
+        "id": "EX-L032",
+        "legacyAttributes": {},
+        "modality": "MOD05",
+        "nameEn": "Squat Jump",
+        "nameZh": "静蹲跳",
+        "primaryObjectiveId": "OBJ15",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 73,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG33",
+        "id": "EX-L033",
+        "legacyAttributes": {},
+        "modality": "MOD05",
+        "nameEn": "Standing Broad Jump",
+        "nameZh": "立定跳远",
+        "primaryObjectiveId": "OBJ15",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 74,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Box",
+        "focusTags": "TAG35",
+        "id": "EX-L034",
+        "legacyAttributes": {},
+        "modality": "MOD05",
+        "nameEn": "Box Jump",
+        "nameZh": "跳箱",
+        "primaryObjectiveId": "OBJ15",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 75,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG33;TAG32",
+        "id": "EX-L035",
+        "legacyAttributes": {},
+        "modality": "MOD05",
+        "nameEn": "Single-Leg Jump",
+        "nameZh": "单腿跳",
+        "primaryObjectiveId": "OBJ15",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 76,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG34",
+        "id": "EX-L036",
+        "legacyAttributes": {},
+        "modality": "MOD05",
+        "nameEn": "Lateral Bound",
+        "nameZh": "侧向跨跳",
+        "primaryObjectiveId": "OBJ15",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 77,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG34",
+        "id": "EX-L037",
+        "legacyAttributes": {},
+        "modality": "MOD05",
+        "nameEn": "Skater Jump",
+        "nameZh": "滑冰侧跳",
+        "primaryObjectiveId": "OBJ15",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 78,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG34;TAG18",
+        "id": "EX-L038",
+        "legacyAttributes": {},
+        "modality": "MOD05",
+        "nameEn": "Continuous Skater Bound",
+        "nameZh": "连续滑冰侧跳",
+        "primaryObjectiveId": "OBJ15",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 79,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Box",
+        "focusTags": "TAG35",
+        "id": "EX-L039",
+        "legacyAttributes": {},
+        "modality": "MOD05",
+        "nameEn": "Drop Jump",
+        "nameZh": "下落跳",
+        "primaryObjectiveId": "OBJ15",
+        "safetyFlag": "review_required",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 80,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Qualified adult/coach",
+        "youthDefault": "Conditional"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Medicine ball",
+        "focusTags": "TAG33",
+        "id": "EX-L040",
+        "legacyAttributes": {},
+        "modality": "MOD12",
+        "nameEn": "Medicine Ball Throw",
+        "nameZh": "药球投掷",
+        "primaryObjectiveId": "OBJ15",
+        "sectionId": "LAND03",
+        "source": {
+          "row": 81,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG16",
+        "id": "EX-L041",
+        "legacyAttributes": {},
+        "modality": "MOD07",
+        "nameEn": "10m Sprint",
+        "nameZh": "10米冲刺",
+        "primaryObjectiveId": "OBJ07",
+        "sectionId": "LAND04",
+        "source": {
+          "row": 82,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG16",
+        "id": "EX-L042",
+        "legacyAttributes": {},
+        "modality": "MOD07",
+        "nameEn": "20m Sprint",
+        "nameZh": "20米冲刺",
+        "primaryObjectiveId": "OBJ07",
+        "sectionId": "LAND04",
+        "source": {
+          "row": 83,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG17",
+        "id": "EX-L043",
+        "legacyAttributes": {},
+        "modality": "MOD07",
+        "nameEn": "30m Sprint",
+        "nameZh": "30米冲刺",
+        "primaryObjectiveId": "OBJ08",
+        "sectionId": "LAND04",
+        "source": {
+          "row": 84,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Hill",
+        "focusTags": "TAG16",
+        "id": "EX-L044",
+        "legacyAttributes": {},
+        "modality": "MOD08",
+        "nameEn": "Hill Sprint",
+        "nameZh": "坡跑冲刺",
+        "primaryObjectiveId": "OBJ07",
+        "sectionId": "LAND04",
+        "source": {
+          "row": 85,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Cue/Partner",
+        "focusTags": "TAG16",
+        "id": "EX-L045",
+        "legacyAttributes": {},
+        "modality": "MOD07",
+        "nameEn": "Reaction Sprint",
+        "nameZh": "反应冲刺",
+        "primaryObjectiveId": "OBJ06",
+        "sectionId": "LAND04",
+        "source": {
+          "row": 86,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG34;TAG16",
+        "id": "EX-L046",
+        "legacyAttributes": {},
+        "modality": "MOD07",
+        "nameEn": "Lateral Acceleration",
+        "nameZh": "侧向加速",
+        "primaryObjectiveId": "OBJ07",
+        "sectionId": "LAND04",
+        "source": {
+          "row": 87,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Cones",
+        "focusTags": "TAG16;TAG18",
+        "id": "EX-L047",
+        "legacyAttributes": {},
+        "modality": "MOD07",
+        "nameEn": "Shuttle Run",
+        "nameZh": "折返跑",
+        "primaryObjectiveId": "OBJ21",
+        "sectionId": "LAND04",
+        "source": {
+          "row": 88,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Band",
+        "focusTags": "TAG04;TAG23",
+        "id": "EX-L048",
+        "legacyAttributes": {},
+        "modality": "MOD03",
+        "nameEn": "Single-Side Band Push",
+        "nameZh": "弹力带单侧蹬伸",
+        "primaryObjectiveId": "OBJ12",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 89,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Band",
+        "focusTags": "TAG04;TAG18",
+        "id": "EX-L049",
+        "legacyAttributes": {},
+        "modality": "MOD03",
+        "nameEn": "Alternating Band Push",
+        "nameZh": "弹力带连续左右蹬",
+        "primaryObjectiveId": "OBJ14",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 90,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG12",
+        "id": "EX-L050",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Dryland Crossover",
+        "nameZh": "陆地交叉步",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 91,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG12;TAG18",
+        "id": "EX-L051",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Continuous Dryland Crossover",
+        "nameZh": "陆地连续交叉步",
+        "primaryObjectiveId": "OBJ14",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 92,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG09;TAG10",
+        "id": "EX-L052",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Corner Lean Simulation",
+        "nameZh": "弯道内倾模仿",
+        "primaryObjectiveId": "OBJ02",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 93,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Band optional",
+        "focusTags": "TAG13;TAG04",
+        "id": "EX-L053",
+        "legacyAttributes": {},
+        "modality": "MOD03",
+        "nameEn": "Corner Exit Push",
+        "nameZh": "出弯蹬伸模仿",
+        "primaryObjectiveId": "OBJ12",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 94,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG18",
+        "id": "EX-L054",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Fast Skating Frequency",
+        "nameZh": "快速滑行频率",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 95,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Slide board",
+        "focusTags": "TAG03;TAG04",
+        "id": "EX-L055",
+        "legacyAttributes": {},
+        "modality": "MOD10",
+        "nameEn": "Slide Board Basic",
+        "nameZh": "滑板基础",
+        "primaryObjectiveId": "OBJ01",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 96,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Slide board",
+        "focusTags": "TAG18",
+        "id": "EX-L056",
+        "legacyAttributes": {},
+        "modality": "MOD10",
+        "nameEn": "Slide Board Rhythm",
+        "nameZh": "滑板节奏",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 97,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Slide board",
+        "focusTags": "TAG17;TAG18",
+        "id": "EX-L057",
+        "legacyAttributes": {},
+        "modality": "MOD10",
+        "nameEn": "Slide Board Speed",
+        "nameZh": "滑板高速",
+        "primaryObjectiveId": "OBJ08",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 98,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Slide board",
+        "focusTags": "TAG30",
+        "id": "EX-L058",
+        "legacyAttributes": {},
+        "modality": "MOD10",
+        "nameEn": "Slide Board Endurance",
+        "nameZh": "滑板耐力",
+        "primaryObjectiveId": "OBJ14",
+        "sectionId": "LAND05",
+        "source": {
+          "row": 99,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG28;TAG29",
+        "id": "EX-L059",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Dead Bug",
+        "nameZh": "死虫",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND06",
+        "source": {
+          "row": 100,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG28",
+        "id": "EX-L060",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Front Plank",
+        "nameZh": "平板支撑",
+        "primaryObjectiveId": "OBJ13",
+        "sectionId": "LAND06",
+        "source": {
+          "row": 101,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG27;TAG29",
+        "id": "EX-L061",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Side Plank",
+        "nameZh": "侧桥",
+        "primaryObjectiveId": "OBJ13",
+        "sectionId": "LAND06",
+        "source": {
+          "row": 102,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG27;TAG29",
+        "id": "EX-L062",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Bird Dog",
+        "nameZh": "鸟狗",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND06",
+        "source": {
+          "row": 103,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Cable/Band",
+        "focusTags": "TAG27",
+        "id": "EX-L063",
+        "legacyAttributes": {},
+        "modality": "MOD04",
+        "nameEn": "Pallof Press",
+        "nameZh": "Pallof抗旋转",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND06",
+        "source": {
+          "row": 104,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23;TAG29",
+        "id": "EX-L064",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Glute Bridge",
+        "nameZh": "臀桥",
+        "primaryObjectiveId": "OBJ10",
+        "sectionId": "LAND06",
+        "source": {
+          "row": 105,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23;TAG29",
+        "id": "EX-L065",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Single-Leg Bridge",
+        "nameZh": "单腿臀桥",
+        "primaryObjectiveId": "OBJ11",
+        "sectionId": "LAND06",
+        "source": {
+          "row": 106,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG01;TAG27",
+        "id": "EX-L066",
+        "legacyAttributes": {},
+        "modality": "MOD01",
+        "nameEn": "Skating Position Core Hold",
+        "nameZh": "滑姿核心保持",
+        "primaryObjectiveId": "OBJ13",
+        "sectionId": "LAND06",
+        "source": {
+          "row": 107,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Track",
+        "focusTags": "TAG18",
+        "id": "EX-L067",
+        "legacyAttributes": {},
+        "modality": "MOD06",
+        "nameEn": "200m Run",
+        "nameZh": "200米跑",
+        "primaryObjectiveId": "OBJ19",
+        "sectionId": "LAND07",
+        "source": {
+          "row": 108,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Track",
+        "focusTags": "TAG18",
+        "id": "EX-L068",
+        "legacyAttributes": {},
+        "modality": "MOD06",
+        "nameEn": "300m Run",
+        "nameZh": "300米跑",
+        "primaryObjectiveId": "OBJ19",
+        "sectionId": "LAND07",
+        "source": {
+          "row": 109,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Track",
+        "focusTags": "TAG30",
+        "id": "EX-L069",
+        "legacyAttributes": {},
+        "modality": "MOD06",
+        "nameEn": "400m Run",
+        "nameZh": "400米跑",
+        "primaryObjectiveId": "OBJ20",
+        "sectionId": "LAND07",
+        "source": {
+          "row": 110,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Track",
+        "focusTags": "TAG18",
+        "id": "EX-L070",
+        "legacyAttributes": {},
+        "modality": "MOD06",
+        "nameEn": "800m Run",
+        "nameZh": "800米跑",
+        "primaryObjectiveId": "OBJ17",
+        "sectionId": "LAND07",
+        "source": {
+          "row": 111,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Running shoes",
+        "focusTags": "TAG18",
+        "id": "EX-L071",
+        "legacyAttributes": {},
+        "modality": "MOD06",
+        "nameEn": "Easy Run",
+        "nameZh": "有氧慢跑",
+        "primaryObjectiveId": "OBJ16",
+        "sectionId": "LAND07",
+        "source": {
+          "row": 112,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Bike",
+        "focusTags": "TAG18",
+        "id": "EX-L072",
+        "legacyAttributes": {},
+        "modality": "MOD09",
+        "nameEn": "Bike Interval",
+        "nameZh": "自行车间歇",
+        "primaryObjectiveId": "OBJ19",
+        "sectionId": "LAND07",
+        "source": {
+          "row": 113,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Slide board",
+        "focusTags": "TAG30",
+        "id": "EX-L073",
+        "legacyAttributes": {},
+        "modality": "MOD10",
+        "nameEn": "Slide Board Glycolytic",
+        "nameZh": "滑板糖酵解间歇",
+        "primaryObjectiveId": "OBJ20",
+        "sectionId": "LAND07",
+        "source": {
+          "row": 114,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Running shoes",
+        "focusTags": "TAG18",
+        "id": "EX-L074",
+        "legacyAttributes": {},
+        "modality": "MOD15",
+        "nameEn": "Recovery Jog",
+        "nameZh": "恢复跑",
+        "primaryObjectiveId": "OBJ16",
+        "sectionId": "LAND08",
+        "source": {
+          "row": 115,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23;TAG31",
+        "id": "EX-L075",
+        "legacyAttributes": {},
+        "modality": "MOD14",
+        "nameEn": "Lower-Body Mobility",
+        "nameZh": "下肢活动度",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND08",
+        "source": {
+          "row": 116,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "",
+        "focusTags": "TAG23;TAG31",
+        "id": "EX-L076",
+        "legacyAttributes": {},
+        "modality": "MOD14",
+        "nameEn": "Post-Ice Mobility",
+        "nameZh": "冰后活动度",
+        "primaryObjectiveId": "OBJ09",
+        "sectionId": "LAND08",
+        "source": {
+          "row": 117,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "Bike",
+        "focusTags": "TAG18",
+        "id": "EX-L077",
+        "legacyAttributes": {},
+        "modality": "MOD15",
+        "nameEn": "Easy Bike Recovery",
+        "nameZh": "轻松骑行恢复",
+        "primaryObjectiveId": "OBJ16",
+        "sectionId": "LAND08",
+        "source": {
+          "row": 118,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Normal",
+        "youthDefault": "Yes"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "BFR cuffs",
+        "focusTags": "TAG30",
+        "id": "EX-L078",
+        "legacyAttributes": {},
+        "modality": "MOD13",
+        "nameEn": "BFR Walk",
+        "nameZh": "BFR步行",
+        "primaryObjectiveId": "OBJ14",
+        "safetyFlag": "review_required",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 119,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Qualified adult/coach",
+        "youthDefault": "Conditional"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "BFR cuffs",
+        "focusTags": "TAG32",
+        "id": "EX-L079",
+        "legacyAttributes": {},
+        "modality": "MOD13",
+        "nameEn": "BFR Squat",
+        "nameZh": "BFR深蹲",
+        "primaryObjectiveId": "OBJ14",
+        "safetyFlag": "review_required",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 120,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Qualified adult/coach",
+        "youthDefault": "Conditional"
+      },
+      {
+        "environment": "LAND",
+        "equipment": "BFR cuffs",
+        "focusTags": "TAG26",
+        "id": "EX-L080",
+        "legacyAttributes": {},
+        "modality": "MOD13",
+        "nameEn": "BFR Calf Raise",
+        "nameZh": "BFR提踵",
+        "primaryObjectiveId": "OBJ14",
+        "safetyFlag": "review_required",
+        "sectionId": "LAND02",
+        "source": {
+          "row": 121,
+          "sheet": "06_Exercises"
+        },
+        "supervision": "Qualified adult/coach",
+        "youthDefault": "Conditional"
+      }
+    ],
+    "sessions": [
+      {
+        "blockRefs": [
+          "BL-L001",
+          "BL-I001",
+          "BL-I002",
+          "BL-L003"
+        ],
+        "duration": "90–120 min",
+        "environment": "ICE",
+        "id": "SESS-I001",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "冰前准备→基础技术→弯道→恢复"
+        },
+        "load": "Moderate",
+        "nameEn": "Ice Technique Day",
+        "nameZh": "冰上技术日",
+        "primaryGoal": "基础技术+弯道技术",
+        "source": {
+          "row": 2,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Yes",
+        "trainingPhase": "General Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L001",
+          "BL-I003",
+          "BL-I004",
+          "BL-I005",
+          "BL-L003"
+        ],
+        "duration": "90–120 min",
+        "environment": "ICE",
+        "id": "SESS-I002",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "充分恢复，速度质量优先"
+        },
+        "load": "High",
+        "nameEn": "Ice Start & Speed Day",
+        "nameZh": "冰上起跑速度日",
+        "primaryGoal": "起跑+最大速度",
+        "source": {
+          "row": 3,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Conditional",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L001",
+          "BL-I006",
+          "BL-I005",
+          "BL-L003"
+        ],
+        "duration": "90–120 min",
+        "environment": "ICE",
+        "id": "SESS-I003",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "高速保持"
+        },
+        "load": "High",
+        "nameEn": "Ice Speed-Endurance Day",
+        "nameZh": "冰上速度耐力日",
+        "primaryGoal": "5圈速度耐力+短速度",
+        "source": {
+          "row": 4,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "No",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L001",
+          "BL-I008",
+          "BL-L003"
+        ],
+        "duration": "90–120 min",
+        "environment": "ICE",
+        "id": "SESS-I004",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "控制技术质量"
+        },
+        "load": "High",
+        "nameEn": "Ice Specific Endurance Day",
+        "nameZh": "冰上专项耐力日",
+        "primaryGoal": "15圈专项耐力",
+        "source": {
+          "row": 5,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Conditional",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L002",
+          "BL-I007",
+          "BL-L003"
+        ],
+        "duration": "75–110 min",
+        "environment": "ICE",
+        "id": "SESS-I005",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "不与高负荷陆地叠加；非默认青少年处方"
+        },
+        "load": "Very High",
+        "nameEn": "Ice Lactate Day",
+        "nameZh": "冰上乳酸日",
+        "primaryGoal": "乳酸耐受",
+        "source": {
+          "row": 6,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "No",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L002",
+          "BL-I013",
+          "BL-I014",
+          "BL-L003"
+        ],
+        "duration": "75–110 min",
+        "environment": "ICE",
+        "id": "SESS-I006",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "比赛技能"
+        },
+        "load": "Moderate",
+        "nameEn": "Ice Tactical Day",
+        "nameZh": "冰上战术日",
+        "primaryGoal": "超越+集团滑行",
+        "source": {
+          "row": 7,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Yes",
+        "trainingPhase": "Pre-Competition"
+      },
+      {
+        "blockRefs": [
+          "BL-L002",
+          "BL-I015",
+          "BL-L003"
+        ],
+        "duration": "75–100 min",
+        "environment": "ICE",
+        "id": "SESS-I007",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "低频使用"
+        },
+        "load": "Very High",
+        "nameEn": "Ice Race Simulation",
+        "nameZh": "冰上比赛模拟",
+        "primaryGoal": "比赛专项",
+        "source": {
+          "row": 8,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "No",
+        "trainingPhase": "Pre-Competition"
+      },
+      {
+        "blockRefs": [
+          "BL-L001",
+          "BL-I016",
+          "BL-L003"
+        ],
+        "duration": "90–130 min",
+        "environment": "ICE",
+        "id": "SESS-I008",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "来自既有实际结构；总量需个体化"
+        },
+        "load": "Very High",
+        "nameEn": "Ice Combined 15-5-3-Pass",
+        "nameZh": "冰上15-5-3-超越组合",
+        "primaryGoal": "专项耐力→速度→战术",
+        "source": {
+          "row": 9,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "No",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L001",
+          "BL-L011",
+          "BL-L006"
+        ],
+        "duration": "70–100 min",
+        "environment": "LAND",
+        "id": "SESS-L001",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "主力量日"
+        },
+        "load": "Moderate",
+        "nameEn": "Land Strength L1 Day",
+        "nameZh": "陆地力量L1日",
+        "primaryGoal": "单腿力量+核心",
+        "source": {
+          "row": 10,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Conditional",
+        "trainingPhase": "General Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L002",
+          "BL-L009",
+          "BL-L010",
+          "BL-L006"
+        ],
+        "duration": "60–90 min",
+        "environment": "LAND",
+        "id": "SESS-L002",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "宁少勿慢，充分休息"
+        },
+        "load": "High",
+        "nameEn": "Land Power & Start Day",
+        "nameZh": "陆地爆发起跑日",
+        "primaryGoal": "爆发+起跑",
+        "source": {
+          "row": 11,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Conditional",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L001",
+          "BL-L005",
+          "BL-L021",
+          "BL-L007"
+        ],
+        "duration": "60–90 min",
+        "environment": "LAND",
+        "id": "SESS-L003",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "T2+弯道专项"
+        },
+        "load": "Moderate",
+        "nameEn": "Land Specific Dryland Day",
+        "nameZh": "陆地专项日",
+        "primaryGoal": "专项力量/技术+核心",
+        "source": {
+          "row": 12,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Yes",
+        "trainingPhase": "General Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L002",
+          "BL-L013",
+          "BL-L006"
+        ],
+        "duration": "55–80 min",
+        "environment": "LAND",
+        "id": "SESS-L004",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "参数决定实际目标"
+        },
+        "load": "High",
+        "nameEn": "Land 200m Conditioning Day",
+        "nameZh": "200米体能日",
+        "primaryGoal": "速度耐力/无氧容量",
+        "source": {
+          "row": 13,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "No",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L002",
+          "BL-L014",
+          "BL-L006"
+        ],
+        "duration": "60–90 min",
+        "environment": "LAND",
+        "id": "SESS-L005",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "不要仅因400m自动标成乳酸"
+        },
+        "load": "High",
+        "nameEn": "Land 400m Conditioning Day",
+        "nameZh": "400米体能日",
+        "primaryGoal": "无氧容量/乳酸耐受边界",
+        "source": {
+          "row": 14,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "No",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L015",
+          "BL-L016"
+        ],
+        "duration": "30–55 min",
+        "environment": "LAND",
+        "id": "SESS-L006",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "保持低强度"
+        },
+        "load": "Low",
+        "nameEn": "Land Recovery Day",
+        "nameZh": "陆地恢复日",
+        "primaryGoal": "恢复+活动度",
+        "source": {
+          "row": 15,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Yes",
+        "trainingPhase": "Recovery"
+      },
+      {
+        "blockRefs": [
+          "BL-L002",
+          "BL-L023",
+          "BL-L007"
+        ],
+        "duration": "55–80 min",
+        "environment": "LAND",
+        "id": "SESS-L007",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "疲劳下动作质量"
+        },
+        "load": "High",
+        "nameEn": "Land Strength-Endurance Day",
+        "nameZh": "专项肌耐力日",
+        "primaryGoal": "低姿与专项肌耐力",
+        "source": {
+          "row": 16,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "No",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L002",
+          "BL-L024",
+          "BL-L025",
+          "BL-L006"
+        ],
+        "duration": "60–90 min",
+        "environment": "LAND",
+        "id": "SESS-L008",
+        "legacyAttributes": {
+          "Development": "Competitive Youth+",
+          "Notes": "乳酸版本另设高阶session"
+        },
+        "load": "High",
+        "nameEn": "Land Slide Board Day",
+        "nameZh": "滑板专项日",
+        "primaryGoal": "技术+专项耐力",
+        "source": {
+          "row": 17,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Conditional",
+        "trainingPhase": "Specific Preparation"
+      },
+      {
+        "blockRefs": [
+          "BL-L032"
+        ],
+        "duration": "20–30 min",
+        "environment": "LAND",
+        "id": "SESS-C001",
+        "legacyAttributes": {
+          "Development": "Developing+",
+          "Notes": "低量保速度"
+        },
+        "load": "Low-Moderate",
+        "nameEn": "Competition Activation",
+        "nameZh": "比赛前激活",
+        "primaryGoal": "保持神经激活",
+        "source": {
+          "row": 18,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Yes",
+        "trainingPhase": "Taper"
+      },
+      {
+        "blockRefs": [
+          "BL-L033"
+        ],
+        "duration": "20–40 min",
+        "environment": "LAND",
+        "id": "SESS-C002",
+        "legacyAttributes": {
+          "Development": "Foundation+",
+          "Notes": "赛后/高负荷后"
+        },
+        "load": "Low",
+        "nameEn": "Post-Competition Recovery",
+        "nameZh": "赛后恢复",
+        "primaryGoal": "恢复",
+        "source": {
+          "row": 19,
+          "sheet": "09_Sessions"
+        },
+        "taperCompatible": "Yes",
+        "trainingPhase": "Recovery"
+      }
+    ]
+  },
+  "sheetCount": 51,
+  "workbookSha256": "15e36d07501eaa514fc74a069060a56e1b387df8825f3369f1966112c93b180b"
+}

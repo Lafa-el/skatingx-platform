@@ -26,6 +26,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test -- --run
+      - run: npm run test:catalog
       - run: npm run build
 
       # Firestore Rules tests run in the emulator. firebase-tools 15 requires Java 21+
