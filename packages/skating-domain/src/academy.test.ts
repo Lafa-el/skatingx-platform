@@ -38,7 +38,7 @@ describe("buildAcademyImportCandidate", () => {
 
 /**
  * 五段重分后按最强匹配优先重算。
- * Which drill each of the 77 weekly-plan labels matches (key: day plan id and position).
+ * Which drill each of the 96 weekly-plan labels matches (key: day plan id and position).
  */
 const ROUTINE_MATCHES: Record<string, string> = {
   "age4_7-wp-0#0": "age4_7-m0-i0",
@@ -85,31 +85,31 @@ const ROUTINE_MATCHES: Record<string, string> = {
   "age11_13-wp-1#1": "age11_13-m1-i1",
   "age11_13-wp-1#2": "age11_13-m1-i0",
   "age11_13-wp-1#3": "age11_13-m1-i2",
-  "age11_13-wp-1#4": "age11_13-m5-i0",
-  "age11_13-wp-1#5": "age11_13-m5-i4",
-  "age11_13-wp-1#6": "age11_13-m5-i7",
-  "age11_13-wp-2#0": "age11_13-m4-i3",
-  "age11_13-wp-2#1": "age11_13-m4-i4",
-  "age11_13-wp-2#2": "age11_13-m4-i2",
-  "age11_13-wp-2#3": "age11_13-m4-i0",
+  "age11_13-wp-1#4": "age11_13-m4-i0",
+  "age11_13-wp-1#5": "age11_13-m4-i4",
+  "age11_13-wp-1#6": "age11_13-m4-i7",
+  "age11_13-wp-2#0": "shared-m0-i3",
+  "age11_13-wp-2#1": "shared-m0-i4",
+  "age11_13-wp-2#2": "shared-m0-i2",
+  "age11_13-wp-2#3": "shared-m0-i0",
   "age11_13-wp-3#0": "age11_13-m2-i0",
   "age11_13-wp-3#1": "age11_13-m2-i1",
   "age11_13-wp-3#2": "age11_13-m3-i3",
   "age11_13-wp-3#3": "age11_13-m3-i1",
-  "age11_13-wp-3#4": "age11_13-m5-i5",
-  "age11_13-wp-3#5": "age11_13-m5-i3",
+  "age11_13-wp-3#4": "age11_13-m4-i5",
+  "age11_13-wp-3#5": "age11_13-m4-i3",
   "age11_13-wp-4#0": "age11_13-m3-i2",
   "age11_13-wp-4#1": "age11_13-m0-i4",
   "age11_13-wp-4#2": "age11_13-m0-i5",
   "age11_13-wp-4#3": "age11_13-m0-i6",
   "age11_13-wp-5#0": "age11_13-m2-i2",
   "age11_13-wp-5#1": "age11_13-m1-i3",
-  "age11_13-wp-5#2": "age11_13-m5-i1",
-  "age11_13-wp-5#3": "age11_13-m5-i2",
-  "age11_13-wp-5#4": "age11_13-m5-i6",
-  "age11_13-wp-6#0": "age11_13-m4-i1",
-  "age11_13-wp-6#1": "age11_13-m4-i2",
-  "age11_13-wp-6#2": "age11_13-m4-i5",
+  "age11_13-wp-5#2": "age11_13-m4-i1",
+  "age11_13-wp-5#3": "age11_13-m4-i2",
+  "age11_13-wp-5#4": "age11_13-m4-i6",
+  "age11_13-wp-6#0": "shared-m0-i1",
+  "age11_13-wp-6#1": "shared-m0-i2",
+  "age11_13-wp-6#2": "shared-m0-i5",
   "age14_16-wp-0#0": "age14_16-m0-i0",
   "age14_16-wp-0#1": "age14_16-m0-i3",
   "age14_16-wp-0#2": "age14_16-m0-i2",
@@ -118,6 +118,25 @@ const ROUTINE_MATCHES: Record<string, string> = {
   "age14_16-wp-1#0": "age14_16-m1-i0",
   "age14_16-wp-1#1": "age14_16-m1-i1",
   "age14_16-wp-1#2": "age14_16-m1-i2",
+  "age14_16-wp-2#0": "shared-m0-i3",
+  "age14_16-wp-2#1": "shared-m0-i4",
+  "age14_16-wp-2#2": "shared-m0-i2",
+  "age14_16-wp-2#3": "shared-m0-i0",
+  "age14_16-wp-3#0": "age14_16-m2-i0",
+  "age14_16-wp-3#1": "age14_16-m2-i1",
+  "age14_16-wp-3#2": "age14_16-m2-i2",
+  "age14_16-wp-3#3": "age14_16-m2-i3",
+  "age14_16-wp-4#0": "age14_16-m2-i4",
+  "age14_16-wp-4#1": "age14_16-m2-i5",
+  "age14_16-wp-4#2": "age14_16-m0-i4",
+  "age14_16-wp-4#3": "age14_16-m1-i1",
+  "age14_16-wp-5#0": "shared-m1-i0",
+  "age14_16-wp-5#1": "age14_16-m2-i6",
+  "age14_16-wp-5#2": "age14_16-m1-i2",
+  "age14_16-wp-5#3": "age14_16-m1-i0",
+  "age14_16-wp-6#0": "shared-m0-i1",
+  "age14_16-wp-6#1": "shared-m0-i2",
+  "age14_16-wp-6#2": "shared-m0-i5",
 };
 
 describe("matchRoutineTaskLabel: the weekly-plan labels keep their drills", () => {
@@ -130,7 +149,7 @@ describe("matchRoutineTaskLabel: the weekly-plan labels keep their drills", () =
         });
       }
     }
-    expect(Object.keys(now)).toHaveLength(77);
+    expect(Object.keys(now)).toHaveLength(96);
     expect(now).toEqual(ROUTINE_MATCHES);
   });
 });

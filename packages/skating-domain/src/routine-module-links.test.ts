@@ -1,4 +1,4 @@
-import { ACADEMY_STAGES, flattenStageItems } from "@skatingx/content";
+import { ACADEMY_SHARED, ACADEMY_STAGES, flattenSharedItems, flattenStageItems } from "@skatingx/content";
 import { describe, expect, it } from "vitest";
 
 import { matchRoutineTaskLabel } from "./academy";
@@ -12,12 +12,12 @@ const EXPECTED_COUNTS: Record<string, number> = {
   age4_7: 15,
   age8_10: 20,
   age11_13: 34,
-  age14_16: 8,
+  age14_16: 27,
   age17_18: 0,
 };
 
 describe("ROUTINE_MODULE_LINKS", () => {
-  it("has a reviewed link for every routine item, 15/20/34/8/0", () => {
+  it("has a reviewed link for every routine item, 15/20/34/27/0", () => {
     const counts: Record<string, number> = {};
     for (const stage of ACADEMY_STAGES) {
       const ids = new Set<string>();
@@ -35,20 +35,30 @@ describe("ROUTINE_MODULE_LINKS", () => {
       counts[stage.id] = ids.size;
     }
     expect(counts).toEqual(EXPECTED_COUNTS);
-    expect(Object.keys(ROUTINE_MODULE_LINKS)).toHaveLength(77);
+    expect(Object.keys(ROUTINE_MODULE_LINKS)).toHaveLength(96);
   });
 
-  it("each value is a drill that exists in the same stage", () => {
+  it("each value is a drill in that stage or in the shared modules", () => {
+    const sharedIds = new Set(flattenSharedItems().map((item) => item.id));
     for (const [routineItemId, academyItemId] of Object.entries(ROUTINE_MODULE_LINKS)) {
       const stageId = routineItemId.slice(0, routineItemId.lastIndexOf("-w"));
       const stage = ACADEMY_STAGES.find((entry) => entry.id === stageId);
       expect(stage, routineItemId).toBeTruthy();
-      expect(academyItemId.startsWith(`${stageId}-`)).toBe(true);
-      expect(flattenStageItems(stage!).some((item) => item.id === academyItemId)).toBe(true);
+      if (academyItemId.startsWith("shared-")) {
+        expect(sharedIds.has(academyItemId), academyItemId).toBe(true);
+        expect(
+          [...ACADEMY_SHARED.trainingModules, ACADEMY_SHARED.parentModule].some((module) =>
+            module.items.some((item) => item.id === academyItemId),
+          ),
+        ).toBe(true);
+      } else {
+        expect(academyItemId.startsWith(`${stageId}-`)).toBe(true);
+        expect(flattenStageItems(stage!).some((item) => item.id === academyItemId)).toBe(true);
+      }
     }
   });
 
-  it("agrees with matchRoutineTaskLabel on all 77 labels", () => {
+  it("agrees with matchRoutineTaskLabel on all 96 labels", () => {
     let seen = 0;
     for (const stage of ACADEMY_STAGES) {
       for (const plan of stage.weeklyRoutine.dayPlans) {
@@ -60,7 +70,7 @@ describe("ROUTINE_MODULE_LINKS", () => {
         });
       }
     }
-    expect(seen).toBe(77);
+    expect(seen).toBe(96);
   });
 
   it("parses a real day-plan id and rejects one that is not that shape", () => {

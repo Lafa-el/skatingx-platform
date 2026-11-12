@@ -10,7 +10,7 @@ import {
   type AcademyImportCandidate,
 } from "@skatingx/skating-domain";
 import type { AcademyItem, AcademyStage, WeekdayKey } from "@skatingx/content";
-import { flattenStageItems, getWeekdayRoutineItems } from "@skatingx/content";
+import { flattenStageAndSharedItems, getWeekdayRoutineItems } from "@skatingx/content";
 import { useCallback, useState } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -149,7 +149,7 @@ export function useAcademyImport() {
         return refuse("importWeekdayRoutine", "academy.error.proRequired");
       }
       const routineItems = getWeekdayRoutineItems(stage, weekday);
-      const drills = flattenStageItems(stage);
+      const drills = flattenStageAndSharedItems(stage);
       const candidates: AcademyImportCandidate[] = [];
 
       for (const routineItem of routineItems) {
@@ -182,7 +182,7 @@ export function useAcademyImport() {
       if (!plan) {
         return refuse("importDayPlan", "academy.error.planNotFound", "plan-not-found");
       }
-      const drills = flattenStageItems(stage);
+      const drills = flattenStageAndSharedItems(stage);
       const candidates: AcademyImportCandidate[] = [];
       for (const [index, taskLabelZh] of plan.taskLabelsZh.entries()) {
         const routineItemId = routineItemIdForDayPlanTask(stage.id, plan.id, index);

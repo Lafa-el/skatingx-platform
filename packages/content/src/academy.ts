@@ -5,10 +5,10 @@ import type {
   AcademyStage,
   WeekdayKey,
 } from "./academy-types";
-import { ACADEMY_STAGES } from "./academy-stages.generated";
+import { ACADEMY_SHARED, ACADEMY_STAGES } from "./academy-stages.generated";
 
 export * from "./academy-types";
-export { ACADEMY_STAGES };
+export { ACADEMY_SHARED, ACADEMY_STAGES };
 
 export const ACADEMY_CONTENT_VERSION = "1.0.1-blaze-extract" as const;
 
@@ -67,4 +67,14 @@ export function getWeekdayRoutineItems(
 /** All academy items flattened for fuzzy routine matching. */
 export function flattenStageItems(stage: AcademyStage): AcademyItem[] {
   return stage.modules.flatMap((m) => m.items);
+}
+
+/** Recovery, warm-up, and parent notes, in module order. */
+export function flattenSharedItems(): AcademyItem[] {
+  return [...ACADEMY_SHARED.trainingModules, ACADEMY_SHARED.parentModule].flatMap((module) => module.items);
+}
+
+/** Stage drills first, then the shared ones. That order is the match priority. */
+export function flattenStageAndSharedItems(stage: AcademyStage): AcademyItem[] {
+  return [...flattenStageItems(stage), ...flattenSharedItems()];
 }

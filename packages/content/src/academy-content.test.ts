@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { ACADEMY_STAGES } from "./academy";
+import { ACADEMY_SHARED, ACADEMY_STAGES } from "./academy";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -16,6 +16,7 @@ const require = createRequire(import.meta.url);
 const legacy = require("./academy-legacy-raw.cjs") as {
   zh: LegacyStage[];
   en: LegacyStage[];
+  shared: { zh: { modules: unknown[] }; en: { modules: unknown[] } };
 };
 type LegacyStage = {
   id: string;
@@ -77,7 +78,7 @@ describe("academy content: both languages are complete", () => {
       });
     });
     // Guards the loops above against passing on empty data.
-    expect(seen).toBe(77);
+    expect(seen).toBe(96);
   });
 
   it("every weekday routine item carries the same two labels as its day plan, in the same order", () => {
@@ -90,7 +91,7 @@ describe("academy content: both languages are complete", () => {
         seen += items.length;
       }
     }
-    expect(seen).toBe(77);
+    expect(seen).toBe(96);
   });
 });
 
@@ -113,7 +114,7 @@ describe("academy content: drill tags in both languages", () => {
       });
     });
     // Guards the loops above against passing on empty data.
-    expect(seen).toBe(80);
+    expect(seen).toBe(81);
   });
 });
 
@@ -184,6 +185,79 @@ describe("academy content: Chinese punctuation (ADR-004 A5)", () => {
         });
       });
     });
-    expect(seen).toBe(80);
+    expect(seen).toBe(81);
+  });
+});
+
+describe("academy content: shared zone", () => {
+  const modules = [...ACADEMY_SHARED.trainingModules, ACADEMY_SHARED.parentModule];
+  const items = modules.flatMap((module) => module.items);
+  const halfWidth = /[\u3400-\u9fff\uff00-\uffef]\s?[,;:?!()]|[,;:?!()]\s?[\u3400-\u9fff\uff00-\uffef]/;
+
+  it("keeps three shared modules in the legacy extract", () => {
+    expect(legacy.shared.zh.modules).toHaveLength(3);
+    expect(legacy.shared.en.modules).toHaveLength(3);
+  });
+
+  it("has the three modules in order, with 6, 5 and 7 drills", () => {
+    expect(modules.map((module) => module.id)).toEqual(["shared-mod-0", "shared-mod-1", "shared-mod-2"]);
+    expect(modules.map((module) => module.items.length)).toEqual([6, 5, 7]);
+    expect(items).toHaveLength(18);
+  });
+
+  it("fills both languages, keeps difficulty at 8, and categories follow the module rules", () => {
+    expect(items.map((item) => item.category)).toEqual([
+      "recovery",
+      "recovery",
+      "recovery",
+      "recovery",
+      "recovery",
+      "recovery",
+      "dryland",
+      "dryland",
+      "dryland",
+      "recovery",
+      "dryland",
+      "parent",
+      "parent",
+      "parent",
+      "parent",
+      "parent",
+      "parent",
+      "parent",
+    ]);
+    for (const item of items) {
+      expect(item.difficultyLevel, item.id).toBe(8);
+      for (const value of [item.titleZh, item.descriptionZh, item.targetZh, item.titleEn, item.descriptionEn, item.targetEn]) {
+        expect(value.trim(), item.id).not.toBe("");
+      }
+      expect(item.tagsZh.length, item.id).toBeGreaterThan(0);
+      expect(item.tagsEn.length, item.id).toBeGreaterThan(0);
+      expect(CJK.test(item.titleEn), item.id).toBe(false);
+      expect(CJK.test(item.descriptionEn), item.id).toBe(false);
+      expect(CJK.test(item.targetEn), item.id).toBe(false);
+      expect(item.tagsEn.some((tag) => CJK.test(tag)), item.id).toBe(false);
+    }
+  });
+
+  it("the ice bath description carries the age note", () => {
+    const bath = modules[0]!.items[5]!;
+    expect(bath.descriptionZh).toContain("11–13 岁使用冷水浴请先征得家长同意；年龄更小的运动员不建议使用冷水浴。");
+    expect(bath.descriptionEn).toContain("11–13");
+  });
+
+  it("no half-width mark touches a Chinese character in the shared text", () => {
+    function chineseStrings(value: unknown, path = "shared"): { path: string; text: string }[] {
+      if (typeof value === "string") return CJK.test(value) ? [{ path, text: value }] : [];
+      if (Array.isArray(value)) return value.flatMap((entry, index) => chineseStrings(entry, `${path}[${index}]`));
+      if (value && typeof value === "object") {
+        return Object.entries(value).flatMap(([key, entry]) => chineseStrings(entry, `${path}.${key}`));
+      }
+      return [];
+    }
+    const wrong = chineseStrings(ACADEMY_SHARED)
+      .filter(({ text }) => halfWidth.test(text))
+      .map(({ path, text }) => `${path}: ${text}`);
+    expect(wrong).toEqual([]);
   });
 });

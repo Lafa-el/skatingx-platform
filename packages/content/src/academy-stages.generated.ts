@@ -1,5 +1,5 @@
 /** Auto-generated from blaze-skate-training BLAZE_ACADEMY. Chinese brackets are full-width (ADR-004 A5). */
-import type { AcademyStage } from "./academy-types";
+import type { AcademySharedContent, AcademyStage } from "./academy-types";
 
 export const ACADEMY_STAGES: AcademyStage[] = [
   {
@@ -1660,129 +1660,13 @@ export const ACADEMY_STAGES: AcademyStage[] = [
       },
       {
         "id": "age11_13-mod-4",
-        "titleZh": "五、 放松、恢复与伤病预防",
-        "titleEn": "5. Recovery & Injury Prevention",
-        "descriptionZh": "",
-        "descriptionEn": "",
-        "items": [
-          {
-            "id": "age11_13-m4-i0",
-            "titleZh": "筋膜枪与泡沫轴（深层组织松解）",
-            "titleEn": "Massage Gun & Foam Rolling",
-            "descriptionZh": "针对股四头肌、腘绳肌、臀大肌进行深层放松。",
-            "descriptionEn": "Deep tissue release for quads, hamstrings, and glutes.",
-            "category": "recovery",
-            "targetZh": "15-20分钟",
-            "targetEn": "15-20 mins",
-            "tagsZh": [
-              "促进循环"
-            ],
-            "tagsEn": [
-              "Circulation"
-            ],
-            "difficultyLevel": 8
-          },
-          {
-            "id": "age11_13-m4-i1",
-            "titleZh": "静态拉伸（全面柔韧性）",
-            "titleEn": "Static Stretching",
-            "descriptionZh": "保持肌肉弹性，预防关节活动度受限导致的拉伤。",
-            "descriptionEn": "Maintain muscle elasticity and joint ROM.",
-            "category": "recovery",
-            "targetZh": "10-15分钟",
-            "targetEn": "10-15 mins",
-            "tagsZh": [
-              "肌肉延展"
-            ],
-            "tagsEn": [
-              "Flexibility"
-            ],
-            "difficultyLevel": 8
-          },
-          {
-            "id": "age11_13-m4-i2",
-            "titleZh": "髋部屈肌深层拉伸（Couch Stretch）",
-            "titleEn": "Couch Stretch (Deep Hip Flexors)",
-            "descriptionZh": "针对长期处于低姿态导致的髋部屈肌紧张，进行深度沙发拉伸，极大地缓解下背部压力。",
-            "descriptionEn": "Target tight hip flexors caused by prolonged low posture. Deep stretch to relieve lower back pressure.",
-            "category": "recovery",
-            "targetZh": "每侧 45-60秒",
-            "targetEn": "45-60s / side",
-            "tagsZh": [
-              "髋关节",
-              "柔韧"
-            ],
-            "tagsEn": [
-              "Hip",
-              "Mobility"
-            ],
-            "difficultyLevel": 8
-          },
-          {
-            "id": "age11_13-m4-i3",
-            "titleZh": "核心-骨盆控制与激活（Bird-Dog）",
-            "titleEn": "Core-Pelvic Activation (Bird-Dog)",
-            "descriptionZh": "鸟狗式伸展，专注于保持骨盆的中立位和核心深层肌群的激活，防止滑行中塌腰代偿。",
-            "descriptionEn": "Maintain neutral pelvis and activate deep core to prevent lumbar compensation during skating.",
-            "category": "recovery",
-            "targetZh": "3组 x 每侧10次",
-            "targetEn": "3 sets x 10 reps/side",
-            "tagsZh": [
-              "骨盆中立",
-              "稳定"
-            ],
-            "tagsEn": [
-              "Stability"
-            ],
-            "difficultyLevel": 8
-          },
-          {
-            "id": "age11_13-m4-i4",
-            "titleZh": "踝关节强化与本体感觉进阶",
-            "titleEn": "Advanced Ankle Proprioception",
-            "descriptionZh": "单脚站立于平衡垫上进行抛接球或闭眼保持，极大增强踝关节周围微小肌群的力量与稳定性。",
-            "descriptionEn": "Single-leg stand on balance pad with eyes closed or catching a ball. Strengthens micro-muscles to prevent sprains.",
-            "category": "recovery",
-            "targetZh": "3组 x 15次",
-            "targetEn": "3 sets x 15 reps",
-            "tagsZh": [
-              "踝关节",
-              "预防崴脚"
-            ],
-            "tagsEn": [
-              "Ankle",
-              "Prev"
-            ],
-            "difficultyLevel": 8
-          },
-          {
-            "id": "age11_13-m4-i5",
-            "titleZh": "冰浴与冷热交替浴",
-            "titleEn": "Ice / Contrast Baths",
-            "descriptionZh": "大强度训练后加速乳酸代谢和微小炎症恢复。",
-            "descriptionEn": "Accelerate lactic acid metabolism after high-intensity days.",
-            "category": "recovery",
-            "targetZh": "10分钟",
-            "targetEn": "10 mins",
-            "tagsZh": [
-              "消除炎症"
-            ],
-            "tagsEn": [
-              "Recovery"
-            ],
-            "difficultyLevel": 8
-          }
-        ]
-      },
-      {
-        "id": "age11_13-mod-5",
         "titleZh": "六、 冰上技术",
         "titleEn": "6. On-Ice Technique",
         "descriptionZh": "",
         "descriptionEn": "",
         "items": [
           {
-            "id": "age11_13-m5-i0",
+            "id": "age11_13-m4-i0",
             "titleZh": "起跑（站位、发令反应、第一步蹬伸）",
             "titleEn": "Start (Stance, Reaction, First Push)",
             "descriptionZh": "听发令后从静止站位完成第一步蹬伸，重心前移再接滑行。每次之间完全停稳再起。",
@@ -1803,7 +1687,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "difficultyLevel": 8
           },
           {
-            "id": "age11_13-m5-i1",
+            "id": "age11_13-m4-i1",
             "titleZh": "弯道入口路线",
             "titleEn": "Corner Entry Line",
             "descriptionZh": "进弯前选好入弯点，沿设定路线压进弯道。不提前切进，也不漂出路线。",
@@ -1824,7 +1708,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "difficultyLevel": 8
           },
           {
-            "id": "age11_13-m5-i2",
+            "id": "age11_13-m4-i2",
             "titleZh": "外刃压刃",
             "titleEn": "Outside Edge Pressure",
             "descriptionZh": "用外侧刃稳定压住冰面，身体向圆心倾斜。刃要咬住冰，不打滑。",
@@ -1845,7 +1729,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "difficultyLevel": 8
           },
           {
-            "id": "age11_13-m5-i3",
+            "id": "age11_13-m4-i3",
             "titleZh": "低姿滑行",
             "titleEn": "Low Skating Position",
             "descriptionZh": "保持低重心滑行，躯干稳定，视线向前。姿势先稳定，再谈速度。",
@@ -1866,7 +1750,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "difficultyLevel": 8
           },
           {
-            "id": "age11_13-m5-i4",
+            "id": "age11_13-m4-i4",
             "titleZh": "交叉步节奏",
             "titleEn": "Crossover Rhythm",
             "descriptionZh": "弯道交叉步按固定节拍完成，步频均匀。左右脚交接清楚，不拖步。",
@@ -1887,7 +1771,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "difficultyLevel": 8
           },
           {
-            "id": "age11_13-m5-i5",
+            "id": "age11_13-m4-i5",
             "titleZh": "直道—弯道衔接",
             "titleEn": "Straight-to-Corner Transition",
             "descriptionZh": "直道最后一步直接接入弯道第一步。速度不掉，路线不晃。",
@@ -1908,7 +1792,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "difficultyLevel": 8
           },
           {
-            "id": "age11_13-m5-i6",
+            "id": "age11_13-m4-i6",
             "titleZh": "出弯加速",
             "titleEn": "Corner Exit Acceleration",
             "descriptionZh": "出弯后沿切线加速，第一步蹬伸做完整，再回到直道节奏。",
@@ -1929,7 +1813,7 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "difficultyLevel": 8
           },
           {
-            "id": "age11_13-m5-i7",
+            "id": "age11_13-m4-i7",
             "titleZh": "技术圈",
             "titleEn": "Technique Laps",
             "descriptionZh": "同一路线按慢速、中速、计时三档完成。慢速看动作，中速看节奏，计时看稳定发挥。",
@@ -2484,6 +2368,140 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "difficultyLevel": 8
           }
         ]
+      },
+      {
+        "id": "age14_16-mod-2",
+        "titleZh": "三、 专项核心与耐力进阶",
+        "titleEn": "3. Specific Core and Endurance",
+        "descriptionZh": "",
+        "descriptionEn": "",
+        "items": [
+          {
+            "id": "age14_16-m2-i0",
+            "titleZh": "滑行板高强度间歇进阶",
+            "titleEn": "Advanced Slide-board HIIT",
+            "descriptionZh": "全力滑行五十秒，只休息二十秒。组间保持步频，最后两组不降速，把抗乳酸的时间拉长。",
+            "descriptionEn": "Skate hard for fifty seconds and rest only twenty. Hold the cadence, including the last two sets, so the hard work lasts longer.",
+            "category": "dryland",
+            "targetZh": "10组 x 50秒",
+            "targetEn": "10 sets x 50 seconds",
+            "tagsZh": [
+              "无氧耐力"
+            ],
+            "tagsEn": [
+              "Anaerobic"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age14_16-m2-i1",
+            "titleZh": "动感单车冲刺进阶",
+            "titleEn": "Advanced Spin-bike Sprints",
+            "descriptionZh": "二十五秒最大功率，三十五秒慢骑。做功比上一阶段多五秒，组数加到十二组。",
+            "descriptionEn": "Twenty-five seconds at max power, thirty-five seconds easy. Five seconds longer than the previous stage, and two extra repeats.",
+            "category": "dryland",
+            "targetZh": "12组 x 25秒",
+            "targetEn": "12 sets x 25 seconds",
+            "tagsZh": [
+              "绝对速度"
+            ],
+            "tagsEn": [
+              "Top",
+              "Speed"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age14_16-m2-i2",
+            "titleZh": "靠墙静蹲进阶",
+            "titleEn": "Advanced Wall Sit",
+            "descriptionZh": "大腿接近与地面平行，可加轻负荷或改成单腿。每组比上一阶段大约多半分钟。",
+            "descriptionEn": "Thighs near parallel, with a light load or one leg. Each set is about half a minute longer than the previous stage.",
+            "category": "dryland",
+            "targetZh": "4组 x 2-2.5分钟",
+            "targetEn": "4 sets x 2-2.5 mins",
+            "tagsZh": [
+              "专项耐力"
+            ],
+            "tagsEn": [
+              "Isometric"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age14_16-m2-i3",
+            "titleZh": "Pallof 抗旋转进阶",
+            "titleEn": "Advanced Pallof Press",
+            "descriptionZh": "弹力带侧向站立，双手推出后停两秒。阻力比上一阶段更大，躯干仍不被带走。",
+            "descriptionEn": "Stand side-on to the band, press out, and hold two seconds. The band is heavier than the previous stage, and the trunk still does not twist.",
+            "category": "dryland",
+            "targetZh": "4组 x 15次/侧",
+            "targetEn": "4 sets x 15/side",
+            "tagsZh": [
+              "抗旋转",
+              "核心"
+            ],
+            "tagsEn": [
+              "Anti-rotation",
+              "Core"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age14_16-m2-i4",
+            "titleZh": "悬垂举腿进阶",
+            "titleEn": "Advanced Hanging Leg Raise",
+            "descriptionZh": "悬垂后把双腿抬平，下放放慢。次数比合在一起的旧动作少，幅度要求更完整。",
+            "descriptionEn": "Hang, lift both legs level, and lower slowly. Fewer reps than the old combined drill, with a fuller range.",
+            "category": "dryland",
+            "targetZh": "4组 x 12次",
+            "targetEn": "4 sets x 12 reps",
+            "tagsZh": [
+              "核心控制"
+            ],
+            "tagsEn": [
+              "Core",
+              "Control"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age14_16-m2-i5",
+            "titleZh": "俄罗斯转体进阶",
+            "titleEn": "Advanced Russian Twist",
+            "descriptionZh": "身体后倾，持药球转到肘接近地面。比旧的十五次多五次，速度放稳，不借甩臂。",
+            "descriptionEn": "Lean back and rotate a medicine ball until the elbow nears the floor. Five more reps than the old set, steady, without flinging the arms.",
+            "category": "dryland",
+            "targetZh": "4组 x 20次",
+            "targetEn": "4 sets x 20 reps",
+            "tagsZh": [
+              "核心控制"
+            ],
+            "tagsEn": [
+              "Core",
+              "Control"
+            ],
+            "difficultyLevel": 8
+          },
+          {
+            "id": "age14_16-m2-i6",
+            "titleZh": "400米/800米田径场冲刺进阶",
+            "titleEn": "Advanced 400m/800m Track Sprints",
+            "descriptionZh": "四百米六组，或八百米四组，组间走回起点。比上一阶段多一组，用来把后程速度留住。",
+            "descriptionEn": "Six repeats of 400 meters, or four of 800, walking back to the start. One more repeat than the previous stage, so the last lap still has speed.",
+            "category": "dryland",
+            "targetZh": "6组",
+            "targetEn": "6 sets",
+            "tagsZh": [
+              "心肺极限"
+            ],
+            "tagsEn": [
+              "Aerobic",
+              "Limit"
+            ],
+            "difficultyLevel": 8
+          }
+        ]
       }
     ],
     "weeklyRoutine": {
@@ -2536,11 +2554,111 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "taskLabelEn": "Sled Pushes / Parachute Sprints 8 laps"
           }
         ],
-        "wednesday": [],
-        "thursday": [],
-        "friday": [],
-        "saturday": [],
-        "sunday": []
+        "wednesday": [
+          {
+            "routineItemId": "age14_16-w2-t0",
+            "taskLabelZh": "核心-骨盆控制与激活（Bird-Dog） 3组",
+            "taskLabelEn": "Core-Pelvic Activation (Bird-Dog) 3 sets"
+          },
+          {
+            "routineItemId": "age14_16-w2-t1",
+            "taskLabelZh": "踝关节强化与本体感觉进阶 3组",
+            "taskLabelEn": "Advanced Ankle Proprioception 3 sets"
+          },
+          {
+            "routineItemId": "age14_16-w2-t2",
+            "taskLabelZh": "髋部屈肌深层拉伸（Couch Stretch） 每侧60秒",
+            "taskLabelEn": "Couch Stretch (Deep Hip Flexors) 60s/side"
+          },
+          {
+            "routineItemId": "age14_16-w2-t3",
+            "taskLabelZh": "筋膜枪与泡沫轴（深层组织松解） 20分",
+            "taskLabelEn": "Massage Gun & Foam Rolling 20 mins"
+          }
+        ],
+        "thursday": [
+          {
+            "routineItemId": "age14_16-w3-t0",
+            "taskLabelZh": "滑行板高强度间歇进阶 10组",
+            "taskLabelEn": "Advanced Slide-board HIIT 10 sets"
+          },
+          {
+            "routineItemId": "age14_16-w3-t1",
+            "taskLabelZh": "动感单车冲刺进阶 10组",
+            "taskLabelEn": "Advanced Spin-bike Sprints 10 sets"
+          },
+          {
+            "routineItemId": "age14_16-w3-t2",
+            "taskLabelZh": "靠墙静蹲进阶 3组",
+            "taskLabelEn": "Advanced Wall Sit 3 sets"
+          },
+          {
+            "routineItemId": "age14_16-w3-t3",
+            "taskLabelZh": "Pallof 抗旋转进阶 4组",
+            "taskLabelEn": "Advanced Pallof Press 4 sets"
+          }
+        ],
+        "friday": [
+          {
+            "routineItemId": "age14_16-w4-t0",
+            "taskLabelZh": "悬垂举腿进阶 4组",
+            "taskLabelEn": "Advanced Hanging Leg Raise 4 sets"
+          },
+          {
+            "routineItemId": "age14_16-w4-t1",
+            "taskLabelZh": "俄罗斯转体进阶 4组",
+            "taskLabelEn": "Advanced Russian Twist 4 sets"
+          },
+          {
+            "routineItemId": "age14_16-w4-t2",
+            "taskLabelZh": "臀推（杠铃/弹力带） 4组x10次",
+            "taskLabelEn": "Barbell Hip Thrusts 4x10"
+          },
+          {
+            "routineItemId": "age14_16-w4-t3",
+            "taskLabelZh": "深跳（Drop Jump） + 连续跳 4组",
+            "taskLabelEn": "Drop Jump to Bound 4 sets"
+          }
+        ],
+        "saturday": [
+          {
+            "routineItemId": "age14_16-w5-t0",
+            "taskLabelZh": "全身动态热身 10分钟",
+            "taskLabelEn": "Full-body Dynamic Warm-up 10 mins"
+          },
+          {
+            "routineItemId": "age14_16-w5-t1",
+            "taskLabelZh": "400米/800米田径场冲刺进阶 4组",
+            "taskLabelEn": "Advanced 400m/800m Track Sprints 4 sets"
+          },
+          {
+            "routineItemId": "age14_16-w5-t2",
+            "taskLabelZh": "阻力冲刺（雪橇拖拽/降落伞） 8趟",
+            "taskLabelEn": "Sled Pushes / Parachute Sprints 8 laps"
+          },
+          {
+            "routineItemId": "age14_16-w5-t3",
+            "taskLabelZh": "连续跳箱训练（Box Jumps） 4组x6次",
+            "taskLabelEn": "Box Jumps 4x6"
+          }
+        ],
+        "sunday": [
+          {
+            "routineItemId": "age14_16-w6-t0",
+            "taskLabelZh": "静态拉伸（全面柔韧性） 15分",
+            "taskLabelEn": "Static Stretching 15 mins"
+          },
+          {
+            "routineItemId": "age14_16-w6-t1",
+            "taskLabelZh": "髋部屈肌深层拉伸（Couch Stretch） 2组",
+            "taskLabelEn": "Couch Stretch (Deep Hip Flexors) 2 sets"
+          },
+          {
+            "routineItemId": "age14_16-w6-t2",
+            "taskLabelZh": "冰浴与冷热交替浴 10分",
+            "taskLabelEn": "Ice / Contrast Baths 10 mins"
+          }
+        ]
       },
       "dayPlans": [
         {
@@ -2586,6 +2704,114 @@ export const ACADEMY_STAGES: AcademyStage[] = [
             "Drop Jump to Bound 4 sets",
             "Sled Pushes / Parachute Sprints 8 laps"
           ]
+        },
+        {
+          "id": "age14_16-wp-2",
+          "dayLabelZh": "周三",
+          "dayLabelEn": "Wed",
+          "titleZh": "主动恢复与预防",
+          "titleEn": "Active Recovery",
+          "durationZh": "45分钟",
+          "durationEn": "45 mins",
+          "weekday": "wednesday",
+          "taskLabelsZh": [
+            "核心-骨盆控制与激活（Bird-Dog） 3组",
+            "踝关节强化与本体感觉进阶 3组",
+            "髋部屈肌深层拉伸（Couch Stretch） 每侧60秒",
+            "筋膜枪与泡沫轴（深层组织松解） 20分"
+          ],
+          "taskLabelsEn": [
+            "Core-Pelvic Activation (Bird-Dog) 3 sets",
+            "Advanced Ankle Proprioception 3 sets",
+            "Couch Stretch (Deep Hip Flexors) 60s/side",
+            "Massage Gun & Foam Rolling 20 mins"
+          ]
+        },
+        {
+          "id": "age14_16-wp-3",
+          "dayLabelZh": "周四",
+          "dayLabelEn": "Thu",
+          "titleZh": "专项耐力与抗阻",
+          "titleEn": "Specific Endurance",
+          "durationZh": "100分钟",
+          "durationEn": "100 mins",
+          "weekday": "thursday",
+          "taskLabelsZh": [
+            "滑行板高强度间歇进阶 10组",
+            "动感单车冲刺进阶 10组",
+            "靠墙静蹲进阶 3组",
+            "Pallof 抗旋转进阶 4组"
+          ],
+          "taskLabelsEn": [
+            "Advanced Slide-board HIIT 10 sets",
+            "Advanced Spin-bike Sprints 10 sets",
+            "Advanced Wall Sit 3 sets",
+            "Advanced Pallof Press 4 sets"
+          ]
+        },
+        {
+          "id": "age14_16-wp-4",
+          "dayLabelZh": "周五",
+          "dayLabelEn": "Fri",
+          "titleZh": "综合力量与速度",
+          "titleEn": "Combo Power",
+          "durationZh": "90分钟",
+          "durationEn": "90 mins",
+          "weekday": "friday",
+          "taskLabelsZh": [
+            "悬垂举腿进阶 4组",
+            "俄罗斯转体进阶 4组",
+            "臀推（杠铃/弹力带） 4组x10次",
+            "深跳（Drop Jump） + 连续跳 4组"
+          ],
+          "taskLabelsEn": [
+            "Advanced Hanging Leg Raise 4 sets",
+            "Advanced Russian Twist 4 sets",
+            "Barbell Hip Thrusts 4x10",
+            "Drop Jump to Bound 4 sets"
+          ]
+        },
+        {
+          "id": "age14_16-wp-5",
+          "dayLabelZh": "周六",
+          "dayLabelEn": "Sat",
+          "titleZh": "比赛模拟与高光",
+          "titleEn": "Race Simulation",
+          "durationZh": "90分钟",
+          "durationEn": "90 mins",
+          "weekday": "saturday",
+          "taskLabelsZh": [
+            "全身动态热身 10分钟",
+            "400米/800米田径场冲刺进阶 4组",
+            "阻力冲刺（雪橇拖拽/降落伞） 8趟",
+            "连续跳箱训练（Box Jumps） 4组x6次"
+          ],
+          "taskLabelsEn": [
+            "Full-body Dynamic Warm-up 10 mins",
+            "Advanced 400m/800m Track Sprints 4 sets",
+            "Sled Pushes / Parachute Sprints 8 laps",
+            "Box Jumps 4x6"
+          ]
+        },
+        {
+          "id": "age14_16-wp-6",
+          "dayLabelZh": "周日",
+          "dayLabelEn": "Sun",
+          "titleZh": "深度恢复日",
+          "titleEn": "Deep Recovery",
+          "durationZh": "60分钟",
+          "durationEn": "60 mins",
+          "weekday": "sunday",
+          "taskLabelsZh": [
+            "静态拉伸（全面柔韧性） 15分",
+            "髋部屈肌深层拉伸（Couch Stretch） 2组",
+            "冰浴与冷热交替浴 10分"
+          ],
+          "taskLabelsEn": [
+            "Static Stretching 15 mins",
+            "Couch Stretch (Deep Hip Flexors) 2 sets",
+            "Ice / Contrast Baths 10 mins"
+          ]
         }
       ]
     }
@@ -2623,3 +2849,370 @@ export const ACADEMY_STAGES: AcademyStage[] = [
     }
   }
 ];
+
+export const ACADEMY_SHARED: AcademySharedContent = {
+  "trainingModules": [
+    {
+      "id": "shared-mod-0",
+      "titleZh": "一、 放松、恢复与伤病预防",
+      "titleEn": "1. Recovery & Injury Prevention",
+      "descriptionZh": "",
+      "descriptionEn": "",
+      "items": [
+        {
+          "id": "shared-m0-i0",
+          "titleZh": "筋膜枪与泡沫轴（深层组织松解）",
+          "titleEn": "Massage Gun & Foam Rolling",
+          "descriptionZh": "针对股四头肌、腘绳肌、臀大肌进行深层放松。",
+          "descriptionEn": "Deep tissue release for quads, hamstrings, and glutes.",
+          "category": "recovery",
+          "targetZh": "15-20分钟",
+          "targetEn": "15-20 mins",
+          "tagsZh": [
+            "促进循环"
+          ],
+          "tagsEn": [
+            "Circulation"
+          ],
+          "difficultyLevel": 8
+        },
+        {
+          "id": "shared-m0-i1",
+          "titleZh": "静态拉伸（全面柔韧性）",
+          "titleEn": "Static Stretching",
+          "descriptionZh": "保持肌肉弹性，预防关节活动度受限导致的拉伤。",
+          "descriptionEn": "Maintain muscle elasticity and joint ROM.",
+          "category": "recovery",
+          "targetZh": "10-15分钟",
+          "targetEn": "10-15 mins",
+          "tagsZh": [
+            "肌肉延展"
+          ],
+          "tagsEn": [
+            "Flexibility"
+          ],
+          "difficultyLevel": 8
+        },
+        {
+          "id": "shared-m0-i2",
+          "titleZh": "髋部屈肌深层拉伸（Couch Stretch）",
+          "titleEn": "Couch Stretch (Deep Hip Flexors)",
+          "descriptionZh": "针对长期处于低姿态导致的髋部屈肌紧张，进行深度沙发拉伸，极大地缓解下背部压力。",
+          "descriptionEn": "Target tight hip flexors caused by prolonged low posture. Deep stretch to relieve lower back pressure.",
+          "category": "recovery",
+          "targetZh": "每侧 45-60秒",
+          "targetEn": "45-60s / side",
+          "tagsZh": [
+            "髋关节",
+            "柔韧"
+          ],
+          "tagsEn": [
+            "Hip",
+            "Mobility"
+          ],
+          "difficultyLevel": 8
+        },
+        {
+          "id": "shared-m0-i3",
+          "titleZh": "核心-骨盆控制与激活（Bird-Dog）",
+          "titleEn": "Core-Pelvic Activation (Bird-Dog)",
+          "descriptionZh": "鸟狗式伸展，专注于保持骨盆的中立位和核心深层肌群的激活，防止滑行中塌腰代偿。",
+          "descriptionEn": "Maintain neutral pelvis and activate deep core to prevent lumbar compensation during skating.",
+          "category": "recovery",
+          "targetZh": "3组 x 每侧10次",
+          "targetEn": "3 sets x 10 reps/side",
+          "tagsZh": [
+            "骨盆中立",
+            "稳定"
+          ],
+          "tagsEn": [
+            "Stability"
+          ],
+          "difficultyLevel": 8
+        },
+        {
+          "id": "shared-m0-i4",
+          "titleZh": "踝关节强化与本体感觉进阶",
+          "titleEn": "Advanced Ankle Proprioception",
+          "descriptionZh": "单脚站立于平衡垫上进行抛接球或闭眼保持，极大增强踝关节周围微小肌群的力量与稳定性。",
+          "descriptionEn": "Single-leg stand on balance pad with eyes closed or catching a ball. Strengthens micro-muscles to prevent sprains.",
+          "category": "recovery",
+          "targetZh": "3组 x 15次",
+          "targetEn": "3 sets x 15 reps",
+          "tagsZh": [
+            "踝关节",
+            "预防崴脚"
+          ],
+          "tagsEn": [
+            "Ankle",
+            "Prev"
+          ],
+          "difficultyLevel": 8
+        },
+        {
+          "id": "shared-m0-i5",
+          "titleZh": "冰浴与冷热交替浴",
+          "titleEn": "Ice / Contrast Baths",
+          "descriptionZh": "大强度训练后加速乳酸代谢和微小炎症恢复。11–13 岁使用冷水浴请先征得家长同意；年龄更小的运动员不建议使用冷水浴。",
+          "descriptionEn": "Accelerate lactic acid metabolism after high-intensity days. For ages 11–13, a cold bath needs a parent's consent first. Younger athletes should not use a cold bath.",
+          "category": "recovery",
+          "targetZh": "10分钟",
+          "targetEn": "10 mins",
+          "tagsZh": [
+            "消除炎症"
+          ],
+          "tagsEn": [
+            "Recovery"
+          ],
+          "difficultyLevel": 8
+        }
+      ]
+    },
+    {
+      "id": "shared-mod-1",
+      "titleZh": "二、 热身与冷身",
+      "titleEn": "2. Warm-up and Cool-down",
+      "descriptionZh": "",
+      "descriptionEn": "",
+      "items": [
+        {
+          "id": "shared-m1-i0",
+          "titleZh": "全身动态热身",
+          "titleEn": "Full-body Dynamic Warm-up",
+          "descriptionZh": "从头到脚做开合跳、高抬腿和行进间摆臂，把关节活动开，再进入正式训练。",
+          "descriptionEn": "Open the joints with jumping jacks, high knees, and arm swings before the session starts.",
+          "category": "dryland",
+          "targetZh": "8-10分钟",
+          "targetEn": "8-10 mins",
+          "tagsZh": [
+            "热身",
+            "动态"
+          ],
+          "tagsEn": [
+            "Warmup",
+            "Dynamic"
+          ],
+          "difficultyLevel": 8
+        },
+        {
+          "id": "shared-m1-i1",
+          "titleZh": "髋踝激活热身",
+          "titleEn": "Hip and Ankle Activation",
+          "descriptionZh": "做腿摆、绕环和弓步转体，让髋和踝在上冰或负重前先活动开。",
+          "descriptionEn": "Leg swings, circles, and a lunge with a turn, so the hips and ankles are moving before ice or load.",
+          "category": "dryland",
+          "targetZh": "2组 x 每侧8次",
+          "targetEn": "2 sets x 8/side",
+          "tagsZh": [
+            "热身",
+            "激活"
+          ],
+          "tagsEn": [
+            "Warmup",
+            "Activation"
+          ],
+          "difficultyLevel": 8
+        },
+        {
+          "id": "shared-m1-i2",
+          "titleZh": "冰前滑行姿势唤醒",
+          "titleEn": "Pre-ice Skating Position Wake-up",
+          "descriptionZh": "在陆地摆出低姿，做几次原地蹬伸和摆臂，找回上冰前的身体位置。",
+          "descriptionEn": "Hold a low position on land and rehearse a few pushes and arm swings before getting on the ice.",
+          "category": "dryland",
+          "targetZh": "2组 x 20秒",
+          "targetEn": "2 sets x 20 seconds",
+          "tagsZh": [
+            "热身",
+            "姿势"
+          ],
+          "tagsEn": [
+            "Warmup",
+            "Position"
+          ],
+          "difficultyLevel": 8
+        },
+        {
+          "id": "shared-m1-i3",
+          "titleZh": "训练后全身放松拉伸",
+          "titleEn": "Full-body Cool-down Stretch",
+          "descriptionZh": "训练结束后按大腿、髋前、小腿的顺序把主要肌群拉到轻度牵拉，每处停住呼吸。",
+          "descriptionEn": "After training, ease the thighs, the front of the hips, and the calves into a light stretch and stay with the breath.",
+          "category": "recovery",
+          "targetZh": "8-10分钟",
+          "targetEn": "8-10 mins",
+          "tagsZh": [
+            "拉伸",
+            "放松"
+          ],
+          "tagsEn": [
+            "Stretch",
+            "Relax"
+          ],
+          "difficultyLevel": 8
+        },
+        {
+          "id": "shared-m1-i4",
+          "titleZh": "呼吸与放松整理",
+          "titleEn": "Breathing and Wind-down",
+          "descriptionZh": "坐或躺下，用慢呼吸把心率降下来，再简单回顾今天完成了什么。",
+          "descriptionEn": "Sit or lie down, slow the breath until the heart rate drops, then note what the session covered.",
+          "category": "dryland",
+          "targetZh": "3-5分钟",
+          "targetEn": "3-5 mins",
+          "tagsZh": [
+            "呼吸",
+            "整理"
+          ],
+          "tagsEn": [
+            "Breathing",
+            "Winddown"
+          ],
+          "difficultyLevel": 8
+        }
+      ]
+    }
+  ],
+  "parentModule": {
+    "id": "shared-mod-2",
+    "titleZh": "三、 家长必读",
+    "titleEn": "3. Parent Guide",
+    "descriptionZh": "",
+    "descriptionEn": "",
+    "items": [
+      {
+        "id": "shared-m2-i0",
+        "titleZh": "赛前补水指南",
+        "titleEn": "Pre-race Hydration Guide",
+        "descriptionZh": "赛前两小时喝一小瓶水，开赛前十五分钟再小口补一次。不要等口渴，也不要一次灌很多。",
+        "descriptionEn": "Drink a small bottle two hours before the race, then a few sips fifteen minutes out. Do not wait for thirst, and do not gulp a large amount at once.",
+        "category": "parent",
+        "targetZh": "赛前阅读",
+        "targetEn": "Read before race day",
+        "tagsZh": [
+          "营养",
+          "补水"
+        ],
+        "tagsEn": [
+          "Nutrition",
+          "Hydration"
+        ],
+        "difficultyLevel": 8
+      },
+      {
+        "id": "shared-m2-i1",
+        "titleZh": "训练日饮食安排",
+        "titleEn": "Training-day Meals",
+        "descriptionZh": "训练前一到两小时吃一份好消化的主食加少量蛋白质，训练后一小时内补一餐。空腹大强度训练不合适。",
+        "descriptionEn": "One to two hours before training, eat an easy carbohydrate with a little protein, and eat again within an hour after. A hard session on an empty stomach is a poor fit.",
+        "category": "parent",
+        "targetZh": "训练日",
+        "targetEn": "Training days",
+        "tagsZh": [
+          "营养",
+          "饮食"
+        ],
+        "tagsEn": [
+          "Nutrition",
+          "Meals"
+        ],
+        "difficultyLevel": 8
+      },
+      {
+        "id": "shared-m2-i2",
+        "titleZh": "恢复餐怎么做",
+        "titleEn": "How to Build a Recovery Meal",
+        "descriptionZh": "训练后用主食、蛋白质和一份水果或蔬菜拼一餐，份量按当天训练量增减。这是加餐，不是额外的大餐。",
+        "descriptionEn": "After training, put a carbohydrate, some protein, and a fruit or vegetable on the plate, and scale the portion to the day's work. It is a top-up, not an extra feast.",
+        "category": "parent",
+        "targetZh": "训练后",
+        "targetEn": "After training",
+        "tagsZh": [
+          "营养",
+          "加餐"
+        ],
+        "tagsEn": [
+          "Nutrition",
+          "Snack"
+        ],
+        "difficultyLevel": 8
+      },
+      {
+        "id": "shared-m2-i3",
+        "titleZh": "各年龄段睡眠时长",
+        "titleEn": "Sleep Hours by Age",
+        "descriptionZh": "11–13 岁争取每晚九小时，14–16 岁八到九小时，更小的孩子需要更长。固定上床时间比周末补觉有用。",
+        "descriptionEn": "Aim for nine hours at ages 11–13, eight to nine hours at 14–16, and more for younger children. A fixed bedtime beats catching up on weekends.",
+        "category": "parent",
+        "targetZh": "每晚",
+        "targetEn": "Every night",
+        "tagsZh": [
+          "睡眠",
+          "作息"
+        ],
+        "tagsEn": [
+          "Sleep",
+          "Schedule"
+        ],
+        "difficultyLevel": 8
+      },
+      {
+        "id": "shared-m2-i4",
+        "titleZh": "赛前一晚的睡眠",
+        "titleEn": "The Night Before a Race",
+        "descriptionZh": "赛前一晚按平时的时间睡，不临时提前很多，也不熬夜看录像。房间暗、凉、安静即可。",
+        "descriptionEn": "Go to bed at the usual time. Do not suddenly move bedtime much earlier, and do not stay up reviewing video. Dark, cool, and quiet is enough.",
+        "category": "parent",
+        "targetZh": "赛前一晚",
+        "targetEn": "Night before",
+        "tagsZh": [
+          "睡眠",
+          "比赛"
+        ],
+        "tagsEn": [
+          "Sleep",
+          "Race"
+        ],
+        "difficultyLevel": 8
+      },
+      {
+        "id": "shared-m2-i5",
+        "titleZh": "赛前紧张怎么应对",
+        "titleEn": "Handling Pre-race Nerves",
+        "descriptionZh": "紧张是身体在准备出发。用三次慢呼吸，再说出今天只盯住的一个动作。",
+        "descriptionEn": "Nerves mean the body is getting ready. Three slow breaths, then naming the one skill to watch today, helps more than being told to relax.",
+        "category": "parent",
+        "targetZh": "赛前",
+        "targetEn": "Before the race",
+        "tagsZh": [
+          "心理",
+          "紧张"
+        ],
+        "tagsEn": [
+          "Mindset",
+          "Nerves"
+        ],
+        "difficultyLevel": 8
+      },
+      {
+        "id": "shared-m2-i6",
+        "titleZh": "胜负观与家长场边行为",
+        "titleEn": "Results and Sideline Behavior",
+        "descriptionZh": "比完先问过程里做成了哪一件事，再谈名次。场边少喊技术口令，把指挥留给教练。",
+        "descriptionEn": "After the race, ask which one thing in the process went well before talking about place. Keep technical instructions off the sideline and leave coaching to the coach.",
+        "category": "parent",
+        "targetZh": "比赛日",
+        "targetEn": "Race day",
+        "tagsZh": [
+          "心理",
+          "场边"
+        ],
+        "tagsEn": [
+          "Mindset",
+          "Sideline"
+        ],
+        "difficultyLevel": 8
+      }
+    ]
+  }
+};

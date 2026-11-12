@@ -4,7 +4,8 @@ export type AcademyItemCategory =
   | "strength"
   | "mobility"
   | "technique"
-  | "recovery";
+  | "recovery"
+  | "parent";
 
 export type WeekdayKey =
   | "monday"
@@ -88,3 +89,9 @@ export interface AcademyStage {
 }
 
 export type AcademyLanguage = "zh" | "en";
+
+/** Recovery and warm-up are trained; the parent module is read and not imported as tasks. */
+export interface AcademySharedContent {
+  trainingModules: AcademyModule[];
+  parentModule: AcademyModule;
+}

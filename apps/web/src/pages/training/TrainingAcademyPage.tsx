@@ -1,8 +1,10 @@
 import {
+  ACADEMY_SHARED,
   getAcademyStages,
   localizeAcademyItem,
   localizeStageLabel,
   type AcademyItem,
+  type AcademyModule,
   type AcademyStage,
   type WeekdayKey,
 } from "@skatingx/content";
@@ -48,7 +50,9 @@ function linkedRoutineDrill(
 ): { itemId: string; moduleId: string } | null {
   const itemId = resolveRoutineModuleLink(`${stage.id}-w${planIndex}-t${taskIndex}`);
   if (!itemId) return null;
-  const module = stage.modules.find((entry) => entry.items.some((item) => item.id === itemId));
+  const module = [...stage.modules, ...ACADEMY_SHARED.trainingModules].find((entry) =>
+    entry.items.some((item) => item.id === itemId),
+  );
   if (!module) return null;
   return { itemId, moduleId: module.id };
 }
@@ -121,6 +125,69 @@ export function TrainingAcademyPage() {
     await importWeekdayRoutine(stage, routineWeekday);
   }
 
+  function drillCard(item: AcademyItem, importable: boolean) {
+    const text = localizeAcademyItem(item, language);
+    const alreadyAdded = hasAcademyItemImportedToday(todayTasks, item.id);
+    return (
+      <div
+        key={item.id}
+        id={item.id}
+        className="rounded-control border border-brand-navy/10 bg-brand-ice p-3"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="font-medium text-brand-navy">{text.title}</p>
+            <p className="mt-1 text-xs text-brand-navy/80">{text.description}</p>
+          </div>
+          <StatusTag tone="neutral" className="shrink-0">
+            {formatAcademyCategory(item.category, language)}
+          </StatusTag>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-brand-navy">{text.target}</span>
+          {importable ? (
+            <Button
+              variant="brand"
+              type="button"
+              disabled={busy || alreadyAdded || tasksLoading}
+              onClick={() => void handleImportItem(item)}
+              className="min-h-11 !px-3 !py-1.5 text-xs"
+            >
+              {alreadyAdded ? t("academy.item.added") : busy ? "…" : t("academy.item.add")}
+            </Button>
+          ) : null}
+        </div>
+        {text.tags.length > 0 ? (
+          <p className="mt-1 text-xs text-brand-navy/70">{text.tags.join(" · ")}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  function modulePanel(module: AcademyModule) {
+    const expanded = expandedModuleId === module.id;
+    return (
+      <div
+        key={module.id}
+        className="overflow-hidden rounded-card border border-brand-navy/10 bg-white shadow-card"
+      >
+        <button
+          type="button"
+          className="flex min-h-11 w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-brand-navy hover:bg-brand-ice"
+          onClick={() => setExpandedModuleId(expanded ? null : module.id)}
+        >
+          {localized(language, { zh: module.titleZh, en: module.titleEn })}
+          <span className="text-brand-navy/70">{expanded ? "−" : "+"}</span>
+        </button>
+        {expanded ? (
+          <div className="space-y-3 border-t border-brand-navy/10 px-4 pb-4 pt-2">
+            {module.items.map((item) => drillCard(item, true))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   if (!stage) {
     return (
       <section>
@@ -133,6 +200,19 @@ export function TrainingAcademyPage() {
     <section className="max-w-2xl">
       <h1 className="text-2xl font-bold text-brand-navy">{t("academy.title")}</h1>
       <p className="mt-1 text-brand-navy/80">{t("academy.subtitle")}</p>
+
+      <Card
+        variant="raised"
+        title={localized(language, {
+          zh: ACADEMY_SHARED.parentModule.titleZh,
+          en: ACADEMY_SHARED.parentModule.titleEn,
+        })}
+        className="mt-4"
+      >
+        <div className="space-y-3">
+          {ACADEMY_SHARED.parentModule.items.map((item) => drillCard(item, false))}
+        </div>
+      </Card>
 
       <FirestoreStatusBanner className="mt-4" />
       <ProPlanBanner isPro={isPro} locale={language} className="mt-4" />
@@ -198,80 +278,12 @@ export function TrainingAcademyPage() {
         <h2 className="text-lg font-semibold text-brand-navy">
           {t("academy.modules.title")}
         </h2>
-        {stage.modules.map((module) => {
-          const expanded = expandedModuleId === module.id;
-          return (
-            <div
-              key={module.id}
-              className="overflow-hidden rounded-card border border-brand-navy/10 bg-white shadow-card"
-            >
-              <button
-                type="button"
-                className="flex min-h-11 w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-brand-navy hover:bg-brand-ice"
-                onClick={() =>
-                  setExpandedModuleId(expanded ? null : module.id)
-                }
-              >
-                {localized(language, { zh: module.titleZh, en: module.titleEn })}
-                <span className="text-brand-navy/70">{expanded ? "−" : "+"}</span>
-              </button>
-              {expanded ? (
-                <div className="space-y-3 border-t border-brand-navy/10 px-4 pb-4 pt-2">
-                  {module.items.map((item) => {
-                    const localized = localizeAcademyItem(item, language);
-                    const alreadyAdded = hasAcademyItemImportedToday(
-                      todayTasks,
-                      item.id,
-                    );
-                    return (
-                      <div
-                        key={item.id}
-                        id={item.id}
-                        className="rounded-control border border-brand-navy/10 bg-brand-ice p-3"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-medium text-brand-navy">
-                              {localized.title}
-                            </p>
-                            <p className="mt-1 text-xs text-brand-navy/80">
-                              {localized.description}
-                            </p>
-                          </div>
-                          <StatusTag tone="neutral" className="shrink-0">
-                            {formatAcademyCategory(item.category, language)}
-                          </StatusTag>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-xs font-semibold text-brand-navy">
-                            {localized.target}
-                          </span>
-                          <Button variant="brand"
-                            type="button"
-                            disabled={busy || alreadyAdded || tasksLoading}
-                            onClick={() => void handleImportItem(item)}
-                            className="min-h-11 !px-3 !py-1.5 text-xs"
-                          >
-                            {alreadyAdded
-                              ? t("academy.item.added")
-                              : busy
-                                ? "…"
-                                : t("academy.item.add")}
-                          </Button>
-                        </div>
-                        {localized.tags.length > 0 ? (
-                          <p className="mt-1 text-xs text-brand-navy/70">
-                            {localized.tags.join(" · ")}
-                          </p>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+        {stage.modules.map((module) => modulePanel(module))}
+      </div>
+
+      <div className="mt-6 space-y-3">
+        <h2 className="text-lg font-semibold text-brand-navy">{t("academy.shared.title")}</h2>
+        {ACADEMY_SHARED.trainingModules.map((module) => modulePanel(module))}
       </div>
 
       <div className="mt-8 border-t border-dashed border-brand-navy/15 pt-6">
