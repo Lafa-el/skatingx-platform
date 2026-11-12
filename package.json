@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "test": "vitest",
     "test:rules": "node scripts/test-rules.mjs",
-    "test:migration": "node scripts/test-migration.mjs"
+    "test:migration": "node scripts/test-migration.mjs",
+    "test:catalog": "node scripts/catalog/parse-workbook.test.mjs"
   },
   "engines": {
     "node": ">=20.19"
@@ -31,6 +32,7 @@
     "globals": "^17.13.0",
     "happy-dom": "^21.0.1",
     "typescript-eslint": "^8.71.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "xlsx": "^0.18.5"
   }
 }

@@ -1,0 +1,268 @@
+{
+  "gaps": [
+    {
+      "code": "drill_exercise_edge_missing",
+      "count": 68,
+      "detail": "source_not_provided",
+      "edge": "Drill→Exercise"
+    },
+    {
+      "code": "block_system_template_id_missing",
+      "ids": [
+        "BL-L031",
+        "BL-I017"
+      ]
+    },
+    {
+      "code": "exercise_conditional_review_required",
+      "ids": [
+        "EX-L039",
+        "EX-L078",
+        "EX-L079",
+        "EX-L080"
+      ],
+      "safetyFlag": "review_required"
+    }
+  ],
+  "notes": [
+    {
+      "detail": "历史表公式，非对象数据",
+      "formulas": [
+        {
+          "address": "O2",
+          "formula": "COUNTA(A2:A52)",
+          "sheet": "21_V1.2_ProdMapping"
+        },
+        {
+          "address": "O4",
+          "formula": "COUNTIF(J2:J52,\"已验证上线\")",
+          "sheet": "21_V1.2_ProdMapping"
+        },
+        {
+          "address": "O5",
+          "formula": "O3-O4",
+          "sheet": "21_V1.2_ProdMapping"
+        },
+        {
+          "address": "O6",
+          "formula": "O2-O3",
+          "sheet": "21_V1.2_ProdMapping"
+        }
+      ],
+      "sheet": "21_V1.2_ProdMapping"
+    },
+    {
+      "blankColumns": [
+        {
+          "blankColumns": [],
+          "sheet": "00_Overview"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "01_Sections"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "02_Objectives"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "03_EnergySystems"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "04_Modalities"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "05_TechnicalTags"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "06_Exercises"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "07_Drills"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "08_Blocks"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "09_Sessions"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "10_FieldSchema"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "11_Enums"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "12_V0.2_SeedPriority"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "13_DevNotes"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "14_V0.2_ProductSpec"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "15_V0.2_FirstBlocks"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "16_Template_AddFlow"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "17_Template_PrefillMap"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "18_DataModel_Changes"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "19_API_and_CloudFunctions"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "20_V0.2_Acceptance"
+        },
+        {
+          "blankColumns": [
+            {
+              "column": 13,
+              "header": ""
+            }
+          ],
+          "sheet": "21_V1.2_ProdMapping"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "22_V1.2_GapAnalysis"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "23_V0.3_SessionPilot"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "24_V0.3_Roadmap"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "25_V0.3_Ph1_ProductSpec"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "26_V0.3_SessionSchema"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "27_V0.3_InstantiateRules"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "28_ICE01_BlockSpec"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "29_V0.3_Pilot6_Spec"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "30_V0.3_Ph1_Acceptance"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "31_V0.3_Ph1C_ADR"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "32_V0.3_ImplementationPlan"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "33_V0.3_SafetyGate"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "34_Codex_Phase1D_Instructions"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "35_V1.3.2_ChangeLog"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "36_Repo_Delta_Audit"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "37_Pilot_Child_Safety"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "38_Release_Decisions"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "39_V2_Charter"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "40_Sport_Taxonomy"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "41_Knowledge_Schema"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "42_Evidence_Registry"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "43_Teaching_Media"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "44_Error_Correction"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "45_Youth_Safety"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "46_Module_Contracts"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "47_Version_Migration"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "48_Release_Gates"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "49_Implementation_Backlog"
+        },
+        {
+          "blankColumns": [],
+          "sheet": "50_Object_Link_Schema"
+        }
+      ]
+    }
+  ]
+}
