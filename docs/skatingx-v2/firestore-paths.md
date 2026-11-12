@@ -2,7 +2,7 @@
 
 本文件是设计草案。它不改 `firestore.rules`，不改 `firestore.indexes.json`，不建集合，不碰生产数据。ADR-018 至 ADR-023 仍是「提议」。
 
-复核补充的四项约束已经写进 §2、§3、§5、§6：get 与 list 分开；版本撤回只动父对象的 `publishedVersion` 指针；客户端管理员只能写草案，正式发布走可信流程；普通用户只读 `trainingCatalogPublicLinks`，不读完整映射。已定的 10 个集合名与路径不改。
+独立架构复核（第一轮）的四项约束与 ChatGPT 独立复核（有条件通过）的六项补充都已写进 §2、§3、§5、§6：get 与 list 分开；版本撤回只动父对象的 `publishedVersion` 指针，并加父对象 status 检查与缺失字段处理；公开投影用严格字段白名单、指针与投影原子同步；versions 禁止 collection-group 查询；客户端管理员只写未发布草稿，不得直接改、撤、删已发布内容，正式发布走可信流程；普通用户只读 `trainingCatalogPublicLinks`，不读完整映射；测试场景 13 个加 8 个攻击性场景。已定的 10 个集合名与路径不改。
 
 ## 1. 目标与约束
 
@@ -45,7 +45,7 @@
 
 | 集合 | 完整路径 | 段数 | 内容 |
 | --- | --- | --- | --- |
-| `trainingCatalogPublicLinks` | `/artifacts/skatingx-production/trainingCatalogPublicLinks/{academyItemId}` | 集合 3，文档 4 | 每条只含 `catalogRef`（`{ kind, id, contentVersion }`），不含 `reviewer` / `reviewedAt` 等内部审核信息。文档 id 就是 `academyItemId`。这是普通用户读映射的唯一路径（见 §3）。 |
+| `trainingCatalogPublicLinks` | `/artifacts/skatingx-production/trainingCatalogPublicLinks/{academyItemId}` | 集合 3，文档 4 | 每条只含 `catalogRef`（`{ kind, id, contentVersion }`），不含 `reviewer` / `reviewedAt` 等内部审核信息。文档 id 就是 `academyItemId`。这是普通用户读映射的唯一路径（见 §3）。字段白名单：只含 `catalogRef` 三字段（`kind`、`id`、`contentVersion`）；不含 `reviewer`、`reviewedAt` 及其他任何字段。发布流程写投影时按白名单写（见 §3）。 |
 
 ## 3. 规则设计
 
@@ -64,7 +64,7 @@ get 与 list 分开定义：每条规则写清 `allow get` 与 `allow list` 各�
 | 路径 | 普通已登录用户 | `catalogAdmin` |
 | --- | --- | --- |
 | `trainingCatalogObjects` | `allow get`：`status == "published"` 可读；未发布（`draft` / `in_review` / `approved` / `deprecated` / `archived`）拒绝。`allow list`：查询必须带 `where("status", "==", "published")`（再加 `kind` 过滤时用 §4 的复合索引）。无 `status` 过滤的查询拒绝。`where("status", "==", "draft")` 拒绝。 | `allow get` 与 `allow list` 都允许，list 不要求 `status` 过滤。 |
-| `versions` | 只有 `allow get`，没有 `allow list`。get 的条件是该版本 `status == "published"`，且父对象文档的 `publishedVersion` 等于本版本的 `contentVersion`。规则用 `get()` 读父对象：`get(/databases/$(database)/documents/artifacts/skatingx-production/trainingCatalogObjects/$(objectId)).data.publishedVersion == contentVersion`。 | `allow get` 与 `allow list` 都允许。 |
+| `versions` | 只有 `allow get`，没有 `allow list`。get 的条件（三条同时满足）：(a) 该版本 `status == "published"`；(b) 父对象文档存在且其 `status == "published"`；(c) 父对象的 `publishedVersion` 等于本版本的 `contentVersion`。规则用 `get()` 读父对象：`get(/databases/$(database)/documents/artifacts/skatingx-production/trainingCatalogObjects/$(objectId)).data.publishedVersion == contentVersion`。缺失处理：父对象文档不存在、或无 `publishedVersion` 字段、或无 `status` 字段时，一律拒绝（fail closed，不报错放行）。版本访问边界：普通用户能读的版本恰好只有一个——父对象 `publishedVersion` 指向的那一个已发布版本；其他版本（旧版、草案版、已撤回版）一律读不到。单次 get 只读一个父对象，不构成规则访问次数阻塞（复核确认）。 | `allow get` 允许（含旧版、草案版、已撤回版）。没有 `allow list`。 |
 | `trainingCatalogKnowledgeArticles`、`trainingCatalogEvidenceRecords`、`trainingCatalogTeachingMedia`、`trainingCatalogCorrectionRules` | get 与 list 同 `trainingCatalogObjects`：已发布可读，未发布拒绝；list 必须带 `status == "published"` 过滤。 | get 与 list 都允许，list 不要求 `status` 过滤。 |
 | `trainingCatalogSafetyPolicies` | get 与 list 都拒绝。安全策略不得无条件公开。P3 的安全评估读路径另定，见 §6。 | get 与 list 都允许。 |
 | `trainingCatalogLinks` | get 与 list 都拒绝。完整映射含内部审核信息，不对普通用户开放。 | get 与 list 都允许。 |
@@ -72,19 +72,25 @@ get 与 list 分开定义：每条规则写清 `allow get` 与 `allow list` 各�
 | `trainingCatalogReleases` | `status == "published"` 的发布可读。get 要求该文档 `status == "published"`。list 必须带 `where("status", "==", "published")`。未发布拒绝。 | get 与 list 都允许。 |
 | `trainingCatalogMigrations`、`trainingCatalogAuditLogs` | get 与 list 都拒绝。 | get 与 list 都允许。 |
 
+### collection-group 查询禁令
+
+`versions` 子集合禁止 collection-group 查询：任何身份（包括 `catalogAdmin`）不得对 `versions` 做 `collectionGroup` 查询（规则里不给它 `allow list`；应用代码也不得发这种查询）。理由：collection-group 查询横跨所有对象的版本，无法按单个父对象的 `publishedVersion` 指针逐条校验。版本只能按对象逐个读（先读父对象拿 `publishedVersion`，再 get 该版本）。现有的 profile collection-group 列表例外与此无关，不受影响。
+
 ### 版本撤回
 
 不可变不代表永久公开。
 
 - 撤回不改版本快照本身（快照不可变，`update` / `delete` 一律拒绝）。撤回的动作是管理员改父对象文档：把 `publishedVersion` 指针移走（指向新版本）或清空（整对象下线）。移指针本身不是客户端管理员能做的事，见下方写矩阵：指针只由可信发布流程改。
-- 普通用户读某版本时，规则除验该版本 `status == "published"` 外，还须用 `get()` 验父对象的 `publishedVersion ==` 本版本的 `contentVersion`。指针已移走的版本普通用户读不到（get 拒绝；list 本来就对普通用户关闭，所以查不到）。
-- `get()` 读父对象计入规则的跨文档读取上限。P2 在 emulator 里验证该查询能跑。若验证出问题，P2 修方案。不得把撤回做成「改快照 `status`」。
+- 普通用户读某版本时，须同时满足读矩阵里的三条：该版本 `status == "published"`、父对象存在且 `status == "published"`、父对象的 `publishedVersion` 等于本版本的 `contentVersion`。父对象不存在、或缺少 `publishedVersion` / `status` 时拒绝。指针已移走的版本普通用户读不到（get 拒绝；`versions` 没有 `allow list`，所以也查不到）。
+- 单次 get 只读一个父对象，不构成规则访问次数阻塞（复核确认）。不得把撤回做成「改快照 `status`」。
 
 ### 写矩阵
 
 全部 11 个集合：普通用户一律不许写（`create` / `update` / `delete` 全拒）。`versions` 子集合同样拒绝普通用户的三种写。
 
-管理员编辑与发布分离：`catalogAdmin` 只管草稿。客户端写（即使带 `catalogAdmin` claim）一律不得把文档写成 `status == "published"`，也不得改父对象的 `publishedVersion` 指针。规则用 `request.resource.data.status != "published"` 卡住状态。指针字段不变：`update` 时 `request.resource.data.publishedVersion == resource.data.publishedVersion`；`create` 时不得写入 `publishedVersion`。正式发布由可信服务端校验流程做：Admin SDK 脚本（绕过规则）在校验通过后才写 `published` 状态、移指针、写公开投影。客户端直接设 `status == "published"` 不算发布。
+管理员编辑与发布分离：`catalogAdmin` 只管草稿。客户端写（即使带 `catalogAdmin` claim）只许动未发布草稿：`update` 要求当前文档 `status!= "published"` 且新文档 `status!= "published"`（`resource.data.status!= "published" && request.resource.data.status!= "published"`）；`delete` 要求当前文档 `status!= "published"`（草稿可删，已发布不可删；`trainingCatalogObjects` 的 `delete` 仍一律拒绝，见下）。客户端不得直接修改已发布内容（改字段、改状态、改 `publishedVersion` 指针都算修改）、不得撤回已发布内容（移指针、清指针、把 `status` 改出 `published` 都算撤回）、不得删除已发布内容。所有发布状态迁移（发布、撤回、deprecate、archive）只由受控 Admin SDK 流程做。`update` 时 `request.resource.data.publishedVersion == resource.data.publishedVersion`；`create` 时不得写入 `publishedVersion`。正式发布由可信服务端校验流程做：Admin SDK 脚本（绕过规则）在校验通过后才写 `published` 状态、移指针、写公开投影。客户端直接设 `status == "published"` 不算发布。发布用的 Admin SDK 凭据只放在受控环境（操作者的本机 `~/.config/gcp/`，chmod 600），不得进入前端代码与仓库。
+
+发布与撤回的写操作是原子的：发布时，父对象 `publishedVersion` 指针的移动与公开投影条目的写入在同一个 Admin SDK batch/transaction 里完成；撤回时，指针的移走/清空与投影条目的删除在同一个 batch/transaction 里完成。不留指针已动、投影未动的中间态（也不留反向中间态）。
 
 在上述前提下，`catalogAdmin` 可 `create` / `update`：`trainingCatalogObjects`（草案状态）、`trainingCatalogKnowledgeArticles`、`trainingCatalogEvidenceRecords`、`trainingCatalogTeachingMedia`、`trainingCatalogCorrectionRules`、`trainingCatalogSafetyPolicies`、`trainingCatalogLinks`、`trainingCatalogReleases`、`trainingCatalogMigrations`。`trainingCatalogAuditLogs` 与 `trainingCatalogPublicLinks` 只可由可信流程写。客户端 `catalogAdmin` 不可写这两处。投影由发布流程同步。
 
@@ -99,6 +105,8 @@ get 与 list 分开定义：每条规则写清 `allow get` 与 `allow list` 各�
 - `checksum` 与版本内容一致。
 - 无未清的安全标志（4 条 Conditional 仍为 `review_required` 时不发布）。
 - `links` 的目标对象已发布；否则不写公开投影。
+- 指针与投影的写在同一个 batch/transaction 里（原子性）。
+- 投影文档按字段白名单写（只含 `catalogRef` 三字段）。
 
 规则不校验字段内容（字段校验是 P1 的 schema / validator 的事）。规则只管「谁能读谁能写」。发布校验是可信流程的事。
 
@@ -139,9 +147,17 @@ Firestore 单字段索引自动建。本节只列必须的复合索引：
 | 8 | 普通用户 | 读完整 link；读公开投影；读已发布 release；读未发布 release | 拒绝；允许；允许；拒绝 |
 | 9 | 现有身份 | `users/{userId}` 子树与 profile collection-group 列表例外 | 现有 rules 测试全绿即算通过 |
 | 10 | 普通用户；管理员 | 查 objects：带 `where("status", "==", "published")`；不带 `status` 过滤；带 `where("status", "==", "draft")`。管理员不带过滤查，以及查 `draft` | 允许；拒绝；拒绝。管理员两种都允许 |
-| 11 | 普通用户；管理员 | 夹具先建一个已发布版本，父对象 `publishedVersion` 指向它，普通用户 get 该版本。再由夹具把指针移走。普通用户再 get 同一版本；普通用户 list `versions`；管理员 get / list 撤回后的版本 | 第一次 get 允许；指针移走后 get 拒绝；list 拒绝；管理员 get 与 list 允许 |
+| 11 | 普通用户；管理员 | 夹具先建一个已发布版本，父对象 `publishedVersion` 指向它，普通用户 get 该版本。再由夹具把指针移走。普通用户再 get 同一版本；普通用户 list `versions`；管理员 get 撤回后的版本；管理员 list `versions` | 第一次 get 允许；指针移走后 get 拒绝；list 拒绝；管理员 get 允许；管理员 list 拒绝（`versions` 不给 `allow list`） |
 | 12 | 普通用户 | get 公开投影；get 完整 link。目标撤回后，发布流程移除投影条目，再 get 该投影 | 允许；拒绝。条目移除后查无此文档（get 得到不存在，不是读到旧投影） |
 | 13 | 管理员客户端 | `create` 时 `status` 写 `published`；`update` 把草案改成 `published`；改 `publishedVersion` 指针；`create` 草案（`status` 写 `draft`） | 拒绝；拒绝；拒绝；允许 |
+| 14 | 普通用户；管理员 | 对 `versions` 做 `collectionGroup` 查询 | 拒绝；拒绝（任何身份都不许；规则不给 `allow list`） |
+| 15 | 管理员客户端 | `update` 已发布对象文档（改字段，`status` 仍为 `published`） | 拒绝 |
+| 16 | 管理员客户端 | 撤回已发布内容（把对象 `status` 从 `published` 改出，或改 `publishedVersion` 指针） | 拒绝 |
+| 17 | 管理员客户端 | `delete` 已发布对象/知识文档 | 拒绝 |
+| 18 | 普通用户 | 读一个版本：快照 `status` 为 `published`，但父对象 `status` 不是 `published` | 拒绝 |
+| 19 | 普通用户 | 读一个版本：父对象文档不存在，或无 `publishedVersion` 字段 | 拒绝 |
+| 20 | 发布流程（Admin SDK，emulator） | 跑发布流程：指针移动与投影写入原子完成；再跑一次校验失败的发布 | 成功时指针与投影同时更新；校验失败时两者都不变（无中间态） |
+| 21 | 发布流程（Admin SDK，emulator）+ 普通用户 | 发布流程写出的投影文档字段检查；普通用户读该投影 | 投影文档的键集合恰好是 `{ catalogRef}`，`catalogRef` 恰好是 `{ kind, id, contentVersion}`，无其他字段；普通用户读到的是白名单后的投影 |
 
 ## 6. 待定与后续
 
@@ -149,8 +165,8 @@ Firestore 单字段索引自动建。本节只列必须的复合索引：
 
 - P3 安全评估的读路径：评估代码以什么身份读 `safetyPolicies`（候选：评估走管理员 claim 的可信路径；或评估结果由可信流程写回，客户端只读结果）。P3 定。约束是安全策略不得无条件公开。
 - 生产上 `catalogAdmin` claim 的设置流程（Admin SDK 脚本，P2/P5 的单独步骤）。
-- 发布流程的具体实现（Admin SDK 脚本放哪、校验清单如何落代码、发布失败如何回滚）是 P2/P5 的事。本方案只定规则侧的分离。
-- 公开投影的同步机制（发布流程何时写/删投影条目、目标撤回时如何联动）是 P2/P4 的事。
+- 发布流程的具体实现（Admin SDK 脚本放哪、校验清单如何落代码、发布失败如何回滚）是 P2/P5 的事。本方案只定规则侧的分离。含原子 batch/transaction 的写法与凭据管理（凭据只放受控环境，不进前端与仓库）。
+- 公开投影的同步机制（发布流程何时写/删投影条目、目标撤回时如何联动）是 P2/P4 的事。指针与投影在同一个 batch/transaction 里同步（见 §3）。
 - P1/P2 的实现顺序：P1 先建 CatalogObject schema 与版本化逻辑（不写 Firestore），P2 再按本方案在 emulator 里 dry-run 导入并跑 §5 的测试。
 
 ## 7. 回退
