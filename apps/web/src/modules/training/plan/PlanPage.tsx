@@ -164,7 +164,7 @@ function templateDays(locale: Locale, focus: PlanFocus): ShownDay[] {
 
 /**
  * Age 11–13 cards, Monday through Sunday. Titles and durations come from that stage's day plans.
- * A recovery surface is shown and does not generate, which is Thursday and Sunday in the old skeleton.
+ * A recovery surface is shown and does not generate, which is Wednesday and Sunday on this routine.
  */
 function age11Days(locale: Locale, focus: PlanFocus): ShownDay[] | null {
   const stage = getAcademyStage("age11_13");

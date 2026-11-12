@@ -633,7 +633,7 @@ describe("plan page: which athlete the equipment feedback is read for", () => {
     expect(state.historySubscriptions).toBe(0);
   });
 
-  it("an 11-13 birth date shows that stage's day plans, and Thursday and Sunday stay rest", () => {
+  it("an 11-13 birth date shows that stage's day plans, and Wednesday and Sunday stay rest", () => {
     vi.setSystemTime(SUNDAY);
     state.profile = { birthDate: "2015-01-14" };
     setTraining(leanWeek([], { lastLoginDate: "2026-11-01", planGeneratedDate: "2026-11-01" }));
@@ -645,9 +645,9 @@ describe("plan page: which athlete the equipment feedback is read for", () => {
     expect(list[MON]!.textContent).toContain("上肢拉力");
     expect(list[TUE]!.textContent).toContain("专项爆发与敏捷");
     expect(list[WED]!.textContent).toContain("主动恢复与预防");
-    expect(list[WED]!.textContent).not.toContain("休息日，不生成任务");
+    expect(list[WED]!.textContent).toContain("休息日，不生成任务");
     expect(list[THU]!.textContent).toContain("专项耐力与抗阻");
-    expect(list[THU]!.textContent).toContain("休息日，不生成任务");
+    expect(list[THU]!.textContent).not.toContain("休息日，不生成任务");
     expect(list[4]!.textContent).toContain("综合力量与速度");
     expect(list[5]!.textContent).toContain("比赛模拟与高光");
     expect(list[SUN]!.textContent).toContain("深度恢复日");

@@ -62,13 +62,13 @@ const DATES = {
   sunday: "2026-11-01",
 } as const;
 
-/** Sorted routine ids for age 11–13. Thursday and Sunday are recovery in the old skeleton, so they stay empty. */
+/** Sorted routine ids for age 11–13. Wednesday and Sunday are the routine's recovery days, so they stay empty. */
 const AGE11_13_IDS = {
   lean: {
     monday: ["age11_13-w0-t1", "age11_13-w0-t0", "age11_13-w0-t2", "age11_13-w0-t3", "age11_13-w0-t4"],
     tuesday: ["age11_13-w1-t4", "age11_13-w1-t5", "age11_13-w1-t6", "age11_13-w1-t0", "age11_13-w1-t1", "age11_13-w1-t2", "age11_13-w1-t3"],
-    wednesday: ["age11_13-w2-t0", "age11_13-w2-t1", "age11_13-w2-t2", "age11_13-w2-t3"],
-    thursday: [],
+    wednesday: [],
+    thursday: ["age11_13-w3-t4", "age11_13-w3-t5", "age11_13-w3-t0", "age11_13-w3-t1", "age11_13-w3-t2", "age11_13-w3-t3"],
     friday: ["age11_13-w4-t0", "age11_13-w4-t1", "age11_13-w4-t2", "age11_13-w4-t3"],
     saturday: ["age11_13-w5-t2", "age11_13-w5-t3", "age11_13-w5-t4", "age11_13-w5-t0", "age11_13-w5-t1"],
     sunday: [],
@@ -76,8 +76,8 @@ const AGE11_13_IDS = {
   bounce: {
     monday: ["age11_13-w0-t0", "age11_13-w0-t2", "age11_13-w0-t3", "age11_13-w0-t4", "age11_13-w0-t1"],
     tuesday: ["age11_13-w1-t4", "age11_13-w1-t5", "age11_13-w1-t6", "age11_13-w1-t0", "age11_13-w1-t1", "age11_13-w1-t2", "age11_13-w1-t3"],
-    wednesday: ["age11_13-w2-t0", "age11_13-w2-t1", "age11_13-w2-t2", "age11_13-w2-t3"],
-    thursday: [],
+    wednesday: [],
+    thursday: ["age11_13-w3-t4", "age11_13-w3-t5", "age11_13-w3-t0", "age11_13-w3-t1", "age11_13-w3-t2", "age11_13-w3-t3"],
     friday: ["age11_13-w4-t1", "age11_13-w4-t2", "age11_13-w4-t3", "age11_13-w4-t0"],
     saturday: ["age11_13-w5-t2", "age11_13-w5-t3", "age11_13-w5-t4", "age11_13-w5-t0", "age11_13-w5-t1"],
     sunday: [],
@@ -85,8 +85,8 @@ const AGE11_13_IDS = {
   endurance: {
     monday: ["age11_13-w0-t1", "age11_13-w0-t0", "age11_13-w0-t2", "age11_13-w0-t3"],
     tuesday: ["age11_13-w1-t4", "age11_13-w1-t5", "age11_13-w1-t6", "age11_13-w1-t0"],
-    wednesday: ["age11_13-w2-t0", "age11_13-w2-t1", "age11_13-w2-t2", "age11_13-w2-t3"],
-    thursday: [],
+    wednesday: [],
+    thursday: ["age11_13-w3-t4", "age11_13-w3-t5", "age11_13-w3-t0", "age11_13-w3-t1"],
     friday: ["age11_13-w4-t0", "age11_13-w4-t1", "age11_13-w4-t2", "age11_13-w4-t3"],
     saturday: ["age11_13-w5-t2", "age11_13-w5-t3", "age11_13-w5-t4", "age11_13-w5-t0"],
     sunday: [],
