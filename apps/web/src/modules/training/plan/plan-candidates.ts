@@ -77,7 +77,7 @@ export function planCandidatesFor(focus: PlanFocus, dateId: string, locale: Loca
 /**
  * Age 11–13 reads that stage's weekly routine. Every other stage, including a missing profile,
  * stays on the Junior D template.
- * Thursday and Sunday are recovery in the old skeleton, so they are shown and not generated.
+ * Wednesday and Sunday are the routine's recovery days, so they are shown and not generated.
  */
 export function planCandidatesForStage(
   stageId: string | null,

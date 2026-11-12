@@ -84,8 +84,9 @@ describe("TrainingDayRollover", () => {
   });
 });
 
-// 2026-10-28 is a Wednesday; the week's Monday is 2026-10-26.
+// 2026-10-28 is a Wednesday; the week's Monday is 2026-10-26. Thursday is the next day, same week.
 const WEDNESDAY = new Date(2026, 9, 28, 12, 0, 0);
+const THURSDAY = new Date(2026, 9, 29, 12, 0, 0);
 const SUNDAY = new Date(2026, 10, 1, 12, 0, 0);
 
 function readyWeek(over: Record<string, unknown> = {}) {
@@ -220,15 +221,24 @@ describe("TrainingDayRollover: plan task generation", () => {
     await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(2));
   });
 
-  it("an 11-13 birth date generates that day's routine items", async () => {
+  it("an 11-13 birth date generates Thursday's routine items", async () => {
+    vi.setSystemTime(THURSDAY);
     h.profile = { birthDate: "2015-01-14" };
-    h.training = readyWeek();
+    // The helper stays on Wednesday. Generation runs only after the day has rolled to today.
+    h.training = readyWeek({ lastLoginDate: "2026-10-29" });
     render(<TrainingDayRollover />);
     await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(1));
     const ids = (h.generate.mock.calls[0]?.[1] as { candidates: { planEntryId: string }[] }).candidates.map(
       (candidate) => candidate.planEntryId,
     );
-    expect(ids).toEqual(["age11_13-w2-t0", "age11_13-w2-t1", "age11_13-w2-t2", "age11_13-w2-t3"]);
+    expect(ids).toEqual([
+      "age11_13-w3-t4",
+      "age11_13-w3-t5",
+      "age11_13-w3-t0",
+      "age11_13-w3-t1",
+      "age11_13-w3-t2",
+      "age11_13-w3-t3",
+    ]);
   });
 
   it("does not read the PRO flag, so generation is the same for every user", () => {

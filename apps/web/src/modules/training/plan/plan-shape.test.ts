@@ -35,8 +35,8 @@ describe("plan focus shape", () => {
       lean: {
         monday: { surface: "on-ice", intensity: "plan.intensity.mid" },
         tuesday: { surface: "land", intensity: "plan.intensity.mid" },
-        wednesday: { surface: "on-ice", intensity: "plan.intensity.mid" },
-        thursday: { surface: "recovery", intensity: "plan.intensity.low" },
+        wednesday: { surface: "recovery", intensity: "plan.intensity.mid" },
+        thursday: { surface: "on-ice", intensity: "plan.intensity.mid" },
         friday: { surface: "on-ice", intensity: "plan.intensity.mid" },
         saturday: { surface: "on-ice", intensity: "plan.intensity.mid" },
         sunday: { surface: "recovery", intensity: "plan.intensity.low" },
@@ -44,8 +44,8 @@ describe("plan focus shape", () => {
       bounce: {
         monday: { surface: "on-ice", intensity: "plan.intensity.midHigh" },
         tuesday: { surface: "land", intensity: "plan.intensity.mid" },
-        wednesday: { surface: "on-ice", intensity: "plan.intensity.mid" },
-        thursday: { surface: "recovery", intensity: "plan.intensity.low" },
+        wednesday: { surface: "recovery", intensity: "plan.intensity.mid" },
+        thursday: { surface: "on-ice", intensity: "plan.intensity.mid" },
         friday: { surface: "on-ice", intensity: "plan.intensity.mid" },
         saturday: { surface: "on-ice", intensity: "plan.intensity.midHigh" },
         sunday: { surface: "recovery", intensity: "plan.intensity.low" },
@@ -53,8 +53,8 @@ describe("plan focus shape", () => {
       endurance: {
         monday: { surface: "on-ice", intensity: "plan.intensity.mid" },
         tuesday: { surface: "land", intensity: "plan.intensity.low" },
-        wednesday: { surface: "on-ice", intensity: "plan.intensity.mid" },
-        thursday: { surface: "recovery", intensity: "plan.intensity.low" },
+        wednesday: { surface: "recovery", intensity: "plan.intensity.mid" },
+        thursday: { surface: "on-ice", intensity: "plan.intensity.mid" },
         friday: { surface: "on-ice", intensity: "plan.intensity.lowMid" },
         saturday: { surface: "on-ice", intensity: "plan.intensity.variable" },
         sunday: { surface: "recovery", intensity: "plan.intensity.low" },
@@ -62,25 +62,26 @@ describe("plan focus shape", () => {
     });
   });
 
-  it("matches a fresh read of the old day entries and day copy", () => {
-    const derived = Object.fromEntries(
-      PLAN_FOCUSES.map((focus) => [
-        focus,
-        Object.fromEntries(
-          (Object.keys(WEEKDAY_SUFFIX) as WeekdayKey[]).map((weekday) => {
-            const id = `${FOCUS_PREFIX[focus]}_${WEEKDAY_SUFFIX[weekday]}`;
-            const entries = PLAN_DAY_ENTRIES[id] ?? [];
-            return [
-              weekday,
-              {
-                surface: surfaceOf(entries.map((entry) => entry.surface)),
-                intensity: PLAN_DAY_COPY[id]?.intensity,
-              },
-            ];
-          }),
-        ),
-      ]),
-    );
-    expect(PLAN_FOCUS_SHAPE).toEqual(derived);
+  it("matches a fresh read of the old day entries and day copy on the days that were not corrected", () => {
+    const kept = ["monday", "tuesday", "friday", "saturday", "sunday"] as const satisfies readonly WeekdayKey[];
+    for (const focus of PLAN_FOCUSES) {
+      for (const weekday of kept) {
+        const id = `${FOCUS_PREFIX[focus]}_${WEEKDAY_SUFFIX[weekday]}`;
+        const entries = PLAN_DAY_ENTRIES[id] ?? [];
+        expect(PLAN_FOCUS_SHAPE[focus][weekday]).toEqual({
+          surface: surfaceOf(entries.map((entry) => entry.surface)),
+          intensity: PLAN_DAY_COPY[id]?.intensity,
+        });
+      }
+    }
+  });
+
+  it("corrects Wednesday and Thursday to follow the 11-13 routine", () => {
+    // Wednesday is that stage's active recovery day, so the card is shown and no tasks are generated.
+    // Thursday is the 100-minute specific endurance day, so it generates on ice at mid rather than the old recovery low.
+    for (const focus of PLAN_FOCUSES) {
+      expect(PLAN_FOCUS_SHAPE[focus].wednesday).toEqual({ surface: "recovery", intensity: "plan.intensity.mid" });
+      expect(PLAN_FOCUS_SHAPE[focus].thursday).toEqual({ surface: "on-ice", intensity: "plan.intensity.mid" });
+    }
   });
 });

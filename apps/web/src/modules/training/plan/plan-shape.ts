@@ -8,6 +8,8 @@ import type { PlanMessageKey } from "@/shared/i18n/plan-messages";
  * Intensity is the old `PLAN_DAY_COPY` value for that focus and weekday.
  * Surface is read off `PLAN_DAY_ENTRIES`: any on-ice entry wins, an all-recovery day is recovery,
  * and everything else is land. All three focuses share the same surfaces.
+ * Wednesday and Thursday are corrected to follow the routine, and are no longer a pure copy of that
+ * table: Wednesday is this stage's active recovery day, and Thursday is the specific endurance day.
  */
 export type PlanShapeSurface = "on-ice" | "land" | "recovery";
 
@@ -19,8 +21,8 @@ export type PlanDayShape = {
 const LEAN_WEEK: Record<WeekdayKey, PlanDayShape> = {
   monday: { surface: "on-ice", intensity: "plan.intensity.mid" },
   tuesday: { surface: "land", intensity: "plan.intensity.mid" },
-  wednesday: { surface: "on-ice", intensity: "plan.intensity.mid" },
-  thursday: { surface: "recovery", intensity: "plan.intensity.low" },
+  wednesday: { surface: "recovery", intensity: "plan.intensity.mid" },
+  thursday: { surface: "on-ice", intensity: "plan.intensity.mid" },
   friday: { surface: "on-ice", intensity: "plan.intensity.mid" },
   saturday: { surface: "on-ice", intensity: "plan.intensity.mid" },
   sunday: { surface: "recovery", intensity: "plan.intensity.low" },
@@ -31,8 +33,8 @@ export const PLAN_FOCUS_SHAPE: Record<PlanFocus, Record<WeekdayKey, PlanDayShape
   bounce: {
     monday: { surface: "on-ice", intensity: "plan.intensity.midHigh" },
     tuesday: { surface: "land", intensity: "plan.intensity.mid" },
-    wednesday: { surface: "on-ice", intensity: "plan.intensity.mid" },
-    thursday: { surface: "recovery", intensity: "plan.intensity.low" },
+    wednesday: { surface: "recovery", intensity: "plan.intensity.mid" },
+    thursday: { surface: "on-ice", intensity: "plan.intensity.mid" },
     friday: { surface: "on-ice", intensity: "plan.intensity.mid" },
     saturday: { surface: "on-ice", intensity: "plan.intensity.midHigh" },
     sunday: { surface: "recovery", intensity: "plan.intensity.low" },
@@ -40,8 +42,8 @@ export const PLAN_FOCUS_SHAPE: Record<PlanFocus, Record<WeekdayKey, PlanDayShape
   endurance: {
     monday: { surface: "on-ice", intensity: "plan.intensity.mid" },
     tuesday: { surface: "land", intensity: "plan.intensity.low" },
-    wednesday: { surface: "on-ice", intensity: "plan.intensity.mid" },
-    thursday: { surface: "recovery", intensity: "plan.intensity.low" },
+    wednesday: { surface: "recovery", intensity: "plan.intensity.mid" },
+    thursday: { surface: "on-ice", intensity: "plan.intensity.mid" },
     friday: { surface: "on-ice", intensity: "plan.intensity.lowMid" },
     saturday: { surface: "on-ice", intensity: "plan.intensity.variable" },
     sunday: { surface: "recovery", intensity: "plan.intensity.low" },
