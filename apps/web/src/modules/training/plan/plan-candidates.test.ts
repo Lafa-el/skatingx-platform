@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { PLAN_DAYS } from "@skatingx/skating-domain";
 import { describe, expect, it } from "vitest";
 
-import { planCandidatesFor } from "./plan-candidates";
+import { planCandidatesFor, planCandidatesForStage } from "./plan-candidates";
 import { PLAN_DAY_ENTRIES } from "./plan-day-entries";
 
 describe("planCandidatesFor", () => {
@@ -49,5 +49,79 @@ describe("planCandidatesFor", () => {
   it("does not read the PRO flag", () => {
     const source = readFileSync(new URL("./plan-candidates.ts", import.meta.url), "utf8");
     expect(source).not.toMatch(/isPro|useIsPro/);
+  });
+});
+
+const DATES = {
+  monday: "2026-10-26",
+  tuesday: "2026-10-27",
+  wednesday: "2026-10-28",
+  thursday: "2026-10-29",
+  friday: "2026-10-30",
+  saturday: "2026-10-31",
+  sunday: "2026-11-01",
+} as const;
+
+/** Sorted routine ids for age 11–13. Thursday and Sunday are recovery in the old skeleton, so they stay empty. */
+const AGE11_13_IDS = {
+  lean: {
+    monday: ["age11_13-w0-t1", "age11_13-w0-t0", "age11_13-w0-t2", "age11_13-w0-t3", "age11_13-w0-t4"],
+    tuesday: ["age11_13-w1-t4", "age11_13-w1-t5", "age11_13-w1-t6", "age11_13-w1-t0", "age11_13-w1-t1", "age11_13-w1-t2", "age11_13-w1-t3"],
+    wednesday: ["age11_13-w2-t0", "age11_13-w2-t1", "age11_13-w2-t2", "age11_13-w2-t3"],
+    thursday: [],
+    friday: ["age11_13-w4-t0", "age11_13-w4-t1", "age11_13-w4-t2", "age11_13-w4-t3"],
+    saturday: ["age11_13-w5-t2", "age11_13-w5-t3", "age11_13-w5-t4", "age11_13-w5-t0", "age11_13-w5-t1"],
+    sunday: [],
+  },
+  bounce: {
+    monday: ["age11_13-w0-t0", "age11_13-w0-t2", "age11_13-w0-t3", "age11_13-w0-t4", "age11_13-w0-t1"],
+    tuesday: ["age11_13-w1-t4", "age11_13-w1-t5", "age11_13-w1-t6", "age11_13-w1-t0", "age11_13-w1-t1", "age11_13-w1-t2", "age11_13-w1-t3"],
+    wednesday: ["age11_13-w2-t0", "age11_13-w2-t1", "age11_13-w2-t2", "age11_13-w2-t3"],
+    thursday: [],
+    friday: ["age11_13-w4-t1", "age11_13-w4-t2", "age11_13-w4-t3", "age11_13-w4-t0"],
+    saturday: ["age11_13-w5-t2", "age11_13-w5-t3", "age11_13-w5-t4", "age11_13-w5-t0", "age11_13-w5-t1"],
+    sunday: [],
+  },
+  endurance: {
+    monday: ["age11_13-w0-t1", "age11_13-w0-t0", "age11_13-w0-t2", "age11_13-w0-t3"],
+    tuesday: ["age11_13-w1-t4", "age11_13-w1-t5", "age11_13-w1-t6", "age11_13-w1-t0"],
+    wednesday: ["age11_13-w2-t0", "age11_13-w2-t1", "age11_13-w2-t2", "age11_13-w2-t3"],
+    thursday: [],
+    friday: ["age11_13-w4-t0", "age11_13-w4-t1", "age11_13-w4-t2", "age11_13-w4-t3"],
+    saturday: ["age11_13-w5-t2", "age11_13-w5-t3", "age11_13-w5-t4", "age11_13-w5-t0"],
+    sunday: [],
+  },
+} as const;
+
+describe("planCandidatesForStage", () => {
+  it("sorts the 11-13 routine by focus, and uses the same ids in both languages", () => {
+    for (const focus of ["lean", "bounce", "endurance"] as const) {
+      for (const [weekday, date] of Object.entries(DATES)) {
+        const expected = AGE11_13_IDS[focus][weekday as keyof typeof DATES];
+        const zh = planCandidatesForStage("age11_13", focus, date, "zh");
+        const en = planCandidatesForStage("age11_13", focus, date, "en");
+        expect(zh.map((candidate) => candidate.planEntryId)).toEqual(expected);
+        expect(en.map((candidate) => candidate.planEntryId)).toEqual(expected);
+        expect(zh.every((candidate) => candidate.target === undefined)).toBe(true);
+      }
+    }
+    expect(planCandidatesForStage("age11_13", "lean", DATES.tuesday, "zh")).toHaveLength(7);
+  });
+
+  it("keeps an endurance day at four tasks or fewer", () => {
+    for (const date of Object.values(DATES)) {
+      expect(planCandidatesForStage("age11_13", "endurance", date, "zh").length).toBeLessThanOrEqual(4);
+    }
+  });
+
+  it("leaves every other stage on the old template", () => {
+    for (const stageId of ["age8_10", null]) {
+      for (const focus of ["lean", "bounce", "endurance"] as const) {
+        for (const date of Object.values(DATES)) {
+          expect(planCandidatesForStage(stageId, focus, date, "zh")).toEqual(planCandidatesFor(focus, date, "zh"));
+          expect(planCandidatesForStage(stageId, focus, date, "en")).toEqual(planCandidatesFor(focus, date, "en"));
+        }
+      }
+    }
   });
 });

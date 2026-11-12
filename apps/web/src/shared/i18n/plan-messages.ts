@@ -265,6 +265,14 @@ const zh = {
   "plan.feedback.race.range": "{from} – {to}",
   "plan.feedback.race.pending": "赛事日期待确认",
   "plan.feedback.race.unavailable": "比赛周建议暂时读不出来。计划本身没有被改动。",
+
+  "plan.stage.age11to13.mon.body": "今天以自重力量为主，上肢拉力、慢速离心深蹲和弹力带臀推都要先把动作做稳。",
+  "plan.stage.age11to13.tue.body": "今天把爆发和冰上技术放在一起，敏捷变向之后做起跑、交叉步节奏和技术圈。",
+  "plan.stage.age11to13.wed.body": "今天做主动恢复，骨盆控制、踝关节稳定和髋部拉伸之后再放松。",
+  "plan.stage.age11to13.thu.body": "今天是专项耐力，滑行板和单车间歇之外加上直道进弯和低姿滑行。",
+  "plan.stage.age11to13.fri.body": "今天综合力量和速度，悬垂举腿、侧向跨跳、单腿臀桥和自重深蹲跳配在一起。",
+  "plan.stage.age11to13.sat.body": "今天按比赛来排，田径冲刺之后做弯道入口、外刃压刃和出弯加速。",
+  "plan.stage.age11to13.sun.body": "今天做深度恢复，静态拉伸、髋部拉伸和冰浴就够了。",
 } as const;
 
 type PlanKey = keyof typeof zh;
@@ -540,6 +548,14 @@ const en: Record<PlanKey, string> = {
   "plan.feedback.race.range": "{from} – {to}",
   "plan.feedback.race.pending": "Event dates to be confirmed",
   "plan.feedback.race.unavailable": "The race week suggestion could not be read. The plan itself was not changed.",
+
+  "plan.stage.age11to13.mon.body": "Bodyweight strength leads: pull-ups, a slow eccentric squat, and a banded hip thrust, with the pattern steady first.",
+  "plan.stage.age11to13.tue.body": "Power and on-ice work share the day: agility cuts, then starts, crossover rhythm, and technique laps.",
+  "plan.stage.age11to13.wed.body": "Active recovery: pelvic control, ankle stability, and a hip-flexor stretch, then loosen up.",
+  "plan.stage.age11to13.thu.body": "Specific endurance: slide-board and bike intervals, plus the straight-to-corner link and a low skating position.",
+  "plan.stage.age11to13.fri.body": "Strength and speed together: hanging leg raises, lateral bounds, a single-leg bridge, and squat jumps.",
+  "plan.stage.age11to13.sat.body": "Race shape: track sprints, then the corner entry, outside-edge pressure, and the exit acceleration.",
+  "plan.stage.age11to13.sun.body": "Deep recovery: static stretching, a hip-flexor stretch, and an ice bath.",
 };
 
 export type PlanMessageKey = PlanKey;

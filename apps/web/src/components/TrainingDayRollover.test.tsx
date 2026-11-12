@@ -15,6 +15,7 @@ const h = vi.hoisted(() => ({
   locale: "zh" as "zh" | "en",
   // An old date: any day after it needs the rollover.
   training: { lastLoginDate: "2020-01-01", todayTasks: [] } as Record<string, unknown>,
+  profile: null as { birthDate?: string } | null,
 }));
 
 vi.mock("@skatingx/firebase-client", () => ({
@@ -29,12 +30,14 @@ vi.mock("@/app/providers/FirestoreProvider", () => ({
   useFirestoreStatus: () => ({ ready: true }),
   useUserSettings: () => ({ data: { activeAthleteId: "a1" } }),
   useTrainingState: () => ({ data: h.training, loading: false }),
+  useAthleteProfile: () => ({ data: h.profile, loading: false, error: null }),
 }));
 
 beforeEach(() => {
   h.uid = "u1";
   h.locale = "zh";
   h.training = { lastLoginDate: "2020-01-01", todayTasks: [] };
+  h.profile = null;
   h.rollover = vi.fn().mockResolvedValue(undefined);
   h.generate = vi.fn().mockResolvedValue({ generated: 3, skipped: null });
 });
@@ -215,6 +218,17 @@ describe("TrainingDayRollover: plan task generation", () => {
     h.training = readyWeek({ todayTasks: [{ id: "m" }] });
     view.rerender(<TrainingDayRollover />);
     await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(2));
+  });
+
+  it("an 11-13 birth date generates that day's routine items", async () => {
+    h.profile = { birthDate: "2015-01-14" };
+    h.training = readyWeek();
+    render(<TrainingDayRollover />);
+    await waitFor(() => expect(h.generate).toHaveBeenCalledTimes(1));
+    const ids = (h.generate.mock.calls[0]?.[1] as { candidates: { planEntryId: string }[] }).candidates.map(
+      (candidate) => candidate.planEntryId,
+    );
+    expect(ids).toEqual(["age11_13-w2-t0", "age11_13-w2-t1", "age11_13-w2-t2", "age11_13-w2-t3"]);
   });
 
   it("does not read the PRO flag, so generation is the same for every user", () => {

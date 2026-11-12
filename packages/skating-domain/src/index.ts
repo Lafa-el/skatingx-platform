@@ -79,6 +79,7 @@ export {
   type PlanGenerationSkip,
   type PlanTaskCandidate,
 } from "./training/plan-tasks";
+export { stageIdForRealAge } from "./training/plan-stage";
 export {
   addDaysToDateString,
   planDayDate,
