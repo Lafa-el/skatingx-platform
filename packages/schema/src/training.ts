@@ -1,3 +1,4 @@
+import type { CatalogRef } from "./catalog";
 import type { DateString, Timestamp } from "./common";
 
 export type TrainingTaskSource = "manual" | "academy" | "system" | "plan";
@@ -16,6 +17,8 @@ export interface TrainingTask {
   completedAt?: Timestamp;
   /** Stable id from `@skatingx/content` academy catalog */
   academyItemId?: string;
+  /** Optional link to a versioned Training Catalog object. Additive; existing tasks do not carry it. */
+  catalogRef?: CatalogRef;
   /** Stable, language-independent id of the plan entry this task came from: a routine item id (e.g. `age11_13-w3-t4`) for plan tasks. `jd_*` ids survive only in points history. */
   planEntryId?: string;
   tags?: string[];
