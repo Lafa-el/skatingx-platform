@@ -147,16 +147,29 @@ export function validateCatalogShape(object: unknown): string[] {
   return errors;
 }
 
-/** 父对象与已发布快照的绑定。空数组表示成立。内容比较不含状态、版本号和审核字段。 */
+/** 父对象与已发布快照的绑定。空数组只表示这些字段一致，不是完整发布许可。 */
 export function checkPublishedBinding(parent: CatalogObject, version: CatalogVersion): string[] {
   const errors: string[] = [];
   if (parent.status !== "published") errors.push("parent status is not published");
   if (parent.publishedVersion !== version.contentVersion) {
     errors.push("publishedVersion does not match contentVersion");
   }
+  if (parent.contentVersion !== version.contentVersion) {
+    errors.push("parent contentVersion does not match contentVersion");
+  }
   if (parent.checksum !== version.checksum) errors.push("checksum does not match");
+  if (parent.schemaVersion !== version.schemaVersion) errors.push("schemaVersion does not match");
+  if (parent.supersedesVersion !== version.supersedesVersion) {
+    errors.push("supersedesVersion does not match");
+  }
   if (version.status !== "published") errors.push("version status is not published");
   if (version.reviewStatus !== "approved") errors.push("version reviewStatus is not approved");
+  if (parent.reviewStatus !== "approved") errors.push("parent reviewStatus is not approved");
+  if (version.reviewer === undefined || version.reviewedAt === undefined) {
+    errors.push("version review record is incomplete");
+  }
+  if (parent.reviewer !== version.reviewer) errors.push("reviewer does not match");
+  if (parent.reviewedAt !== version.reviewedAt) errors.push("reviewedAt does not match");
   if (canonicalCatalogJson(contentOf(parent)) !== canonicalCatalogJson(contentOf(version))) {
     errors.push("content fields do not match");
   }

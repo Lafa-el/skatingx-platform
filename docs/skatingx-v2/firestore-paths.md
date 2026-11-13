@@ -2,7 +2,7 @@
 
 本文件是设计草案。它不改 `firestore.rules`，不改 `firestore.indexes.json`，不建集合，不碰生产数据。ADR-018 至 ADR-023 仍是「提议」。
 
-独立架构复核（第一轮）的四项约束与 ChatGPT 独立复核（有条件通过）的六项补充都已写进 §2、§3、§5、§6：get 与 list 分开；版本撤回只动父对象的 `publishedVersion` 指针，并加父对象 status 检查与缺失字段处理；公开投影用严格字段白名单、指针与投影原子同步；versions 禁止 collection-group 查询；客户端管理员只写未发布草稿，不得直接改、撤、删已发布内容，正式发布走可信流程；普通用户只读 `trainingCatalogPublicLinks`，不读完整映射；测试场景 13 个加 8 个攻击性场景。已定的 10 个集合名与路径不改。ChatGPT 定稿审核（不通过）指出的两个安全缺口已在本轮修订：审核状态绕过（§3 三权限边界与受保护字段表）与发布字段保护不完整（§3 发布字段统一约束与发布校验）。测试场景现为 26 个。ChatGPT 定稿审核（第二次，不通过）指出的 3 处安全缺口已在本轮修订：Links 已发布映射的修改保护（§3）、审核与发布字段改用 diff().affectedKeys() 校验（§3）、草稿创建的 reviewStatus 初始化规则（§3）。测试场景现为 31 个。ChatGPT 定稿审核（第三次，不通过）指出的 2 处条件收紧已在本轮修订：Links 未审核判断补齐 reviewedAt（§3）、Versions 创建状态限制为 draft（§3）。测试场景现为 33 个。
+独立架构复核（第一轮）的四项约束与 ChatGPT 独立复核（有条件通过）的六项补充都已写进 §2、§3、§5、§6：get 与 list 分开；版本撤回只动父对象的 `publishedVersion` 指针，并加父对象 status 检查与缺失字段处理；公开投影用严格字段白名单、指针与投影原子同步；versions 禁止 collection-group 查询；客户端管理员只写未发布草稿，不得直接改、撤、删已发布内容，正式发布走可信流程；普通用户只读 `trainingCatalogPublicLinks`，不读完整映射；测试场景 13 个加 8 个攻击性场景。已定的 10 个集合名与路径不改。ChatGPT 定稿审核（不通过）指出的两个安全缺口已在本轮修订：审核状态绕过（§3 三权限边界与受保护字段表）与发布字段保护不完整（§3 发布字段统一约束与发布校验）。测试场景现为 26 个。ChatGPT 定稿审核（第二次，不通过）指出的 3 处安全缺口已在本轮修订：Links 已发布映射的修改保护（§3）、审核与发布字段改用 diff().affectedKeys() 校验（§3）、草稿创建的 reviewStatus 初始化规则（§3）。测试场景现为 31 个。ChatGPT 定稿审核（第三次，不通过）指出的 2 处条件收紧已在本轮修订：Links 未审核判断补齐 reviewedAt（§3）、Versions 创建状态限制为 draft（§3）。测试场景现为 35 个。
 
 ## 1. 目标与约束
 
@@ -66,7 +66,7 @@
 客户端写操作的规则条件（P2 直接照抄进 rules，字段名与比较式如下；不同集合用各自的受保护字段列表，见受保护字段表）：
 
 - update（以 trainingCatalogObjects 为例，其他集合按受保护字段表类推）：`request.auth.token.catalogAdmin == true && resource.data.status == "draft" && request.resource.data.status == "draft" && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "publishedVersion"])`。注意三点：第一，当前状态必须是 draft（显式白名单）；第二，受保护字段用 diff().affectedKeys() 校验——新增、修改、删除受保护字段一律拒绝，不依赖 null 比较（旧的 .get(field, null) 相等比较防不住字段删除：原字段缺失、新写 reviewer: null 时两边都得 null；删一个值为 null 的字段也能通过；本轮已全部改掉，全文档不得再出现以 .get(field, null) 相等比较保护审核/发布字段的写法）；第三，diff() 只验受保护字段，内容字段的修改不受影响。
-- create（内容集合通用，Release 须逐字写全，见第 5 条）：`request.auth.token.catalogAdmin == true && request.resource.data.status == "draft" && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending") && !("reviewer" in request.resource.data) && !("reviewedAt" in request.resource.data) && !("publishedVersion" in request.resource.data)`（其余受保护发布字段同理，新建时不得含有）。reviewStatus 初始化规则：客户端创建草稿时，reviewStatus 必须缺失，或严格等于 P1 Schema 指定的初始值；不允许客户端自行选择审核状态（in_review、rejected 等状态只能由受控审核流程写）。初始值已钉为 "pending"（见 §6）。
+- create（内容集合通用，Release 须逐字写全，见第 5 条）：`request.auth.token.catalogAdmin == true && request.resource.data.status == "draft" && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending") && !("reviewer" in request.resource.data) && !("reviewedAt" in request.resource.data) && !("publishedVersion" in request.resource.data)`（其余受保护发布字段同理，新建时不得含有）。reviewStatus 初始化规则：trainingCatalogObjects 与 versions 创建时 reviewStatus 必须提交且严格等于 "pending"（缺失拒绝），见集合逐条公式；其余集合暂保留缺失或等于 "pending"（其 schema 尚未冻结，待各自阶段定）。
 - delete（见删除权限表）：`request.auth.token.catalogAdmin == true && resource.data.status == "draft"`（只能删草稿；trainingCatalogObjects 与 versions 的 delete 仍一律拒绝，见下）。
 
 审批撤销与重审：已审批（approved）内容如需修改，不得由客户端直接改；须由受控流程先撤销审批（status approved → draft，同时 reviewStatus 重置、reviewer 与 reviewedAt 清空），再由客户端编辑草稿，编辑完成后再由受控流程重新送审（draft → in_review → approved）。撤销审批的操作只由受控流程做，客户端不得自行把 approved 改回 draft（因为 status 字段客户端不可改）。Links 的撤销：已审核映射如需修改，先由受控流程撤销审核（清空该映射的 reviewer 与 reviewedAt）；若该映射已进公开投影，先由受控流程撤回投影（指针与投影原子同步，见上），再撤销审核。撤销完成前，客户端不得改该映射的 catalogRef。
@@ -78,7 +78,7 @@
 | 集合 | 受保护字段（客户端不得创建/修改/删除） |
 | --- | --- |
 | `trainingCatalogObjects` | `status`、`reviewStatus`、`reviewer`、`reviewedAt`、`publishedVersion` |
-| `versions`（子集合） | `status`、`reviewStatus`、`reviewer`、`reviewedAt`、`contentVersion`、`checksum`（快照建后不可改；`create` 时 `status` 必须是 `draft`，`reviewStatus` 缺失或为 `"pending"`，不得含 `reviewer` / `reviewedAt`） |
+| `versions`（子集合） | `status`、`reviewStatus`、`reviewer`、`reviewedAt`、`contentVersion`、`checksum`（快照建后不可改；`create` 时 `status` 必须是 `draft`，`reviewStatus` 必须是 `"pending"`（缺失拒绝），不得含 `reviewer` / `reviewedAt`） |
 | `trainingCatalogKnowledgeArticles` | `status`、`reviewStatus`、`reviewer`、`reviewedAt` |
 | `trainingCatalogEvidenceRecords` | `status`、`reviewStatus`、`reviewer`、`reviewedAt` |
 | `trainingCatalogTeachingMedia` | `status`、`reviewStatus`、`reviewer`、`reviewedAt` |
@@ -144,7 +144,7 @@ get 与 list 分开定义：每条规则写清 `allow get` 与 `allow list` 各�
 管理员编辑与发布分离：`catalogAdmin` 只管草稿。发布字段统一约束如下，P2 照抄进 rules（与三权限边界的公式相同；其他集合按受保护字段表把对应字段加进比较式）：
 
 - update：`request.auth.token.catalogAdmin == true && resource.data.status == "draft" && request.resource.data.status == "draft" && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "publishedVersion"])`。当前状态必须是 `draft`。受保护字段用 `diff().affectedKeys()` 校验，不用 `.get(field, null)` 相等比较。
-- create：`request.auth.token.catalogAdmin == true && request.resource.data.status == "draft" && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending") && !("reviewer" in request.resource.data) && !("reviewedAt" in request.resource.data) && !("publishedVersion" in request.resource.data)`（其余受保护发布字段同理，新建时不得含有）。
+- create：`request.auth.token.catalogAdmin == true && request.resource.data.status == "draft" && request.resource.data.reviewStatus == "pending" && !("reviewer" in request.resource.data) && !("reviewedAt" in request.resource.data) && !("publishedVersion" in request.resource.data)`（其余受保护发布字段同理，新建时不得含有）。
 - delete：`request.auth.token.catalogAdmin == true && resource.data.status == "draft"`（只能删草稿；`trainingCatalogObjects` 与 `versions` 的 delete 仍一律拒绝，见删除权限表）。
 
 按受保护字段表类推（P2 不得把对象公式原样套到字段不同的集合；update 一律用 diff().affectedKeys()，不用 .get(field, null) 相等比较）：
@@ -153,7 +153,7 @@ get 与 list 分开定义：每条规则写清 `allow get` 与 `allow list` 各�
 - `trainingCatalogSafetyPolicies` 在上一条之外，update 的 hasAny 列表再加 `"policyVersion"`。create 可以写入新文档的 `policyVersion`；已存在文档上不得改。
 - `trainingCatalogLinks` 的 update：`request.auth.token.catalogAdmin == true && !exists(/databases/$(database)/documents/artifacts/skatingx-production/trainingCatalogPublicLinks/$(academyItemId)) && resource.data.get("reviewer", null) == null && resource.data.get("reviewedAt", null) == null && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["reviewer", "reviewedAt"])`。`catalogRef` 可改（仅限未审核、未公开的映射）。已审核映射（reviewer 或 reviewedAt 任一有值）即使尚未公开，也不得直接修改；审核信息不完整（仅 reviewer 或仅 reviewedAt 有值）也按已审核处理，保守锁定。需要修改时先由受控流程撤销审核（见审批撤销与重审）。create：`request.auth.token.catalogAdmin == true && !("reviewer" in request.resource.data) && !("reviewedAt" in request.resource.data)`。delete：`request.auth.token.catalogAdmin == true && !exists(/databases/$(database)/documents/artifacts/skatingx-production/trainingCatalogPublicLinks/$(academyItemId)) && resource.data.get("reviewer", null) == null && resource.data.get("reviewedAt", null) == null`（仅未进公开投影且 reviewer 与 reviewedAt 均为空的映射可删）。
 - `trainingCatalogReleases` 的 update：`request.auth.token.catalogAdmin == true && resource.data.status == "draft" && request.resource.data.status == "draft" && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "publishedVersion"])`。create：`request.auth.token.catalogAdmin == true && request.resource.data.status == "draft" && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending") && !("reviewer" in request.resource.data) && !("reviewedAt" in request.resource.data) && !("publishedVersion" in request.resource.data)`。delete：`request.auth.token.catalogAdmin == true && resource.data.status == "draft" && !("publishedVersion" in resource.data)`。
-- `versions` 的 create：`request.auth.token.catalogAdmin == true && request.resource.data.status == "draft" && request.resource.data.contentVersion == contentVersion && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending") && !("reviewer" in request.resource.data) && !("reviewedAt" in request.resource.data)`。新建快照的状态必须是 draft（显式白名单）；approved、archived、deprecated 等状态的新快照一律拒绝。update 与 delete 仍为 `false`。P1/P2 须保证版本文档 ID、`contentVersion` 字段与内容校验值（checksum）之间的一致性（create 时 `contentVersion` 字段须等于文档 id；checksum 由发布流程在发布前核对，见发布校验清单）。版本快照一旦创建，客户端不得修改。
+- `versions` 的 create：`request.auth.token.catalogAdmin == true && request.resource.data.status == "draft" && request.resource.data.contentVersion == contentVersion && request.resource.data.reviewStatus == "pending" && !("reviewer" in request.resource.data) && !("reviewedAt" in request.resource.data)`。新建快照的状态必须是 draft（显式白名单）；approved、archived、deprecated 等状态的新快照一律拒绝。update 与 delete 仍为 `false`。P1/P2 须保证版本文档 ID、`contentVersion` 字段与内容校验值（checksum）之间的一致性（create 时 `contentVersion` 字段须等于文档 id；checksum 由发布流程在发布前核对，见发布校验清单）。版本快照一旦创建，客户端不得修改。
 - `trainingCatalogObjects` 的 delete：`false`。`trainingCatalogPublicLinks`、`trainingCatalogMigrations`、`trainingCatalogAuditLogs` 的 create / update / delete：`false`。
 
 `resource.data.get("reviewer", null) == null && resource.data.get("reviewedAt", null) == null` 只出现在 `trainingCatalogLinks` 的 update 与 delete。它判断该映射是否已审核（两字段都为空才算未审核；任一有值即按已审核锁定），不是用相等比较保护 reviewer / reviewedAt 字段。字段保护一律用 diff().affectedKeys()。
@@ -242,6 +242,8 @@ Firestore 单字段索引自动建。本节只列必须的复合索引：
 | 31 | 管理员客户端 | 创建 Release 草稿并注入受保护发布字段（如 publishedVersion、reviewer） | 拒绝 |
 | 32 | 管理员客户端 | 修改或删除 reviewer 缺失、但 reviewedAt 存在的 Link | 拒绝 |
 | 33 | 管理员客户端 | 创建 status=approved 或 archived 的版本快照 | 拒绝 |
+| 34 | 管理员客户端 | 创建 trainingCatalogObjects 时缺失 reviewStatus | 拒绝 |
+| 35 | 管理员客户端 | 创建 versions 快照时缺失 reviewStatus | 拒绝 |
 
 场景 1–31 已按修改后的权限矩阵复核：场景 4 的管理员 create/update 只允许 status 保持 draft 且不改受保护字段的内容编辑（update 的受保护字段校验用 diff().affectedKeys()）；场景 5 的管理员 create 版本只允许 status 为 draft 的快照（原“status 非 published”已收紧为显式白名单）；场景 13、15、16、17、22、23、24 的拒绝结论不变；场景 27、28 的拒绝结论不变（Links 未审核判断补齐 reviewedAt 后，审核信息不完整的映射同样拒绝）；场景 11、12、18、19、20、21、25、26（读、查询、撤回、投影）不受本次修改影响，结论不变。
 
@@ -252,7 +254,7 @@ Firestore 单字段索引自动建。本节只列必须的复合索引：
 - P3 安全评估的读路径：评估代码以什么身份读 `safetyPolicies`（候选：评估走管理员 claim 的可信路径；或评估结果由可信流程写回，客户端只读结果）。P3 定。约束是安全策略不得无条件公开。
 - 生产上 `catalogAdmin` claim 的设置流程（Admin SDK 脚本，P2/P5 的单独步骤）。
 - 发布流程的具体实现（Admin SDK 脚本放哪、校验清单如何落代码、发布失败如何回滚）是 P2/P5 的事。本方案只定规则侧的分离。含原子 batch/transaction 的写法与凭据管理（凭据只放受控环境，不进前端与仓库）。含三权限边界的规则条件与发布校验清单的落代码（P2 按 §3 的公式与字段表写 rules 与脚本，不得只按原则写）。
-- P1 定 schema 时须定 reviewStatus 的枚举值与各集合发布字段的准确字段名；规则引用的字段名以 P1 的 schema 为准，若与本方案的字段表有出入，以 P1 为准并同步改表。reviewStatus 的初始值已钉为 "pending"（草案新建时的唯一合法值，缺失或该初始值二选一）。
+- P1 定 schema 时须定 reviewStatus 的枚举值与各集合发布字段的准确字段名；规则引用的字段名以 P1 的 schema 为准，若与本方案的字段表有出入，以 P1 为准并同步改表。对象与版本创建时必须提交且为 "pending"；其余集合缺失或 "pending" 二选一。
 - 公开投影的同步机制（发布流程何时写/删投影条目、目标撤回时如何联动）是 P2/P4 的事。指针与投影在同一个 batch/transaction 里同步（见 §3）。
 - P1/P2 的实现顺序：P1 先建 CatalogObject schema 与版本化逻辑（不写 Firestore），P2 再按本方案在 emulator 里 dry-run 导入并跑 §5 的测试。
 

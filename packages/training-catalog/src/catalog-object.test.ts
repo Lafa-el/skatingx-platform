@@ -228,6 +228,25 @@ describe("publishCatalogVersion", () => {
       /approved/,
     );
   });
+
+  it("throws when an approved draft is missing reviewer or reviewedAt", () => {
+    expect(() =>
+      publishCatalogVersion({
+        ...versionBody(),
+        status: "draft",
+        reviewStatus: "approved",
+        reviewedAt: "2026-11-12T00:00:00.000Z",
+      }),
+    ).toThrow(/reviewer and reviewedAt/);
+    expect(() =>
+      publishCatalogVersion({
+        ...versionBody(),
+        status: "draft",
+        reviewStatus: "approved",
+        reviewer: "reviewer-1",
+      }),
+    ).toThrow(/reviewer and reviewedAt/);
+  });
 });
 
 function sampleObject(status: CatalogObject["status"]): CatalogObject {

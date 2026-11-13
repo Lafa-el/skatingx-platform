@@ -1,6 +1,5 @@
 /**
- * 手写 canonical JSON。不从桶文件以外的对象序列化依赖键插入顺序，
- * 也不走 JSON.stringify 的对象键排序（整数形键会被它按数值排）。
+ * 手写 canonical JSON：不依赖对象键插入顺序，也不走 JSON.stringify 的对象键排序（整数形键会被它按数值排）。
  * 浏览器可运行，可以从 src/index.ts 导出。
  */
 
@@ -40,7 +39,15 @@ function writeContainer(value: object, stack: WeakSet<object>): string {
   if (Array.isArray(value)) {
     stack.add(value);
     try {
-      return `[${value.map((item) => writeValue(item, stack)).join(",")}]`;
+      const parts: string[] = [];
+      for (let index = 0; index < value.length; index += 1) {
+        const key = String(index);
+        if (!Object.getOwnPropertyDescriptor(value, key)) {
+          throw new Error("canonical JSON rejects sparse arrays");
+        }
+        parts.push(writeValue(ownValue(value, key), stack));
+      }
+      return `[${parts.join(",")}]`;
     } finally {
       stack.delete(value);
     }

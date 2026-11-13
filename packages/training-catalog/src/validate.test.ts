@@ -288,6 +288,8 @@ describe("checkPublishedBinding", () => {
       updatedAt: "2026-11-12T00:00:00.000Z",
       checksum: "abc",
       publishedVersion: "v1",
+      reviewer: "reviewer-1",
+      reviewedAt: "2026-11-12T00:00:00.000Z",
       ...overrides,
     };
   }
@@ -334,5 +336,43 @@ describe("checkPublishedBinding", () => {
     const errors = checkPublishedBinding(withdrawn, version());
     expect(errors).toContain("parent status is not published");
     expect(errors).toContain("publishedVersion does not match contentVersion");
+  });
+
+  it("reports version identity and review-record mismatches", () => {
+    expect(checkPublishedBinding(parent({ schemaVersion: 2 }), version())).toContain("schemaVersion does not match");
+    expect(checkPublishedBinding(parent({ supersedesVersion: "v0" }), version({ supersedesVersion: "v1" }))).toContain(
+      "supersedesVersion does not match",
+    );
+    expect(checkPublishedBinding(parent({ supersedesVersion: "v0" }), version())).toContain(
+      "supersedesVersion does not match",
+    );
+    expect(checkPublishedBinding(parent(), version({ supersedesVersion: "v0" }))).toContain(
+      "supersedesVersion does not match",
+    );
+    expect(checkPublishedBinding(parent({ contentVersion: "v2" }), version())).toContain(
+      "parent contentVersion does not match contentVersion",
+    );
+    expect(checkPublishedBinding(parent(), version({ reviewer: undefined }))).toContain(
+      "version review record is incomplete",
+    );
+    expect(checkPublishedBinding(parent(), version({ reviewedAt: undefined }))).toContain(
+      "version review record is incomplete",
+    );
+    expect(checkPublishedBinding(parent({ reviewer: "other" }), version())).toContain("reviewer does not match");
+    expect(checkPublishedBinding(parent({ reviewedAt: "2026-11-13T00:00:00.000Z" }), version())).toContain(
+      "reviewedAt does not match",
+    );
+    expect(checkPublishedBinding(parent({ reviewStatus: "pending" }), version())).toContain(
+      "parent reviewStatus is not approved",
+    );
+    const forged = checkPublishedBinding(
+      parent({
+        checksum: "forged",
+        localeContent: { zh: { name: "其他" }, en: { name: "Other" } },
+      }),
+      version({ checksum: "forged" }),
+    );
+    expect(forged).toContain("content fields do not match");
+    expect(forged).not.toContain("checksum does not match");
   });
 });

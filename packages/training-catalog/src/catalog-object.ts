@@ -204,5 +204,8 @@ export function publishCatalogVersion(snapshot: CatalogVersion): CatalogVersion 
   if (snapshot.status !== "draft" || snapshot.reviewStatus !== "approved") {
     throw new Error("publishCatalogVersion requires status draft and reviewStatus approved");
   }
+  if (snapshot.reviewer === undefined || snapshot.reviewedAt === undefined) {
+    throw new Error("publishCatalogVersion requires reviewer and reviewedAt");
+  }
   return { ...snapshot, status: "published" };
 }
