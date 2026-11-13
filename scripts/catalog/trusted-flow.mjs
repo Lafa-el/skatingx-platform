@@ -113,16 +113,25 @@ async function writeAudit(db, entry) {
 }
 
 async function reject(db, action, actor, target, error) {
-  const reason = error instanceof Error ? error.message : String(error);
-  await writeAudit(db, {
-    action,
-    actor: typeof actor === "string" && actor.trim() !== "" ? actor.trim() : "(missing)",
-    target,
-    at: nowIso(),
-    detail: reason,
-    result: "rejected",
-  });
-  throw error instanceof Error ? error : new Error(reason);
+  const original = error instanceof Error ? error : new Error(String(error));
+  try {
+    await writeAudit(db, {
+      action,
+      actor: typeof actor === "string" && actor.trim() !== "" ? actor.trim() : "(missing)",
+      target,
+      at: nowIso(),
+      detail: original.message,
+      result: "rejected",
+    });
+  } catch (auditError) {
+    // Keep the original failure as the message and on the audit error, then surface the audit
+    // write failure. Either way this throws, so a failed audit write cannot look like success.
+    if (auditError instanceof Error && auditError.cause === undefined) {
+      auditError.cause = original;
+    }
+    throw new Error(original.message, { cause: auditError });
+  }
+  throw original;
 }
 
 function auditTarget(collection, id, contentVersion) {
@@ -347,7 +356,8 @@ export async function withdrawCatalogVersion(db, input) {
     await reject(db, "withdraw", actor, target, error);
   }
   const withdrawnAt = nowIso();
-  await db.runTransaction(async (tx) => {
+  try {
+    await db.runTransaction(async (tx) => {
     const parentSnap = await tx.get(db.doc(objectPath(objectId)));
     const fresh = parentSnap.data();
     if (
@@ -370,6 +380,9 @@ export async function withdrawCatalogVersion(db, input) {
       result: "ok",
     });
   });
+  } catch (error) {
+    await reject(db, "withdraw", actor, target, error);
+  }
 }
 
 export async function revokeCatalogApprovalFlow(db, input) {
@@ -404,7 +417,11 @@ export async function revokeCatalogApprovalFlow(db, input) {
     at: revokedAt,
     result: "ok",
   });
-  await batch.commit();
+  try {
+    await batch.commit();
+  } catch (error) {
+    await reject(db, "revoke", actor, target, error);
+  }
 }
 
 async function reviewRecord(db, collectionName, id, reviewer, decision, action) {
@@ -421,7 +438,12 @@ async function reviewRecord(db, collectionName, id, reviewer, decision, action) 
     if (current.status !== undefined && current.status !== "draft") {
       throw new Error("status must be draft");
     }
-    if (current.reviewStatus !== "pending" && current.reviewStatus !== "rejected") {
+    // A missing field is the initial pending state. null, "", and any other value are not.
+    if (
+      current.reviewStatus !== undefined &&
+      current.reviewStatus !== "pending" &&
+      current.reviewStatus !== "rejected"
+    ) {
       throw new Error("reviewStatus must be pending or rejected");
     }
     const reviewedAt = nowIso();
@@ -450,6 +472,15 @@ export async function reviewCatalogLink(db, input) {
   await reviewRecord(db, LINKS, input.academyItemId, input.reviewer, input.decision, "link_review");
 }
 
+function linkApproved(link) {
+  return (
+    link.reviewStatus === "approved" &&
+    typeof link.reviewer === "string" &&
+    link.reviewer.trim() !== "" &&
+    isTimestamp(link.reviewedAt)
+  );
+}
+
 function catalogRefOf(link) {
   const ref = link.catalogRef;
   if (
@@ -473,10 +504,7 @@ export async function publishCatalogLink(db, input) {
   try {
     const link = await readDoc(db, `${collectionPath(LINKS)}/${academyItemId}`);
     if (link === null) throw new Error("link does not exist");
-    const reviewerReady = typeof link.reviewer === "string" && link.reviewer.trim() !== "";
-    if (link.reviewStatus !== "approved" || !reviewerReady || !isTimestamp(link.reviewedAt)) {
-      throw new Error("link is not approved");
-    }
+    if (!linkApproved(link)) throw new Error("link is not approved");
     catalogRef = catalogRefOf(link);
     const parent = await readDoc(db, objectPath(catalogRef.id));
     if (parent === null) throw new Error("target does not exist");
@@ -494,6 +522,7 @@ export async function publishCatalogLink(db, input) {
       if (!linkSnap.exists || !parentSnap.exists) throw new Error("link or target disappeared");
       const link = linkSnap.data();
       const parent = parentSnap.data();
+      if (!linkApproved(link)) throw new Error("link is not approved");
       const freshRef = catalogRefOf(link);
       if (parent.status !== "published" || parent.publishedVersion !== freshRef.contentVersion) {
         throw new Error("target is not published at the linked version");
@@ -523,7 +552,8 @@ export async function withdrawCatalogLink(db, input) {
     await reject(db, "link_withdraw", actor, target, new Error("projection does not exist"));
   }
   const withdrawnAt = nowIso();
-  await db.runTransaction(async (tx) => {
+  try {
+    await db.runTransaction(async (tx) => {
     const snap = await tx.get(db.doc(projectionPath));
     if (!snap.exists) throw new Error("projection does not exist");
     tx.delete(db.doc(projectionPath));
@@ -535,6 +565,9 @@ export async function withdrawCatalogLink(db, input) {
       result: "ok",
     });
   });
+  } catch (error) {
+    await reject(db, "link_withdraw", actor, target, error);
+  }
 }
 
 function parseArgs(argv) {

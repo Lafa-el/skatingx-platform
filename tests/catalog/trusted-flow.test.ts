@@ -1,5 +1,5 @@
 import { getApps, initializeApp } from "firebase-admin/app";
-import { type Firestore, getFirestore } from "firebase-admin/firestore";
+import { type Firestore, FieldValue, getFirestore } from "firebase-admin/firestore";
 import { assertFails, assertSucceeds, initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { doc, getDoc } from "firebase/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -481,5 +481,145 @@ describe.sequential("trusted catalog review and publish", () => {
     await withdrawCatalogLink(db, { academyItemId: "academy-p23", actor: "operator-1" });
     expect((await db.doc(`${PUBLIC_LINKS}/academy-p23`).get()).exists).toBe(false);
     expect((await db.doc(`${LINKS}/academy-p23`).get()).exists).toBe(true);
+  });
+
+  it("approves a link that has no reviewStatus and rejects null or illegal values", async () => {
+    const catalogRef = { kind: "exercise", id: "EX-PUB", contentVersion: CONTENT_VERSION };
+    await db.doc(`${LINKS}/academy-implicit`).set({ catalogRef });
+    await reviewCatalogLink(db, {
+      academyItemId: "academy-implicit",
+      reviewer: "reviewer-1",
+      decision: "approved",
+    });
+    const approved = (await db.doc(`${LINKS}/academy-implicit`).get()).data();
+    expect(approved?.reviewStatus).toBe("approved");
+    expect(approved?.reviewer).toBe("reviewer-1");
+    expect(typeof approved?.reviewedAt).toBe("string");
+
+    for (const [id, reviewStatus] of [
+      ["academy-null", null],
+      ["academy-empty", ""],
+      ["academy-other", "published"],
+    ] as const) {
+      await db.doc(`${LINKS}/${id}`).set({ catalogRef, reviewStatus });
+      await expect(
+        reviewCatalogLink(db, { academyItemId: id, reviewer: "reviewer-1", decision: "approved" }),
+      ).rejects.toThrow(/pending or rejected/);
+      const stored = (await db.doc(`${LINKS}/${id}`).get()).data();
+      expect(stored?.reviewer).toBeUndefined();
+      expect(stored?.reviewedAt).toBeUndefined();
+    }
+  });
+
+  it("does not publish a link when the in-transaction read shows the review was revoked", async () => {
+    await db.doc(`${LINKS}/academy-race`).set({
+      catalogRef: { kind: "exercise", id: "EX-PUB", contentVersion: CONTENT_VERSION },
+      reviewStatus: "approved",
+      reviewer: "reviewer-1",
+      reviewedAt: STARTED,
+    });
+    expect((await db.doc(`${PUBLIC_LINKS}/academy-race`).get()).exists).toBe(false);
+    const original = db.runTransaction.bind(db);
+    db.runTransaction = async (updateFunction) => {
+      await db.doc(`${LINKS}/academy-race`).update({
+        reviewStatus: "pending",
+        reviewer: FieldValue.delete(),
+        reviewedAt: FieldValue.delete(),
+      });
+      return original(updateFunction);
+    };
+    try {
+      await expect(publishCatalogLink(db, { academyItemId: "academy-race", actor: "publisher-1" })).rejects.toThrow(
+        /not approved/,
+      );
+    } finally {
+      db.runTransaction = original;
+    }
+    expect((await db.doc(`${PUBLIC_LINKS}/academy-race`).get()).exists).toBe(false);
+    const success = (await audits(db, "academy-race")).filter(
+      (entry) => entry.action === "link_publish" && entry.result === "ok",
+    );
+    expect(success).toHaveLength(0);
+  });
+
+  it("writes a rejected audit when withdraw, revoke, or link withdraw fails to commit", async () => {
+    await seedObject(db, {
+      id: "EX-COMMIT-W",
+      kind: "exercise",
+      parentStatus: "published",
+      reviewStatus: "approved",
+      reviewer: "reviewer-1",
+      reviewedAt: STARTED,
+    });
+    await db.doc(`${OBJECTS}/EX-COMMIT-W`).update({ publishedVersion: CONTENT_VERSION });
+    const originalRun = db.runTransaction.bind(db);
+    db.runTransaction = async () => {
+      throw new Error("withdraw commit failed");
+    };
+    try {
+      await expect(
+        withdrawCatalogVersion(db, { objectId: "EX-COMMIT-W", contentVersion: CONTENT_VERSION, actor: "operator-1" }),
+      ).rejects.toThrow(/withdraw commit failed/);
+    } finally {
+      db.runTransaction = originalRun;
+    }
+    expect((await db.doc(`${OBJECTS}/EX-COMMIT-W`).get()).data()?.status).toBe("published");
+    expect(
+      (await audits(db, "EX-COMMIT-W")).some(
+        (entry) => entry.action === "withdraw" && entry.result === "rejected" && entry.detail === "withdraw commit failed",
+      ),
+    ).toBe(true);
+
+    await seedObject(db, {
+      id: "EX-COMMIT-R",
+      kind: "exercise",
+      parentStatus: "approved",
+      snapshotStatus: "approved",
+      reviewStatus: "approved",
+      reviewer: "reviewer-1",
+      reviewedAt: STARTED,
+    });
+    const originalBatch = db.batch.bind(db);
+    db.batch = () => {
+      const batch = originalBatch();
+      batch.commit = async () => {
+        throw new Error("revoke commit failed");
+      };
+      return batch;
+    };
+    try {
+      await expect(
+        revokeCatalogApprovalFlow(db, { objectId: "EX-COMMIT-R", contentVersion: CONTENT_VERSION, actor: "operator-1" }),
+      ).rejects.toThrow(/revoke commit failed/);
+    } finally {
+      db.batch = originalBatch;
+    }
+    expect((await db.doc(`${OBJECTS}/EX-COMMIT-R`).get()).data()?.status).toBe("approved");
+    expect(
+      (await audits(db, "EX-COMMIT-R")).some(
+        (entry) => entry.action === "revoke" && entry.result === "rejected" && entry.detail === "revoke commit failed",
+      ),
+    ).toBe(true);
+
+    await db.doc(`${PUBLIC_LINKS}/academy-commit`).set({
+      catalogRef: { kind: "exercise", id: "EX-PUB", contentVersion: CONTENT_VERSION },
+    });
+    db.runTransaction = async () => {
+      throw new Error("link withdraw commit failed");
+    };
+    try {
+      await expect(withdrawCatalogLink(db, { academyItemId: "academy-commit", actor: "operator-1" })).rejects.toThrow(
+        /link withdraw commit failed/,
+      );
+    } finally {
+      db.runTransaction = originalRun;
+    }
+    expect((await db.doc(`${PUBLIC_LINKS}/academy-commit`).get()).exists).toBe(true);
+    expect(
+      (await audits(db, "academy-commit")).some(
+        (entry) =>
+          entry.action === "link_withdraw" && entry.result === "rejected" && entry.detail === "link withdraw commit failed",
+      ),
+    ).toBe(true);
   });
 });
