@@ -33,6 +33,8 @@
 | `refs[]` | `{ id, contentVersion }`。指向另一条 Catalog 对象的某个已发布版本。 |
 | `legacyAttributes` | 工作簿里未升成一等字段的列，原表头作键。 |
 
+图验证：允许的边是 Session→Block、Block→Drill、Drill→Exercise。引用须解析到已存在的 id 与已知版本。图中无环。`localeContent.zh.name` 与 `localeContent.en.name` 必填。未知列进 `legacyAttributes`，不得出现在顶层。
+
 `users/{uid}` 下不存放 CatalogObject（ADR-020）。
 
 ## 状态机
