@@ -1,6 +1,7 @@
 import type { CatalogKind } from "@skatingx/schema";
 
-import { CATALOG_OBJECT_FIELDS, type CatalogObject, type CatalogObjectEdge } from "./catalog-object";
+import { CATALOG_OBJECT_FIELDS, type CatalogObject, type CatalogObjectEdge, type CatalogVersion } from "./catalog-object";
+import { canonicalCatalogJson } from "./canonical-json";
 
 /**
  * 图节点的最小形状。CatalogObject 可以直接传入。
@@ -144,4 +145,31 @@ export function validateCatalogShape(object: unknown): string[] {
     }
   }
   return errors;
+}
+
+/** 父对象与已发布快照的绑定。空数组表示成立。内容比较不含状态、版本号和审核字段。 */
+export function checkPublishedBinding(parent: CatalogObject, version: CatalogVersion): string[] {
+  const errors: string[] = [];
+  if (parent.status !== "published") errors.push("parent status is not published");
+  if (parent.publishedVersion !== version.contentVersion) {
+    errors.push("publishedVersion does not match contentVersion");
+  }
+  if (parent.checksum !== version.checksum) errors.push("checksum does not match");
+  if (version.status !== "published") errors.push("version status is not published");
+  if (version.reviewStatus !== "approved") errors.push("version reviewStatus is not approved");
+  if (canonicalCatalogJson(contentOf(parent)) !== canonicalCatalogJson(contentOf(version))) {
+    errors.push("content fields do not match");
+  }
+  return errors;
+}
+
+function contentOf(
+  value: Pick<CatalogObject, "localeContent" | "taxonomy" | "refs" | "legacyAttributes">,
+): Pick<CatalogObject, "localeContent" | "taxonomy" | "refs" | "legacyAttributes"> {
+  return {
+    localeContent: value.localeContent,
+    taxonomy: value.taxonomy,
+    refs: value.refs,
+    legacyAttributes: value.legacyAttributes,
+  };
 }
