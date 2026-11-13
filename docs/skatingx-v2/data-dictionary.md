@@ -54,7 +54,7 @@
 
 `in_review` 被拒绝时回到 `draft`，并记下原因。已发布版本不改写；修正是新的 `contentVersion`（ADR-019）。普通用户不能读 `draft` 与 `in_review`。
 
-`ReviewStatus` 取 `pending`、`in_review`、`approved`、`rejected`，初始值是 `pending`。`contentVersion` 格式为 `v<n>`，`n` 是从 1 起的正整数，递增用任意精度整数，不设上限。`checksum` 是手写 canonical JSON 的 SHA-256 十六进制：对象键按 UTF-16 代码单元排序，数组保持原顺序，不使用 `JSON.stringify` 的对象键顺序；`__proto__` 与 `constructor` 按普通键保留。覆盖且只覆盖 `localeContent`、`taxonomy`、`refs`、`legacyAttributes`、`schemaVersion`、`supersedesVersion`（后者缺失时不出现）。`contentVersion`、`status`、`checksum` 本身、审核字段和 `publishedVersion` 不参与。`schemaVersion` 为 `1`。拒绝原因不放在对象上，由受控流程写入审计日志。
+`ReviewStatus` 取 `pending`、`in_review`、`approved`、`rejected`，初始值是 `pending`。`contentVersion` 格式为 `v<n>`，`n` 是从 1 起的正整数，递增用任意精度整数，不设上限。`checksum` 是手写 canonical JSON 的 SHA-256 十六进制：对象键按 UTF-16 代码单元排序，数组保持原顺序，不使用 `JSON.stringify` 的对象键顺序；`__proto__` 与 `constructor` 按普通键保留。覆盖且只覆盖 `localeContent`、`taxonomy`、`refs`、`legacyAttributes`、`schemaVersion`、`supersedesVersion`（后者缺失时不出现）。`contentVersion`、`status`、`checksum` 本身、审核字段和 `publishedVersion` 不参与。`schemaVersion` 为 `1`。拒绝原因不放在对象上，由受控流程写入审计日志。P2 在计算 checksum 前必须拒绝非标准 JSON 数据（如带额外自有属性的数组）；canonical JSON 只序列化数组的索引位置。
 
 ## 联合状态不变量
 

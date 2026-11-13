@@ -27,7 +27,7 @@ export const REVIEW_STATUSES = [
 
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
-/** P0-4 规则公式里的 `<P1 初始值>`。草案新建时 reviewStatus 缺失或等于此值。 */
+/** P0-4 规则公式里的 `<P1 初始值>`。草案新建时 reviewStatus 必须提交且等于此值（缺失拒绝）。 */
 export const INITIAL_REVIEW_STATUS: ReviewStatus = "pending";
 
 const ALLOWED_TRANSITIONS: Readonly<Record<CatalogStatus, readonly CatalogStatus[]>> = {
@@ -204,8 +204,16 @@ export function publishCatalogVersion(snapshot: CatalogVersion): CatalogVersion 
   if (snapshot.status !== "draft" || snapshot.reviewStatus !== "approved") {
     throw new Error("publishCatalogVersion requires status draft and reviewStatus approved");
   }
-  if (snapshot.reviewer === undefined || snapshot.reviewedAt === undefined) {
+  if (!isReviewerId(snapshot.reviewer) || !isTimestamp(snapshot.reviewedAt)) {
     throw new Error("publishCatalogVersion requires reviewer and reviewedAt");
   }
   return { ...snapshot, status: "published" };
+}
+
+function isReviewerId(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function isTimestamp(value: unknown): value is string {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
