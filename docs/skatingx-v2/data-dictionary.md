@@ -192,3 +192,54 @@
 
 - Drill→Exercise 在工作簿里不存在。每条 Drill 的 `exerciseRefs` 为 `[]`，`exerciseRefsSource` 为 `source_not_provided`。禁止用名称或标签补边。Catalog 的 `refs[]` 在这条边上同样为空，直到有人工审核的链接。
 - Youth Default 为 Conditional 的恰好 4 条：EX-L039、EX-L078、EX-L079、EX-L080。清单给它们 `safetyFlag: review_required`，并保留 `youthDefault` 与 `supervision` 原值。其余 116 条不加该标志。`safetyFlag` 只存在于清单，不是 CatalogObject 字段。按 ADR-021，这 4 条在真实安全策略到来之前保持 `review_required`。
+
+## P2-3 可信审核与发布
+
+受控流程在 `scripts/catalog/trusted-flow.mjs`。只跑 Firestore emulator，项目 id 必须以 `demo-` 开头。审核字段以快照为准：调用方传入的 reviewer 只作为审计日志的 actor，不覆盖库里的审核记录。
+
+`reviewCatalogVersion` 只写快照的 `reviewStatus`、`reviewer`、`reviewedAt`（`reviewedAt` 取流程当时的 ISO 时间）。父对象不动。对象发布时才把快照上的审核记录拷贝到父对象。
+
+联合状态不变量里的五处写入分到两类发布，不放进同一个事务：
+
+- 对象版本发布：父对象内容、`publishedVersion`、快照 `status`、Release。同一事务里另写一条审计日志。公开投影不在这个事务里。写完后用 `checkPublishedBinding` 核对，返回非空则抛错，事务回滚。
+- Link 发布：公开投影。同一事务里另写一条审计日志。不写 Release。投影只含 `catalogRef` 的 `kind`、`id`、`contentVersion`。目标对象不是 `published`，或 `publishedVersion` 不等于链接的 `contentVersion` 时，不写投影。
+
+撤回已发布版本时，同一事务里把父对象 `status` 从 `published` 改为 `deprecated`，并清空 `publishedVersion`。快照不改。
+
+撤销已审核未发布的批准时，父对象走 `revokeCatalogApproval`（只接受 `approved`），快照同时回到 `status: draft`、`reviewStatus: pending`，并清掉 `reviewer` / `reviewedAt`。
+
+### Release
+
+`trainingCatalogReleases/rel-{objectId}-{contentVersion}`。id 由对象和版本决定，同一版本重发布仍是这一条，不改已发布的 Release。
+
+| 字段 | 说明 |
+| --- | --- |
+| `objectId` | 父对象 id。 |
+| `contentVersion` | 发布的版本。 |
+| `checksum` | 快照上的 checksum。 |
+| `publishedVersion` | 与 `contentVersion` 相同。 |
+| `status` | `published`。 |
+| `reviewStatus` | `approved`。 |
+| `reviewer` | 快照上的审核人。 |
+| `reviewedAt` | 快照上的审核时间。 |
+| `notes?` | 发布说明。 |
+| `createdAt` | ISO 字符串。首次写入时取发布当时。 |
+
+### 审计日志
+
+`trainingCatalogAuditLogs/{自动 id}`。客户端不可写。
+
+| 字段 | 说明 |
+| --- | --- |
+| `action` | `review`、`publish`、`withdraw`、`revoke`、`link_review`、`link_publish`、`link_withdraw`。被拒的发布尝试也写。 |
+| `actor` | 调用方传入的操作者。 |
+| `target` | `{ collection, id, contentVersion? }`。 |
+| `at` | ISO 字符串。 |
+| `detail?` | 拒绝原因，或审核决定。 |
+| `result` | `ok` 或 `rejected`。 |
+
+最后编辑人取该对象在审计日志里、`action` 为 `create`、`edit` 或 `import` 的最新一条的 `actor`。没有这类记录则不发布。发布前把快照上的 `reviewer` 与该 actor 比较，相同则不发布。
+
+快照 `legacyAttributes.safetyFlag` 为 `review_required` 时不发布。EX-L039、EX-L078、EX-L079、EX-L080 在真实安全策略到来之前保持该标志。
+
+Link 文档 id 是 `academyItemId`。审核写 `reviewStatus`、`reviewer`、`reviewedAt`；`reviewStatus` 为 `pending` 或 `rejected` 才可再审。投影文档不带这些审核字段。
