@@ -43,4 +43,19 @@ describe("canonicalCatalogJson", () => {
       expect(() => canonicalCatalogJson(value)).toThrow(/canonical JSON rejects/);
     }
   });
+
+  it("rejects sparse arrays and keeps dense arrays", () => {
+    const oneHole = [1, 0, 3];
+    delete oneHole[1];
+    const nested = [new Array(1)];
+    const insideObject = { items: [1, 0, 3] };
+    delete insideObject.items[1];
+    expect(() => canonicalCatalogJson(new Array(1))).toThrow(/sparse arrays/);
+    expect(() => canonicalCatalogJson(new Array(2))).toThrow(/sparse arrays/);
+    expect(() => canonicalCatalogJson(oneHole)).toThrow(/sparse arrays/);
+    expect(() => canonicalCatalogJson(nested)).toThrow(/sparse arrays/);
+    expect(() => canonicalCatalogJson(insideObject)).toThrow(/sparse arrays/);
+    expect(canonicalCatalogJson([])).toBe("[]");
+    expect(canonicalCatalogJson([1, 2, 3])).toBe("[1,2,3]");
+  });
 });

@@ -18,7 +18,7 @@
 | `contentVersion` | 内容版本。已发布版本不可变；修正时递增（ADR-019）。格式为 `v<n>`（`v1`、`v2`……）。 |
 | `publishedVersion?` | 当前已发布的 `contentVersion`。缺失表示尚未发布。 |
 | `status` | 生命周期，见下方状态机。与 `reviewStatus` 分开。 |
-| `reviewStatus` | 审核结果。与 `status` 分开。 |
+| `reviewStatus` | 审核结果。与 `status` 分开。创建时必须提交且为 `"pending"`（缺失拒绝）。 |
 | `reviewer?` | 审核人。发布时须与最后编辑人不同（可行时，ADR-019）。 |
 | `reviewedAt?` | 审核时间。 |
 | `createdAt` | 创建时间。 |
@@ -39,12 +39,12 @@
 
 | kind | 一等字段 | 进 `legacyAttributes` 的非空字符串 |
 | --- | --- | --- |
-| exercise | `nameZh` / `nameEn` → `localeContent`；`sectionId`；`primaryObjectiveId` + `secondaryObjectiveIds` → `objectiveIds`；`modality`；`exerciseRefs` → `refs` | `environment`、`equipment`、`focusTags`、`youthDefault`、`supervision`、`safetyFlag` |
-| drill | 同上，另有 `energySystemId`；`exerciseRefs` → `refs` | `environment`、`focusTags`、`defaultSets`、`defaultReps`、`distance`、`duration`、`target`、`rest`、`rpe`、`load`、`taperCompatible`、`supervision` |
+| exercise | `nameZh` / `nameEn` → `localeContent`；`sectionId`；`primaryObjectiveId` → `objectiveIds`；`modality`；`exerciseRefs` → `refs` | `environment`、`equipment`、`focusTags`、`youthDefault`、`supervision`、`safetyFlag` |
+| drill | 名称、`sectionId`、`primaryObjectiveId` + `secondaryObjectiveIds` → `objectiveIds`、`modality`、`energySystemId`；`exerciseRefs` → `refs` | `environment`、`focusTags`、`defaultSets`、`defaultReps`、`distance`、`duration`、`target`、`rest`、`rpe`、`load`、`taperCompatible`、`supervision` |
 | block | 名称、`sectionId`、目标、`drillRefs` → `refs` | `environment`、`duration`、`load`、`taperCompatible` |
-| session | 名称、目标（无 `sectionId`）、`blockRefs` → `refs` | `environment`、`trainingPhase`、`duration`、`load`、`primaryGoal`、`taperCompatible` |
+| session | 名称、`blockRefs` → `refs`；无 `sectionId`、无目标列（`objectiveIds` 为空） | `environment`、`trainingPhase`、`duration`、`load`、`primaryGoal`、`taperCompatible` |
 
-工作簿没有 description 列，`description` 省略。`refs` 每条是 `{ id, contentVersion: "v1" }`，提交的清单就是 v1 基线。空串 `""` 与空数组丢弃，不收进内容。记录自带的 `legacyAttributes` 原样合并，包括 `null`（如 `systemTemplateId: null`）；键冲突则失败，不静默覆盖。`source` 与 `exerciseRefsSource` 是来源性元数据，不进内容字段。EX-L039、EX-L078、EX-L079、EX-L080 的 `youthDefault: Conditional`、`supervision: Qualified adult/coach`、`safetyFlag: review_required` 保留在 `legacyAttributes`。
+工作簿没有 description 列，`description` 省略。`refs` 每条是 `{ id, contentVersion: "v1" }`，提交的清单就是 v1 基线。空串 `""` 与空数组丢弃，不收进内容。记录自带的 `legacyAttributes` 原样合并，包括 `null`（如 `systemTemplateId: null`）；键冲突则失败，不静默覆盖。`source` 与 `exerciseRefsSource` 是来源性元数据，不进内容字段。EX-L039、EX-L078、EX-L079、EX-L080 的 `youthDefault: Conditional`、`supervision: Qualified adult/coach`、`safetyFlag: review_required` 保留在 `legacyAttributes`。`exerciseRefsSource` 保留 `source_not_provided` 与人工确认的区别；P2 导入审计须保留来源信息，始终区分“源数据没有提供 Drill→Exercise 引用”与“人工确认没有引用”。
 
 `users/{uid}` 下不存放 CatalogObject（ADR-020）。
 
@@ -54,21 +54,21 @@
 
 `in_review` 被拒绝时回到 `draft`，并记下原因。已发布版本不改写；修正是新的 `contentVersion`（ADR-019）。普通用户不能读 `draft` 与 `in_review`。
 
-`ReviewStatus` 取 `pending`、`in_review`、`approved`、`rejected`，初始值是 `pending`。`contentVersion` 格式为 `v<n>`，`n` 是从 1 起的正整数，递增用任意精度整数，不设上限。`checksum` 是手写 canonical JSON 的 SHA-256 十六进制：对象键按 UTF-16 代码单元排序，数组保持原顺序，不使用 `JSON.stringify` 的对象键顺序；`__proto__` 与 `constructor` 按普通键保留。覆盖且只覆盖 `localeContent`、`taxonomy`、`refs`、`legacyAttributes`、`schemaVersion`、`supersedesVersion`（后者缺失时不出现）。`contentVersion`、`status`、`checksum` 本身、审核字段和 `publishedVersion` 不参与。`schemaVersion` 为 `1`。拒绝原因不放在对象上，由受控流程写入审计日志。
+`ReviewStatus` 取 `pending`、`in_review`、`approved`、`rejected`，初始值是 `pending`。`contentVersion` 格式为 `v<n>`，`n` 是从 1 起的正整数，递增用任意精度整数，不设上限。`checksum` 是手写 canonical JSON 的 SHA-256 十六进制：对象键按 UTF-16 代码单元排序，数组保持原顺序，不使用 `JSON.stringify` 的对象键顺序；`__proto__` 与 `constructor` 按普通键保留。覆盖且只覆盖 `localeContent`、`taxonomy`、`refs`、`legacyAttributes`、`schemaVersion`、`supersedesVersion`（后者缺失时不出现）。`contentVersion`、`status`、`checksum` 本身、审核字段和 `publishedVersion` 不参与。`schemaVersion` 为 `1`。拒绝原因不放在对象上，由受控流程写入审计日志。P2 在计算 checksum 前必须拒绝非标准 JSON 数据（如带额外自有属性的数组）；canonical JSON 只序列化数组的索引位置。
 
 ## 联合状态不变量
 
-父对象的内容字段始终等于当前已发布版本的内容。新版本草稿只保存在 `versions` 子集合里，父对象不作草稿暂存。发布时受控流程把快照内容与审核记录拷贝到父对象、移动 `publishedVersion` 指针、把快照 `status` 改为 `published`，三者在同一个原子操作里完成。快照内容、`checksum`、审核记录在发布时绝不改动。撤销审批只走受控流程：`revokeCatalogApproval` 只接受 `status == "approved"`，返回的拷贝把 `status` 改为 `draft`、`reviewStatus` 重置为 `pending`，并删除 `reviewer` 与 `reviewedAt`。这不是普通状态机转移。撤回最后一个已发布版本时，受控流程须同时把父对象 `status` 从 `published` 改为 `deprecated`，并清空 `publishedVersion`。只清指针、不改状态，不算撤回。
+父对象的内容字段始终等于当前已发布版本的内容。新版本草稿只保存在 `versions` 子集合里，父对象不作草稿暂存。发布事务须在一个原子操作里覆盖五处写入：父对象内容与 `publishedVersion` 指针、快照 `status`、Release 记录、公开投影（创建/更新/删除）。快照内容、`checksum`、审核记录在发布时绝不改动。`checkPublishedBinding` 返回空数组不是完整发布许可。P2 受控发布流程在写入前必须另做两项强制校验：(a) 用 `contentChecksumPayload` 与 `computeCatalogChecksum` 从快照的六个内容字段重算 checksum，与存储的 checksum 比对；(b) 审核人与最后编辑人不同（按 P0-4 发布校验清单，依据来自审计日志）。这两项是强制门，不是可选项。撤销审批只走受控流程：`revokeCatalogApproval` 只接受 `status == "approved"`，返回的拷贝把 `status` 改为 `draft`、`reviewStatus` 重置为 `pending`，并删除 `reviewer` 与 `reviewedAt`。这不是普通状态机转移。撤回最后一个已发布版本时，受控流程须同时把父对象 `status` 从 `published` 改为 `deprecated`，并清空 `publishedVersion`。只清指针、不改状态，不算撤回。
 
 ## CatalogVersion
 
-`versions` 子集合的一条快照。版本文档 id 等于 `contentVersion`。新建时 `status` 必须是 `draft`，`reviewStatus` 为 `pending`，不得带 `reviewer` / `reviewedAt`。
+`versions` 子集合的一条快照。版本文档 id 等于 `contentVersion`。新建时 `status` 必须是 `draft`，`reviewStatus` 必须提交且为 `"pending"`（缺失拒绝），不得带 `reviewer` / `reviewedAt`。
 
 | 字段 | 说明 |
 | --- | --- |
 | `contentVersion` | 本快照版本号。等于文档 id。 |
 | `status` | 生命周期。客户端创建后不可改。 |
-| `reviewStatus` | 审核结果。新建为 `pending`。 |
+| `reviewStatus` | 审核结果。新建时必须提交且为 `"pending"`（缺失拒绝）。 |
 | `reviewer?` | 审核人。只由受控审核流程写。 |
 | `reviewedAt?` | 审核时间。只由受控审核流程写。 |
 | `checksum` | 内容校验。发布时不改。 |
@@ -79,7 +79,7 @@
 | `schemaVersion` | `1`。 |
 | `supersedesVersion?` | 本快照取代的上一 `contentVersion`。 |
 
-发布例外：`publishCatalogVersion` 只接受 `status == "draft"` 且 `reviewStatus == "approved"` 的快照，返回的拷贝只把 `status` 改为 `published`。内容、`checksum` 和审核记录不动。客户端 update 仍拒绝。绑定成立时：父对象 `status` 与快照 `status` 都是 `published`，父对象 `publishedVersion` 等于快照 `contentVersion`，两边 `checksum` 相等，快照 `reviewStatus` 为 `approved`，两边的 `localeContent`、`taxonomy`、`refs`、`legacyAttributes` 一致。
+发布例外：`publishCatalogVersion` 只接受 `status == "draft"` 且 `reviewStatus == "approved"` 且带 `reviewer` 与 `reviewedAt` 的快照，返回的拷贝只把 `status` 改为 `published`。内容、`checksum` 和审核记录不动。客户端 update 仍拒绝。绑定成立时：父对象 `status` 与快照 `status` 都是 `published`，父对象 `contentVersion` 与 `publishedVersion` 都等于快照 `contentVersion`，两边 `checksum` 相等，父对象与快照的 `reviewStatus` 都是 `approved`，两边的 `reviewer` 与 `reviewedAt` 一致，两边的六个 checksum payload 字段（`localeContent`、`taxonomy`、`refs`、`legacyAttributes`、`schemaVersion`、`supersedesVersion`）一致。
 
 ## ACADEMY_CATALOG_LINKS
 

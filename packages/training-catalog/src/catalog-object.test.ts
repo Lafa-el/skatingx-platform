@@ -1,3 +1,4 @@
+import type { Timestamp } from "@skatingx/schema";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -226,6 +227,42 @@ describe("publishCatalogVersion", () => {
     );
     expect(() => publishCatalogVersion({ ...versionBody(), status: "published", reviewStatus: "approved" })).toThrow(
       /approved/,
+    );
+  });
+
+  it("throws when an approved draft is missing reviewer or reviewedAt", () => {
+    expect(() =>
+      publishCatalogVersion({
+        ...versionBody(),
+        status: "draft",
+        reviewStatus: "approved",
+        reviewedAt: "2026-11-12T00:00:00.000Z",
+      }),
+    ).toThrow(/reviewer and reviewedAt/);
+    expect(() =>
+      publishCatalogVersion({
+        ...versionBody(),
+        status: "draft",
+        reviewStatus: "approved",
+        reviewer: "reviewer-1",
+      }),
+    ).toThrow(/reviewer and reviewedAt/);
+  });
+
+  it("throws when the review record is blank, null, or not a date", () => {
+    const approved = {
+      ...versionBody(),
+      status: "draft" as const,
+      reviewStatus: "approved" as const,
+      reviewer: "reviewer-1",
+      reviewedAt: "2026-11-12T00:00:00.000Z",
+    };
+    expect(() => publishCatalogVersion({ ...approved, reviewer: "" })).toThrow(/reviewer and reviewedAt/);
+    expect(() =>
+      publishCatalogVersion({ ...approved, reviewedAt: null as unknown as Timestamp }),
+    ).toThrow(/reviewer and reviewedAt/);
+    expect(() => publishCatalogVersion({ ...approved, reviewedAt: "not-a-date" })).toThrow(
+      /reviewer and reviewedAt/,
     );
   });
 });
