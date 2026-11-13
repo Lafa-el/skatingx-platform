@@ -1,7 +1,7 @@
 import type { CatalogKind, Timestamp } from "@skatingx/schema";
 
 /**
- * 草案 schema，尚未冻结。冻结走 ChatGPT 独立复核，在 P1-2 之后。
+ * 草案 schema。冻结复核未通过前不是冻结版。
  * 本模块只有类型与纯函数，不写 Firestore。
  */
 
@@ -55,7 +55,7 @@ export function nextContentVersion(current: string): string {
   if (!match) {
     throw new Error(`contentVersion must match v<n> starting at v1, received ${JSON.stringify(current)}`);
   }
-  return `v${Number(match[1]) + 1}`;
+  return `v${(BigInt(match[1]) + 1n).toString()}`;
 }
 
 export interface CatalogLocaleText {
@@ -64,7 +64,8 @@ export interface CatalogLocaleText {
 }
 
 export interface CatalogTaxonomy {
-  sectionId: string;
+  /** Session 工作簿没有这一列时省略。 */
+  sectionId?: string;
   objectiveIds: string[];
   energySystemId?: string;
   modality?: string;
@@ -133,12 +134,16 @@ export const CATALOG_OBJECT_FIELDS: ReadonlySet<string> = new Set([
 
 /**
  * versions 子集合的文档形状。
- * 不变量：版本文档 id 等于 contentVersion 字段；新建快照 status 必须是 draft；
- * 快照建后不可改（没有 update / delete，P2 的规则侧已定）。
+ * 不变量：版本文档 id 等于 contentVersion 字段；新建快照 status 必须是 draft，reviewStatus 为 pending；
+ * 快照建后客户端不可改（没有 update / delete，P0-4 已定）。
+ * 发布时的唯一例外是 publishCatalogVersion：受控流程只把 status 改为 published，不改已审核内容。
  */
 export interface CatalogVersion {
   contentVersion: string;
   status: CatalogStatus;
+  reviewStatus: ReviewStatus;
+  reviewer?: string;
+  reviewedAt?: Timestamp;
   checksum: string;
   localeContent: CatalogObject["localeContent"];
   taxonomy: CatalogTaxonomy;
@@ -146,4 +151,58 @@ export interface CatalogVersion {
   legacyAttributes: Record<string, unknown>;
   schemaVersion: number;
   supersedesVersion?: string;
+}
+
+/** checksum 覆盖的内容。不含 contentVersion、status、checksum、审核字段和 publishedVersion。 */
+export interface CatalogChecksumInput {
+  localeContent: CatalogObject["localeContent"];
+  taxonomy: CatalogTaxonomy;
+  refs: CatalogObjectEdge[];
+  legacyAttributes: Record<string, unknown>;
+  schemaVersion: number;
+  supersedesVersion?: string;
+}
+
+export function contentChecksumPayload(input: CatalogChecksumInput): CatalogChecksumInput {
+  const payload: CatalogChecksumInput = {
+    localeContent: input.localeContent,
+    taxonomy: input.taxonomy,
+    refs: input.refs,
+    legacyAttributes: input.legacyAttributes,
+    schemaVersion: input.schemaVersion,
+  };
+  if (input.supersedesVersion !== undefined) {
+    payload.supersedesVersion = input.supersedesVersion;
+  }
+  return payload;
+}
+
+/**
+ * 受控流程专用的审批撤销，不是普通状态机转移。
+ * canTransitionStatus("approved", "draft") 仍为 false。
+ * P2 的规则与脚本必须保证只有可信流程能调用它。
+ */
+export function revokeCatalogApproval(object: CatalogObject): CatalogObject {
+  if (object.status !== "approved") {
+    throw new Error(`revokeCatalogApproval requires status approved, received ${object.status}`);
+  }
+  const next: CatalogObject = {
+    ...object,
+    status: "draft",
+    reviewStatus: INITIAL_REVIEW_STATUS,
+  };
+  delete next.reviewer;
+  delete next.reviewedAt;
+  return next;
+}
+
+/**
+ * 快照唯一允许的发布时例外。受控发布流程只改生命周期 status，
+ * 不改内容、checksum 和审核记录。客户端 update 仍为 false。
+ */
+export function publishCatalogVersion(snapshot: CatalogVersion): CatalogVersion {
+  if (snapshot.status !== "draft" || snapshot.reviewStatus !== "approved") {
+    throw new Error("publishCatalogVersion requires status draft and reviewStatus approved");
+  }
+  return { ...snapshot, status: "published" };
 }

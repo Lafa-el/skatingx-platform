@@ -5,8 +5,10 @@ import { fileURLToPath } from "node:url";
 import type { CatalogKind } from "@skatingx/schema";
 import { describe, expect, it } from "vitest";
 
-import type { CatalogObject } from "./catalog-object";
+import type { CatalogObject, CatalogVersion } from "./catalog-object";
+import { CATALOG_SCHEMA_VERSION } from "./catalog-object";
 import {
+  checkPublishedBinding,
   findCatalogCycles,
   validateCatalogLocales,
   validateCatalogRefs,
@@ -263,3 +265,74 @@ function isInventory(value: unknown): value is InventoryFile {
   const record = objects as Record<string, unknown>;
   return ["exercises", "drills", "blocks", "sessions"].every((key) => Array.isArray(record[key]));
 }
+
+describe("checkPublishedBinding", () => {
+  const content = {
+    localeContent: { zh: { name: "下落跳" }, en: { name: "Drop Jump" } },
+    taxonomy: { sectionId: "LAND", objectiveIds: ["OBJ15"] },
+    refs: [] as CatalogObject["refs"],
+    legacyAttributes: { supervision: "Qualified adult/coach" },
+  };
+
+  function parent(overrides: Partial<CatalogObject> = {}): CatalogObject {
+    return {
+      id: "EX-1",
+      kind: "exercise",
+      sportId: "short_track",
+      ...content,
+      schemaVersion: CATALOG_SCHEMA_VERSION,
+      contentVersion: "v1",
+      status: "published",
+      reviewStatus: "approved",
+      createdAt: "2026-11-12T00:00:00.000Z",
+      updatedAt: "2026-11-12T00:00:00.000Z",
+      checksum: "abc",
+      publishedVersion: "v1",
+      ...overrides,
+    };
+  }
+
+  function version(overrides: Partial<CatalogVersion> = {}): CatalogVersion {
+    return {
+      contentVersion: "v1",
+      status: "published",
+      reviewStatus: "approved",
+      reviewer: "reviewer-1",
+      reviewedAt: "2026-11-12T00:00:00.000Z",
+      checksum: "abc",
+      ...content,
+      schemaVersion: CATALOG_SCHEMA_VERSION,
+      ...overrides,
+    };
+  }
+
+  it("accepts a parent bound to its published snapshot", () => {
+    expect(checkPublishedBinding(parent(), version())).toEqual([]);
+  });
+
+  it("reports each broken binding on its own", () => {
+    expect(checkPublishedBinding(parent({ status: "draft" }), version())).toContain("parent status is not published");
+    expect(checkPublishedBinding(parent({ publishedVersion: "v2" }), version())).toContain(
+      "publishedVersion does not match contentVersion",
+    );
+    expect(checkPublishedBinding(parent({ checksum: "other" }), version())).toContain("checksum does not match");
+    expect(checkPublishedBinding(parent(), version({ status: "draft" }))).toContain("version status is not published");
+    expect(checkPublishedBinding(parent(), version({ reviewStatus: "pending" }))).toContain(
+      "version reviewStatus is not approved",
+    );
+    expect(
+      checkPublishedBinding(
+        parent({ localeContent: { zh: { name: "其他" }, en: { name: "Other" } } }),
+        version(),
+      ),
+    ).toContain("content fields do not match");
+  });
+
+  it("rejects a withdrawn parent whose pointer was cleared", () => {
+    const withdrawn = parent({ status: "deprecated" });
+    delete withdrawn.publishedVersion;
+    const errors = checkPublishedBinding(withdrawn, version());
+    expect(errors).toContain("parent status is not published");
+    expect(errors).toContain("publishedVersion does not match contentVersion");
+  });
+});

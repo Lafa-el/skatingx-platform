@@ -7,6 +7,8 @@ import {
   REVIEW_STATUSES,
   canTransitionStatus,
   nextContentVersion,
+  publishCatalogVersion,
+  revokeCatalogApproval,
   type CatalogObject,
   type CatalogStatus,
   type CatalogVersion,
@@ -70,6 +72,8 @@ describe("nextContentVersion", () => {
   it("increments v1 to v2", () => {
     expect(nextContentVersion("v1")).toBe("v2");
     expect(nextContentVersion("v9")).toBe("v10");
+    expect(nextContentVersion("v9007199254740992")).toBe("v9007199254740993");
+    expect(nextContentVersion(`v1${"0".repeat(29)}`)).toBe(`v1${"0".repeat(28)}1`);
   });
 
   it("rejects values that are not v<n>", () => {
@@ -166,10 +170,98 @@ describe("CatalogVersion invariants", () => {
       refs: [],
       legacyAttributes: {},
       schemaVersion: CATALOG_SCHEMA_VERSION,
+      reviewStatus: "pending",
     };
     const documentId = version.contentVersion;
     expect(documentId).toBe("v1");
     expect(version.status).toBe("draft");
+    expect(version.reviewStatus).toBe("pending");
     expect(version.refs).toEqual([]);
   });
 });
+
+describe("revokeCatalogApproval", () => {
+  it("returns a draft and clears review fields without using the normal state machine", () => {
+    const approved = sampleObject("approved");
+    const revoked = revokeCatalogApproval(approved);
+    expect(canTransitionStatus("approved", "draft")).toBe(false);
+    expect(revoked.status).toBe("draft");
+    expect(revoked.reviewStatus).toBe(INITIAL_REVIEW_STATUS);
+    expect(revoked.reviewer).toBeUndefined();
+    expect(revoked.reviewedAt).toBeUndefined();
+    expect("reviewer" in revoked).toBe(false);
+    expect("reviewedAt" in revoked).toBe(false);
+    expect(revoked.localeContent).toEqual(approved.localeContent);
+    expect(revoked.checksum).toBe(approved.checksum);
+    expect(revoked.publishedVersion).toBe(approved.publishedVersion);
+  });
+
+  it("throws unless the object is approved", () => {
+    expect(() => revokeCatalogApproval(sampleObject("draft"))).toThrow(/approved/);
+    expect(() => revokeCatalogApproval(sampleObject("published"))).toThrow(/approved/);
+  });
+});
+
+describe("publishCatalogVersion", () => {
+  it("publishes an approved draft without changing content or review records", () => {
+    const snapshot: CatalogVersion = {
+      ...versionBody(),
+      status: "draft",
+      reviewStatus: "approved",
+      reviewer: "reviewer-1",
+      reviewedAt: "2026-11-12T00:00:00.000Z",
+    };
+    const published = publishCatalogVersion(snapshot);
+    expect(published.status).toBe("published");
+    expect(published.reviewStatus).toBe("approved");
+    expect(published.reviewer).toBe("reviewer-1");
+    expect(published.checksum).toBe(snapshot.checksum);
+    expect(published.localeContent).toEqual(snapshot.localeContent);
+    expect(published.legacyAttributes).toEqual(snapshot.legacyAttributes);
+  });
+
+  it("throws unless the snapshot is a draft that is already approved", () => {
+    expect(() => publishCatalogVersion({ ...versionBody(), status: "draft", reviewStatus: "pending" })).toThrow(
+      /approved/,
+    );
+    expect(() => publishCatalogVersion({ ...versionBody(), status: "published", reviewStatus: "approved" })).toThrow(
+      /approved/,
+    );
+  });
+});
+
+function sampleObject(status: CatalogObject["status"]): CatalogObject {
+  return {
+    id: "EX-SHAPE-001",
+    kind: "exercise",
+    sportId: "short_track",
+    localeContent: { zh: { name: "下落跳" }, en: { name: "Drop Jump" } },
+    schemaVersion: CATALOG_SCHEMA_VERSION,
+    contentVersion: "v1",
+    status,
+    reviewStatus: "approved",
+    reviewer: "reviewer-1",
+    reviewedAt: "2026-11-12T00:00:00.000Z",
+    createdAt: "2026-11-12T00:00:00.000Z",
+    updatedAt: "2026-11-12T00:00:00.000Z",
+    checksum: "abc",
+    publishedVersion: "v1",
+    taxonomy: { sectionId: "LAND", objectiveIds: ["OBJ15"] },
+    refs: [],
+    legacyAttributes: {},
+  };
+}
+
+function versionBody(): CatalogVersion {
+  return {
+    contentVersion: "v1",
+    status: "draft",
+    reviewStatus: "pending",
+    checksum: "abc",
+    localeContent: { zh: { name: "下落跳" }, en: { name: "Drop Jump" } },
+    taxonomy: { sectionId: "LAND", objectiveIds: [] },
+    refs: [],
+    legacyAttributes: {},
+    schemaVersion: CATALOG_SCHEMA_VERSION,
+  };
+}
