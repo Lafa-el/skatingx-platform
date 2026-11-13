@@ -24,3 +24,8 @@ export async function createRulesEnv(): Promise<RulesTestEnvironment> {
 }
 
 export const USERS = "artifacts/skatingx-production/users";
+
+/** Signed-in catalog admin. Claim shape is fixed in firestore-paths.md §5. */
+export function catalogAdminContext(env: RulesTestEnvironment, uid: string) {
+  return env.authenticatedContext(uid, { catalogAdmin: true });
+}
