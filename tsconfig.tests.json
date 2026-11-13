@@ -12,7 +12,8 @@
     "paths": {
       "@skatingx/schema": ["packages/schema/src/index.ts"],
       "@skatingx/skating-domain": ["packages/skating-domain/src/index.ts"],
-      "@skatingx/firebase-client": ["packages/firebase-client/src/index.ts"]
+      "@skatingx/firebase-client": ["packages/firebase-client/src/index.ts"],
+      "@skatingx/training-catalog": ["packages/training-catalog/src/index.ts"]
     }
   },
   "include": ["tests/**/*.ts", "docs/migration/analysis/contract-types.ts"]

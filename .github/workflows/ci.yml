@@ -37,5 +37,8 @@ jobs:
           java-version: "21"
       - run: npm run test:rules
 
+      # Catalog import dry run. Same emulator, demo project only. No production writes.
+      - run: npm run test:catalog-dry-run
+
       # Explicit "not applicable" until a migration script exists; fails if one appears.
       - run: npm run test:migration

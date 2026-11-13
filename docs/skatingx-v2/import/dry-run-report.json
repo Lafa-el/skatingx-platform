@@ -1,0 +1,36 @@
+{
+  "workbookSha256": "15e36d07501eaa514fc74a069060a56e1b387df8825f3369f1966112c93b180b",
+  "projectId": "demo-skatingx-import",
+  "gitHead": "530d23022a9485663801b4616cb41c1bb552ff5b",
+  "counts": {
+    "parents": 257,
+    "versions": 257,
+    "exercise": 120,
+    "drill": 68,
+    "block": 51,
+    "session": 18,
+    "refs": 172,
+    "blockToDrill": 115,
+    "sessionToBlock": 57
+  },
+  "checks": {
+    "emulatorGuard": "pass",
+    "workbookSha256": "pass",
+    "firstImport": "pass",
+    "counts": "pass",
+    "checksums": "pass",
+    "snapshots": "pass",
+    "canonicalFidelity": "pass",
+    "refs": "pass",
+    "cycles": "pass",
+    "conditionalSafety": "pass",
+    "idempotent": "pass",
+    "rulesSpotCheck": "pass",
+    "rollback": "pass"
+  },
+  "writes": {
+    "firstPass": 514,
+    "secondPass": 0
+  },
+  "remainingAfterRollback": 0
+}

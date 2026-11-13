@@ -14,7 +14,8 @@
     "test": "vitest",
     "test:rules": "node scripts/test-rules.mjs",
     "test:migration": "node scripts/test-migration.mjs",
-    "test:catalog": "node scripts/catalog/parse-workbook.test.mjs"
+    "test:catalog": "node scripts/catalog/parse-workbook.test.mjs",
+    "test:catalog-dry-run": "node scripts/catalog/import-dry-run.mjs"
   },
   "engines": {
     "node": ">=20.19"
