@@ -1,0 +1,18 @@
+{
+  "name": "@skatingx/training-catalog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SkatingX Training Catalog object types and version helpers (no Firestore)",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@skatingx/schema": "*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

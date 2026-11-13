@@ -1,6 +1,6 @@
 # Training Catalog 数据字典
 
-本文件是提议中的 Catalog 形状，对应 ADR-018 至 ADR-023。P0-1 的清单仍是解析器产物，不是这套字段的实现。`packages/training-catalog` 尚未建立。
+本文件是提议中的 Catalog 形状，对应 ADR-018 至 ADR-023。P0-1 的清单仍是解析器产物，不是这套字段的实现。`packages/training-catalog` 里是草案 schema，尚未冻结。
 
 ## CatalogObject
 
@@ -15,10 +15,11 @@
 | `localeContent.zh` | 中文。`name` 必填，`description` 可选。 |
 | `localeContent.en` | 英文。`name` 必填，`description` 可选。 |
 | `schemaVersion` | 本字典的形状版本。 |
-| `contentVersion` | 内容版本。已发布版本不可变；修正时递增（ADR-019）。 |
+| `contentVersion` | 内容版本。已发布版本不可变；修正时递增（ADR-019）。格式为 `v<n>`（`v1`、`v2`……）。 |
+| `publishedVersion?` | 当前已发布的 `contentVersion`。缺失表示尚未发布。 |
 | `status` | 生命周期，见下方状态机。与 `reviewStatus` 分开。 |
 | `reviewStatus` | 审核结果。与 `status` 分开。 |
-| `reviewedBy?` | 审核人。发布时须与最后编辑人不同（可行时，ADR-019）。 |
+| `reviewer?` | 审核人。发布时须与最后编辑人不同（可行时，ADR-019）。 |
 | `reviewedAt?` | 审核时间。 |
 | `createdAt` | 创建时间。 |
 | `updatedAt` | 最近更新时间。 |
@@ -40,6 +41,8 @@
 
 `in_review` 被拒绝时回到 `draft`，并记下原因。已发布版本不改写；修正是新的 `contentVersion`（ADR-019）。普通用户不能读 `draft` 与 `in_review`。
 
+`ReviewStatus` 取 `pending`、`in_review`、`approved`、`rejected`，初始值是 `pending`。`contentVersion` 格式为 `v<n>`，`n` 是从 1 起的正整数。`checksum` 是 canonical JSON（对象键按字典序递归排序后的 JSON 字符串，数组保持原顺序）的 SHA-256 十六进制。`schemaVersion` 为 `1`。拒绝原因不放在对象上，由受控流程写入审计日志。
+
 ## ACADEMY_CATALOG_LINKS
 
 人工审核的桥，模式与 `ROUTINE_MODULE_LINKS` 相同。
@@ -55,7 +58,7 @@
 
 ## TrainingTask.catalogRef
 
-**P0-3 待加。本步不实现，类型里还没有这个字段。**
+**已实现。P0-3 已加入 `packages/schema/src/catalog.ts`。**
 
 目标形状是可选的 `catalogRef: { kind, id, contentVersion }`。加上之后，`academyItemId`、`planEntryId`、`source` 仍保留。已有任务文档不批量改写。
 
