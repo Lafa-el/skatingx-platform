@@ -107,6 +107,30 @@ export interface CatalogObject {
   legacyAttributes: Record<string, unknown>;
 }
 
+/** Top-level CatalogObject keys. Unknown workbook columns stay in legacyAttributes. */
+export const CATALOG_OBJECT_FIELDS: ReadonlySet<string> = new Set([
+  "id",
+  "kind",
+  "sportId",
+  "disciplineId",
+  "localeContent",
+  "schemaVersion",
+  "contentVersion",
+  "status",
+  "reviewStatus",
+  "reviewer",
+  "reviewedAt",
+  "createdAt",
+  "updatedAt",
+  "sourceLegacyId",
+  "supersedesVersion",
+  "checksum",
+  "publishedVersion",
+  "taxonomy",
+  "refs",
+  "legacyAttributes",
+]);
+
 /**
  * versions 子集合的文档形状。
  * 不变量：版本文档 id 等于 contentVersion 字段；新建快照 status 必须是 draft；
