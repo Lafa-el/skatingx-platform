@@ -478,5 +478,184 @@ service cloud.firestore {
     match /{path=**}/profile/{profileId} {
       allow list: if request.auth != null && resource.data.userId == request.auth.uid;
     }
+
+    // Catalog permission matrix. Sibling of the users match. Formulas are the
+    // §3 conditions from docs/skatingx-v2/firestore-paths.md. get and list stay
+    // separate. Versions have no list, so a collection-group query cannot pass.
+    function catalogSignedIn() {
+      return request.auth != null;
+    }
+
+    function catalogAdmin() {
+      return catalogSignedIn() && request.auth.token.catalogAdmin == true;
+    }
+
+    function catalogPublishedRead() {
+      return catalogSignedIn() && (catalogAdmin() || resource.data.status == "published");
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogObjects/{objectId} {
+      allow get: if catalogPublishedRead();
+      allow list: if catalogPublishedRead();
+      allow create: if catalogAdmin()
+        && request.resource.data.status == "draft"
+        && request.resource.data.reviewStatus == "pending"
+        && !("reviewer" in request.resource.data)
+        && !("reviewedAt" in request.resource.data)
+        && !("publishedVersion" in request.resource.data);
+      allow update: if catalogAdmin()
+        && resource.data.status == "draft"
+        && request.resource.data.status == "draft"
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "publishedVersion"]);
+      allow delete: if false;
+
+      match /versions/{contentVersion} {
+        allow get: if catalogAdmin()
+          || (catalogSignedIn()
+            && resource.data.status == "published"
+            && exists(/databases/$(database)/documents/artifacts/skatingx-production/trainingCatalogObjects/$(objectId))
+            && get(/databases/$(database)/documents/artifacts/skatingx-production/trainingCatalogObjects/$(objectId)).data.status == "published"
+            && get(/databases/$(database)/documents/artifacts/skatingx-production/trainingCatalogObjects/$(objectId)).data.publishedVersion == contentVersion);
+        allow list: if false;
+        allow create: if catalogAdmin()
+          && request.resource.data.status == "draft"
+          && request.resource.data.contentVersion == contentVersion
+          && request.resource.data.reviewStatus == "pending"
+          && !("reviewer" in request.resource.data)
+          && !("reviewedAt" in request.resource.data);
+        allow update: if false;
+        allow delete: if false;
+      }
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogKnowledgeArticles/{articleId} {
+      allow get: if catalogPublishedRead();
+      allow list: if catalogPublishedRead();
+      allow create: if catalogAdmin()
+        && request.resource.data.status == "draft"
+        && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
+        && !("reviewer" in request.resource.data)
+        && !("reviewedAt" in request.resource.data);
+      allow update: if catalogAdmin()
+        && resource.data.status == "draft"
+        && request.resource.data.status == "draft"
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt"]);
+      allow delete: if catalogAdmin() && resource.data.status == "draft";
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogEvidenceRecords/{recordId} {
+      allow get: if catalogPublishedRead();
+      allow list: if catalogPublishedRead();
+      allow create: if catalogAdmin()
+        && request.resource.data.status == "draft"
+        && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
+        && !("reviewer" in request.resource.data)
+        && !("reviewedAt" in request.resource.data);
+      allow update: if catalogAdmin()
+        && resource.data.status == "draft"
+        && request.resource.data.status == "draft"
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt"]);
+      allow delete: if catalogAdmin() && resource.data.status == "draft";
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogTeachingMedia/{mediaId} {
+      allow get: if catalogPublishedRead();
+      allow list: if catalogPublishedRead();
+      allow create: if catalogAdmin()
+        && request.resource.data.status == "draft"
+        && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
+        && !("reviewer" in request.resource.data)
+        && !("reviewedAt" in request.resource.data);
+      allow update: if catalogAdmin()
+        && resource.data.status == "draft"
+        && request.resource.data.status == "draft"
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt"]);
+      allow delete: if catalogAdmin() && resource.data.status == "draft";
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogCorrectionRules/{ruleId} {
+      allow get: if catalogPublishedRead();
+      allow list: if catalogPublishedRead();
+      allow create: if catalogAdmin()
+        && request.resource.data.status == "draft"
+        && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
+        && !("reviewer" in request.resource.data)
+        && !("reviewedAt" in request.resource.data);
+      allow update: if catalogAdmin()
+        && resource.data.status == "draft"
+        && request.resource.data.status == "draft"
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt"]);
+      allow delete: if catalogAdmin() && resource.data.status == "draft";
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogSafetyPolicies/{policyId} {
+      allow get: if catalogAdmin();
+      allow list: if catalogAdmin();
+      allow create: if catalogAdmin()
+        && request.resource.data.status == "draft"
+        && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
+        && !("reviewer" in request.resource.data)
+        && !("reviewedAt" in request.resource.data);
+      allow update: if catalogAdmin()
+        && resource.data.status == "draft"
+        && request.resource.data.status == "draft"
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "policyVersion"]);
+      allow delete: if catalogAdmin() && resource.data.status == "draft";
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogLinks/{academyItemId} {
+      allow get: if catalogAdmin();
+      allow list: if catalogAdmin();
+      allow create: if catalogAdmin()
+        && !("reviewer" in request.resource.data)
+        && !("reviewedAt" in request.resource.data);
+      // reviewer and reviewedAt are both null only as an unreviewed-state check.
+      // Field protection stays on diff().affectedKeys().
+      allow update: if catalogAdmin()
+        && !exists(/databases/$(database)/documents/artifacts/skatingx-production/trainingCatalogPublicLinks/$(academyItemId))
+        && resource.data.get("reviewer", null) == null
+        && resource.data.get("reviewedAt", null) == null
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["reviewer", "reviewedAt"]);
+      allow delete: if catalogAdmin()
+        && !exists(/databases/$(database)/documents/artifacts/skatingx-production/trainingCatalogPublicLinks/$(academyItemId))
+        && resource.data.get("reviewer", null) == null
+        && resource.data.get("reviewedAt", null) == null;
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogReleases/{releaseId} {
+      allow get: if catalogPublishedRead();
+      allow list: if catalogPublishedRead();
+      allow create: if catalogAdmin()
+        && request.resource.data.status == "draft"
+        && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
+        && !("reviewer" in request.resource.data)
+        && !("reviewedAt" in request.resource.data)
+        && !("publishedVersion" in request.resource.data);
+      allow update: if catalogAdmin()
+        && resource.data.status == "draft"
+        && request.resource.data.status == "draft"
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "publishedVersion"]);
+      allow delete: if catalogAdmin()
+        && resource.data.status == "draft"
+        && !("publishedVersion" in resource.data);
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogMigrations/{migrationId} {
+      allow get: if catalogAdmin();
+      allow list: if catalogAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogAuditLogs/{logId} {
+      allow get: if catalogAdmin();
+      allow list: if catalogAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /artifacts/skatingx-production/trainingCatalogPublicLinks/{academyItemId} {
+      allow get: if catalogSignedIn();
+      allow list: if catalogSignedIn();
+      allow create, update, delete: if false;
+    }
   }
 }
