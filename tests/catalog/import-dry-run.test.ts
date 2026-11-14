@@ -1,15 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assertFails, assertSucceeds, initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { getApps, initializeApp } from "firebase-admin/app";
-import {
-  type DocumentData,
-  type Firestore,
-  getFirestore,
-} from "firebase-admin/firestore";
+import { type Firestore, getFirestore } from "firebase-admin/firestore";
 import { doc, getDoc } from "firebase/firestore";
 import { describe, expect, it } from "vitest";
 
@@ -18,44 +14,32 @@ import {
   CATALOG_SCHEMA_VERSION,
   type CatalogChecksumInput,
   type CatalogObject,
-  type CatalogVersion,
   canonicalCatalogJson,
   contentChecksumPayload,
   findCatalogCycles,
   INITIAL_REVIEW_STATUS,
-  type InventoryRecord,
-  mapInventoryRecordToCatalogContent,
 } from "@skatingx/training-catalog";
 import { computeCatalogChecksum } from "../../packages/training-catalog/src/checksum";
+import {
+  CONTENT_VERSION,
+  EXPECTED_WORKBOOK_SHA256,
+  IMPORT_ACTOR,
+  auditDocId,
+  beginRun,
+  documentData,
+  dumpCatalog,
+  importDocuments,
+  loadPlans,
+  readPlannedDocs,
+  rollbackImport,
+} from "../../scripts/catalog/import-core.mjs";
 
 const PROJECT_ID = "demo-skatingx-import";
-const EXPECTED_WORKBOOK_SHA256 =
-  "15e36d07501eaa514fc74a069060a56e1b387df8825f3369f1966112c93b180b";
-const CONTENT_VERSION = "v1";
-const BATCH_LIMIT = 400;
 const ROOT = "artifacts/skatingx-production";
 const OBJECTS = `${ROOT}/trainingCatalogObjects`;
-
-const CATALOG_COLLECTIONS = [
-  "trainingCatalogObjects",
-  "trainingCatalogKnowledgeArticles",
-  "trainingCatalogEvidenceRecords",
-  "trainingCatalogTeachingMedia",
-  "trainingCatalogCorrectionRules",
-  "trainingCatalogSafetyPolicies",
-  "trainingCatalogLinks",
-  "trainingCatalogReleases",
-  "trainingCatalogMigrations",
-  "trainingCatalogAuditLogs",
-  "trainingCatalogPublicLinks",
-] as const;
-
-const SHEETS = [
-  { sheet: "exercises", kind: "exercise" },
-  { sheet: "drills", kind: "drill" },
-  { sheet: "blocks", kind: "block" },
-  { sheet: "sessions", kind: "session" },
-] as const satisfies readonly { sheet: string; kind: CatalogKind }[];
+const AUDIT = `${ROOT}/trainingCatalogAuditLogs`;
+const MIGRATIONS = `${ROOT}/trainingCatalogMigrations`;
+const DRY_RUN_ID = "dry-run";
 
 const EXPECTED_COUNTS: Record<CatalogKind, number> = {
   exercise: 120,
@@ -73,13 +57,7 @@ const CONDITIONAL_SAFETY = {
 } as const;
 
 const rootDir = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../..");
-const inventoryPath = path.join(rootDir, "docs/skatingx-v2/inventory/workbook-inventory.json");
 const reportPath = path.join(rootDir, "docs/skatingx-v2/import/dry-run-report.json");
-
-interface PlannedDocument {
-  path: string;
-  data: CatalogObject | CatalogVersion;
-}
 
 interface DryRunReport {
   workbookSha256: string;
@@ -107,26 +85,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isCatalogKind(value: unknown): value is CatalogKind {
   return value === "exercise" || value === "drill" || value === "block" || value === "session";
-}
-
-function asInventoryRecord(value: unknown, label: string): InventoryRecord {
-  if (
-    !isRecord(value) ||
-    typeof value.id !== "string" ||
-    value.id === "" ||
-    typeof value.nameZh !== "string" ||
-    typeof value.nameEn !== "string" ||
-    !isRecord(value.legacyAttributes)
-  ) {
-    throw new Error(`invalid inventory record ${label}`);
-  }
-  return value as unknown as InventoryRecord;
-}
-
-function documentData(value: CatalogObject | CatalogVersion): DocumentData {
-  const parsed: unknown = JSON.parse(canonicalCatalogJson(value));
-  if (!isRecord(parsed)) throw new Error("canonical document was not an object");
-  return parsed;
 }
 
 function assertCanonicalEqual(label: string, actual: unknown, expected: unknown): void {
@@ -187,102 +145,6 @@ function openFirestore(): Firestore {
   return getFirestore(app);
 }
 
-function loadPlans(importedAt: string): { workbookSha256: string; plans: PlannedDocument[] } {
-  const parsed: unknown = JSON.parse(readFileSync(inventoryPath, "utf8"));
-  if (!isRecord(parsed) || typeof parsed.workbookSha256 !== "string" || !isRecord(parsed.objects)) {
-    throw new Error("workbook inventory shape is invalid");
-  }
-  if (parsed.workbookSha256 !== EXPECTED_WORKBOOK_SHA256) {
-    throw new Error(`workbookSha256 mismatch: ${parsed.workbookSha256}`);
-  }
-  const plans: PlannedDocument[] = [];
-  for (const { sheet, kind } of SHEETS) {
-    const rows = parsed.objects[sheet];
-    if (!Array.isArray(rows)) throw new Error(`inventory sheet ${sheet} is missing`);
-    rows.forEach((row, index) => {
-      const record = asInventoryRecord(row, `${sheet}[${index}]`);
-      const content = mapInventoryRecordToCatalogContent(kind, record);
-      const parent: CatalogObject = {
-        id: record.id,
-        kind,
-        sportId: "short_track",
-        localeContent: content.localeContent,
-        taxonomy: content.taxonomy,
-        refs: content.refs,
-        legacyAttributes: content.legacyAttributes,
-        schemaVersion: CATALOG_SCHEMA_VERSION,
-        contentVersion: CONTENT_VERSION,
-        status: "draft",
-        reviewStatus: INITIAL_REVIEW_STATUS,
-        checksum: computeCatalogChecksum(
-          contentChecksumPayload({ ...content, schemaVersion: CATALOG_SCHEMA_VERSION }),
-        ),
-        createdAt: importedAt,
-        updatedAt: importedAt,
-      };
-      const version: CatalogVersion = {
-        contentVersion: parent.contentVersion,
-        status: parent.status,
-        reviewStatus: parent.reviewStatus,
-        checksum: parent.checksum,
-        localeContent: parent.localeContent,
-        taxonomy: parent.taxonomy,
-        refs: parent.refs,
-        legacyAttributes: parent.legacyAttributes,
-        schemaVersion: parent.schemaVersion,
-      };
-      plans.push({ path: `${OBJECTS}/${parent.id}`, data: parent });
-      plans.push({ path: `${OBJECTS}/${parent.id}/versions/${CONTENT_VERSION}`, data: version });
-    });
-  }
-  return { workbookSha256: parsed.workbookSha256, plans };
-}
-
-async function readCatalog(db: Firestore): Promise<Map<string, Record<string, unknown>>> {
-  const found = new Map<string, Record<string, unknown>>();
-  for (const name of CATALOG_COLLECTIONS) {
-    const snap = await db.collection(`${ROOT}/${name}`).get();
-    for (const item of snap.docs) found.set(item.ref.path, item.data());
-  }
-  const versions = await db.collectionGroup("versions").get();
-  for (const item of versions.docs) found.set(item.ref.path, item.data());
-  return found;
-}
-
-function dumpCatalog(docs: ReadonlyMap<string, Record<string, unknown>>): string {
-  const sorted = [...docs.entries()].sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
-  return canonicalCatalogJson(Object.fromEntries(sorted));
-}
-
-async function importDocuments(db: Firestore, plans: readonly PlannedDocument[]): Promise<number> {
-  const existing = await readCatalog(db);
-  const pending = plans.filter((plan) => {
-    const current = existing.get(plan.path);
-    if (current === undefined) return true;
-    return canonicalCatalogJson(current) !== canonicalCatalogJson(plan.data);
-  });
-  for (let index = 0; index < pending.length; index += BATCH_LIMIT) {
-    const batch = db.batch();
-    for (const plan of pending.slice(index, index + BATCH_LIMIT)) {
-      batch.set(db.doc(plan.path), documentData(plan.data));
-    }
-    await batch.commit();
-  }
-  return pending.length;
-}
-
-async function deleteDocuments(db: Firestore, docPaths: readonly string[]): Promise<void> {
-  const versions = docPaths.filter((docPath) => docPath.includes("/versions/"));
-  const parents = docPaths.filter((docPath) => !docPath.includes("/versions/"));
-  for (const group of [versions, parents]) {
-    for (let index = 0; index < group.length; index += BATCH_LIMIT) {
-      const batch = db.batch();
-      for (const docPath of group.slice(index, index + BATCH_LIMIT)) batch.delete(db.doc(docPath));
-      await batch.commit();
-    }
-  }
-}
-
 function gitHead(): string {
   return execFileSync("git", ["rev-parse", "HEAD"], { cwd: rootDir, encoding: "utf8" }).trim();
 }
@@ -327,18 +189,17 @@ describe("catalog import dry run", () => {
       expect(CATALOG_SCHEMA_VERSION).toBe(1);
       expect(INITIAL_REVIEW_STATUS).toBe("pending");
 
-      // One clock for both passes. createdAt/updatedAt are part of the stored
-      // document, so a second pass only skips when it is given the same expected docs.
-      const importedAt = new Date().toISOString();
-      mark("workbookSha256");
-      const { workbookSha256, plans } = loadPlans(importedAt);
-      report.workbookSha256 = workbookSha256;
-
       const db = openFirestore();
+      mark("workbookSha256");
+      const run = await beginRun(db, { runId: DRY_RUN_ID, workbookSha256: EXPECTED_WORKBOOK_SHA256 });
+      const { workbookSha256, plans } = loadPlans(run.importedAt);
+      report.workbookSha256 = workbookSha256;
+      const runContext = { runId: run.runId, importedAt: run.importedAt, actor: IMPORT_ACTOR };
+
       mark("firstImport");
-      report.writes.firstPass = await importDocuments(db, plans);
+      report.writes.firstPass = await importDocuments(db, plans, runContext);
       expect(report.writes.firstPass).toBe(514);
-      const stored = await readCatalog(db);
+      const stored = await readPlannedDocs(db, plans);
 
       mark("counts");
       const parents = [...stored.entries()].filter(([docPath]) => !docPath.includes("/versions/"));
@@ -445,8 +306,8 @@ describe("catalog import dry run", () => {
 
       mark("idempotent");
       const before = dumpCatalog(stored);
-      report.writes.secondPass = await importDocuments(db, plans);
-      const afterDocs = await readCatalog(db);
+      report.writes.secondPass = await importDocuments(db, plans, runContext);
+      const afterDocs = await readPlannedDocs(db, plans);
       expect(report.writes.secondPass).toBe(0);
       expect(dumpCatalog(afterDocs)).toBe(before);
 
@@ -467,16 +328,27 @@ describe("catalog import dry run", () => {
       }
 
       mark("rollback");
-      await deleteDocuments(db, [...afterDocs.keys()]);
-      const remaining = await readCatalog(db);
+      await rollbackImport(db, run.runId);
+      const remaining = await readPlannedDocs(db, plans);
       report.remainingAfterRollback = remaining.size;
       expect(remaining.size).toBe(0);
-      for (const name of CATALOG_COLLECTIONS) {
-        const snap = await db.collection(`${ROOT}/${name}`).get();
-        expect(snap.size).toBe(0);
+      const parentIds = plans
+        .filter((plan) => !plan.path.includes("/versions/"))
+        .map((plan) => plan.path.slice(OBJECTS.length + 1));
+      expect(parentIds).toHaveLength(257);
+      const audits = await readPlannedDocs(
+        db,
+        parentIds.map((id) => ({ path: `${AUDIT}/${auditDocId(run.runId, id)}` })),
+      );
+      expect(audits.size).toBe(257);
+      for (const data of audits.values()) {
+        expect(data.action).toBe("import");
+        expect(data.result).toBe("ok");
+        expect(data.runId).toBe(run.runId);
       }
-      const leftoverVersions = await db.collectionGroup("versions").get();
-      expect(leftoverVersions.size).toBe(0);
+      const migration = (await db.doc(`${MIGRATIONS}/${run.runId}`).get()).data();
+      expect(migration?.status).toBe("rolled_back");
+      expect(typeof migration?.rolledBackAt).toBe("string");
     } catch (error) {
       if (current) report.checks[current] = "fail";
       writeReport(report);

@@ -132,8 +132,11 @@ async function wipe(db: Firestore): Promise<void> {
     const snap = await db.collection(`${ROOT}/${name}`).get();
     for (const item of snap.docs) paths.push(item.ref.path);
   }
-  const versions = await db.collectionGroup("versions").get();
-  for (const item of versions.docs) paths.push(item.ref.path);
+  const parents = await db.collection(`${ROOT}/trainingCatalogObjects`).get();
+  for (const parent of parents.docs) {
+    const versions = await db.collection(`${parent.ref.path}/versions`).get();
+    for (const item of versions.docs) paths.push(item.ref.path);
+  }
   const unique = [...new Set(paths)];
   for (let index = 0; index < unique.length; index += 400) {
     const batch = db.batch();
