@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 
 export interface VerificationCheck {
   name: string;
+  status: "pass" | "fail" | "skipped";
   passed: boolean;
   detail: string;
   paths: string[];
@@ -26,7 +27,13 @@ export interface CatalogVerification {
   checks: VerificationCheck[];
   business: { countBefore: number; countAfter: number; changes: Array<{ path: string; kind: string }> };
   conflicts: Array<{ path: string; kind: string }>;
-  idempotency: { mode: string; invoked?: boolean; actualContentWrites?: number | null; actualAuditWrites?: number | null };
+  idempotency: {
+    mode: string;
+    invoked?: boolean;
+    note?: string;
+    actualContentWrites?: number | null;
+    actualAuditWrites?: number | null;
+  };
   passed: boolean;
 }
 
@@ -40,7 +47,11 @@ export interface CatalogRead {
   audits: Array<{ path: string; data: Record<string, unknown> }>;
 }
 
-export function readCatalogVerification(db: Firestore, runId: string): Promise<CatalogRead>;
+export function readCatalogVerification(
+  db: Firestore,
+  runId: string,
+  mode?: "emulator" | "production",
+): Promise<CatalogRead>;
 
 export function evaluateCatalogImport(input: {
   mode: "emulator" | "production";

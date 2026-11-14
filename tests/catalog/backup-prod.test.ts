@@ -15,6 +15,7 @@ import {
   decodeValue,
   encodeValue,
   fetchObjectMetadata,
+  loadBusinessBaseline,
   restoreBackupToEmulator,
   snapshotBusiness,
   verifyBackup,
@@ -82,7 +83,7 @@ describe("business backup", () => {
     ]);
     const outDir = mkdtempSync(path.join(os.tmpdir(), "skatingx-backup-"));
     dirs.push(outDir);
-    const summary = writeBackup(outDir, first.documents, {
+    const summary = writeBackup(outDir, first, {
       projectId: PROJECT_ID,
       databaseId: "(default)",
       repoRoot: rootDir,
@@ -93,8 +94,12 @@ describe("business backup", () => {
     expect(JSON.stringify(summary)).not.toContain("Backup Athlete");
     expect(statSync(path.join(outDir, "documents.json")).mode & 0o777).toBe(0o600);
     const checked = verifyBackup(outDir);
+    expect(checked.snapshot.schemaVersion).toBe(first.schemaVersion);
+    expect(checked.snapshot.readAt).toBe(first.readAt);
+    expect(Array.isArray(checked.snapshot.documents)).toBe(true);
     expect(checked.manifest.fileSha256).toBe(summary.fileSha256);
     expect(checked.manifest.documentCount).toBe(first.documents.length);
+    expect(loadBusinessBaseline(path.join(outDir, "documents.json")).documents).toHaveLength(first.documents.length);
 
     for (const document of first.documents) await db.doc(document.path).delete();
     await restoreBackupToEmulator(db, checked.documents, { projectId: PROJECT_ID });
@@ -115,7 +120,7 @@ describe("business backup", () => {
   it("detects a missing or corrupt backup and refuses a workspace path", () => {
     const outDir = mkdtempSync(path.join(os.tmpdir(), "skatingx-backup-"));
     dirs.push(outDir);
-    writeBackup(outDir, [], {
+    writeBackup(outDir, { documents: [], readAt: "2026-11-14T00:00:00.000Z", schemaVersion: "race-day-v1+user-video-library" }, {
       projectId: PROJECT_ID,
       databaseId: "(default)",
       repoRoot: rootDir,
@@ -127,6 +132,9 @@ describe("business backup", () => {
     expect(() => verifyBackup(path.join(outDir, "missing"))).toThrow(/corrupt/);
     expect(() => assertBackupOutput(rootDir, { repoRoot: rootDir, projectId: PROJECT_ID })).toThrow(/git workspace/);
     expect(() => assertBackupOptions({ projectId: "skatingx-prod", skipStorage: true })).toThrow(/skip-storage/);
+    const arrayPath = path.join(outDir, "array.json");
+    writeFileSync(arrayPath, `${JSON.stringify([{ path: "a", sha256: "b" }])}\n`);
+    expect(() => loadBusinessBaseline(arrayPath)).toThrow("基线必须是备份快照对象，不是文档数组");
   });
 
   it("classifies storage references and external urls without downloading bytes", async () => {

@@ -84,6 +84,7 @@ export function planBatches(
 export function readPlannedDocs(
   db: Firestore,
   plans: readonly { path: string }[],
+  mode?: "emulator" | "production",
 ): Promise<Map<string, Record<string, unknown>>>;
 
 export function dumpCatalog(docs: ReadonlyMap<string, Record<string, unknown>>): string;
