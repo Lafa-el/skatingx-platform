@@ -1,7 +1,8 @@
 // Read-only check of the live Firestore ruleset for skatingx-prod.
 // This module never calls create, patch, delete, or deploy.
+// The #181 baseline is the committed text file, so a shallow CI checkout can
+// verify it without fetching older history.
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,10 +22,7 @@ export function sha256Text(value) {
 }
 
 export function readRepoRules(rootDir) {
-  const baseline = execFileSync("git", ["show", `${RULES_BASELINE_COMMIT}:firestore.rules`], {
-    cwd: rootDir,
-    encoding: "utf8",
-  });
+  const baseline = readFileSync(path.join(rootDir, "docs/skatingx-v2/import/rules-baseline-181.txt"), "utf8");
   const candidate = readFileSync(path.join(rootDir, "firestore.rules"), "utf8");
   return { baseline, candidate };
 }
