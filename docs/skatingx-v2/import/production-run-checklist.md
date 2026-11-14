@@ -6,7 +6,7 @@
 
 - 线上 Rules 只读核对：`scripts/catalog/verify-live-rules.mjs`。默认拒绝访问生产。受控环境设置 `SKATINGX_RULES_READ=allow` 后才读取。`--postdeploy` 只用于部署之后的独立核对。
 - 业务数据只读备份：`scripts/catalog/backup-prod.mjs`。生产读取需要 `SKATINGX_BACKUP_READ=allow`。`--skip-storage` 不能用于生产成功报告。备份必须加密保存，且不得写入 Git 工作区。
-- 导入验收：`scripts/catalog/verify-import.mjs`。模拟器验收可以做一次 resume，并确认内容与审计新增写入为 0。生产验收设置 `SKATINGX_IMPORT_VERIFY=allow` 后只读，不启动导入程序。
+- 导入验收：`scripts/catalog/verify-import.mjs` 只读，不启动导入。幂等由 `scripts/catalog/check-idempotency.mjs` 在 demo- 模拟器上单独验证。生产验收设置 `SKATINGX_IMPORT_VERIFY=allow` 后只读，不启动导入程序。
 - `scripts/catalog/run-import.mjs` 的生产连接保持关闭。
 
 ## 执行顺序

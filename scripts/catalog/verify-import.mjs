@@ -1,6 +1,6 @@
-// Emulator verification may resume once. Production verification only reads and
-// never starts the importer. This command does not open that production read
-// unless SKATINGX_IMPORT_VERIFY=allow is set in a controlled shell.
+// Read-only catalog acceptance. This command never starts an import and never writes.
+// Idempotency is checked by scripts/catalog/check-idempotency.mjs, not here.
+// Production reads require SKATINGX_IMPORT_VERIFY=allow and no emulator host.
 import { register } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -11,10 +11,8 @@ import { getFirestore } from "firebase-admin/firestore";
 const here = path.dirname(fileURLToPath(import.meta.url));
 await register(pathToFileURL(path.join(here, "typescript-loader.mjs")).href, { parentURL: import.meta.url });
 
-const { evaluateCatalogImport, readCatalogVerification, checkDraftReads, resumeIdempotency, businessReport, verificationActions } = await import("./verify-catalog.mjs");
-const { snapshotBusiness } = await import("./backup-prod.mjs");
-
-const rootDir = path.resolve(here, "../..");
+const { evaluateCatalogImport, readCatalogVerification, checkDraftReads, businessReport, verificationActions } = await import("./verify-catalog.mjs");
+const { loadBusinessBaseline, snapshotBusiness } = await import("./backup-prod.mjs");
 
 function argument(flag) {
   const index = process.argv.indexOf(flag);
@@ -44,9 +42,9 @@ async function main() {
   }
   const app = initializeApp({ projectId }, `catalog-verify-${runId}`);
   const db = getFirestore(app);
-  const read = await readCatalogVerification(db, runId);
+  const read = await readCatalogVerification(db, runId, mode);
   const after = await snapshotBusiness(db);
-  const before = baselinePath ? JSON.parse((await import("node:fs")).readFileSync(baselinePath, "utf8")) : after;
+  const before = baselinePath ? loadBusinessBaseline(baselinePath) : after;
   const business = businessReport(before, after);
   const rules = actions.rulesClient
     ? await checkDraftReads({
@@ -56,9 +54,6 @@ async function main() {
       draftPath: "artifacts/skatingx-production/trainingCatalogObjects/EX-L039",
     })
     : { skipped: true };
-  const idempotency = actions.resume
-    ? resumeIdempotency({ runId, projectId, rootDir })
-    : { skipped: true, invoked: false };
   const report = evaluateCatalogImport({
     mode,
     runId,
@@ -73,7 +68,7 @@ async function main() {
     audits: read.audits,
     business,
     rules,
-    idempotency,
+    idempotency: { skipped: true, invoked: false },
   });
   console.log(JSON.stringify(report));
   if (!report.passed) process.exitCode = 1;

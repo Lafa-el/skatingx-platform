@@ -18,6 +18,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { PRODUCTION_PROJECT_ID } from "./import-guard.mjs";
+
 import {
   CATALOG_SCHEMA_VERSION,
   INITIAL_REVIEW_STATUS,
@@ -104,6 +106,21 @@ export function projectIdOf(db) {
 
 function assertDemoProject(db) {
   assertDemoProjectId(projectIdOf(db));
+}
+
+function assertReadMode(db, mode) {
+  if (mode === "production") {
+    const projectId = projectIdOf(db);
+    if (projectId !== PRODUCTION_PROJECT_ID) {
+      throw new Error("refusing to read: production mode requires project id skatingx-prod");
+    }
+    if (process.env.FIRESTORE_EMULATOR_HOST) {
+      throw new Error("refusing production read while FIRESTORE_EMULATOR_HOST is set");
+    }
+    return;
+  }
+  if (mode !== "emulator") throw new Error(`refusing to read: unknown mode ${mode}`);
+  assertDemoProject(db);
 }
 
 export function databaseIdOf(db) {
@@ -275,8 +292,8 @@ export function planBatches(plans, runId, context) {
   return batches;
 }
 
-export async function readPlannedDocs(db, plans) {
-  assertDemoProject(db);
+export async function readPlannedDocs(db, plans, mode = "emulator") {
+  assertReadMode(db, mode);
   const found = new Map();
   const chunkSize = 200;
   for (let index = 0; index < plans.length; index += chunkSize) {

@@ -180,7 +180,7 @@ export async function snapshotBusiness(db) {
     for (const video of videos.docs) documents.push(packDocument(video, readAt));
   }
   documents.sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
-  return { documents, readAt };
+  return { documents, readAt, schemaVersion: SCHEMA_VERSION };
 }
 
 export function compareBusiness(before, after) {
@@ -219,10 +219,36 @@ export function assertBackupOptions({ projectId, skipStorage }) {
   }
 }
 
-export function manifestFor(documents, { projectId, databaseId, storage }) {
+export function assertBusinessSnapshot(value) {
+  if (Array.isArray(value) || !value || typeof value !== "object" || !Array.isArray(value.documents)) {
+    throw new Error("基线必须是备份快照对象，不是文档数组");
+  }
+  if (typeof value.readAt !== "string" || typeof value.schemaVersion !== "string") {
+    throw new Error("基线必须是备份快照对象，不是文档数组");
+  }
+  for (const document of value.documents) {
+    if (typeof document?.path !== "string" || document.path === "" || typeof document?.sha256 !== "string" || document.sha256 === "") {
+      throw new Error("backup document is missing path or sha256");
+    }
+  }
+  return { documents: value.documents, readAt: value.readAt, schemaVersion: value.schemaVersion };
+}
+
+export function loadBusinessBaseline(filePath) {
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(filePath, "utf8"));
+  } catch (error) {
+    throw new Error("backup file is missing or corrupt", { cause: error });
+  }
+  return assertBusinessSnapshot(parsed);
+}
+
+export function manifestFor(snapshot, { projectId, databaseId, storage }) {
+  const documents = assertBusinessSnapshot(snapshot).documents;
   const paths = documents.map((item) => item.path);
   const pathDigest = sha256Text(paths.join("\n"));
-  const fileSha256 = sha256Text(stable(documents));
+  const fileSha256 = sha256Text(stable(assertBusinessSnapshot(snapshot)));
   const body = {
     projectId,
     databaseId,
@@ -237,14 +263,15 @@ export function manifestFor(documents, { projectId, databaseId, storage }) {
   return { ...body, overallSha256: sha256Text(stable(body)) };
 }
 
-export function writeBackup(outDir, documents, meta) {
+export function writeBackup(outDir, snapshot, meta) {
   const resolved = assertBackupOutput(outDir, meta);
+  const body = assertBusinessSnapshot(snapshot);
   mkdirSync(resolved, { recursive: true, mode: 0o700 });
   chmodSync(resolved, 0o700);
-  const manifest = manifestFor(documents, meta);
+  const manifest = manifestFor(body, meta);
   const docsPath = path.join(resolved, "documents.json");
   const manifestPath = path.join(resolved, "manifest.json");
-  writeFileSync(docsPath, `${stable(documents)}\n`, { mode: 0o600 });
+  writeFileSync(docsPath, `${stable(body)}\n`, { mode: 0o600 });
   writeFileSync(manifestPath, `${stable(manifest)}\n`, { mode: 0o600 });
   chmodSync(docsPath, 0o600);
   chmodSync(manifestPath, 0o600);
@@ -262,23 +289,24 @@ export function writeBackup(outDir, documents, meta) {
 export function verifyBackup(outDir) {
   const docsPath = path.join(outDir, "documents.json");
   const manifestPath = path.join(outDir, "manifest.json");
-  let documents;
+  let snapshot;
   let manifest;
   try {
-    documents = JSON.parse(readFileSync(docsPath, "utf8"));
+    snapshot = loadBusinessBaseline(docsPath);
     manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   } catch (error) {
+    if (error instanceof Error && error.message === "基线必须是备份快照对象，不是文档数组") throw error;
     throw new Error("backup file is missing or corrupt", { cause: error });
   }
-  if (!Array.isArray(documents) || sha256Text(stable(documents)) !== manifest.fileSha256) {
+  if (sha256Text(stable(snapshot)) !== manifest.fileSha256) {
     throw new Error("backup file is missing or corrupt");
   }
-  const rebuilt = manifestFor(documents, manifest);
+  const rebuilt = manifestFor(snapshot, manifest);
   if (rebuilt.overallSha256 !== manifest.overallSha256 || rebuilt.pathDigest !== manifest.pathDigest) {
     throw new Error("backup file is missing or corrupt");
   }
   if (manifest.videoBinaryBackedUp !== false) throw new Error("backup file is missing or corrupt");
-  return { documents, manifest };
+  return { documents: snapshot.documents, snapshot, manifest };
 }
 
 export async function restoreBackupToEmulator(db, documents, { projectId }) {
@@ -329,7 +357,7 @@ async function main() {
       fetchImpl: globalThis.fetch,
     }));
   if (storage.failures?.length) throw new Error(`storage check failed: ${storage.failures[0].path}`);
-  const summary = writeBackup(outDir, snap.documents, {
+  const summary = writeBackup(outDir, snap, {
     projectId: projectIdOf(db) || projectId,
     databaseId: databaseIdOf(db),
     repoRoot: rootDir,

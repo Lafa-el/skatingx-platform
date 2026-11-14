@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -6,7 +8,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { type Firestore, getFirestore } from "firebase-admin/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { snapshotBusiness } from "../../scripts/catalog/backup-prod.mjs";
+import { loadBusinessBaseline, snapshotBusiness, writeBackup } from "../../scripts/catalog/backup-prod.mjs";
 import {
   CONTENT_VERSION,
   EXPECTED_WORKBOOK_SHA256,
@@ -15,13 +17,13 @@ import {
   beginRun,
   executeImport,
   loadPlans,
+  readPlannedDocs,
 } from "../../scripts/catalog/import-core.mjs";
 import {
   businessReport,
   checkDraftReads,
   evaluateCatalogImport,
   readCatalogVerification,
-  resumeIdempotency,
   verificationActions,
 } from "../../scripts/catalog/verify-catalog.mjs";
 
@@ -81,17 +83,26 @@ type Report = Awaited<ReturnType<typeof evaluateCatalogImport>>;
 
 describe.sequential("catalog import verification", () => {
   const db = openFirestore();
-  let baseline: Awaited<ReturnType<typeof snapshotBusiness>>;
+  let baselineFile = "";
   let rules: Awaited<ReturnType<typeof checkDraftReads>>;
-  let idempotency: { actualContentWrites: number | null; actualAuditWrites: number | null };
   let plans: Awaited<ReturnType<typeof loadPlans>>["plans"];
+  const dirs: string[] = [];
 
   beforeAll(async () => {
     await wipeCatalog(db);
     await db.doc(USER_PATH).set({ displayName: "Verify Athlete" });
     await db.doc(`${USER_PATH}/raceDay/event-1/results/race_roster`).set({ status: "finished" });
     await db.doc(`${USER_PATH}/videos/video-1`).set({ title: "clip", externalUrl: "https://example.com/clip" });
-    baseline = await snapshotBusiness(db);
+    const baseline = await snapshotBusiness(db);
+    const outDir = mkdtempSync(path.join(os.tmpdir(), "skatingx-verify-baseline-"));
+    dirs.push(outDir);
+    writeBackup(outDir, baseline, {
+      projectId: PROJECT_ID,
+      databaseId: "(default)",
+      repoRoot: rootDir,
+      storage: { skipped: true, failures: [], videoBinaryBackedUp: false },
+    });
+    baselineFile = path.join(outDir, "documents.json");
     const run = await beginRun(db, {
       runId: RUN_ID,
       workbookSha256: EXPECTED_WORKBOOK_SHA256,
@@ -107,14 +118,10 @@ describe.sequential("catalog import verification", () => {
       projectId: PROJECT_ID,
       draftPath: `${OBJECTS}/EX-L039`,
     });
-    const resumed = resumeIdempotency({ runId: RUN_ID, projectId: PROJECT_ID, rootDir });
-    if (resumed.actualContentWrites !== 0 || resumed.actualAuditWrites !== 0) {
-      throw new Error("resume wrote catalog documents during verification setup");
-    }
-    idempotency = resumed;
   });
 
   afterAll(async () => {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
     const snap = await snapshotBusiness(db);
     for (const document of snap.documents) {
       if (document.path === USER_PATH || document.path.startsWith(`${USER_PATH}/`)) await db.doc(document.path).delete();
@@ -135,9 +142,9 @@ describe.sequential("catalog import verification", () => {
       stored: read.stored,
       inspected: read.inspected,
       audits: read.audits,
-      business: businessReport(baseline, await snapshotBusiness(db)),
+      business: businessReport(loadBusinessBaseline(baselineFile), await snapshotBusiness(db)),
       rules,
-      idempotency,
+      idempotency: { skipped: true },
     });
   }
 
@@ -149,13 +156,45 @@ describe.sequential("catalog import verification", () => {
 
   it("accepts a complete import and the three client contexts", async () => {
     const report = await currentReport();
-    const problems = report.checks.filter((item) => !item.passed).map((item) => `${item.name}: ${item.detail}`);
+    const problems = report.checks.filter((item) => item.status !== "skipped" && !item.passed).map((item) => `${item.name}: ${item.detail}`);
     expect(problems, problems.join("; ")).toEqual([]);
     expect(report.passed).toBe(true);
+    expect(failed(report, "idempotency").status).toBe("skipped");
+    expect(report.idempotency).toMatchObject({
+      mode: "read-only",
+      invoked: false,
+      note: "幂等由独立的集成测试入口验证，不由本次只读验收验证",
+    });
     expect(report.counts).toMatchObject({ exercise: 120, drill: 68, block: 51, session: 18, refs: 172, audits: 257 });
     expect(rules).toEqual({ anonymous: "denied", signedIn: "denied", admin: "allowed" });
     expect(JSON.stringify(report)).not.toContain("Verify Athlete");
     expect(verificationActions("production")).toEqual({ resume: false, rulesClient: false, writes: false });
+    const child = spawnSync(process.execPath, [
+      path.join(rootDir, "scripts/catalog/verify-import.mjs"),
+      "--project", PROJECT_ID,
+      "--runId", RUN_ID,
+      "--git-head", "verify-git",
+      "--workbook-sha256", EXPECTED_WORKBOOK_SHA256,
+      "--business-baseline", baselineFile,
+    ], { cwd: rootDir, encoding: "utf8", env: process.env });
+    expect(child.status, `${child.stderr}\n${child.stdout}`).toBe(0);
+    const cli = JSON.parse(child.stdout) as Report;
+    expect(cli.passed).toBe(true);
+    expect(cli.idempotency).toMatchObject({ mode: "read-only", invoked: false });
+  });
+
+  it("checks resume idempotency from the separate emulator entry", () => {
+    const child = spawnSync(process.execPath, [
+      path.join(rootDir, "scripts/catalog/check-idempotency.mjs"),
+      "--runId", RUN_ID,
+      "--target", "emulator",
+      "--project", PROJECT_ID,
+    ], { cwd: rootDir, encoding: "utf8", env: process.env });
+    expect(child.status, `${child.stderr}\n${child.stdout}`).toBe(0);
+    const result = JSON.parse(child.stdout) as { actualContentWrites: number; actualAuditWrites: number; passed: boolean };
+    expect(result.actualContentWrites).toBe(0);
+    expect(result.actualAuditWrites).toBe(0);
+    expect(result.passed).toBe(true);
   });
 
   it("rejects a tampered parent or snapshot and writes nothing", async () => {
@@ -282,7 +321,42 @@ describe.sequential("catalog import verification", () => {
       idempotency: { skipped: true, invoked: false },
     });
     expect(production.idempotency).toMatchObject({ mode: "read-only", invoked: false });
-    expect(failed(production, "idempotency").passed).toBe(true);
+    expect(failed(production, "idempotency").status).toBe("skipped");
+    expect(failed(production, "idempotency").passed).toBe(false);
     expect(production.passed).toBe(false);
+  });
+});
+
+describe("production read guard", () => {
+  it("reads planned paths in production mode and still rejects a non-demo emulator read", async () => {
+    const previous = process.env.FIRESTORE_EMULATOR_HOST;
+    const ops: string[] = [];
+    const db = {
+      _settings: { projectId: "skatingx-prod", databaseId: "(default)" },
+      doc(docPath: string) {
+        ops.push("doc");
+        return { path: docPath };
+      },
+      async getAll(...refs: Array<{ path: string }>) {
+        ops.push("getAll");
+        return refs.map((ref) => ({ exists: false, ref }));
+      },
+    };
+    delete process.env.FIRESTORE_EMULATOR_HOST;
+    try {
+      const found = await readPlannedDocs(db as never, [{ path: `${OBJECTS}/EX-L001` }], "production");
+      expect(found.size).toBe(0);
+      expect(ops).toEqual(["doc", "getAll"]);
+    } finally {
+      if (previous === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+      else process.env.FIRESTORE_EMULATOR_HOST = previous;
+    }
+    await expect(readPlannedDocs(db as never, [{ path: `${OBJECTS}/EX-L001` }])).rejects.toThrow(/demo-/);
+  });
+
+  it("keeps write calls out of the read-only verifier", () => {
+    const source = readFileSync(path.join(rootDir, "scripts/catalog/verify-import.mjs"), "utf8");
+    expect(source).not.toMatch(/batch\.set|batch\.delete|\.set\(|\.update\(/);
+    expect(source).not.toMatch(/--execute|resumeIdempotency/);
   });
 });

@@ -28,22 +28,29 @@ export function fetchObjectMetadata(input: {
   }>;
 }): Promise<{ bucket: string; name: string; size: string } | null>;
 
-export function snapshotBusiness(db: Firestore): Promise<{
-  documents: Array<{ path: string; sha256: string; encoded: unknown; readAt: string; updateTime: string | null }>;
+export interface BusinessSnapshot {
+  documents: Array<{ path: string; sha256: string; encoded: unknown; readAt?: string; updateTime?: string | null }>;
   readAt: string;
-}>;
+  schemaVersion: string;
+}
+
+export function snapshotBusiness(db: Firestore): Promise<BusinessSnapshot>;
+
+export function assertBusinessSnapshot(value: unknown): BusinessSnapshot;
+export function loadBusinessBaseline(filePath: string): BusinessSnapshot;
 
 export function assertBackupOutput(outDir: string, meta: { repoRoot: string; projectId: string }): string;
 export function assertBackupOptions(input: { projectId: string; skipStorage: boolean }): void;
 
 export function writeBackup(
   outDir: string,
-  documents: ReadonlyArray<{ path: string; sha256: string; encoded: unknown }>,
+  snapshot: BusinessSnapshot,
   meta: { projectId: string; databaseId: string; repoRoot: string; storage: { videoBinaryBackedUp: false; skipped?: boolean; failures?: unknown[] } },
 ): { videoBinaryBackedUp: false; encryptionAtRest: string; fileSha256: string; documentCount: number };
 
 export function verifyBackup(outDir: string): {
   documents: Array<{ path: string; sha256: string; encoded: unknown }>;
+  snapshot: BusinessSnapshot;
   manifest: { fileSha256: string; documentCount: number; videoBinaryBackedUp: false };
 };
 

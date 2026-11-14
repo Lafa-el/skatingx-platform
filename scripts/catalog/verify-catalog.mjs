@@ -37,8 +37,10 @@ const CONDITIONAL_SAFETY = {
 const FORBIDDEN = ["sourceLegacyId", "supersedesVersion", "publishedVersion", "reviewer", "reviewedAt", "source", "exerciseRefsSource"];
 
 function check(name, passed, detail, paths = []) {
-  return { name, passed: Boolean(passed), detail, paths };
+  return { name, status: passed ? "pass" : "fail", passed: Boolean(passed), detail, paths };
 }
+
+const IDEMPOTENCY_SKIPPED = "幂等由独立的集成测试入口验证，不由本次只读验收验证";
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -68,14 +70,14 @@ function storedMap(stored) {
   return new Map(stored.map((item) => [item.path, item.data]));
 }
 
-export async function readCatalogVerification(db, runId) {
+export async function readCatalogVerification(db, runId, mode = "emulator") {
   const migrationSnap = await db.doc(`${ROOT}/${MIGRATIONS}/${runId}`).get();
   const migration = migrationSnap.exists ? migrationSnap.data() : null;
   const inspected = await inspectCatalog(db);
   const plans = migration?.importedAt ? loadPlans(migration.importedAt).plans : [];
-  const storedDocs = plans.length === 0 ? new Map() : await readPlannedDocs(db, plans);
+  const storedDocs = plans.length === 0 ? new Map() : await readPlannedDocs(db, plans, mode);
   const auditPaths = inspected.collectionDocs.get(AUDIT) ?? [];
-  const auditDocs = auditPaths.length === 0 ? new Map() : await readPlannedDocs(db, auditPaths.map((docPath) => ({ path: docPath })));
+  const auditDocs = auditPaths.length === 0 ? new Map() : await readPlannedDocs(db, auditPaths.map((docPath) => ({ path: docPath })), mode);
   return {
     projectId: projectIdOf(db),
     databaseId: databaseIdOf(db),
@@ -249,14 +251,17 @@ export function evaluateCatalogImport(input) {
   ));
 
   const idem = input.idempotency ?? {};
-  if (input.mode === "production") {
-    checks.push(check("idempotency", idem.skipped === true && idem.invoked !== true, "read-only; import was not started"));
-  } else {
+  const hasCounts = typeof idem.actualContentWrites === "number" && typeof idem.actualAuditWrites === "number";
+  if (idem.skipped === true) {
+    checks.push({ name: "idempotency", status: "skipped", passed: false, detail: IDEMPOTENCY_SKIPPED, paths: [] });
+  } else if (hasCounts) {
     checks.push(check(
       "idempotency",
       idem.actualContentWrites === 0 && idem.actualAuditWrites === 0,
-      `content ${String(idem.actualContentWrites)} audits ${String(idem.actualAuditWrites)}`,
+      `content ${idem.actualContentWrites} audits ${idem.actualAuditWrites}`,
     ));
+  } else {
+    checks.push(check("idempotency", false, "idempotency result is missing"));
   }
 
   const rules = input.rules ?? {};
@@ -282,14 +287,21 @@ export function evaluateCatalogImport(input) {
     conflicts,
     audit: { expected: expectedAudits.size, actual: auditPaths.length, duplicateObjects: [...seenObjects.entries()].filter(([, count]) => count > 1).map(([id]) => id) },
     migration: { status: migration.status ?? null, progress: migration.progress ?? null, baseBudget: BASE_IMPORT_BUDGET },
-    idempotency: input.mode === "production" ? { mode: "read-only", invoked: false } : { mode: "emulator", actualContentWrites: idem.actualContentWrites ?? null, actualAuditWrites: idem.actualAuditWrites ?? null },
-    passed: checks.every((item) => item.passed),
+    idempotency: idem.skipped === true
+      ? { mode: "read-only", invoked: false, note: IDEMPOTENCY_SKIPPED }
+      : {
+        mode: input.mode === "production" ? "read-only" : "emulator",
+        invoked: true,
+        actualContentWrites: idem.actualContentWrites ?? null,
+        actualAuditWrites: idem.actualAuditWrites ?? null,
+      },
+    passed: checks.filter((item) => item.status !== "skipped").every((item) => item.passed),
   };
 }
 
 export function verificationActions(mode) {
   if (mode === "production") return { resume: false, rulesClient: false, writes: false };
-  if (mode === "emulator") return { resume: true, rulesClient: true, writes: false };
+  if (mode === "emulator") return { resume: false, rulesClient: true, writes: false };
   throw new Error("mode must be emulator or production");
 }
 
