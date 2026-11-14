@@ -122,6 +122,7 @@ describe.sequential("catalog import verification", () => {
 
   afterAll(async () => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+    await wipeCatalog(db);
     const snap = await snapshotBusiness(db);
     for (const document of snap.documents) {
       if (document.path === USER_PATH || document.path.startsWith(`${USER_PATH}/`)) await db.doc(document.path).delete();

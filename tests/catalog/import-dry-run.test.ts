@@ -40,6 +40,19 @@ const OBJECTS = `${ROOT}/trainingCatalogObjects`;
 const AUDIT = `${ROOT}/trainingCatalogAuditLogs`;
 const MIGRATIONS = `${ROOT}/trainingCatalogMigrations`;
 const DRY_RUN_ID = "dry-run";
+const COLLECTIONS = [
+  "trainingCatalogObjects",
+  "trainingCatalogKnowledgeArticles",
+  "trainingCatalogEvidenceRecords",
+  "trainingCatalogTeachingMedia",
+  "trainingCatalogCorrectionRules",
+  "trainingCatalogSafetyPolicies",
+  "trainingCatalogLinks",
+  "trainingCatalogReleases",
+  "trainingCatalogMigrations",
+  "trainingCatalogAuditLogs",
+  "trainingCatalogPublicLinks",
+] as const;
 
 const EXPECTED_COUNTS: Record<CatalogKind, number> = {
   exercise: 120,
@@ -133,6 +146,25 @@ function emulatorAddress(): { host: string; port: number } {
   return { host: raw.slice(0, colon), port };
 }
 
+async function wipeCatalog(db: Firestore): Promise<void> {
+  const paths: string[] = [];
+  for (const name of COLLECTIONS) {
+    const snap = await db.collection(`${ROOT}/${name}`).get();
+    for (const item of snap.docs) paths.push(item.ref.path);
+  }
+  const refs = await db.collection(OBJECTS).listDocuments();
+  for (const ref of refs) {
+    const versions = await db.collection(`${ref.path}/versions`).get();
+    for (const item of versions.docs) paths.push(item.ref.path);
+  }
+  const unique = [...new Set(paths)];
+  for (let index = 0; index < unique.length; index += 400) {
+    const batch = db.batch();
+    for (const docPath of unique.slice(index, index + 400)) batch.delete(db.doc(docPath));
+    await batch.commit();
+  }
+}
+
 function openFirestore(): Firestore {
   if (!PROJECT_ID.startsWith("demo-")) {
     throw new Error(`refusing to run: project id ${PROJECT_ID} is not a demo- project`);
@@ -190,6 +222,9 @@ describe("catalog import dry run", () => {
       expect(INITIAL_REVIEW_STATUS).toBe("pending");
 
       const db = openFirestore();
+      // Catalog files share one emulator. Clear anything an earlier file left
+      // behind so this import starts from the committed inventory.
+      await wipeCatalog(db);
       mark("workbookSha256");
       const run = await beginRun(db, { runId: DRY_RUN_ID, workbookSha256: EXPECTED_WORKBOOK_SHA256 });
       const { workbookSha256, plans } = loadPlans(run.importedAt);
