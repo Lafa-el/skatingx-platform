@@ -193,10 +193,13 @@ export function formatExecutionSummary(summary) {
     `plannedAuditWrites: ${summary.plannedAuditWrites}`,
     `plannedMigrationCreates: ${summary.plannedMigrationCreates}`,
     `baseBudget: ${summary.baseBudget}`,
+    `roundBudget: ${summary.roundBudget ?? summary.plannedContentWrites + summary.plannedAuditWrites + summary.plannedMigrationCreates}`,
+    `remainingObjectGroups: ${summary.remainingObjectGroups ?? ""}`,
     `authUsers: ${authText}`,
     businessText,
     `userPath: ${FIRESTORE_USERS_COLLECTION}`,
     `raceResultPath: ${RACE_RESULT_PATH}`,
     `videoMetadataPath: ${VIDEO_METADATA_PATH}`,
+    "safety: production import is disabled; writes require --execute on a demo- emulator",
   ].join("\n");
 }

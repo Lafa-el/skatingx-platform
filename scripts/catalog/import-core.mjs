@@ -36,12 +36,12 @@ const BATCH_LIMIT = 400;
 const DOCS_PER_OBJECT = 3;
 const MAX_OBJECTS_PER_BATCH = Math.floor(BATCH_LIMIT / DOCS_PER_OBJECT);
 const BASE_CONTENT_DOCS = 514;
-const BASE_IMPORT_BUDGET = 772;
+export const BASE_IMPORT_BUDGET = 772;
 const ROOT = "artifacts/skatingx-production";
 const OBJECTS = "trainingCatalogObjects";
 const AUDIT = "trainingCatalogAuditLogs";
 const MIGRATIONS = "trainingCatalogMigrations";
-const CATALOG_COLLECTIONS = [
+export const CATALOG_COLLECTIONS = [
   "trainingCatalogObjects",
   "trainingCatalogKnowledgeArticles",
   "trainingCatalogEvidenceRecords",
@@ -94,7 +94,7 @@ export function assertDemoProjectId(projectId) {
   }
 }
 
-function projectIdOf(db) {
+export function projectIdOf(db) {
   const settings = db._settings;
   if (settings && typeof settings.projectId === "string" && settings.projectId !== "") {
     return settings.projectId;
@@ -106,7 +106,7 @@ function assertDemoProject(db) {
   assertDemoProjectId(projectIdOf(db));
 }
 
-function databaseIdOf(db) {
+export function databaseIdOf(db) {
   if (typeof db.databaseId === "string" && db.databaseId !== "") return db.databaseId;
   const settings = db._settings;
   if (settings && typeof settings.databaseId === "string" && settings.databaseId !== "") {
@@ -327,7 +327,7 @@ function classifyObject(object, existing) {
   };
 }
 
-async function inspectCatalog(db) {
+export async function inspectCatalog(db) {
   const collectionDocs = new Map();
   for (const name of CATALOG_COLLECTIONS) {
     const snap = await db.collection(collectionPath(name)).get();
@@ -401,6 +401,41 @@ export async function assertResumeCatalog(db, plans, runId) {
     throw new Error(`resume refused: run ${runId} is rolled_back`);
   }
   return migration.data();
+}
+
+export async function previewImport(db, plans, context) {
+  assertDemoProject(db);
+  const runId = requireText(context.runId, "runId");
+  const importedAt = requireText(context.importedAt, "importedAt");
+  const actor = requireText(context.actor ?? IMPORT_ACTOR, "actor");
+  const objects = objectPlans(plans, runId, { actor, importedAt });
+  const existing = await readPlannedDocs(
+    db,
+    objects.flatMap((object) => object.docs),
+  );
+  const mismatched = [];
+  const incomplete = [];
+  let present = 0;
+  let absent = 0;
+  for (const object of objects) {
+    const classified = classifyObject(object, existing);
+    if (classified.kind === "mismatch") mismatched.push(...classified.details);
+    else if (classified.kind === "incomplete") incomplete.push(classified.detail);
+    else if (classified.kind === "absent") absent += 1;
+    else present += 1;
+  }
+  return {
+    present,
+    absent,
+    mismatched,
+    incomplete,
+    plannedContentWrites: absent * 2,
+    plannedAuditWrites: absent,
+    plannedMigrationCreates: 0,
+    baseBudget: BASE_IMPORT_BUDGET,
+    roundBudget: absent * DOCS_PER_OBJECT,
+    remainingObjectGroups: absent,
+  };
 }
 
 export async function executeImport(db, plans, context) {

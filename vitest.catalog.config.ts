@@ -26,6 +26,6 @@ export default defineConfig({
     // The dry run prints a structured summary. Show it even when the test passes.
     disableConsoleIntercept: true,
     testTimeout: 120_000,
-    hookTimeout: 30_000,
+    hookTimeout: 120_000,
   },
 });

@@ -3,6 +3,14 @@ import type { Firestore } from "firebase-admin/firestore";
 export const EXPECTED_WORKBOOK_SHA256: string;
 export const CONTENT_VERSION: string;
 export const IMPORT_ACTOR: string;
+export const BASE_IMPORT_BUDGET: number;
+export const CATALOG_COLLECTIONS: readonly string[];
+
+export function inspectCatalog(db: Firestore): Promise<{
+  collectionDocs: Map<string, string[]>;
+  orphans: string[];
+  versionPaths: string[];
+}>;
 
 export interface PlannedDocument<T = Record<string, unknown>> {
   path: string;
@@ -56,6 +64,9 @@ export interface ImportRunContext {
   actor?: string;
 }
 
+export function projectIdOf(db: Firestore): string;
+export function databaseIdOf(db: Firestore): string;
+
 export function assertDemoProjectId(projectId: string): void;
 
 export function auditDocId(runId: string, objectId: string): string;
@@ -102,6 +113,23 @@ export function assertResumeIdentity(
     planSummary: PlanSummary;
   },
 ): MigrationRecord;
+
+export function previewImport(
+  db: Firestore,
+  plans: readonly PlannedDocument[],
+  context: ImportRunContext,
+): Promise<{
+  present: number;
+  absent: number;
+  mismatched: string[];
+  incomplete: string[];
+  plannedContentWrites: number;
+  plannedAuditWrites: number;
+  plannedMigrationCreates: number;
+  baseBudget: number;
+  roundBudget: number;
+  remainingObjectGroups: number;
+}>;
 
 export function executeImport(
   db: Firestore,
