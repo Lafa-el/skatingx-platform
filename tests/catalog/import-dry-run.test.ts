@@ -29,6 +29,7 @@ import {
   documentData,
   dumpCatalog,
   importDocuments,
+  importLockPath,
   loadPlans,
   readPlannedDocs,
   rollbackImport,
@@ -229,7 +230,12 @@ describe("catalog import dry run", () => {
       const run = await beginRun(db, { runId: DRY_RUN_ID, workbookSha256: EXPECTED_WORKBOOK_SHA256 });
       const { workbookSha256, plans } = loadPlans(run.importedAt);
       report.workbookSha256 = workbookSha256;
-      const runContext = { runId: run.runId, importedAt: run.importedAt, actor: IMPORT_ACTOR };
+      const runContext = {
+        runId: run.runId,
+        importedAt: run.importedAt,
+        actor: run.actor ?? IMPORT_ACTOR,
+        lockToken: run.lockToken ?? "",
+      };
 
       mark("firstImport");
       report.writes.firstPass = await importDocuments(db, plans, runContext);
@@ -363,7 +369,7 @@ describe("catalog import dry run", () => {
       }
 
       mark("rollback");
-      await rollbackImport(db, run.runId);
+      await rollbackImport(db, run.runId, { lockToken: run.lockToken ?? "" });
       const remaining = await readPlannedDocs(db, plans);
       report.remainingAfterRollback = remaining.size;
       expect(remaining.size).toBe(0);
@@ -384,6 +390,10 @@ describe("catalog import dry run", () => {
       const migration = (await db.doc(`${MIGRATIONS}/${run.runId}`).get()).data();
       expect(migration?.status).toBe("rolled_back");
       expect(typeof migration?.rolledBackAt).toBe("string");
+      expect((await db.doc(importLockPath()).get()).data()?.status).toBe("rolled_back");
+      await expect(
+        beginRun(db, { runId: DRY_RUN_ID, workbookSha256: EXPECTED_WORKBOOK_SHA256 }),
+      ).rejects.toThrow(/rolled_back/);
     } catch (error) {
       if (current) report.checks[current] = "fail";
       writeReport(report);

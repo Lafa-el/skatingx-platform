@@ -8,11 +8,18 @@
 // record and rebuilds the same documents. Matching documents are not written.
 // A stored document that differs from the plan throws the path and the expected
 // and actual checksums, and is never overwritten.
+// One lock document, __import_lock, is the run mutex. It is not catalog content
+// and is not part of the 772 write budget. Only the token holder may write.
+// A second executor is refused while that token is held. Taking over a live
+// holder requires recoverImportLock with an explicit confirmation. There is no
+// timeout takeover. Create-only batches use batch.create so an existing path
+// fails the batch instead of being overwritten.
 // F03: initial import checks an empty catalog before creating a run. Resume
 // rebuilds documents from the stored importedAt and actor, writes only fully
 // missing object groups, and refuses partial groups or content drift.
-// F04: rollback deletes parent and snapshot documents only. Import audit records
-// stay. The migration status becomes rolled_back and rolledBackAt is set.
+// F04: rollback deletes parent and snapshot documents only, and only after the
+// holder and the stored plan have been checked. Import audit records stay.
+// The migration status becomes rolled_back and rolledBackAt is set.
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -77,6 +84,12 @@ function objectPath(objectId) {
 
 function migrationPath(runId) {
   return `${collectionPath(MIGRATIONS)}/${runId}`;
+}
+
+export const IMPORT_LOCK_ID = "__import_lock";
+
+export function importLockPath() {
+  return migrationPath(IMPORT_LOCK_ID);
 }
 
 export function auditDocId(runId, objectId) {
@@ -371,7 +384,116 @@ function allowedPaths(plans, runId) {
     if (!plan.path.includes("/versions/")) allowed.add(auditPath(runId, plan.data.id));
   }
   allowed.add(migrationPath(runId));
+  allowed.add(importLockPath());
   return allowed;
+}
+
+function newLockToken() {
+  return createHash("sha256").update(`${Date.now()}:${Math.random()}:${process.pid}:${importLockPath()}`).digest("hex");
+}
+
+function parentPathPattern() {
+  return new RegExp(`^${collectionPath(OBJECTS)}/[^/]+$`);
+}
+
+function snapshotPathPattern() {
+  return new RegExp(`^${collectionPath(OBJECTS)}/[^/]+/versions/${CONTENT_VERSION}$`);
+}
+
+function isParentPath(docPath) {
+  return parentPathPattern().test(docPath);
+}
+
+function isSnapshotPath(docPath) {
+  return snapshotPathPattern().test(docPath);
+}
+
+function contentPathsOf(plans) {
+  if (!Array.isArray(plans)) throw new Error("delete refused: verified plan is required");
+  const allowed = new Set();
+  for (const plan of plans) {
+    const docPath = plan && typeof plan.path === "string" ? plan.path : "";
+    if (!isParentPath(docPath) && !isSnapshotPath(docPath)) {
+      throw new Error(`delete refused: verified plan contains ${docPath || "(missing path)"}`);
+    }
+    if (allowed.has(docPath)) throw new Error(`delete refused: verified plan repeats ${docPath}`);
+    allowed.add(docPath);
+  }
+  return allowed;
+}
+
+function deletionProblem(docPath, allowed) {
+  if (typeof docPath !== "string" || docPath.trim() === "" || docPath !== docPath.trim() || docPath.includes("//")) {
+    return `malformed path ${String(docPath)}`;
+  }
+  if (docPath.includes("/trainingCatalogAuditLogs/") || docPath.includes("/trainingCatalogMigrations/")) {
+    return `refusing to delete run record ${docPath}`;
+  }
+  if (!isParentPath(docPath) && !isSnapshotPath(docPath)) {
+    return `path is outside the verified plan ${docPath}`;
+  }
+  if (!allowed.has(docPath)) return `path is outside the verified plan ${docPath}`;
+  return "";
+}
+
+async function assertCatalogEmptyForInitial(tx, db) {
+  for (const name of CATALOG_COLLECTIONS) {
+    const snap = await tx.get(db.collection(collectionPath(name)));
+    for (const doc of snap.docs) {
+      if (doc.ref.path === importLockPath()) continue;
+      throw new Error(`initial refused: ${name} is not empty (${doc.ref.path})`);
+    }
+  }
+}
+
+async function claimLock(db, claim) {
+  const ref = db.doc(importLockPath());
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error("import refused: lock is missing");
+    const lock = snap.data();
+    if (lock.runId !== claim.runId || lock.token !== claim.token || lock.actor !== claim.actor) {
+      throw new Error(`import refused: lock is not held by ${claim.runId}`);
+    }
+    if (lock.status === "held") return;
+    if (lock.status === "released" || lock.status === "failed") {
+      tx.update(ref, { status: "held", acquiredAt: new Date().toISOString() });
+      return;
+    }
+    throw new Error(`import refused: lock is ${lock.status}`);
+  });
+}
+
+async function updateHeldLock(db, claim, patch) {
+  const ref = db.doc(importLockPath());
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error("import refused: lock is missing");
+    const lock = snap.data();
+    if (lock.status !== "held" || lock.token !== claim.token || lock.runId !== claim.runId || lock.actor !== claim.actor) {
+      throw new Error("import refused: refusing to change a lock held by another executor");
+    }
+    tx.update(ref, patch);
+  });
+}
+
+async function failLock(db, claim, failure) {
+  const ref = db.doc(importLockPath());
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const lock = snap.data();
+    if (lock.status !== "held" || lock.token !== claim.token || lock.runId !== claim.runId) return;
+    tx.update(ref, {
+      status: "failed",
+      failedAt: new Date().toISOString(),
+      failure: String(failure).slice(0, 500),
+    });
+  });
+}
+
+function batchLine(batch) {
+  return `batch ${batch.index} objects=${batch.objects} writes=${batch.writes} cumulativeContent=${batch.cumulativeContent} cumulativeAudits=${batch.cumulativeAudits}`;
 }
 
 export async function preflightInitial(db, plans) {
@@ -389,7 +511,8 @@ export async function preflightInitial(db, plans) {
     throw new Error(`initial refused: orphan catalog path ${inspected.orphans[0]}`);
   }
   for (const [name, paths] of inspected.collectionDocs) {
-    if (paths.length > 0) throw new Error(`initial refused: ${name} is not empty (${paths[0]})`);
+    const content = paths.filter((docPath) => docPath !== importLockPath());
+    if (content.length > 0) throw new Error(`initial refused: ${name} is not empty (${content[0]})`);
   }
   const existing = await readPlannedDocs(db, plans);
   if (existing.size > 0) {
@@ -405,6 +528,7 @@ export async function assertResumeCatalog(db, plans, runId) {
   const unknown = [...inspected.orphans];
   for (const paths of inspected.collectionDocs.values()) {
     for (const docPath of paths) {
+      if (docPath === importLockPath()) continue;
       if (!allowed.has(docPath)) unknown.push(docPath);
     }
   }
@@ -455,82 +579,161 @@ export async function previewImport(db, plans, context) {
   };
 }
 
+async function recordProgress(migrationRef, fields, committedBatch) {
+  try {
+    await migrationRef.update({ ...fields, updatedAt: new Date().toISOString() });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    if (committedBatch) {
+      throw new Error(
+        `batch ${fields.lastCompletedBatch} committed ${committedBatch.objects} objects; migration progress update failed: ${reason}`,
+        { cause: error },
+      );
+    }
+    throw new Error(`migration progress update failed after content was already committed: ${reason}`, { cause: error });
+  }
+}
+
 export async function executeImport(db, plans, context) {
   assertDemoProject(db);
   const runId = requireText(context.runId, "runId");
   const importedAt = requireText(context.importedAt, "importedAt");
   const actor = requireText(context.actor ?? IMPORT_ACTOR, "actor");
-  const objects = objectPlans(plans, runId, { actor, importedAt });
-  const existing = await readPlannedDocs(
-    db,
-    objects.flatMap((object) => object.docs),
-  );
-  const mismatches = [];
-  const incomplete = [];
-  const absent = [];
-  let skippedExisting = 0;
-  for (const object of objects) {
-    const classified = classifyObject(object, existing);
-    if (classified.kind === "mismatch") mismatches.push(...classified.details);
-    else if (classified.kind === "incomplete") incomplete.push(classified.detail);
-    else if (classified.kind === "absent") absent.push(object);
-    else skippedExisting += 1;
-  }
-  if (mismatches.length > 0) throw new Error(`import refused: ${mismatches.join("; ")}`);
-  if (incomplete.length > 0) throw new Error(`import refused: ${incomplete.join("; ")}`);
-  const limit = context.stopAfterObjects;
-  const work =
-    typeof limit === "number" && limit >= 0 ? absent.slice(0, limit) : absent;
-  const batches = [];
-  let cumulativeContent = 0;
-  let cumulativeAudits = 0;
-  for (let index = 0; index < work.length; index += MAX_OBJECTS_PER_BATCH) {
-    const slice = work.slice(index, index + MAX_OBJECTS_PER_BATCH);
-    const batch = db.batch();
-    for (const object of slice) {
-      for (const doc of object.docs) batch.set(db.doc(doc.path), documentData(doc.data));
+  const token = requireText(context.lockToken, "lockToken");
+  const claim = { runId, actor, token };
+  let owned = false;
+  try {
+    await claimLock(db, claim);
+    owned = true;
+    const objects = objectPlans(plans, runId, { actor, importedAt });
+    const existing = await readPlannedDocs(
+      db,
+      objects.flatMap((object) => object.docs),
+    );
+    const mismatches = [];
+    const incomplete = [];
+    const absent = [];
+    let skippedExisting = 0;
+    for (const object of objects) {
+      const classified = classifyObject(object, existing);
+      if (classified.kind === "mismatch") mismatches.push(...classified.details);
+      else if (classified.kind === "incomplete") incomplete.push(classified.detail);
+      else if (classified.kind === "absent") absent.push(object);
+      else skippedExisting += 1;
     }
-    await batch.commit();
-    cumulativeContent += slice.length * 2;
-    cumulativeAudits += slice.length;
-    batches.push({
-      index: batches.length + 1,
-      objects: slice.length,
-      writes: slice.length * DOCS_PER_OBJECT,
-      cumulativeContent,
-      cumulativeAudits,
-    });
-  }
-  const remainingPlanned = absent.length - work.length;
-  const runStatus = remainingPlanned === 0 ? "completed" : "running";
-  let actualMigrationWrites = 0;
-  const migrationRef = db.doc(migrationPath(runId));
-  const migrationSnap = await migrationRef.get();
-  if (migrationSnap.exists) {
-    const current = migrationSnap.data();
-    const progress = { completedObjects: skippedExisting + work.length, remainingObjects: remainingPlanned };
-    const sameProgress =
-      current.status === runStatus &&
-      current.progress?.completedObjects === progress.completedObjects &&
-      current.progress?.remainingObjects === progress.remainingObjects;
-    if (!sameProgress) {
-      await migrationRef.update({ status: runStatus, progress, updatedAt: new Date().toISOString() });
-      actualMigrationWrites += 1;
+    if (mismatches.length > 0) throw new Error(`import refused: ${mismatches.join("; ")}`);
+    if (incomplete.length > 0) throw new Error(`import refused: ${incomplete.join("; ")}`);
+    const limit = context.stopAfterObjects;
+    const work =
+      typeof limit === "number" && limit >= 0 ? absent.slice(0, limit) : absent;
+    const batches = [];
+    let cumulativeContent = 0;
+    let cumulativeAudits = 0;
+    let committedObjects = 0;
+    const migrationRef = db.doc(migrationPath(runId));
+    for (let index = 0; index < work.length; index += MAX_OBJECTS_PER_BATCH) {
+      const slice = work.slice(index, index + MAX_OBJECTS_PER_BATCH);
+      const batchIndex = batches.length + 1;
+      const paths = slice.flatMap((object) => object.docs.map((doc) => doc.path));
+      await claimLock(db, claim);
+      if (typeof context.beforeBatch === "function") {
+        await context.beforeBatch({ index: batchIndex, paths });
+      }
+      const batch = db.batch();
+      for (const object of slice) {
+        for (const doc of object.docs) batch.create(db.doc(doc.path), documentData(doc.data));
+      }
+      try {
+        await batch.commit();
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        if (reason.startsWith("injected ")) {
+          throw new Error(`import refused: batch ${batchIndex} commit failed: ${reason}`, { cause: error });
+        }
+        const found = await readPlannedDocs(db, paths.map((docPath) => ({ path: docPath })));
+        const conflicts = [...found.keys()];
+        throw new Error(
+          `import refused: create conflict ${conflicts.join(", ") || "(path unavailable)"}: ${reason}`,
+          { cause: error },
+        );
+      }
+      cumulativeContent += slice.length * 2;
+      cumulativeAudits += slice.length;
+      committedObjects += slice.length;
+      const entry = {
+        index: batchIndex,
+        objects: slice.length,
+        writes: slice.length * DOCS_PER_OBJECT,
+        cumulativeContent,
+        cumulativeAudits,
+      };
+      batches.push(entry);
+      const remainingAfterBatch = absent.length - committedObjects;
+      const progress = {
+        completedObjects: skippedExisting + committedObjects,
+        remainingObjects: remainingAfterBatch,
+      };
+      const runStatus = remainingAfterBatch === 0 ? "completed" : "running";
+      await recordProgress(migrationRef, {
+        status: runStatus,
+        progress,
+        completedObjects: progress.completedObjects,
+        remainingObjects: progress.remainingObjects,
+        cumulativeContentWrites: cumulativeContent,
+        cumulativeAuditWrites: cumulativeAudits,
+        lastCompletedBatch: batchIndex,
+      }, entry);
+      console.error(batchLine(entry));
     }
+    const remainingPlanned = absent.length - work.length;
+    const runStatus = remainingPlanned === 0 ? "completed" : "running";
+    let actualMigrationWrites = batches.length;
+    if (work.length === 0) {
+      const progress = { completedObjects: skippedExisting, remainingObjects: remainingPlanned };
+      const current = (await migrationRef.get()).data() ?? {};
+      const sameProgress =
+        current.status === runStatus &&
+        current.progress?.completedObjects === progress.completedObjects &&
+        current.progress?.remainingObjects === progress.remainingObjects;
+      if (!sameProgress) {
+        await recordProgress(migrationRef, {
+          status: runStatus,
+          progress,
+          completedObjects: progress.completedObjects,
+          remainingObjects: progress.remainingObjects,
+          cumulativeContentWrites: current.cumulativeContentWrites ?? 0,
+          cumulativeAuditWrites: current.cumulativeAuditWrites ?? 0,
+          lastCompletedBatch: current.lastCompletedBatch ?? 0,
+        }, null);
+        actualMigrationWrites += 1;
+      }
+    }
+    await updateHeldLock(db, claim, { status: "released", releasedAt: new Date().toISOString() });
+    return {
+      plannedContentWrites: absent.length * 2,
+      plannedAuditWrites: absent.length,
+      plannedMigrationCreates: 0,
+      actualContentWrites: work.length * 2,
+      actualAuditWrites: work.length,
+      actualMigrationWrites,
+      skippedExisting,
+      remainingPlanned,
+      idempotent: work.length === 0 && remainingPlanned === 0,
+      runStatus,
+      batches,
+    };
+  } catch (error) {
+    if (owned && context.leaveLockHeld !== true) {
+      const reason = error instanceof Error ? error.message : String(error);
+      try {
+        await failLock(db, claim, reason);
+      } catch (lockError) {
+        const lockReason = lockError instanceof Error ? lockError.message : String(lockError);
+        throw new Error(`${reason}; lock update failed: ${lockReason}`, { cause: lockError });
+      }
+    }
+    throw error;
   }
-  return {
-    plannedContentWrites: absent.length * 2,
-    plannedAuditWrites: absent.length,
-    plannedMigrationCreates: 0,
-    actualContentWrites: work.length * 2,
-    actualAuditWrites: work.length,
-    actualMigrationWrites,
-    skippedExisting,
-    remainingPlanned,
-    idempotent: work.length === 0 && remainingPlanned === 0,
-    runStatus,
-    batches,
-  };
 }
 
 export async function importDocuments(db, plans, context) {
@@ -538,10 +741,38 @@ export async function importDocuments(db, plans, context) {
   return report.actualContentWrites;
 }
 
-export async function deleteDocuments(db, docPaths) {
+export async function deleteDocuments(db, request) {
   assertDemoProject(db);
-  const versions = docPaths.filter((docPath) => docPath.includes("/versions/"));
-  const parents = docPaths.filter((docPath) => !docPath.includes("/versions/"));
+  const runId = requireText(request.runId, "runId");
+  const allowed = contentPathsOf(request.plans);
+  const docPaths = request.paths;
+  if (!Array.isArray(docPaths)) throw new Error("delete refused: paths are required");
+  const seen = new Set();
+  const problems = [];
+  for (const docPath of docPaths) {
+    if (typeof docPath === "string" && seen.has(docPath)) problems.push(`duplicate path ${docPath}`);
+    if (typeof docPath === "string") seen.add(docPath);
+    const problem = deletionProblem(docPath, allowed);
+    if (problem) problems.push(problem);
+  }
+  if (problems.length > 0) throw new Error(`delete refused: ${problems.join("; ")}`);
+  const token = requireText(request.lockToken, "lockToken");
+  const lockSnap = await db.doc(importLockPath()).get();
+  const lock = lockSnap.exists ? lockSnap.data() : null;
+  if (!lock || lock.status !== "held" || lock.token !== token || lock.runId !== runId) {
+    throw new Error(`delete refused: lock is not held by ${runId}`);
+  }
+  if (request.expected instanceof Map) {
+    for (const docPath of docPaths) {
+      const snap = await db.doc(docPath).get();
+      const actual = snap.exists ? canonicalCatalogJson(snap.data()) : "";
+      if (actual !== request.expected.get(docPath)) {
+        throw new Error(`rollback refused: ${docPath} changed after verification`);
+      }
+    }
+  }
+  const versions = docPaths.filter((docPath) => isSnapshotPath(docPath));
+  const parents = docPaths.filter((docPath) => isParentPath(docPath));
   for (const group of [versions, parents]) {
     for (let index = 0; index < group.length; index += BATCH_LIMIT) {
       const batch = db.batch();
@@ -554,6 +785,7 @@ export async function deleteDocuments(db, docPaths) {
 export async function beginRun(db, input) {
   assertDemoProject(db);
   const runId = requireText(input.runId, "runId");
+  if (runId === IMPORT_LOCK_ID) throw new Error("refusing to run: runId is reserved");
   const workbookSha256 = requireText(input.workbookSha256, "workbookSha256");
   if (workbookSha256 !== EXPECTED_WORKBOOK_SHA256) {
     throw new Error(`workbookSha256 mismatch: ${workbookSha256}`);
@@ -562,30 +794,97 @@ export async function beginRun(db, input) {
   const importedAt = new Date().toISOString();
   const summary = planSummary(loadPlans(importedAt).plans);
   const ref = db.doc(migrationPath(runId));
+  const lockRef = db.doc(importLockPath());
   return db.runTransaction(async (tx) => {
+    const lockSnap = await tx.get(lockRef);
     const snap = await tx.get(ref);
+    const lock = lockSnap.exists ? lockSnap.data() : null;
+    if (lock?.status === "held") throw new Error(`import lock is held by ${lock.runId}`);
+    if (lock && lock.runId !== runId && lock.status !== "released" && lock.status !== "rolled_back") {
+      throw new Error(`import lock belongs to ${lock.runId}`);
+    }
+    if (!snap.exists && input.initial === true) await assertCatalogEmptyForInitial(tx, db);
     if (snap.exists) {
       const stored = snap.data();
-      if (requestedActor !== "" && requestedActor !== actorOf(stored)) {
-        throw new Error(`actor mismatch: expected ${actorOf(stored)}`);
+      if (stored.status === "rolled_back") throw new Error(`resume refused: run ${runId} is rolled_back`);
+      const actor = actorOf(stored);
+      if (requestedActor !== "" && requestedActor !== actor) {
+        throw new Error(`actor mismatch: expected ${actor}`);
       }
-      return { ...stored, created: false };
+      const token = newLockToken();
+      tx.set(lockRef, {
+        runId,
+        actor,
+        acquiredAt: new Date().toISOString(),
+        status: "held",
+        token,
+        previousToken: lock?.token ?? null,
+        previousStatus: lock?.status ?? "absent",
+      });
+      return { ...stored, created: false, lockToken: token };
     }
+    const actor = requestedActor !== "" ? requestedActor : IMPORT_ACTOR;
+    const token = newLockToken();
     const record = {
       runId,
-      actor: requestedActor !== "" ? requestedActor : IMPORT_ACTOR,
+      actor,
       importedAt,
       workbookSha256,
       projectId: projectIdOf(db),
       databaseId: databaseIdOf(db),
       planSummary: summary,
       progress: { completedObjects: 0, remainingObjects: summary.parents },
+      completedObjects: 0,
+      remainingObjects: summary.parents,
+      cumulativeContentWrites: 0,
+      cumulativeAuditWrites: 0,
+      lastCompletedBatch: 0,
       status: "running",
     };
     if (typeof input.gitSha === "string" && input.gitSha.trim() !== "") record.gitSha = input.gitSha.trim();
     tx.set(ref, record);
-    return { ...record, created: true };
+    tx.set(lockRef, {
+      runId,
+      actor,
+      acquiredAt: importedAt,
+      status: "held",
+      token,
+      previousToken: lock?.token ?? null,
+      previousStatus: lock?.status ?? "absent",
+    });
+    return { ...record, created: true, lockToken: token };
   });
+}
+
+export async function recoverImportLock(db, input) {
+  assertDemoProject(db);
+  if (input.confirmHolderDead !== true) {
+    throw new Error("lock recovery refused: holder has not been confirmed dead");
+  }
+  const runId = requireText(input.runId, "runId");
+  const actor = requireText(input.actor, "actor");
+  const lockRef = db.doc(importLockPath());
+  const token = newLockToken();
+  const recoveredAt = new Date().toISOString();
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(lockRef);
+    if (!snap.exists || snap.data().status !== "held") {
+      throw new Error("lock recovery refused: there is no active holder");
+    }
+    const lock = snap.data();
+    if (lock.runId !== runId) throw new Error(`lock recovery refused: lock belongs to ${lock.runId}`);
+    if (lock.actor !== actor) throw new Error("lock recovery refused: actor mismatch");
+    tx.set(lockRef, {
+      ...lock,
+      token,
+      previousToken: lock.token,
+      previousStatus: lock.status,
+      recoveredAt,
+      recovery: "manual",
+      status: "held",
+    });
+  });
+  return { runId, actor, lockToken: token, recoveredAt };
 }
 
 export function assertResumeIdentity(record, input) {
@@ -608,16 +907,118 @@ export function assertResumeIdentity(record, input) {
   return { ...record, actor: actorOf(record) };
 }
 
-export async function rollbackImport(db, runId) {
+function draftProblem(docPath, data) {
+  if (data.status !== "draft" || data.reviewStatus !== "pending") {
+    return `rollback refused: ${docPath} is ${String(data.status)}/${String(data.reviewStatus)}`;
+  }
+  if (data.publishedVersion !== undefined || data.reviewer !== undefined || data.reviewedAt !== undefined) {
+    return `rollback refused: ${docPath} has review or publication fields`;
+  }
+  return "";
+}
+
+export async function rollbackImport(db, runId, claim = {}) {
   assertDemoProject(db);
   const id = requireText(runId, "runId");
+  const token = requireText(claim.lockToken, "lockToken");
   const ref = db.doc(migrationPath(id));
   const snap = await ref.get();
   if (!snap.exists) throw new Error(`migration ${id} does not exist`);
   const record = snap.data();
+  if (record.runId !== id) throw new Error(`rollback refused: migration runId is ${String(record.runId)}`);
+  if (record.status === "rolled_back") throw new Error(`rollback refused: run ${id} is rolled_back`);
+  if (record.workbookSha256 !== EXPECTED_WORKBOOK_SHA256) {
+    throw new Error(`rollback refused: workbookSha256 expected ${EXPECTED_WORKBOOK_SHA256}`);
+  }
+  if (typeof record.importedAt !== "string" || Number.isNaN(Date.parse(record.importedAt))) {
+    throw new Error("rollback refused: stored importedAt is missing");
+  }
+  const actor = actorOf(record);
+  if (actor.trim() === "") throw new Error("rollback refused: stored actor is missing");
   const { plans } = loadPlans(record.importedAt);
-  await deleteDocuments(db, plans.map((plan) => plan.path));
+  const summary = planSummary(plans);
+  if (!record.planSummary || record.planSummary.digest !== summary.digest) {
+    throw new Error("rollback refused: plan summary does not match the stored run");
+  }
+  await claimLock(db, { runId: id, actor, token });
+  const fresh = await ref.get();
+  if (!fresh.exists || fresh.data().workbookSha256 !== record.workbookSha256 || fresh.data().planSummary?.digest !== summary.digest) {
+    throw new Error(`rollback refused: migration ${id} changed after the lock was claimed`);
+  }
+  const parents = plans.filter((plan) => isParentPath(plan.path));
+  const auditPlans = parents.map((plan) => ({ path: auditPath(id, plan.data.id), id: plan.data.id }));
+  const stored = await readPlannedDocs(db, [
+    ...plans,
+    ...auditPlans.map((plan) => ({ path: plan.path })),
+  ]);
+  const expected = new Map();
+  const toDelete = [];
+  let retainedAudits = 0;
+  for (const parentPlan of parents) {
+    const objectId = parentPlan.data.id;
+    const parentPath = parentPlan.path;
+    const snapshotPath = `${parentPath}/versions/${CONTENT_VERSION}`;
+    const audit = auditPath(id, objectId);
+    const parent = stored.get(parentPath);
+    const snapshot = stored.get(snapshotPath);
+    const auditData = stored.get(audit);
+    const present = [parent, snapshot, auditData].filter((item) => item !== undefined).length;
+    if (present === 0) {
+      const collections = await db.doc(parentPath).listCollections();
+      if (collections.length > 0) {
+        throw new Error(`rollback refused: unexpected subcollection ${parentPath}/${collections[0].id}`);
+      }
+      continue;
+    }
+    if (present !== 3) {
+      throw new Error(
+        `rollback refused: incomplete object group ${objectId}: parent ${parent ? "present" : "missing"}, snapshot ${snapshot ? "present" : "missing"}, audit ${auditData ? "present" : "missing"}`,
+      );
+    }
+    const parentDraft = draftProblem(parentPath, parent);
+    if (parentDraft) throw new Error(parentDraft);
+    const snapshotDraft = draftProblem(snapshotPath, snapshot);
+    if (snapshotDraft) throw new Error(snapshotDraft);
+    if (!sameDocument(parent, parentPlan.data)) {
+      throw new Error(`rollback refused: ${parentPath} does not match the stored plan`);
+    }
+    const snapshotPlan = plans.find((plan) => plan.path === snapshotPath);
+    if (!snapshotPlan || !sameDocument(snapshot, snapshotPlan.data)) {
+      throw new Error(`rollback refused: ${snapshotPath} does not match the stored plan`);
+    }
+    if (auditData.action !== "import" || auditData.result !== "ok" || auditData.runId !== id || auditData.actor !== actor) {
+      throw new Error(`rollback refused: audit ${audit} does not belong to ${id}`);
+    }
+    const collections = await db.doc(parentPath).listCollections();
+    for (const collection of collections) {
+      if (collection.id !== "versions") {
+        throw new Error(`rollback refused: unexpected subcollection ${parentPath}/${collection.id}`);
+      }
+    }
+    const versions = await db.collection(`${parentPath}/versions`).get();
+    for (const version of versions.docs) {
+      if (version.id !== CONTENT_VERSION) {
+        throw new Error(`rollback refused: unexpected version ${version.ref.path}`);
+      }
+    }
+    expected.set(parentPath, canonicalCatalogJson(parent));
+    expected.set(snapshotPath, canonicalCatalogJson(snapshot));
+    toDelete.push(snapshotPath, parentPath);
+    retainedAudits += 1;
+  }
+  if (typeof claim.beforeDelete === "function") await claim.beforeDelete();
+  await deleteDocuments(db, { runId: id, plans, paths: toDelete, lockToken: token, expected });
   const rolledBackAt = new Date().toISOString();
-  await ref.update({ status: "rolled_back", rolledBackAt });
-  return { ...record, status: "rolled_back", rolledBackAt };
+  const rollbackResult = {
+    deletedParents: toDelete.filter((docPath) => isParentPath(docPath)).length,
+    deletedSnapshots: toDelete.filter((docPath) => isSnapshotPath(docPath)).length,
+    retainedAudits,
+  };
+  await ref.update({ status: "rolled_back", rolledBackAt, rollbackResult });
+  await updateHeldLock(db, { runId: id, actor, token }, {
+    status: "rolled_back",
+    rolledBackAt,
+    rollbackResult,
+  });
+  return { ...record, status: "rolled_back", rolledBackAt, rollbackResult };
 }

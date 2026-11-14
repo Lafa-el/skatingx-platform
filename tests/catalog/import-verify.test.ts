@@ -110,7 +110,12 @@ describe.sequential("catalog import verification", () => {
       gitSha: "verify-git",
     });
     plans = loadPlans(run.importedAt).plans;
-    await executeImport(db, plans, { runId: run.runId, importedAt: run.importedAt, actor: run.actor });
+    await executeImport(db, plans, {
+      runId: run.runId,
+      importedAt: run.importedAt,
+      actor: run.actor,
+      lockToken: run.lockToken ?? "",
+    });
     const address = emulatorAddress();
     rules = await checkDraftReads({
       host: address.host ?? "",

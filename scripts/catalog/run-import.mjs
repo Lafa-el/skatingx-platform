@@ -49,14 +49,6 @@ function databaseIdOf(db) {
   return "(default)";
 }
 
-function printBatchLog(report) {
-  for (const batch of report.batches) {
-    console.error(
-      `batch ${batch.index} objects=${batch.objects} writes=${batch.writes} cumulativeContent=${batch.cumulativeContent} cumulativeAudits=${batch.cumulativeAudits}`,
-    );
-  }
-}
-
 async function businessSummary(db) {
   try {
     return await countBusinessData(db);
@@ -158,15 +150,20 @@ async function main() {
       workbookSha256: EXPECTED_WORKBOOK_SHA256,
       actor,
       gitSha,
+      initial: true,
     });
     const { plans } = loadPlans(run.importedAt);
-    const imported = await executeImport(db, plans, { runId: run.runId, importedAt: run.importedAt, actor: run.actor });
+    const imported = await executeImport(db, plans, {
+      runId: run.runId,
+      importedAt: run.importedAt,
+      actor: run.actor,
+      lockToken: run.lockToken,
+    });
     const report = {
       ...imported,
       plannedMigrationCreates: run.created ? 1 : 0,
       actualMigrationWrites: (run.created ? 1 : 0) + imported.actualMigrationWrites,
     };
-    printBatchLog(report);
     console.error(
       formatExecutionSummary({
         target: "emulator",
@@ -202,13 +199,19 @@ async function main() {
       remainingObjectGroups: budget.remainingObjectGroups,
     }),
   );
-  const imported = await executeImport(db, budget.plans, {
+  const run = await beginRun(db, {
     runId: budget.runId,
-    importedAt: budget.importedAt,
+    workbookSha256: budget.workbookSha256,
     actor: budget.actor,
+    gitSha,
+  });
+  const imported = await executeImport(db, budget.plans, {
+    runId: run.runId,
+    importedAt: run.importedAt,
+    actor: run.actor,
+    lockToken: run.lockToken,
   });
   const report = { ...imported, plannedMigrationCreates: 0 };
-  printBatchLog(report);
   console.log(JSON.stringify(report));
 }
 

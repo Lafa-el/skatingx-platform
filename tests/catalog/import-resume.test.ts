@@ -121,6 +121,7 @@ describe.sequential("catalog import resume", () => {
       runId: run.runId,
       importedAt: run.importedAt,
       actor: run.actor,
+      lockToken: run.lockToken ?? "",
       stopAfterObjects: 100,
     });
     expect(partial.actualContentWrites).toBe(200);
