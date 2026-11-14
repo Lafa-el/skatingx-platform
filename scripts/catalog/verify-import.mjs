@@ -44,7 +44,9 @@ async function main() {
   const db = getFirestore(app);
   const read = await readCatalogVerification(db, runId, mode);
   const after = await snapshotBusiness(db);
-  const before = baselinePath ? loadBusinessBaseline(baselinePath) : after;
+  const before = baselinePath
+    ? loadBusinessBaseline(baselinePath, { requireEncrypted: mode === "production" })
+    : after;
   const business = businessReport(before, after);
   const rules = actions.rulesClient
     ? await checkDraftReads({
