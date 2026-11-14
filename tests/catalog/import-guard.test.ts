@@ -166,7 +166,8 @@ describe("catalog import target guards", () => {
       "skatingx-prod\n",
     );
     expect(child.status).not.toBe(0);
-    expect(child.stderr).toMatch(/production Firestore connection is disabled/);
+    expect(child.stderr).toMatch(/credential type is not service_account/);
+    expect(child.stderr).not.toMatch(/actualContentWrites|privateKey|private_key/);
     expect(child.stdout).not.toContain("actualContentWrites");
   });
 });
