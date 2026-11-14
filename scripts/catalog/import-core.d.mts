@@ -9,13 +9,45 @@ export interface PlannedDocument<T = Record<string, unknown>> {
   data: T;
 }
 
+export interface PlanSummary {
+  parents: number;
+  versions: number;
+  audits: number;
+  digest: string;
+}
+
 export interface MigrationRecord {
   runId: string;
   projectId: string;
   workbookSha256: string;
   importedAt: string;
-  status: "running" | "rolled_back";
+  actor?: string;
+  databaseId?: string;
+  gitSha?: string;
+  planSummary?: PlanSummary;
+  status: "running" | "completed" | "rolled_back";
   rolledBackAt?: string;
+  created?: boolean;
+}
+
+export interface ImportReport {
+  plannedContentWrites: number;
+  plannedAuditWrites: number;
+  plannedMigrationCreates: number;
+  actualContentWrites: number;
+  actualAuditWrites: number;
+  actualMigrationWrites: number;
+  skippedExisting: number;
+  remainingPlanned: number;
+  idempotent: boolean;
+  runStatus: string;
+  batches: Array<{
+    index: number;
+    objects: number;
+    writes: number;
+    cumulativeContent: number;
+    cumulativeAudits: number;
+  }>;
 }
 
 export interface ImportRunContext {
@@ -45,17 +77,49 @@ export function readPlannedDocs(
 
 export function dumpCatalog(docs: ReadonlyMap<string, Record<string, unknown>>): string;
 
+export function planSummary(plans: readonly PlannedDocument[]): PlanSummary;
+
+export function actorOf(record: { actor?: string } | null | undefined): string;
+
+export function preflightInitial(
+  db: Firestore,
+  plans: readonly PlannedDocument[],
+): Promise<{ planSummary: PlanSummary; baseBudget: number; plannedMigrationCreates: number }>;
+
+export function assertResumeCatalog(
+  db: Firestore,
+  plans: readonly PlannedDocument[],
+  runId: string,
+): Promise<Record<string, unknown>>;
+
+export function assertResumeIdentity(
+  record: MigrationRecord,
+  input: {
+    actor: string;
+    projectId: string;
+    databaseId: string;
+    workbookSha256: string;
+    planSummary: PlanSummary;
+  },
+): MigrationRecord;
+
+export function executeImport(
+  db: Firestore,
+  plans: readonly PlannedDocument[],
+  context: ImportRunContext & { stopAfterObjects?: number },
+): Promise<ImportReport>;
+
 export function importDocuments(
   db: Firestore,
   plans: readonly PlannedDocument[],
-  context: ImportRunContext,
+  context: ImportRunContext & { stopAfterObjects?: number },
 ): Promise<number>;
 
 export function deleteDocuments(db: Firestore, docPaths: readonly string[]): Promise<void>;
 
 export function beginRun(
   db: Firestore,
-  input: { runId: string; workbookSha256: string },
+  input: { runId: string; workbookSha256: string; actor?: string; gitSha?: string },
 ): Promise<MigrationRecord>;
 
 export function rollbackImport(db: Firestore, runId: string): Promise<MigrationRecord>;

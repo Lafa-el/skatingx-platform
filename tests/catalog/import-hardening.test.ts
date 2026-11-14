@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { getApps, initializeApp } from "firebase-admin/app";
 import { type Firestore, getFirestore } from "firebase-admin/firestore";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { canonicalCatalogJson } from "@skatingx/training-catalog";
 import {
@@ -65,8 +65,44 @@ function runImport(args: string[], env: NodeJS.ProcessEnv = process.env) {
   });
 }
 
+async function wipeCatalog(db: Firestore): Promise<void> {
+  const names = [
+    "trainingCatalogObjects",
+    "trainingCatalogKnowledgeArticles",
+    "trainingCatalogEvidenceRecords",
+    "trainingCatalogTeachingMedia",
+    "trainingCatalogCorrectionRules",
+    "trainingCatalogSafetyPolicies",
+    "trainingCatalogLinks",
+    "trainingCatalogReleases",
+    "trainingCatalogMigrations",
+    "trainingCatalogAuditLogs",
+    "trainingCatalogPublicLinks",
+  ];
+  const paths: string[] = [];
+  for (const name of names) {
+    const snap = await db.collection(`${ROOT}/${name}`).get();
+    for (const item of snap.docs) paths.push(item.ref.path);
+  }
+  const refs = await db.collection(OBJECTS).listDocuments();
+  for (const ref of refs) {
+    const versions = await db.collection(`${ref.path}/versions`).get();
+    for (const item of versions.docs) paths.push(item.ref.path);
+  }
+  const unique = [...new Set(paths)];
+  for (let index = 0; index < unique.length; index += 400) {
+    const batch = db.batch();
+    for (const docPath of unique.slice(index, index + 400)) batch.delete(db.doc(docPath));
+    await batch.commit();
+  }
+}
+
 describe.sequential("catalog import hardening", () => {
   const db = openFirestore();
+
+  beforeAll(async () => {
+    await wipeCatalog(db);
+  });
 
   it("keeps every batch inside the write limit and does not split an object", () => {
     const plans = fakePlans(134);
@@ -127,10 +163,35 @@ describe.sequential("catalog import hardening", () => {
     const auditPlans = parentIds.map((id) => ({ path: `${AUDIT}/${auditDocId(run.runId, id)}` }));
     const audits = dumpCatalog(await readPlannedDocs(db, auditPlans));
     expect(auditPlans).toHaveLength(257);
+    const leftovers: string[] = [];
+    for (const name of ["trainingCatalogAuditLogs", "trainingCatalogMigrations"] as const) {
+      const snap = await db.collection(`${ROOT}/${name}`).get();
+      for (const item of snap.docs) {
+        if (item.id === run.runId || item.data().runId === run.runId) continue;
+        leftovers.push(item.ref.path);
+      }
+    }
+    for (let index = 0; index < leftovers.length; index += 400) {
+      const batch = db.batch();
+      for (const docPath of leftovers.slice(index, index + 400)) batch.delete(db.doc(docPath));
+      await batch.commit();
+    }
 
-    const child = runImport(["--runId", run.runId, "--project", PROJECT_ID]);
+    const child = runImport([
+      "--mode",
+      "resume",
+      "--execute",
+      "--target",
+      "emulator",
+      "--runId",
+      run.runId,
+      "--project",
+      PROJECT_ID,
+    ]);
     expect(child.status, child.stderr).toBe(0);
-    expect(child.stdout.trim()).toBe("writes: 0");
+    const report = JSON.parse(child.stdout) as { actualContentWrites: number; idempotent: boolean };
+    expect(report.actualContentWrites).toBe(0);
+    expect(report.idempotent).toBe(true);
     expect(dumpCatalog(await readPlannedDocs(db, plans))).toBe(content);
     expect(dumpCatalog(await readPlannedDocs(db, auditPlans))).toBe(audits);
   });
@@ -155,7 +216,14 @@ describe.sequential("catalog import hardening", () => {
   });
 
   it("refuses a project id that does not start with demo-", () => {
-    const child = runImport(["--runId", "run-refused", "--project", "skatingx-prod"]);
+    const child = runImport([
+      "--target",
+      "emulator",
+      "--runId",
+      "run-refused",
+      "--project",
+      "skatingx-prod",
+    ]);
     expect(child.status).not.toBe(0);
     expect(child.stderr).toMatch(/demo-/);
   });
