@@ -20,6 +20,7 @@ const {
   executeImport,
   loadPlans,
   planSummary,
+  previewImport,
   preflightInitial,
 } = await import("./import-core.mjs");
 const {
@@ -102,28 +103,50 @@ async function main() {
     reason: "catalog import does not query Firebase Auth",
   });
   const business = await businessSummary(db);
+  const summaryBase = {
+    target: "emulator",
+    projectId: args.project,
+    databaseId: databaseIdOf(db),
+    identity: "unverified emulator admin",
+    runId: args.runId,
+    mode: args.mode,
+    actor,
+    gitSha,
+    authUsers,
+    business,
+    baseBudget: 772,
+  };
   if (!args.execute) {
-    const preview = loadPlans(new Date().toISOString());
-    if (args.mode === "initial") await preflightInitial(db, preview.plans);
-    console.error(
-      formatExecutionSummary({
-        target: "emulator",
-        projectId: args.project,
-        databaseId: databaseIdOf(db),
-        identity: "unverified emulator admin",
-        runId: args.runId,
-        mode: args.mode,
-        actor,
-        gitSha,
-        workbookSha256: preview.workbookSha256,
-        plannedContentWrites: 514,
-        plannedAuditWrites: 257,
-        plannedMigrationCreates: args.mode === "initial" ? 1 : 0,
-        baseBudget: 772,
-        authUsers,
-        business,
-      }),
-    );
+    if (args.mode === "initial") {
+      const preview = loadPlans(new Date().toISOString());
+      await preflightInitial(db, preview.plans);
+      console.error(
+        formatExecutionSummary({
+          ...summaryBase,
+          workbookSha256: preview.workbookSha256,
+          plannedContentWrites: 514,
+          plannedAuditWrites: 257,
+          plannedMigrationCreates: 1,
+          remainingObjectGroups: 257,
+        }),
+      );
+    } else {
+      const budget = await resumeBudget(db, args, actor);
+      console.error(
+        formatExecutionSummary({
+          ...summaryBase,
+          actor: budget.actor,
+          workbookSha256: budget.workbookSha256,
+          plannedContentWrites: budget.plannedContentWrites,
+          plannedAuditWrites: budget.plannedAuditWrites,
+          plannedMigrationCreates: 0,
+          remainingObjectGroups: budget.remainingObjectGroups,
+        }),
+      );
+      if (budget.mismatched.length > 0 || budget.incomplete.length > 0) {
+        throw new Error(`resume refused: ${[...budget.mismatched, ...budget.incomplete].join("; ")}`);
+      }
+    }
     console.log(JSON.stringify({ phase: "preflight", actualContentWrites: 0, actualAuditWrites: 0, actualMigrationWrites: 0 }));
     return;
   }
@@ -159,6 +182,7 @@ async function main() {
         plannedAuditWrites: report.plannedAuditWrites,
         plannedMigrationCreates: report.plannedMigrationCreates,
         baseBudget: 772,
+        remainingObjectGroups: report.plannedAuditWrites,
         authUsers,
         business,
       }),
@@ -166,6 +190,29 @@ async function main() {
     console.log(JSON.stringify(report));
     return;
   }
+  const budget = await resumeBudget(db, args, actor);
+  console.error(
+    formatExecutionSummary({
+      ...summaryBase,
+      actor: budget.actor,
+      workbookSha256: budget.workbookSha256,
+      plannedContentWrites: budget.plannedContentWrites,
+      plannedAuditWrites: budget.plannedAuditWrites,
+      plannedMigrationCreates: 0,
+      remainingObjectGroups: budget.remainingObjectGroups,
+    }),
+  );
+  const imported = await executeImport(db, budget.plans, {
+    runId: budget.runId,
+    importedAt: budget.importedAt,
+    actor: budget.actor,
+  });
+  const report = { ...imported, plannedMigrationCreates: 0 };
+  printBatchLog(report);
+  console.log(JSON.stringify(report));
+}
+
+async function resumeBudget(db, args, actor) {
   const existing = await db.doc(`artifacts/skatingx-production/trainingCatalogMigrations/${args.runId}`).get();
   if (!existing.exists) throw new Error(`migration ${args.runId} does not exist`);
   const loaded = loadPlans(existing.data().importedAt);
@@ -177,14 +224,12 @@ async function main() {
     planSummary: planSummary(loaded.plans),
   });
   await assertResumeCatalog(db, loaded.plans, record.runId);
-  const imported = await executeImport(db, loaded.plans, {
+  const preview = await previewImport(db, loaded.plans, {
     runId: record.runId,
     importedAt: record.importedAt,
     actor: record.actor,
   });
-  const report = { ...imported, plannedMigrationCreates: 0 };
-  printBatchLog(report);
-  console.log(JSON.stringify(report));
+  return { ...preview, plans: loaded.plans, workbookSha256: loaded.workbookSha256, runId: record.runId, importedAt: record.importedAt, actor: record.actor };
 }
 
 main().catch((error) => {
