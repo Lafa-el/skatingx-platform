@@ -8,8 +8,12 @@
 // record and rebuilds the same documents. Matching documents are not written.
 // A stored document that differs from the plan throws the path and the expected
 // and actual checksums, and is never overwritten.
+// F03: initial import checks an empty catalog before creating a run. Resume
+// rebuilds documents from the stored importedAt and actor, writes only fully
+// missing object groups, and refuses partial groups or content drift.
 // F04: rollback deletes parent and snapshot documents only. Import audit records
 // stay. The migration status becomes rolled_back and rolledBackAt is set.
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,10 +35,25 @@ export const IMPORT_ACTOR = "catalog-import";
 const BATCH_LIMIT = 400;
 const DOCS_PER_OBJECT = 3;
 const MAX_OBJECTS_PER_BATCH = Math.floor(BATCH_LIMIT / DOCS_PER_OBJECT);
+const BASE_CONTENT_DOCS = 514;
+const BASE_IMPORT_BUDGET = 772;
 const ROOT = "artifacts/skatingx-production";
 const OBJECTS = "trainingCatalogObjects";
 const AUDIT = "trainingCatalogAuditLogs";
 const MIGRATIONS = "trainingCatalogMigrations";
+const CATALOG_COLLECTIONS = [
+  "trainingCatalogObjects",
+  "trainingCatalogKnowledgeArticles",
+  "trainingCatalogEvidenceRecords",
+  "trainingCatalogTeachingMedia",
+  "trainingCatalogCorrectionRules",
+  "trainingCatalogSafetyPolicies",
+  "trainingCatalogLinks",
+  "trainingCatalogReleases",
+  "trainingCatalogMigrations",
+  "trainingCatalogAuditLogs",
+  "trainingCatalogPublicLinks",
+];
 
 const SHEETS = [
   { sheet: "exercises", kind: "exercise" },
@@ -85,6 +104,33 @@ function projectIdOf(db) {
 
 function assertDemoProject(db) {
   assertDemoProjectId(projectIdOf(db));
+}
+
+function databaseIdOf(db) {
+  if (typeof db.databaseId === "string" && db.databaseId !== "") return db.databaseId;
+  const settings = db._settings;
+  if (settings && typeof settings.databaseId === "string" && settings.databaseId !== "") {
+    return settings.databaseId;
+  }
+  return "(default)";
+}
+
+export function actorOf(record) {
+  if (record && typeof record.actor === "string" && record.actor.trim() !== "") return record.actor.trim();
+  return IMPORT_ACTOR;
+}
+
+export function planSummary(plans) {
+  const parents = plans.filter((plan) => !plan.path.includes("/versions/"));
+  const rows = parents
+    .map((plan) => ({ id: plan.data.id, checksum: plan.data.checksum }))
+    .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0));
+  return {
+    parents: parents.length,
+    versions: parents.length,
+    audits: parents.length,
+    digest: createHash("sha256").update(canonicalCatalogJson(rows), "utf8").digest("hex"),
+  };
 }
 
 function requireText(value, label) {
@@ -252,7 +298,112 @@ function sameDocument(actual, expected) {
   return canonicalCatalogJson(actual) === canonicalCatalogJson(documentData(expected));
 }
 
-export async function importDocuments(db, plans, context) {
+function presenceLabel(present, name) {
+  return `${name} ${present ? "present" : "missing"}`;
+}
+
+function classifyObject(object, existing) {
+  const states = object.docs.map((doc) => {
+    const current = existing.get(doc.path);
+    if (current === undefined) return { doc, state: "missing" };
+    if (!sameDocument(current, doc.data)) {
+      return {
+        doc,
+        state: "mismatch",
+        detail: `${doc.path} expected checksum ${checksumField(documentData(doc.data))} actual checksum ${checksumField(current)}`,
+      };
+    }
+    return { doc, state: "match" };
+  });
+  if (states.some((item) => item.state === "mismatch")) {
+    return { kind: "mismatch", details: states.filter((item) => item.state === "mismatch").map((item) => item.detail) };
+  }
+  if (states.every((item) => item.state === "match")) return { kind: "present" };
+  if (states.every((item) => item.state === "missing")) return { kind: "absent" };
+  const [parent, version, audit] = states;
+  return {
+    kind: "incomplete",
+    detail: `incomplete object group ${object.id}: ${presenceLabel(parent.state !== "missing", "parent")}, ${presenceLabel(version.state !== "missing", "snapshot")}, ${presenceLabel(audit.state !== "missing", "audit")}`,
+  };
+}
+
+async function inspectCatalog(db) {
+  const collectionDocs = new Map();
+  for (const name of CATALOG_COLLECTIONS) {
+    const snap = await db.collection(collectionPath(name)).get();
+    collectionDocs.set(name, snap.docs.map((item) => item.ref.path));
+  }
+  const orphans = [];
+  const versionPaths = [];
+  const refs = await db.collection(collectionPath(OBJECTS)).listDocuments();
+  for (const ref of refs) {
+    const parent = await ref.get();
+    const versions = await ref.collection("versions").get();
+    for (const version of versions.docs) versionPaths.push(version.ref.path);
+    if (!parent.exists) {
+      if (versions.empty) orphans.push(ref.path);
+      for (const version of versions.docs) orphans.push(version.ref.path);
+    }
+  }
+  return { collectionDocs, orphans, versionPaths };
+}
+
+function allowedPaths(plans, runId) {
+  const allowed = new Set(plans.map((plan) => plan.path));
+  for (const plan of plans) {
+    if (!plan.path.includes("/versions/")) allowed.add(auditPath(runId, plan.data.id));
+  }
+  allowed.add(migrationPath(runId));
+  return allowed;
+}
+
+export async function preflightInitial(db, plans) {
+  assertDemoProject(db);
+  if (plans.length !== BASE_CONTENT_DOCS) {
+    throw new Error(`initial refused: planned content paths ${plans.length} expected ${BASE_CONTENT_DOCS}`);
+  }
+  const summary = planSummary(plans);
+  const budget = summary.parents + summary.versions + summary.audits + 1;
+  if (summary.parents !== 257 || budget !== BASE_IMPORT_BUDGET) {
+    throw new Error(`initial refused: write budget ${budget} expected ${BASE_IMPORT_BUDGET}`);
+  }
+  const inspected = await inspectCatalog(db);
+  if (inspected.orphans.length > 0) {
+    throw new Error(`initial refused: orphan catalog path ${inspected.orphans[0]}`);
+  }
+  for (const [name, paths] of inspected.collectionDocs) {
+    if (paths.length > 0) throw new Error(`initial refused: ${name} is not empty (${paths[0]})`);
+  }
+  const existing = await readPlannedDocs(db, plans);
+  if (existing.size > 0) {
+    throw new Error(`initial refused: planned path already exists ${existing.keys().next().value}`);
+  }
+  return { planSummary: summary, baseBudget: budget, plannedMigrationCreates: 1 };
+}
+
+export async function assertResumeCatalog(db, plans, runId) {
+  assertDemoProject(db);
+  const allowed = allowedPaths(plans, runId);
+  const inspected = await inspectCatalog(db);
+  const unknown = [...inspected.orphans];
+  for (const paths of inspected.collectionDocs.values()) {
+    for (const docPath of paths) {
+      if (!allowed.has(docPath)) unknown.push(docPath);
+    }
+  }
+  for (const docPath of inspected.versionPaths) {
+    if (!allowed.has(docPath)) unknown.push(docPath);
+  }
+  if (unknown.length > 0) throw new Error(`resume refused: unknown catalog path ${unknown[0]}`);
+  const migration = await db.doc(migrationPath(runId)).get();
+  if (!migration.exists) throw new Error(`migration ${runId} does not exist`);
+  if (migration.data().status === "rolled_back") {
+    throw new Error(`resume refused: run ${runId} is rolled_back`);
+  }
+  return migration.data();
+}
+
+export async function executeImport(db, plans, context) {
   assertDemoProject(db);
   const runId = requireText(context.runId, "runId");
   const importedAt = requireText(context.importedAt, "importedAt");
@@ -263,38 +414,76 @@ export async function importDocuments(db, plans, context) {
     objects.flatMap((object) => object.docs),
   );
   const mismatches = [];
-  const pending = [];
-  let written = 0;
+  const incomplete = [];
+  const absent = [];
+  let skippedExisting = 0;
   for (const object of objects) {
-    let missingContent = 0;
-    for (const doc of object.docs) {
-      const current = existing.get(doc.path);
-      if (current === undefined) {
-        if (!doc.path.includes(`/${AUDIT}/`)) missingContent += 1;
-        continue;
-      }
-      if (!sameDocument(current, doc.data)) {
-        mismatches.push(
-          `${doc.path} expected checksum ${checksumField(documentData(doc.data))} actual checksum ${checksumField(current)}`,
-        );
-      }
-    }
-    if (missingContent > 0 || object.docs.some((doc) => existing.get(doc.path) === undefined)) {
-      pending.push(object);
-      written += missingContent;
-    }
+    const classified = classifyObject(object, existing);
+    if (classified.kind === "mismatch") mismatches.push(...classified.details);
+    else if (classified.kind === "incomplete") incomplete.push(classified.detail);
+    else if (classified.kind === "absent") absent.push(object);
+    else skippedExisting += 1;
   }
-  if (mismatches.length > 0) {
-    throw new Error(`import refused: ${mismatches.join("; ")}`);
-  }
-  for (let index = 0; index < pending.length; index += MAX_OBJECTS_PER_BATCH) {
+  if (mismatches.length > 0) throw new Error(`import refused: ${mismatches.join("; ")}`);
+  if (incomplete.length > 0) throw new Error(`import refused: ${incomplete.join("; ")}`);
+  const limit = context.stopAfterObjects;
+  const work =
+    typeof limit === "number" && limit >= 0 ? absent.slice(0, limit) : absent;
+  const batches = [];
+  let cumulativeContent = 0;
+  let cumulativeAudits = 0;
+  for (let index = 0; index < work.length; index += MAX_OBJECTS_PER_BATCH) {
+    const slice = work.slice(index, index + MAX_OBJECTS_PER_BATCH);
     const batch = db.batch();
-    for (const object of pending.slice(index, index + MAX_OBJECTS_PER_BATCH)) {
+    for (const object of slice) {
       for (const doc of object.docs) batch.set(db.doc(doc.path), documentData(doc.data));
     }
     await batch.commit();
+    cumulativeContent += slice.length * 2;
+    cumulativeAudits += slice.length;
+    batches.push({
+      index: batches.length + 1,
+      objects: slice.length,
+      writes: slice.length * DOCS_PER_OBJECT,
+      cumulativeContent,
+      cumulativeAudits,
+    });
   }
-  return written;
+  const remainingPlanned = absent.length - work.length;
+  const runStatus = remainingPlanned === 0 ? "completed" : "running";
+  let actualMigrationWrites = 0;
+  const migrationRef = db.doc(migrationPath(runId));
+  const migrationSnap = await migrationRef.get();
+  if (migrationSnap.exists) {
+    const current = migrationSnap.data();
+    const progress = { completedObjects: skippedExisting + work.length, remainingObjects: remainingPlanned };
+    const sameProgress =
+      current.status === runStatus &&
+      current.progress?.completedObjects === progress.completedObjects &&
+      current.progress?.remainingObjects === progress.remainingObjects;
+    if (!sameProgress) {
+      await migrationRef.update({ status: runStatus, progress, updatedAt: new Date().toISOString() });
+      actualMigrationWrites += 1;
+    }
+  }
+  return {
+    plannedContentWrites: absent.length * 2,
+    plannedAuditWrites: absent.length,
+    plannedMigrationCreates: 0,
+    actualContentWrites: work.length * 2,
+    actualAuditWrites: work.length,
+    actualMigrationWrites,
+    skippedExisting,
+    remainingPlanned,
+    idempotent: work.length === 0 && remainingPlanned === 0,
+    runStatus,
+    batches,
+  };
+}
+
+export async function importDocuments(db, plans, context) {
+  const report = await executeImport(db, plans, context);
+  return report.actualContentWrites;
 }
 
 export async function deleteDocuments(db, docPaths) {
@@ -317,21 +506,54 @@ export async function beginRun(db, input) {
   if (workbookSha256 !== EXPECTED_WORKBOOK_SHA256) {
     throw new Error(`workbookSha256 mismatch: ${workbookSha256}`);
   }
+  const requestedActor = typeof input.actor === "string" ? input.actor.trim() : "";
   const importedAt = new Date().toISOString();
+  const summary = planSummary(loadPlans(importedAt).plans);
   const ref = db.doc(migrationPath(runId));
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    if (snap.exists) return snap.data();
+    if (snap.exists) {
+      const stored = snap.data();
+      if (requestedActor !== "" && requestedActor !== actorOf(stored)) {
+        throw new Error(`actor mismatch: expected ${actorOf(stored)}`);
+      }
+      return { ...stored, created: false };
+    }
     const record = {
       runId,
-      projectId: projectIdOf(db),
-      workbookSha256,
+      actor: requestedActor !== "" ? requestedActor : IMPORT_ACTOR,
       importedAt,
+      workbookSha256,
+      projectId: projectIdOf(db),
+      databaseId: databaseIdOf(db),
+      planSummary: summary,
+      progress: { completedObjects: 0, remainingObjects: summary.parents },
       status: "running",
     };
+    if (typeof input.gitSha === "string" && input.gitSha.trim() !== "") record.gitSha = input.gitSha.trim();
     tx.set(ref, record);
-    return record;
+    return { ...record, created: true };
   });
+}
+
+export function assertResumeIdentity(record, input) {
+  const actor = requireText(input.actor, "actor");
+  if (actor !== actorOf(record)) throw new Error(`actor mismatch: expected ${actorOf(record)}`);
+  if (record.projectId !== input.projectId) {
+    throw new Error(`resume refused: projectId expected ${record.projectId}`);
+  }
+  const databaseId = typeof record.databaseId === "string" && record.databaseId !== "" ? record.databaseId : "(default)";
+  if (databaseId !== input.databaseId) throw new Error(`resume refused: databaseId expected ${databaseId}`);
+  if (record.workbookSha256 !== input.workbookSha256) {
+    throw new Error(`resume refused: workbookSha256 expected ${record.workbookSha256}`);
+  }
+  if (!record.planSummary || record.planSummary.digest !== input.planSummary.digest) {
+    throw new Error("resume refused: plan summary does not match the stored run");
+  }
+  if (typeof record.importedAt !== "string" || Number.isNaN(Date.parse(record.importedAt))) {
+    throw new Error("resume refused: stored importedAt is missing");
+  }
+  return { ...record, actor: actorOf(record) };
 }
 
 export async function rollbackImport(db, runId) {

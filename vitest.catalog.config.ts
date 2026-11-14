@@ -22,6 +22,7 @@ export default defineConfig({
     include: ["tests/catalog/**/*.test.ts"],
     // One emulator and shared catalog documents: do not run files in parallel.
     fileParallelism: false,
+    maxWorkers: 1,
     // The dry run prints a structured summary. Show it even when the test passes.
     disableConsoleIntercept: true,
     testTimeout: 120_000,
