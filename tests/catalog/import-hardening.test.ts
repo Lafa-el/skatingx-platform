@@ -15,8 +15,10 @@ import {
   beginRun,
   dumpCatalog,
   importDocuments,
+  importLockPath,
   loadPlans,
   planBatches,
+  preflightInitial,
   readPlannedDocs,
   rollbackImport,
 } from "../../scripts/catalog/import-core.mjs";
@@ -39,8 +41,13 @@ function openFirestore(): Firestore {
   return getFirestore(app);
 }
 
-function contextOf(run: { runId: string; importedAt: string }) {
-  return { runId: run.runId, importedAt: run.importedAt, actor: IMPORT_ACTOR };
+function contextOf(run: { runId: string; importedAt: string; actor?: string; lockToken?: string }) {
+  return {
+    runId: run.runId,
+    importedAt: run.importedAt,
+    actor: run.actor ?? IMPORT_ACTOR,
+    lockToken: run.lockToken ?? "",
+  };
 }
 
 function fakePlans(count: number) {
@@ -143,7 +150,7 @@ describe.sequential("catalog import hardening", () => {
     const run = await beginRun(db, { runId: "run-sentinel", workbookSha256: EXPECTED_WORKBOOK_SHA256 });
     const { plans } = loadPlans(run.importedAt);
     expect(await importDocuments(db, plans, contextOf(run))).toBe(514);
-    await rollbackImport(db, run.runId);
+    await rollbackImport(db, run.runId, { lockToken: run.lockToken ?? "" });
     expect((await readPlannedDocs(db, plans)).size).toBe(0);
 
     for (const sentinel of SENTINELS) {
@@ -194,6 +201,14 @@ describe.sequential("catalog import hardening", () => {
     expect(report.idempotent).toBe(true);
     expect(dumpCatalog(await readPlannedDocs(db, plans))).toBe(content);
     expect(dumpCatalog(await readPlannedDocs(db, auditPlans))).toBe(audits);
+  });
+
+  it("refuses a new initial after the lock is released while the catalog remains", async () => {
+    const lock = (await db.doc(importLockPath()).get()).data();
+    expect(lock?.status).toBe("released");
+    const { plans } = loadPlans("2026-11-14T00:00:00.000Z");
+    await expect(preflightInitial(db, plans)).rejects.toThrow(/is not empty/);
+    expect((await readPlannedDocs(db, plans)).size).toBe(514);
   });
 
   it("refuses a rerun that would overwrite a document with a different checksum", async () => {

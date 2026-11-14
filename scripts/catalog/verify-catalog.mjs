@@ -17,6 +17,7 @@ import {
   documentData,
   inspectCatalog,
   loadPlans,
+  importLockPath,
   planSummary,
   projectIdOf,
   readPlannedDocs,
@@ -128,7 +129,10 @@ export function evaluateCatalogImport(input) {
   const allowed = new Set([...allowedContent, ...expectedAudits, `${ROOT}/${MIGRATIONS}/${runId}`]);
   const unknown = [...(input.inspected?.orphans ?? [])];
   for (const paths of Object.values(input.inspected?.collectionDocs ?? {})) {
-    for (const docPath of paths) if (!allowed.has(docPath)) unknown.push(docPath);
+    for (const docPath of paths) {
+      if (docPath === importLockPath()) continue;
+      if (!allowed.has(docPath)) unknown.push(docPath);
+    }
   }
   for (const docPath of input.inspected?.versionPaths ?? []) if (!allowed.has(docPath)) unknown.push(docPath);
   const contentPaths = [
