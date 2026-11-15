@@ -13,6 +13,11 @@ export interface ImportArgs {
   project: string;
   confirm: string;
   actor: string;
+  allowProductionRead: boolean;
+  allowProductionWrite: boolean;
+  rollback: boolean;
+  recoverLock: boolean;
+  recoverReason: string;
 }
 
 export interface ServiceAccountCredential {
@@ -57,7 +62,7 @@ export function assertServiceAccountIdentity(input: {
   allowedEmails?: readonly string[];
 }): { type: "service_account"; clientEmail: string; projectId: string };
 
-export function assertProductionConnectionDisabled(): never;
+export function identityFromAdcPayload(payload: unknown): ServiceAccountCredential;
 
 export function confirmProjectOnStdin(projectId: string, readLine: () => Promise<string>): Promise<void>;
 

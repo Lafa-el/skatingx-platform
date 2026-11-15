@@ -329,6 +329,9 @@ describe.sequential("catalog import verification", () => {
     expect(production.idempotency).toMatchObject({ mode: "read-only", invoked: false });
     expect(failed(production, "idempotency").status).toBe("skipped");
     expect(failed(production, "idempotency").passed).toBe(false);
+    expect(failed(production, "rulesAnonymous")).toMatchObject({ status: "skipped", passed: false });
+    expect(failed(production, "rulesSignedIn")).toMatchObject({ status: "skipped", passed: false });
+    expect(failed(production, "rulesAdmin")).toMatchObject({ status: "skipped", passed: false });
     expect(production.passed).toBe(false);
   });
 });

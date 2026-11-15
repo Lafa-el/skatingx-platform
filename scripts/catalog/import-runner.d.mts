@@ -34,6 +34,11 @@ export interface ImportRequest {
   confirm: string;
   actor: string;
   databaseId?: string;
+  allowProductionRead?: boolean;
+  allowProductionWrite?: boolean;
+  rollback?: boolean;
+  recoverLock?: boolean;
+  recoverReason?: string;
 }
 
 export interface ImportEntryResult {
@@ -62,5 +67,6 @@ export function runImportEntry(
     gitSha?: () => string;
     allowedEmails?: readonly string[];
     countBusiness?: (db: never) => Promise<unknown>;
+    countAuthUsers?: () => Promise<{ status: string; count: number }>;
   },
 ): Promise<ImportEntryResult>;

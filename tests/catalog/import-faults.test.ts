@@ -65,6 +65,8 @@ function withFaults(db: Firestore, faults: { failContentCommit?: number; failMig
   let migrationUpdates = 0;
   const wrapBatch = (batch: FirebaseFirestore.WriteBatch) => {
     let creates = 0;
+    let migrationWrites = 0;
+    let migrationStatus: unknown;
     return new Proxy(batch, {
       get(target, prop, receiver) {
         if (prop === "create") {
@@ -73,11 +75,31 @@ function withFaults(db: Firestore, faults: { failContentCommit?: number; failMig
             return Reflect.apply(target.create, target, args);
           };
         }
+        if (prop === "update") {
+          return (...args: unknown[]) => {
+            const ref = args[0] as { path?: string } | undefined;
+            const data = args[1] as { status?: unknown } | undefined;
+            if (typeof ref?.path === "string" && ref.path.includes("/trainingCatalogMigrations/") && !ref.path.endsWith("/__import_lock")) {
+              migrationWrites += 1;
+              migrationStatus = data?.status;
+            }
+            return Reflect.apply(target.update, target, args);
+          };
+        }
         if (prop === "commit") {
           return async () => {
             if (creates > 0) {
               contentCommits += 1;
               if (faults.failContentCommit === contentCommits) throw new Error("injected batch commit failure");
+            }
+            if (migrationWrites > 0) {
+              migrationUpdates += 1;
+              if (faults.failMigrationUpdate === "completion" && migrationStatus === "completed") {
+                throw new Error("injected migration update failure");
+              }
+              if (typeof faults.failMigrationUpdate === "number" && faults.failMigrationUpdate === migrationUpdates) {
+                throw new Error("injected migration update failure");
+              }
             }
             return target.commit();
           };
@@ -97,16 +119,17 @@ function withFaults(db: Firestore, faults: { failContentCommit?: number; failMig
           return new Proxy(ref, {
             get(refTarget, refProp, refReceiver) {
               if (refProp === "update") {
-                return async (data: FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData>) => {
+                return async (...args: unknown[]) => {
                   migrationUpdates += 1;
-                  const status = typeof data === "object" && data !== null && "status" in data ? data.status : undefined;
+                  const data = args[0] as { status?: unknown } | undefined;
+                  const status = data?.status;
                   if (faults.failMigrationUpdate === "completion" && status === "completed") {
                     throw new Error("injected migration update failure");
                   }
                   if (typeof faults.failMigrationUpdate === "number" && faults.failMigrationUpdate === migrationUpdates) {
                     throw new Error("injected migration update failure");
                   }
-                  return refTarget.update(data);
+                  return Reflect.apply(refTarget.update, refTarget, args);
                 };
               }
               const value = Reflect.get(refTarget, refProp, refReceiver);

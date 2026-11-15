@@ -5,6 +5,8 @@ export const APPROVED_CANDIDATE_SHA256: string;
 
 export function sha256Text(value: string): string;
 
+export function normalizeRulesContent(content: string): string;
+
 export function approveHashes(baselineSha256: string, candidateSha256: string): { passed: boolean; errors: string[] };
 
 export function assertApprovedRepoRules(rootDir: string): {
@@ -35,7 +37,13 @@ export function fetchRulesRelease(
     json: () => Promise<unknown>;
   }>,
   input: { projectId: string; token: string },
-): Promise<{ content: string; databaseId: string; sourceSha256: string; rulesetName: string }>;
+): Promise<{
+  content: string;
+  databaseId: string;
+  sourceSha256: string;
+  rawSourceSha256: string;
+  rulesetName: string;
+}>;
 
 export function readLiveRules(
   fetchImpl: (url: string, init: { method?: string; headers?: Record<string, string> }) => Promise<{

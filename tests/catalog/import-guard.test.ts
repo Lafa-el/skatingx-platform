@@ -11,8 +11,8 @@ import {
   VIDEO_METADATA_PATH,
   assertBusinessCountsForProduction,
   assertExecutionTarget,
-  assertProductionConnectionDisabled,
   assertServiceAccountIdentity,
+  identityFromAdcPayload,
   confirmProjectOnStdin,
   countBusinessData,
   formatExecutionSummary,
@@ -34,7 +34,9 @@ function runImport(args: string[], env: NodeJS.ProcessEnv, input = "") {
 
 describe("catalog import target guards", () => {
   it("rejects a credential that is not a service account, a missing email, and the wrong project", () => {
-    expect(ALLOWED_PRODUCTION_SERVICE_ACCOUNTS).toEqual([]);
+    expect(ALLOWED_PRODUCTION_SERVICE_ACCOUNTS).toEqual([
+      "catalog-importer@skatingx-prod.iam.gserviceaccount.com",
+    ]);
     expect(() => assertServiceAccountIdentity({ credential: { type: "authorized_user", clientEmail: "a@b.c", projectId: "skatingx-prod" }, projectId: "skatingx-prod" })).toThrow(/service_account/);
     expect(() =>
       assertServiceAccountIdentity({
@@ -112,7 +114,7 @@ describe("catalog import target guards", () => {
       plannedContentWrites: 514,
       plannedAuditWrites: 257,
       plannedMigrationCreates: 1,
-      baseBudget: 772,
+      baseBudget: 780,
       authUsers: auth,
       business: { status: "unavailable" },
     });
@@ -156,9 +158,18 @@ describe("catalog import target guards", () => {
     expect(counts.paths?.raceResults).toBe(RACE_RESULT_PATH);
   });
 
-  it("stops a fully confirmed production execution before opening Firestore", () => {
-    expect(() => assertProductionConnectionDisabled()).toThrow(/production Firestore connection is disabled/);
-    const env = { ...process.env };
+  it("accepts only impersonated ADC and stops production before opening Firestore", () => {
+    expect(() => identityFromAdcPayload({ type: "service_account", private_key: "secret" })).toThrow(/long-lived service account keys/);
+    expect(() => identityFromAdcPayload({ type: "authorized_user" })).toThrow(/credential type is not service_account/);
+    expect(identityFromAdcPayload({
+      type: "impersonated_service_account",
+      service_account_impersonation_url: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/catalog-importer@skatingx-prod.iam.gserviceaccount.com:generateAccessToken",
+    })).toMatchObject({
+      type: "service_account",
+      clientEmail: "catalog-importer@skatingx-prod.iam.gserviceaccount.com",
+      projectId: "skatingx-prod",
+    });
+    const env: NodeJS.ProcessEnv = { ...process.env, GOOGLE_APPLICATION_CREDENTIALS: path.join(rootDir, "missing-adc.json") };
     delete env.FIRESTORE_EMULATOR_HOST;
     const child = runImport(
       ["--target", "production", "--project", "skatingx-prod", "--confirm", "skatingx-prod", "--mode", "initial", "--runId", "prod-run", "--execute"],

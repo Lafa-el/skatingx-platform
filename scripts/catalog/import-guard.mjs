@@ -11,9 +11,10 @@ export const RACE_RESULT_PATH =
   "artifacts/skatingx-production/users/{userId}/raceDay/{eventId}/results/{resultId}";
 export const VIDEO_METADATA_PATH = "artifacts/skatingx-production/users/{userId}/videos/{videoId}";
 
-// This step has no authorized production identity. A later acceptance step
-// replaces this list. An empty list fail-closes every real production run.
-export const ALLOWED_PRODUCTION_SERVICE_ACCOUNTS = [];
+// Short-lived impersonated ADC only. Long-lived JSON private keys are refused.
+export const ALLOWED_PRODUCTION_SERVICE_ACCOUNTS = [
+  "catalog-importer@skatingx-prod.iam.gserviceaccount.com",
+];
 
 export function parseImportArgs(argv) {
   const args = {
@@ -24,6 +25,11 @@ export function parseImportArgs(argv) {
     project: "",
     confirm: "",
     actor: "",
+    allowProductionRead: false,
+    allowProductionWrite: false,
+    rollback: false,
+    recoverLock: false,
+    recoverReason: "",
   };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -34,6 +40,11 @@ export function parseImportArgs(argv) {
     else if (token === "--project") args.project = argv[(index += 1)] ?? "";
     else if (token === "--confirm") args.confirm = argv[(index += 1)] ?? "";
     else if (token === "--actor") args.actor = argv[(index += 1)] ?? "";
+    else if (token === "--allow-production-read") args.allowProductionRead = true;
+    else if (token === "--allow-production-write") args.allowProductionWrite = true;
+    else if (token === "--rollback") args.rollback = true;
+    else if (token === "--recover-lock") args.recoverLock = true;
+    else if (token === "--recover-reason") args.recoverReason = argv[(index += 1)] ?? "";
     else if (token === "--yes") throw new Error("refusing to run: --yes is not a confirmation");
     else throw new Error(`unknown argument ${token}`);
   }
@@ -46,6 +57,11 @@ export function parseImportArgs(argv) {
   if (args.project === "") throw new Error("--project is required");
   if (args.mode === "resume" && args.runId === "") throw new Error("--runId is required for resume");
   if (args.mode === "initial" && args.runId === "") throw new Error("--runId is required");
+  if (args.rollback && args.execute) throw new Error("refusing to run: rollback is a separate command");
+  if (args.recoverLock && args.mode !== "resume") throw new Error("refusing to run: lock recovery requires resume");
+  if (args.recoverLock && args.recoverReason.trim() === "") {
+    throw new Error("refusing to run: lock recovery requires a reason");
+  }
   return args;
 }
 
@@ -100,10 +116,26 @@ export function assertServiceAccountIdentity(input) {
   return { type: "service_account", clientEmail: email, projectId: credential.projectId };
 }
 
-export function assertProductionConnectionDisabled() {
-  throw new Error(
-    "refusing to run: production Firestore connection is disabled until production acceptance",
-  );
+export function identityFromAdcPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("refusing to run: credential type is not service_account");
+  }
+  if (typeof payload.private_key === "string" || payload.type === "service_account") {
+    throw new Error("refusing to run: long-lived service account keys are not accepted");
+  }
+  if (payload.type !== "impersonated_service_account") {
+    throw new Error("refusing to run: credential type is not service_account");
+  }
+  const url = typeof payload.service_account_impersonation_url === "string"
+    ? payload.service_account_impersonation_url
+    : "";
+  const match = url.match(/serviceAccounts\/([^:/]+):/);
+  if (!match) throw new Error("refusing to run: service account email is missing");
+  return {
+    type: "service_account",
+    clientEmail: decodeURIComponent(match[1]),
+    projectId: PRODUCTION_PROJECT_ID,
+  };
 }
 
 export async function confirmProjectOnStdin(projectId, readLine) {
@@ -200,6 +232,6 @@ export function formatExecutionSummary(summary) {
     `userPath: ${FIRESTORE_USERS_COLLECTION}`,
     `raceResultPath: ${RACE_RESULT_PATH}`,
     `videoMetadataPath: ${VIDEO_METADATA_PATH}`,
-    "safety: production import is disabled; writes require --execute on a demo- emulator",
+    "safety: production writes require --allow-production-write, a verified service account, --confirm, and stdin",
   ].join("\n");
 }

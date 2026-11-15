@@ -86,6 +86,7 @@ export function resumeIdempotency(input: {
   runId: string;
   projectId: string;
   rootDir: string;
+  actor?: string;
 }): { actualContentWrites: number | null; actualAuditWrites: number | null; passed: boolean };
 
 export function verificationActions(mode: "emulator" | "production"): {

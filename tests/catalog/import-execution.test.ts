@@ -75,17 +75,20 @@ describe.sequential("catalog import execution guard", () => {
     await db.doc(outside).set({ marker: "keep-user" });
     await db.doc(audit).set({ marker: "keep-audit" });
 
+    const trusted = { runId: "run-delete", plans, planSource: "trusted" as const, expected: new Map<string, string>() };
+    await expect(deleteDocuments(db, { runId: "run-delete", plans, paths: [legal] } as never)).rejects.toThrow(/plan source is not trusted/);
+    await expect(deleteDocuments(db, { ...trusted, expected: undefined as never, paths: [legal] })).rejects.toThrow(/expected documents are required/);
     await expect(
-      deleteDocuments(db, { runId: "run-delete", plans, paths: [legal, outside] }),
+      deleteDocuments(db, { ...trusted, paths: [legal, outside] }),
     ).rejects.toThrow(/outside the verified plan/);
     await expect(
-      deleteDocuments(db, { runId: "run-delete", plans, paths: [legal, legal] }),
+      deleteDocuments(db, { ...trusted, paths: [legal, legal] }),
     ).rejects.toThrow(/duplicate path/);
     await expect(
-      deleteDocuments(db, { runId: "run-delete", plans, paths: [legal, audit] }),
+      deleteDocuments(db, { ...trusted, paths: [legal, audit] }),
     ).rejects.toThrow(/refusing to delete run record/);
     await expect(
-      deleteDocuments(db, { runId: "run-delete", plans, paths: [legal], lockToken: "missing-token" }),
+      deleteDocuments(db, { ...trusted, paths: [legal], lockToken: "missing-token" }),
     ).rejects.toThrow(/lock is not held/);
 
     expect((await db.doc(legal).get()).data()).toMatchObject({ marker: "keep-parent" });
@@ -113,10 +116,34 @@ describe.sequential("catalog import execution guard", () => {
       beginRun(db, { runId: "run-other", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR }),
     ).rejects.toThrow(/import lock is held by run-lock/);
     await expect(
-      recoverImportLock(db, { runId: "run-lock", actor: IMPORT_ACTOR, confirmHolderDead: false }),
+      recoverImportLock(db, { runId: "run-lock", actor: IMPORT_ACTOR, reason: "holder crashed", confirmHolderDead: false }),
     ).rejects.toThrow(/holder has not been confirmed dead/);
-    const recovered = await recoverImportLock(db, { runId: "run-lock", actor: IMPORT_ACTOR, confirmHolderDead: true });
+    const recovered = await recoverImportLock(db, {
+      runId: "run-lock",
+      actor: IMPORT_ACTOR,
+      reason: "holder crashed",
+      confirmHolderDead: true,
+    });
     expect(recovered.lockToken).not.toBe(run.lockToken);
+    expect(recovered.previousToken).toBe(run.lockToken);
+    const audits = await db.collection(AUDIT).get();
+    expect(audits.docs.map((item) => item.data())).toEqual([
+      expect.objectContaining({
+        action: "lock-recovery",
+        previousToken: run.lockToken,
+        token: recovered.lockToken,
+        actor: IMPORT_ACTOR,
+        reason: "holder crashed",
+        result: "ok",
+      }),
+    ]);
+    const accepted = await beginRun(db, {
+      runId: "run-lock",
+      workbookSha256: EXPECTED_WORKBOOK_SHA256,
+      actor: IMPORT_ACTOR,
+      lockToken: recovered.lockToken,
+    });
+    expect(accepted.lockToken).toBe(recovered.lockToken);
     await expect(
       executeImport(db, plans, { ...context, lockToken: run.lockToken ?? "", leaveLockHeld: false, beforeBatch: undefined }),
     ).rejects.toThrow(/lock is not held/);
@@ -178,5 +205,61 @@ describe.sequential("catalog import execution guard", () => {
     await expect(
       beginRun(db, { runId: "run-intruder", workbookSha256: EXPECTED_WORKBOOK_SHA256 }),
     ).rejects.toThrow(/import lock belongs to run-create/);
+  });
+
+  it("rejects initial when the migration already exists and fails a fenced batch", async () => {
+    const run = await beginRun(db, {
+      runId: "run-fence",
+      workbookSha256: EXPECTED_WORKBOOK_SHA256,
+      actor: IMPORT_ACTOR,
+      initial: true,
+    });
+    await expect(beginRun(db, {
+      runId: "run-fence",
+      workbookSha256: EXPECTED_WORKBOOK_SHA256,
+      actor: IMPORT_ACTOR,
+      initial: true,
+    })).rejects.toThrow(/initial refused: migration run-fence already exists/);
+    const { plans } = loadPlans(run.importedAt);
+    await expect(executeImport(db, plans, {
+      runId: run.runId,
+      importedAt: run.importedAt,
+      actor: run.actor,
+      lockToken: run.lockToken ?? "",
+      beforeBatch: async () => {
+        await db.doc(importLockPath()).update({ lastBatch: 0 });
+      },
+    })).rejects.toThrow(/batch 1 commit failed/);
+    expect((await db.collection(OBJECTS).get()).size).toBe(0);
+  });
+
+  it("keeps committed totals when a later process writes nothing and continues from them", async () => {
+    const run = await beginRun(db, { runId: "run-cumulative", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR });
+    const { plans } = loadPlans(run.importedAt);
+    const context = {
+      runId: run.runId,
+      importedAt: run.importedAt,
+      actor: run.actor,
+      lockToken: run.lockToken ?? "",
+    };
+    const first = await executeImport(db, plans, { ...context, stopAfterObjects: 10 });
+    expect(first.actualContentWrites).toBe(20);
+    const migration = db.doc(`${ROOT}/trainingCatalogMigrations/run-cumulative`);
+    expect((await migration.get()).data()).toMatchObject({
+      cumulativeContentWrites: 20,
+      cumulativeAuditWrites: 10,
+    });
+    const paused = await executeImport(db, plans, { ...context, stopAfterObjects: 0 });
+    expect(paused.actualContentWrites).toBe(0);
+    expect((await migration.get()).data()).toMatchObject({
+      cumulativeContentWrites: 20,
+      cumulativeAuditWrites: 10,
+    });
+    const continued = await executeImport(db, plans, { ...context, stopAfterObjects: 10 });
+    expect(continued.actualContentWrites).toBe(20);
+    expect((await migration.get()).data()).toMatchObject({
+      cumulativeContentWrites: 40,
+      cumulativeAuditWrites: 20,
+    });
   });
 });

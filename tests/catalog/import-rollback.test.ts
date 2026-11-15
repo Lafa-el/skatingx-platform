@@ -154,4 +154,24 @@ describe.sequential("catalog import rollback guard", () => {
     expect((await db.doc(parentPath).get()).data()?.checksum).toBe(`${String(original.checksum)}-changed`);
     expect((await db.doc(snapshotPath).get()).exists).toBe(true);
   });
+
+  it("continues a rollback from the recorded stage and rejects a mismatched audit", async () => {
+    const { run, plans } = await startRun(db, "run-resume-rollback", 2);
+    const parents = plans.filter((plan) => !plan.path.includes("/versions/")).slice(0, 2);
+    const migration = db.doc(`${MIGRATIONS}/${run.runId}`);
+    const audit = (await db.collection(AUDIT).limit(1).get()).docs[0];
+    const originalChecksum = audit?.data().checksum;
+    await audit?.ref.update({ checksum: "not-the-parent" });
+    await expect(rollbackImport(db, run.runId, { lockToken: run.lockToken ?? "" })).rejects.toThrow(/audit checksum does not match the parent/);
+    await audit?.ref.update({ checksum: originalChecksum });
+    for (const parent of parents) {
+      await db.doc(`${parent.path}/versions/${CONTENT_VERSION}`).delete();
+    }
+    await migration.update({ rollbackProgress: { stage: "snapshots", updatedAt: "2026-11-15T00:00:00.000Z" } });
+    const result = await rollbackImport(db, run.runId, { lockToken: run.lockToken ?? "" });
+    expect(result.status).toBe("rolled_back");
+    for (const parent of parents) expect((await db.doc(parent.path).get()).exists).toBe(false);
+    expect((await db.collection(AUDIT).get()).size).toBe(2);
+    expect((await migration.get()).data()?.rollbackProgress).toMatchObject({ stage: "done" });
+  });
 });
