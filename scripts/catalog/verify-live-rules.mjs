@@ -21,6 +21,10 @@ export function sha256Text(value) {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+export function normalizeRulesContent(content) {
+  return content.replace(/\n+$/, "");
+}
+
 export function readRepoRules(rootDir) {
   const baseline = readFileSync(path.join(rootDir, "docs/skatingx-v2/import/rules-baseline-181.txt"), "utf8");
   const candidate = readFileSync(path.join(rootDir, "firestore.rules"), "utf8");
@@ -46,9 +50,9 @@ export function compareRulesRelease({ mode, liveContent, baselineContent, candid
   if (typeof liveContent !== "string" || typeof baselineContent !== "string" || typeof candidateContent !== "string") {
     throw new Error("rules source is incomplete");
   }
-  const liveSha256 = sha256Text(liveContent);
-  const baselineSha256 = sha256Text(baselineContent);
-  const candidateSha256 = sha256Text(candidateContent);
+  const liveSha256 = sha256Text(normalizeRulesContent(liveContent));
+  const baselineSha256 = sha256Text(normalizeRulesContent(baselineContent));
+  const candidateSha256 = sha256Text(normalizeRulesContent(candidateContent));
   const errors = [];
   if (mode === "predeploy") {
     if (liveSha256 !== baselineSha256) errors.push("live rules drifted from the #181 baseline");
@@ -115,7 +119,8 @@ export async function fetchRulesRelease(fetchImpl, { projectId, token }) {
     rulesetName: source.rulesetName,
     fileName: source.fileName,
     content: source.content,
-    sourceSha256: sha256Text(source.content),
+    sourceSha256: sha256Text(normalizeRulesContent(source.content)),
+    rawSourceSha256: sha256Text(source.content),
     queriedAt: new Date().toISOString(),
   };
 }
@@ -158,6 +163,7 @@ async function main() {
     releaseName: live.releaseName,
     rulesetName: live.rulesetName,
     sourceSha256: live.sourceSha256,
+    rawSourceSha256: live.rawSourceSha256,
     queriedAt: live.queriedAt,
   }));
   if (!compared.passed) process.exitCode = 1;

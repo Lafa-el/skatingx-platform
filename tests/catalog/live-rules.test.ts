@@ -12,7 +12,15 @@ import {
   compareRulesRelease,
   fetchRulesRelease,
   readLiveRules,
+  sha256Text,
 } from "../../scripts/catalog/verify-live-rules.mjs";
+import * as verifyLiveRules from "../../scripts/catalog/verify-live-rules.mjs";
+
+const NORMALIZED_BASELINE_SHA256 = "3851e82d571651914f6c26560b66077f168c15b3e56d6dfc579356c1fa83db15";
+
+const normalizeRulesContent = (verifyLiveRules as typeof verifyLiveRules & {
+  normalizeRulesContent(content: string): string;
+}).normalizeRulesContent;
 
 const rootDir = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../..");
 const source = readFileSync(path.join(rootDir, "scripts/catalog/verify-live-rules.mjs"), "utf8");
@@ -117,5 +125,83 @@ describe("live ruleset check", () => {
       candidateContent: approved.candidate,
     });
     expect(later.passed).toBe(true);
+  });
+
+  it("treats a trailing line feed as the same rules source", () => {
+    const approved = assertApprovedRepoRules(rootDir);
+    expect(approved.baselineSha256).toBe(APPROVED_BASELINE_SHA256);
+    expect(approved.baselineSha256).toBe("68b6a84684fe1753c454b000dacc18933e25f50b7a065d03597d1453ecc149e8");
+    expect(sha256Text(normalizeRulesContent(approved.baseline))).toBe(NORMALIZED_BASELINE_SHA256);
+    expect(APPROVED_CANDIDATE_SHA256).toBe("774962f3d60251a2c11ec547ec9631a6bf28a9964f07e6aa4580953c726b3457");
+    expect(approved.candidateSha256).toBe(APPROVED_CANDIDATE_SHA256);
+
+    const strippedBaseline = compareRulesRelease({
+      mode: "predeploy",
+      liveContent: normalizeRulesContent(approved.baseline),
+      baselineContent: approved.baseline,
+      candidateContent: approved.candidate,
+    });
+    expect(strippedBaseline.passed).toBe(true);
+    expect(strippedBaseline.liveSha256).toBe(NORMALIZED_BASELINE_SHA256);
+
+    const extraStatement = compareRulesRelease({
+      mode: "predeploy",
+      liveContent: `${approved.baseline}\nmatch /liveDriftProbe/{id} {\n  allow read: if false;\n}`,
+      baselineContent: approved.baseline,
+      candidateContent: approved.candidate,
+    });
+    expect(extraStatement.passed).toBe(false);
+    expect(extraStatement.errors.join(" ")).toMatch(/drifted/);
+
+    const marker = "service cloud.firestore";
+    const markerAt = approved.baseline.indexOf(marker);
+    expect(markerAt).toBeGreaterThan(0);
+    const interior = compareRulesRelease({
+      mode: "predeploy",
+      liveContent: `${approved.baseline.slice(0, markerAt)}service  cloud.firestore${approved.baseline.slice(markerAt + marker.length)}`,
+      baselineContent: approved.baseline,
+      candidateContent: approved.candidate,
+    });
+    expect(interior.passed).toBe(false);
+
+    const strippedCandidate = compareRulesRelease({
+      mode: "postdeploy",
+      liveContent: normalizeRulesContent(approved.candidate),
+      baselineContent: approved.baseline,
+      candidateContent: approved.candidate,
+    });
+    expect(strippedCandidate.passed).toBe(true);
+    expect(strippedCandidate.liveMatchesCandidate).toBe(true);
+
+    const extraCandidate = compareRulesRelease({
+      mode: "postdeploy",
+      liveContent: `${approved.candidate}\nmatch /liveDriftProbe/{id} {\n  allow read: if false;\n}`,
+      baselineContent: approved.baseline,
+      candidateContent: approved.candidate,
+    });
+    expect(extraCandidate.passed).toBe(false);
+    const missingCandidate = compareRulesRelease({
+      mode: "postdeploy",
+      liveContent: approved.baseline,
+      baselineContent: approved.baseline,
+      candidateContent: approved.candidate,
+    });
+    expect(missingCandidate.passed).toBe(false);
+  });
+
+  it("hashes fetched rules from the normalized source and keeps requests on GET", async () => {
+    const approved = assertApprovedRepoRules(rootDir);
+    const calls: Array<{ url: string; method: string }> = [];
+    const fetchImpl = async (url: string, init: { method?: string }) => {
+      calls.push({ url, method: init.method ?? "GET" });
+      if (url.endsWith("/releases/cloud.firestore")) return response(release());
+      return response(ruleset(approved.baseline));
+    };
+    const live = await fetchRulesRelease(fetchImpl, { projectId: "skatingx-prod", token: "token" });
+    const fetched = live as typeof live & { rawSourceSha256: string };
+    expect(live.sourceSha256).toBe(sha256Text(normalizeRulesContent(approved.baseline)));
+    expect(live.sourceSha256).toBe(NORMALIZED_BASELINE_SHA256);
+    expect(fetched.rawSourceSha256).toBe(APPROVED_BASELINE_SHA256);
+    expect(calls.every((call) => call.method === "GET")).toBe(true);
   });
 });
