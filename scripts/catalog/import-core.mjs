@@ -31,6 +31,7 @@ import {
   ALLOWED_PRODUCTION_SERVICE_ACCOUNTS,
   EXPECTED_DATABASE_ID,
   PRODUCTION_PROJECT_ID,
+  assertRunDocumentId,
 } from "./import-guard.mjs";
 
 import {
@@ -104,6 +105,7 @@ function objectPath(objectId) {
 }
 
 function migrationPath(runId) {
+  assertRunDocumentId(runId);
   return `${collectionPath(MIGRATIONS)}/${runId}`;
 }
 
@@ -114,6 +116,7 @@ export function importLockPath() {
 }
 
 export function auditDocId(runId, objectId) {
+  assertRunDocumentId(runId);
   return `imp-${runId}-${objectId}`;
 }
 
@@ -471,44 +474,8 @@ function parentPathPattern() {
   return new RegExp(`^${collectionPath(OBJECTS)}/[^/]+$`);
 }
 
-function snapshotPathPattern() {
-  return new RegExp(`^${collectionPath(OBJECTS)}/[^/]+/versions/${CONTENT_VERSION}$`);
-}
-
 function isParentPath(docPath) {
   return parentPathPattern().test(docPath);
-}
-
-function isSnapshotPath(docPath) {
-  return snapshotPathPattern().test(docPath);
-}
-
-function contentPathsOf(plans) {
-  if (!Array.isArray(plans)) throw new Error("delete refused: verified plan is required");
-  const allowed = new Set();
-  for (const plan of plans) {
-    const docPath = plan && typeof plan.path === "string" ? plan.path : "";
-    if (!isParentPath(docPath) && !isSnapshotPath(docPath)) {
-      throw new Error(`delete refused: verified plan contains ${docPath || "(missing path)"}`);
-    }
-    if (allowed.has(docPath)) throw new Error(`delete refused: verified plan repeats ${docPath}`);
-    allowed.add(docPath);
-  }
-  return allowed;
-}
-
-function deletionProblem(docPath, allowed) {
-  if (typeof docPath !== "string" || docPath.trim() === "" || docPath !== docPath.trim() || docPath.includes("//")) {
-    return `malformed path ${String(docPath)}`;
-  }
-  if (docPath.includes("/trainingCatalogAuditLogs/") || docPath.includes("/trainingCatalogMigrations/")) {
-    return `refusing to delete run record ${docPath}`;
-  }
-  if (!isParentPath(docPath) && !isSnapshotPath(docPath)) {
-    return `path is outside the verified plan ${docPath}`;
-  }
-  if (!allowed.has(docPath)) return `path is outside the verified plan ${docPath}`;
-  return "";
 }
 
 async function assertCatalogEmptyForInitial(tx, db) {
@@ -683,11 +650,21 @@ async function recordProgress(db, migrationRef, fields, committedBatch, claim) {
   }
 }
 
-export async function executeImport(db, plans, context) {
-  const writable = assertWritableProject(db);
-  if (writable.projectId === PRODUCTION_PROJECT_ID && context.stopAfterObjects !== undefined) {
+function assertProductionHooks(projectId, context) {
+  if (projectId !== PRODUCTION_PROJECT_ID) return;
+  if (
+    context.beforeBatch !== undefined
+    || context.beforeDelete !== undefined
+    || context.leaveLockHeld === true
+    || context.stopAfterObjects !== undefined
+  ) {
     throw new Error("refusing to run: test limits are not available for production");
   }
+}
+
+export async function executeImport(db, plans, context) {
+  const writable = assertWritableProject(db);
+  assertProductionHooks(writable.projectId, context);
   const runId = requireText(context.runId, "runId");
   const importedAt = requireText(context.importedAt, "importedAt");
   const actor = requireText(context.actor ?? IMPORT_ACTOR, "actor");
@@ -727,6 +704,8 @@ export async function executeImport(db, plans, context) {
     let committedObjects = 0;
     const migrationRef = db.doc(migrationPath(runId));
     const lockRef = db.doc(importLockPath());
+    const storedRounds = (await migrationRef.get()).data()?.importRounds;
+    const importRounds = Array.isArray(storedRounds) ? [...storedRounds] : [];
     for (let index = 0; index < work.length; index += MAX_OBJECTS_PER_BATCH) {
       const slice = work.slice(index, index + MAX_OBJECTS_PER_BATCH);
       const batchIndex = batches.length + 1;
@@ -780,6 +759,7 @@ export async function executeImport(db, plans, context) {
         remainingObjects: remainingAfterBatch,
       };
       const runStatus = remainingAfterBatch === 0 ? "completed" : "running";
+      importRounds.push({ batch: batchIndex, content: slice.length * 2, audits: slice.length });
       await recordProgress(db, migrationRef, {
         status: runStatus,
         progress,
@@ -787,8 +767,9 @@ export async function executeImport(db, plans, context) {
         remainingObjects: progress.remainingObjects,
         cumulativeContentWrites: cumulativeContent,
         cumulativeAuditWrites: cumulativeAudits,
-        roundContentWrites: committedObjects * 2,
-        roundAuditWrites: committedObjects,
+        roundContentWrites: slice.length * 2,
+        roundAuditWrites: slice.length,
+        importRounds,
         lastCompletedBatch: batchIndex,
       }, entry, claim);
       console.error(batchLine(entry));
@@ -855,53 +836,6 @@ export async function importDocuments(db, plans, context) {
   return report.actualContentWrites;
 }
 
-export async function deleteDocuments(db, request) {
-  assertWritableProject(db);
-  if (request.planSource !== "trusted") throw new Error("delete refused: plan source is not trusted");
-  if (!(request.expected instanceof Map)) throw new Error("delete refused: expected documents are required");
-  const runId = requireText(request.runId, "runId");
-  const allowed = contentPathsOf(request.plans);
-  const docPaths = request.paths;
-  if (!Array.isArray(docPaths)) throw new Error("delete refused: paths are required");
-  const seen = new Set();
-  const problems = [];
-  for (const docPath of docPaths) {
-    if (typeof docPath === "string" && seen.has(docPath)) problems.push(`duplicate path ${docPath}`);
-    if (typeof docPath === "string") seen.add(docPath);
-    const problem = deletionProblem(docPath, allowed);
-    if (problem) problems.push(problem);
-  }
-  if (problems.length > 0) throw new Error(`delete refused: ${problems.join("; ")}`);
-  const token = requireText(request.lockToken, "lockToken");
-  const lockSnap = await db.doc(importLockPath()).get();
-  const lock = lockSnap.exists ? lockSnap.data() : null;
-  if (!lock || lock.status !== "held" || lock.token !== token || lock.runId !== runId) {
-    throw new Error(`delete refused: lock is not held by ${runId}`);
-  }
-  const snaps = new Map();
-  for (const docPath of docPaths) {
-    const snap = await db.doc(docPath).get();
-    const actual = snap.exists ? canonicalCatalogJson(snap.data()) : "";
-    if (actual !== request.expected.get(docPath)) {
-      throw new Error(`rollback refused: ${docPath} changed after verification`);
-    }
-    if (!snap.exists || !snap.updateTime) throw new Error(`rollback refused: ${docPath} changed after verification`);
-    snaps.set(docPath, snap);
-  }
-  const versions = docPaths.filter((docPath) => isSnapshotPath(docPath));
-  const parents = docPaths.filter((docPath) => isParentPath(docPath));
-  for (const group of [versions, parents]) {
-    for (let index = 0; index < group.length; index += BATCH_LIMIT) {
-      const batch = db.batch();
-      for (const docPath of group.slice(index, index + BATCH_LIMIT)) {
-        const snap = snaps.get(docPath);
-        batch.delete(db.doc(docPath), { lastUpdateTime: snap.updateTime });
-      }
-      await batch.commit();
-    }
-  }
-}
-
 export async function beginRun(db, input) {
   assertWritableProject(db);
   const runId = requireText(input.runId, "runId");
@@ -926,6 +860,9 @@ export async function beginRun(db, input) {
     if (lock?.status === "held" && snap.exists && input.initial !== true && suppliedToken !== "" && lock.token === suppliedToken && lock.runId === runId) {
       const stored = snap.data();
       if (stored.status === "rolled_back") throw new Error(`resume refused: run ${runId} is rolled_back`);
+      if (stored.status === "rolling_back" || lock.purpose === "rollback") {
+        throw new Error(`resume refused: run ${runId} is rolling back`);
+      }
       const actor = actorOf(stored);
       if (requestedActor !== "" && requestedActor !== actor) {
         throw new Error(`actor mismatch: expected ${actor}`);
@@ -935,14 +872,33 @@ export async function beginRun(db, input) {
       }
       return { ...stored, created: false, lockToken: suppliedToken };
     }
+    if (lock?.status === "held" && lock.purpose === "rollback" && lock.runId === runId) {
+      throw new Error(`resume refused: run ${runId} is rolling back`);
+    }
     if (lock?.status === "held") throw new Error(`import lock is held by ${lock.runId}`);
     if (lock && lock.runId !== runId && lock.status !== "released" && lock.status !== "rolled_back") {
       throw new Error(`import lock belongs to ${lock.runId}`);
+    }
+    if (lock?.status === "recovered" && snap.exists && input.initial !== true && lock.runId === runId) {
+      const stored = snap.data();
+      if (stored.status === "rolled_back") throw new Error(`resume refused: run ${runId} is rolled_back`);
+      if (stored.status === "rolling_back") throw new Error(`resume refused: run ${runId} is rolling back`);
+      const actor = actorOf(stored);
+      if (requestedActor !== "" && requestedActor !== actor) throw new Error(`actor mismatch: expected ${actor}`);
+      if (lock.actor !== actor) throw new Error("lock recovery refused: actor mismatch");
+      if (stored.recoveredLockToken !== lock.token) {
+        throw new Error("resume refused: recovered token does not match the migration");
+      }
+      tx.update(lockRef, { status: "held", purpose: "import", adoptedAt: new Date().toISOString() });
+      return { ...stored, created: false, lockToken: lock.token };
     }
     if (!snap.exists && input.initial === true) await assertCatalogEmptyForInitial(tx, db);
     if (snap.exists) {
       const stored = snap.data();
       if (stored.status === "rolled_back") throw new Error(`resume refused: run ${runId} is rolled_back`);
+      if (stored.status === "rolling_back" || lock?.purpose === "rollback") {
+        throw new Error(`resume refused: run ${runId} is rolling back`);
+      }
       const actor = actorOf(stored);
       if (requestedActor !== "" && requestedActor !== actor) {
         throw new Error(`actor mismatch: expected ${actor}`);
@@ -959,6 +915,7 @@ export async function beginRun(db, input) {
       });
       return { ...stored, created: false, lockToken: token };
     }
+    if (input.initial !== true) throw new Error(`resume refused: migration ${runId} does not exist`);
     const actor = requestedActor !== "" ? requestedActor : IMPORT_ACTOR;
     const serviceAccount = typeof input.serviceAccount === "string" && input.serviceAccount.trim() !== ""
       ? input.serviceAccount.trim()
@@ -997,50 +954,76 @@ export async function beginRun(db, input) {
   });
 }
 
+async function assertRecoverableContent(db, record) {
+  const { plans } = loadPlans(record.importedAt);
+  const stored = await readPlannedDocs(db, plans, readModeOf(db));
+  for (const plan of plans) {
+    if (!isParentPath(plan.path)) continue;
+    const parent = stored.get(plan.path);
+    const snapshot = stored.get(`${plan.path}/versions/${CONTENT_VERSION}`);
+    if (!parent && !snapshot) continue;
+    if (!parent || !snapshot) throw new Error(`lock recovery refused: incomplete object ${plan.data.id}`);
+    if (!sameDocument(parent, plan.data)) throw new Error(`lock recovery refused: content conflict ${plan.path}`);
+  }
+}
+
 export async function recoverImportLock(db, input) {
   const writable = assertWritableProject(db);
   if (input.confirmHolderDead !== true) {
     throw new Error("lock recovery refused: holder has not been confirmed dead");
   }
   const runId = requireText(input.runId, "runId");
+  assertRunDocumentId(runId);
   const actor = requireText(input.actor, "actor");
   const reason = requireText(input.reason, "reason");
+  const migrationRef = db.doc(migrationPath(runId));
+  const migrationSnap = await migrationRef.get();
+  if (!migrationSnap.exists) throw new Error(`lock recovery refused: migration ${runId} does not exist`);
+  const record = migrationSnap.data();
+  if (record.status === "rolled_back" || record.status === "rolling_back") {
+    throw new Error(`lock recovery refused: run ${runId} is ${record.status}`);
+  }
+  await assertRecoverableContent(db, record);
   const lockRef = db.doc(importLockPath());
   const token = newLockToken();
   const recoveredAt = new Date().toISOString();
   let previousToken = "";
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(lockRef);
+    const migration = await tx.get(migrationRef);
     if (!snap.exists || snap.data().status !== "held") {
       throw new Error("lock recovery refused: there is no active holder");
     }
+    if (!migration.exists) throw new Error(`lock recovery refused: migration ${runId} does not exist`);
     const lock = snap.data();
     if (lock.runId !== runId) throw new Error(`lock recovery refused: lock belongs to ${lock.runId}`);
     if (lock.actor !== actor) throw new Error("lock recovery refused: actor mismatch");
     previousToken = lock.token;
+    const auditId = `lockrec-${runId}-${createHash("sha256").update(previousToken).digest("hex").slice(0, 16)}`;
     tx.set(lockRef, {
       ...lock,
       token,
-      previousToken: lock.token,
+      previousToken,
       previousStatus: lock.status,
       recoveredAt,
       recovery: "manual",
       recoveryReason: reason,
-      status: "held",
+      purpose: "import",
+      status: "recovered",
     });
-  });
-  const auditId = `lockrec-${runId}-${createHash("sha256").update(recoveredAt).digest("hex").slice(0, 16)}`;
-  await db.doc(`${collectionPath(AUDIT)}/${auditId}`).create({
-    action: "lock-recovery",
-    runId,
-    actor,
-    operator: actor,
-    serviceAccount: writable.serviceAccount,
-    previousToken,
-    token,
-    at: recoveredAt,
-    reason,
-    result: "ok",
+    tx.update(migrationRef, { recoveredLockToken: token, lockRecoveredAt: recoveredAt });
+    tx.create(db.doc(`${collectionPath(AUDIT)}/${auditId}`), {
+      action: "lock-recovery",
+      runId,
+      actor,
+      operator: actor,
+      serviceAccount: writable.serviceAccount,
+      previousToken,
+      token,
+      at: recoveredAt,
+      reason,
+      result: "ok",
+    });
   });
   return { runId, actor, lockToken: token, previousToken, recoveredAt, reason };
 }
@@ -1084,6 +1067,90 @@ function auditProblem(auditData, { id, actor, objectId, parent, record }) {
   return "";
 }
 
+async function assertDescendants(db, parentPath) {
+  const collections = await db.doc(parentPath).listCollections();
+  for (const collection of collections) {
+    if (collection.id !== "versions") {
+      throw new Error(`rollback refused: unexpected subcollection ${parentPath}/${collection.id}`);
+    }
+  }
+  const versions = await db.collection(`${parentPath}/versions`).get();
+  for (const version of versions.docs) {
+    if (version.id !== CONTENT_VERSION) {
+      throw new Error(`rollback refused: unexpected version ${version.ref.path}`);
+    }
+  }
+}
+
+async function acquireRollbackLock(db, { runId, actor, presentedToken, migrationRef }) {
+  const lockRef = db.doc(importLockPath());
+  const freshToken = newLockToken();
+  let activeToken = freshToken;
+  let acquired = false;
+  await db.runTransaction(async (tx) => {
+    const lockSnap = await tx.get(lockRef);
+    const migrationSnap = await tx.get(migrationRef);
+    if (!lockSnap.exists) throw new Error(`rollback refused: lock is not held by ${runId}`);
+    const lock = lockSnap.data();
+    if (lock.runId !== runId) throw new Error(`rollback refused: lock belongs to ${lock.runId}`);
+    if (lock.actor !== actor) throw new Error("rollback refused: actor mismatch");
+    if (lock.status === "held" && lock.purpose === "rollback" && lock.token === presentedToken) {
+      activeToken = presentedToken;
+      return;
+    }
+    if (lock.status === "held") throw new Error("rollback refused: import is still running");
+    if (lock.status !== "released" && lock.status !== "failed") {
+      throw new Error(`rollback refused: lock is ${lock.status}`);
+    }
+    if (lock.token !== presentedToken) throw new Error("rollback refused: lock is not held");
+    if (!migrationSnap.exists) throw new Error(`migration ${runId} does not exist`);
+    acquired = true;
+    const now = new Date().toISOString();
+    tx.update(lockRef, {
+      status: "held",
+      purpose: "rollback",
+      token: freshToken,
+      previousToken: lock.token,
+      acquiredAt: now,
+    });
+    tx.update(migrationRef, { status: "rolling_back", rollbackStartedAt: now });
+  });
+  return { token: activeToken, acquired };
+}
+
+async function commitRollbackBatch(db, { runId, token, migrationRef, deletes, auditPaths, migrationPatch, lockPatch = {} }) {
+  const lockRef = db.doc(importLockPath());
+  const lockSnap = await lockRef.get();
+  const lock = lockSnap.exists ? lockSnap.data() : null;
+  if (!lockSnap.exists || !lockSnap.updateTime || !lock || lock.token !== token || lock.status !== "held" || lock.purpose !== "rollback" || lock.runId !== runId) {
+    throw new Error(`rollback refused: lock is not held by ${runId}`);
+  }
+  const migrationSnap = await migrationRef.get();
+  if (!migrationSnap.exists || !migrationSnap.updateTime) {
+    throw new Error("rollback refused: migration precondition is missing");
+  }
+  const batch = db.batch();
+  for (const docPath of deletes) {
+    const snap = await db.doc(docPath).get();
+    if (!snap.exists || !snap.updateTime) throw new Error(`rollback refused: ${docPath} changed after verification`);
+    batch.delete(db.doc(docPath), { lastUpdateTime: snap.updateTime });
+  }
+  for (const docPath of auditPaths) {
+    const snap = await db.doc(docPath).get();
+    if (!snap.exists || !snap.updateTime) throw new Error(`rollback refused: ${docPath} changed after verification`);
+    batch.update(db.doc(docPath), { result: snap.data().result }, { lastUpdateTime: snap.updateTime });
+  }
+  const now = new Date().toISOString();
+  batch.update(migrationRef, { ...migrationPatch, updatedAt: now }, { lastUpdateTime: migrationSnap.updateTime });
+  batch.update(lockRef, { lastRollbackAt: now, ...lockPatch }, { lastUpdateTime: lockSnap.updateTime });
+  try {
+    await batch.commit();
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`rollback refused: commit failed: ${reason}`, { cause: error });
+  }
+}
+
 function draftProblem(docPath, data) {
   if (data.status !== "draft" || data.reviewStatus !== "pending") {
     return `rollback refused: ${docPath} is ${String(data.status)}/${String(data.reviewStatus)}`;
@@ -1095,9 +1162,10 @@ function draftProblem(docPath, data) {
 }
 
 export async function rollbackImport(db, runId, claim = {}) {
-  assertWritableProject(db);
+  const writable = assertWritableProject(db);
+  assertProductionHooks(writable.projectId, claim);
   const id = requireText(runId, "runId");
-  const token = requireText(claim.lockToken, "lockToken");
+  const presentedToken = requireText(claim.lockToken, "lockToken");
   const ref = db.doc(migrationPath(id));
   const snap = await ref.get();
   if (!snap.exists) throw new Error(`migration ${id} does not exist`);
@@ -1117,7 +1185,6 @@ export async function rollbackImport(db, runId, claim = {}) {
   if (!record.planSummary || record.planSummary.digest !== summary.digest) {
     throw new Error("rollback refused: plan summary does not match the stored run");
   }
-  await claimLock(db, { runId: id, actor, token });
   const fresh = await ref.get();
   if (!fresh.exists || fresh.data().workbookSha256 !== record.workbookSha256 || fresh.data().planSummary?.digest !== summary.digest) {
     throw new Error(`rollback refused: migration ${id} changed after the lock was claimed`);
@@ -1155,14 +1222,16 @@ export async function rollbackImport(db, runId, claim = {}) {
     }
     const snapshotGone = parent && auditData && !snapshot;
     const contentGone = !parent && !snapshot && auditData;
-    if (stage === "mark") {
+    if (stage === "mark" || ((stage === "parents" || stage === "mark") && contentGone)) {
       if (parent || snapshot) {
-        throw new Error(`rollback refused: ${objectId} still has content during the mark stage`);
+        throw new Error(`rollback refused: ${objectId} still has content during the ${stage} stage`);
       }
-      retainedAudits += auditData ? 1 : 0;
-      continue;
-    }
-    if (stage === "parents" && contentGone) {
+      if (!auditData) throw new Error(`rollback refused: audit missing ${audit}`);
+      const problem = auditProblem(auditData, { id, actor, objectId, parent: parentPlan.data, record });
+      if (problem) throw new Error(`rollback refused: ${problem} ${audit}`);
+      await assertDescendants(db, parentPath);
+      const versions = await db.collection(`${parentPath}/versions`).get();
+      if (!versions.empty) throw new Error(`rollback refused: ${objectId} still has content during the ${stage} stage`);
       retainedAudits += 1;
       continue;
     }
@@ -1174,8 +1243,9 @@ export async function rollbackImport(db, runId, claim = {}) {
       }
       const problem = auditProblem(auditData, { id, actor, objectId, parent, record });
       if (problem) throw new Error(`rollback refused: ${problem} ${audit}`);
+      await assertDescendants(db, parentPath);
       expected.set(parentPath, canonicalCatalogJson(parent));
-      parentDeletes.push(parentPath);
+      parentDeletes.push({ path: parentPath, audit });
       retainedAudits += 1;
       continue;
     }
@@ -1197,23 +1267,12 @@ export async function rollbackImport(db, runId, claim = {}) {
     }
     const problem = auditProblem(auditData, { id, actor, objectId, parent, record });
     if (problem) throw new Error(`rollback refused: ${problem} ${audit}`);
-    const collections = await db.doc(parentPath).listCollections();
-    for (const collection of collections) {
-      if (collection.id !== "versions") {
-        throw new Error(`rollback refused: unexpected subcollection ${parentPath}/${collection.id}`);
-      }
-    }
-    const versions = await db.collection(`${parentPath}/versions`).get();
-    for (const version of versions.docs) {
-      if (version.id !== CONTENT_VERSION) {
-        throw new Error(`rollback refused: unexpected version ${version.ref.path}`);
-      }
-    }
+    await assertDescendants(db, parentPath);
     if (stage === "snapshots") {
       expected.set(snapshotPath, canonicalCatalogJson(snapshot));
-      snapshotDeletes.push(snapshotPath);
+      snapshotDeletes.push({ path: snapshotPath, audit });
       expected.set(parentPath, canonicalCatalogJson(parent));
-      parentDeletes.push(parentPath);
+      parentDeletes.push({ path: parentPath, audit });
     }
     if (stage === "parents") {
       throw new Error(`rollback refused: snapshot remains during parent stage ${snapshotPath}`);
@@ -1228,41 +1287,88 @@ export async function rollbackImport(db, runId, claim = {}) {
       throw new Error(`rollback refused: ${docPath} changed after verification`);
     }
   }
-  if (stage === "snapshots") {
-    await ref.update({ rollbackProgress: { stage: "snapshots", updatedAt: new Date().toISOString() } });
-    if (snapshotDeletes.length > 0) {
-      await deleteDocuments(db, {
-        runId: id, plans, paths: snapshotDeletes, lockToken: token, expected, planSource: "trusted",
+  const ownership = await acquireRollbackLock(db, {
+    runId: id,
+    actor,
+    presentedToken,
+    migrationRef: ref,
+  });
+  const token = ownership.token;
+  const prior = fresh.data().rollbackResult ?? {};
+  let deletedSnapshots = prior.deletedSnapshots ?? 0;
+  let deletedParents = prior.deletedParents ?? 0;
+  let controlWrites = (prior.controlWrites ?? 0) + (ownership.acquired ? 2 : 0);
+  const chunk = 200;
+  async function commitChunks(items, kind) {
+    for (let index = 0; index < items.length; index += chunk) {
+      const slice = items.slice(index, index + chunk);
+      if (kind === "snapshots") deletedSnapshots += slice.length;
+      else deletedParents += slice.length;
+      controlWrites += 2;
+      await commitRollbackBatch(db, {
+        runId: id,
+        token,
+        migrationRef: ref,
+        deletes: slice.map((item) => item.path),
+        auditPaths: slice.map((item) => item.audit),
+        migrationPatch: {
+          status: "rolling_back",
+          rollbackProgress: { stage, updatedAt: new Date().toISOString() },
+          rollbackResult: { deletedParents, deletedSnapshots, retainedAudits, controlWrites },
+        },
       });
     }
+  }
+  if (stage === "snapshots") {
+    await commitChunks(snapshotDeletes, "snapshots");
     stage = "parents";
-    await ref.update({ rollbackProgress: { stage, updatedAt: new Date().toISOString() } });
+    controlWrites += 2;
+    await commitRollbackBatch(db, {
+      runId: id,
+      token,
+      migrationRef: ref,
+      deletes: [],
+      auditPaths: [],
+      migrationPatch: {
+        status: "rolling_back",
+        rollbackProgress: { stage, updatedAt: new Date().toISOString() },
+        rollbackResult: { deletedParents, deletedSnapshots, retainedAudits, controlWrites },
+      },
+    });
   }
   if (stage === "parents") {
-    if (parentDeletes.length > 0) {
-      await deleteDocuments(db, {
-        runId: id, plans, paths: parentDeletes, lockToken: token, expected, planSource: "trusted",
-      });
-    }
+    await commitChunks(parentDeletes, "parents");
     stage = "mark";
-    await ref.update({ rollbackProgress: { stage, updatedAt: new Date().toISOString() } });
+    controlWrites += 2;
+    await commitRollbackBatch(db, {
+      runId: id,
+      token,
+      migrationRef: ref,
+      deletes: [],
+      auditPaths: [],
+      migrationPatch: {
+        status: "rolling_back",
+        rollbackProgress: { stage, updatedAt: new Date().toISOString() },
+        rollbackResult: { deletedParents, deletedSnapshots, retainedAudits, controlWrites },
+      },
+    });
   }
   const rolledBackAt = new Date().toISOString();
-  const rollbackResult = {
-    deletedParents: parentDeletes.length,
-    deletedSnapshots: snapshotDeletes.length,
-    retainedAudits,
-  };
-  await ref.update({
-    status: "rolled_back",
-    rolledBackAt,
-    rollbackResult,
-    rollbackProgress: { stage: "done", updatedAt: rolledBackAt },
-  });
-  await updateHeldLock(db, { runId: id, actor, token }, {
-    status: "rolled_back",
-    rolledBackAt,
-    rollbackResult,
+  controlWrites += 2;
+  const rollbackResult = { deletedParents, deletedSnapshots, retainedAudits, controlWrites };
+  await commitRollbackBatch(db, {
+    runId: id,
+    token,
+    migrationRef: ref,
+    deletes: [],
+    auditPaths: [],
+    migrationPatch: {
+      status: "rolled_back",
+      rolledBackAt,
+      rollbackResult,
+      rollbackProgress: { stage: "done", updatedAt: rolledBackAt },
+    },
+    lockPatch: { status: "rolled_back", rolledBackAt, rollbackResult },
   });
   return { ...record, status: "rolled_back", rolledBackAt, rollbackResult };
 }

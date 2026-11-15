@@ -214,6 +214,8 @@ describe("shared import runner", () => {
       expect(calls.open).toBe(1);
       expect(calls.write).toBe(0);
       expect(calls.read).toBeGreaterThan(0);
+      expect(tracked.logs.join("\n")).toContain("target: production");
+      expect(tracked.logs.join("\n")).not.toContain("target: emulator");
     } finally {
       if (previousHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
       else process.env.FIRESTORE_EMULATOR_HOST = previousHost;
@@ -446,6 +448,7 @@ describe.sequential("shared runner emulator chain", () => {
       stored: read.stored,
       inspected: read.inspected,
       audits: read.audits,
+      lock: read.lock,
       business: businessReport(businessBefore, await snapshotBusiness(db)),
       rules,
       idempotency: { skipped: true },
@@ -480,6 +483,7 @@ describe.sequential("shared runner emulator chain", () => {
       databaseId: "(default)",
     }, entryDeps());
     expect(outcome.publicReport).toMatchObject({ actualContentWrites: 0, actualAuditWrites: 0, idempotent: true, runStatus: "completed" });
+    expect(Number(outcome.publicReport?.totalWrites)).toBeGreaterThan(0);
     const child = spawnSync(process.execPath, [
       path.join(rootDir, "scripts/catalog/check-idempotency.mjs"),
       "--runId", RUN_ID,
@@ -508,7 +512,8 @@ describe.sequential("shared runner emulator chain", () => {
     expect(lock?.token).not.toBe("forged-token");
     await expect(rollbackImport(db, RUN_ID, { lockToken: "forged-token" })).rejects.toThrow(/lock is not held/);
     const rolled = await rollbackImport(db, RUN_ID, { lockToken: String(lock?.token) });
-    expect(rolled.rollbackResult).toEqual({ deletedParents: 257, deletedSnapshots: 257, retainedAudits: 257 });
+    expect(rolled.rollbackResult).toMatchObject({ deletedParents: 257, deletedSnapshots: 257, retainedAudits: 257 });
+    expect(rolled.rollbackResult?.controlWrites).toBeGreaterThan(0);
     expect((await db.collection(OBJECTS).listDocuments())).toHaveLength(0);
     expect((await db.collection(AUDIT).get()).size).toBe(257);
     expect((await db.doc(`${MIGRATIONS}/${RUN_ID}`).get()).data()?.status).toBe("rolled_back");

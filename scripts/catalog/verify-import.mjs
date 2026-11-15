@@ -68,12 +68,19 @@ async function main() {
     stored: read.stored,
     inspected: read.inspected,
     audits: read.audits,
+    lock: read.lock,
     business,
     rules,
     idempotency: { skipped: true, invoked: false },
   });
   console.log(JSON.stringify(report));
-  if (!report.passed) process.exitCode = 1;
+  if (report.acceptance === "pending-evidence") {
+    console.error("client permission checks and idempotency are pending evidence");
+    process.exitCode = 1;
+  } else if (!report.passed) {
+    console.error("verification failed");
+    process.exitCode = 1;
+  }
 }
 
 const invoked = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

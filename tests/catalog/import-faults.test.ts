@@ -160,7 +160,7 @@ describe.sequential("catalog import fault injection", () => {
   });
 
   it("resumes after the second batch commit fails", async () => {
-    const run = await beginRun(db, { runId: "run-fault-a", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR });
+    const run = await beginRun(db, { runId: "run-fault-a", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR, initial: true });
     const { plans } = loadPlans(run.importedAt);
     const parents = plans.filter((plan) => !plan.path.includes("/versions/"));
     await expect(
@@ -191,7 +191,7 @@ describe.sequential("catalog import fault injection", () => {
   });
 
   it("completes the migration when content is already committed", async () => {
-    const run = await beginRun(db, { runId: "run-fault-b", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR });
+    const run = await beginRun(db, { runId: "run-fault-b", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR, initial: true });
     const { plans } = loadPlans(run.importedAt);
     await expect(
       executeImport(withFaults(db, { failMigrationUpdate: "completion" }), plans, {
@@ -222,7 +222,7 @@ describe.sequential("catalog import fault injection", () => {
   });
 
   it("rebuilds progress from stored triples when the progress update fails", async () => {
-    const run = await beginRun(db, { runId: "run-fault-c", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR });
+    const run = await beginRun(db, { runId: "run-fault-c", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR, initial: true });
     const { plans } = loadPlans(run.importedAt);
     await expect(
       executeImport(withFaults(db, { failMigrationUpdate: 1 }), plans, {

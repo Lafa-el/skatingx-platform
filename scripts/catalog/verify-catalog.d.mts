@@ -35,6 +35,7 @@ export interface CatalogVerification {
     actualAuditWrites?: number | null;
   };
   passed: boolean;
+  acceptance: "passed" | "pending-evidence" | "failed";
 }
 
 export interface CatalogRead {
@@ -45,6 +46,7 @@ export interface CatalogRead {
   stored: Array<{ path: string; data: Record<string, unknown> }>;
   inspected: { collectionDocs: Record<string, string[]>; orphans: string[]; versionPaths: string[] };
   audits: Array<{ path: string; data: Record<string, unknown> }>;
+  lock: Record<string, unknown> | null;
 }
 
 export function readCatalogVerification(
@@ -65,6 +67,7 @@ export function evaluateCatalogImport(input: {
   stored: ReadonlyArray<{ path: string; data: Record<string, unknown> }>;
   inspected: { collectionDocs: Record<string, string[]>; orphans: string[]; versionPaths: string[] };
   audits: ReadonlyArray<{ path: string; data: Record<string, unknown> }>;
+  lock?: Record<string, unknown> | null;
   business: { countBefore: number; countAfter: number; changes: Array<{ path: string; kind: string }> };
   rules?: { anonymous?: string; signedIn?: string; admin?: string; skipped?: boolean };
   idempotency?: { actualContentWrites?: number | null; actualAuditWrites?: number | null; skipped?: boolean; invoked?: boolean };

@@ -227,7 +227,7 @@ describe("catalog import dry run", () => {
       // behind so this import starts from the committed inventory.
       await wipeCatalog(db);
       mark("workbookSha256");
-      const run = await beginRun(db, { runId: DRY_RUN_ID, workbookSha256: EXPECTED_WORKBOOK_SHA256 });
+      const run = await beginRun(db, { runId: DRY_RUN_ID, workbookSha256: EXPECTED_WORKBOOK_SHA256, initial: true });
       const { workbookSha256, plans } = loadPlans(run.importedAt);
       report.workbookSha256 = workbookSha256;
       const runContext = {

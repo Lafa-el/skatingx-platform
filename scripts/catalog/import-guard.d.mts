@@ -3,6 +3,7 @@ export const EXPECTED_DATABASE_ID: string;
 export const FIRESTORE_USERS_COLLECTION: string;
 export const RACE_RESULT_PATH: string;
 export const VIDEO_METADATA_PATH: string;
+export const RACE_VIDEO_PATH: string;
 export const ALLOWED_PRODUCTION_SERVICE_ACCOUNTS: readonly string[];
 
 export interface ImportArgs {
@@ -37,13 +38,17 @@ export interface BusinessCounts {
   firestoreUsers?: number;
   raceResults?: number;
   videoMetadata?: number;
+  raceVideos?: number;
   reason?: string;
   paths?: {
     firestoreUsers: string;
     raceResults: string;
     videoMetadata: string;
+    raceVideos?: string;
   };
 }
+
+export function assertRunDocumentId(runId: string): void;
 
 export function parseImportArgs(argv: readonly string[]): ImportArgs;
 
@@ -95,6 +100,7 @@ export function formatExecutionSummary(summary: {
   plannedAuditWrites: number;
   plannedMigrationCreates: number;
   baseBudget: number;
+  planDigest?: string;
   authUsers?: AuthCount;
-  business?: { status?: string; firestoreUsers?: number; raceResults?: number; videoMetadata?: number };
+  business?: { status?: string; firestoreUsers?: number; raceResults?: number; videoMetadata?: number; raceVideos?: number };
 }): string;
