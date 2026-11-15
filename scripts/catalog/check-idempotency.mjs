@@ -12,12 +12,13 @@ const { assertDemoProjectId } = await import("./import-core.mjs");
 const rootDir = path.resolve(here, "../..");
 
 function parseArgs(argv) {
-  const args = { runId: "", target: "", project: "" };
+  const args = { runId: "", target: "", project: "", actor: "" };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--runId") args.runId = argv[(index += 1)] ?? "";
     else if (token === "--target") args.target = argv[(index += 1)] ?? "";
     else if (token === "--project") args.project = argv[(index += 1)] ?? "";
+    else if (token === "--actor") args.actor = argv[(index += 1)] ?? "";
     else if (token === "--execute") throw new Error("refusing to run: this entry always resumes through its own emulator call");
     else throw new Error(`unknown argument ${token}`);
   }
@@ -30,7 +31,12 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   assertDemoProjectId(args.project);
-  const result = resumeIdempotency({ runId: args.runId, projectId: args.project, rootDir });
+  const result = resumeIdempotency({
+    runId: args.runId,
+    projectId: args.project,
+    rootDir,
+    actor: args.actor,
+  });
   console.log(JSON.stringify(result));
   if (!result.passed) process.exitCode = 1;
 }

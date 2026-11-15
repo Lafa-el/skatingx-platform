@@ -154,7 +154,7 @@ describe.sequential("catalog import resume", () => {
     expect(child.status, `${child.stderr}\n${child.stdout}`).toBe(0);
     expect(child.stderr).toContain("remainingObjectGroups: 157");
     expect(child.stderr).toContain("plannedContentWrites: 314");
-    expect(child.stderr).toContain("baseBudget: 772");
+    expect(child.stderr).toContain("baseBudget: 780");
     expect(child.stderr).toContain("safety:");
     expect(child.stderr).not.toContain("plannedContentWrites: 514");
     const report = JSON.parse(child.stdout) as {
@@ -211,7 +211,7 @@ describe.sequential("catalog import resume", () => {
     expect(second.plannedContentWrites).toBe(0);
     expect(second.idempotent).toBe(true);
     expect(again.stderr).toContain("remainingObjectGroups:");
-    expect(again.stderr).toContain("baseBudget: 772");
+    expect(again.stderr).toContain("baseBudget: 780");
     expect(again.stderr).toContain("safety:");
 
     const preview = runImport([
@@ -228,7 +228,7 @@ describe.sequential("catalog import resume", () => {
     expect(preview.stderr).toContain(`runId: ${run.runId}`);
     expect(preview.stderr).toContain("remainingObjectGroups: 0");
     expect(preview.stderr).toContain("plannedContentWrites: 0");
-    expect(preview.stderr).toContain("baseBudget: 772");
+    expect(preview.stderr).toContain("baseBudget: 780");
     expect(preview.stderr).toContain("safety:");
     expect(JSON.parse(preview.stdout).phase).toBe("preflight");
   });

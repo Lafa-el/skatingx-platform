@@ -11,16 +11,12 @@ import {
   assertApprovedRepoRules,
   compareRulesRelease,
   fetchRulesRelease,
+  normalizeRulesContent,
   readLiveRules,
   sha256Text,
 } from "../../scripts/catalog/verify-live-rules.mjs";
-import * as verifyLiveRules from "../../scripts/catalog/verify-live-rules.mjs";
 
 const NORMALIZED_BASELINE_SHA256 = "3851e82d571651914f6c26560b66077f168c15b3e56d6dfc579356c1fa83db15";
-
-const normalizeRulesContent = (verifyLiveRules as typeof verifyLiveRules & {
-  normalizeRulesContent(content: string): string;
-}).normalizeRulesContent;
 
 const rootDir = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../..");
 const source = readFileSync(path.join(rootDir, "scripts/catalog/verify-live-rules.mjs"), "utf8");
@@ -198,10 +194,9 @@ describe("live ruleset check", () => {
       return response(ruleset(approved.baseline));
     };
     const live = await fetchRulesRelease(fetchImpl, { projectId: "skatingx-prod", token: "token" });
-    const fetched = live as typeof live & { rawSourceSha256: string };
     expect(live.sourceSha256).toBe(sha256Text(normalizeRulesContent(approved.baseline)));
     expect(live.sourceSha256).toBe(NORMALIZED_BASELINE_SHA256);
-    expect(fetched.rawSourceSha256).toBe(APPROVED_BASELINE_SHA256);
+    expect(live.rawSourceSha256).toBe(APPROVED_BASELINE_SHA256);
     expect(calls.every((call) => call.method === "GET")).toBe(true);
   });
 });

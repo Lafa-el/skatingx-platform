@@ -4,6 +4,18 @@ export const EXPECTED_WORKBOOK_SHA256: string;
 export const CONTENT_VERSION: string;
 export const IMPORT_ACTOR: string;
 export const BASE_IMPORT_BUDGET: number;
+
+export function executionBudget(parentCount: number): number;
+
+export function grantProductionWrite(identity: {
+  type: string;
+  clientEmail: string;
+  projectId: string;
+}): { type: string; clientEmail: string; projectId: string };
+
+export function clearProductionWriteGrant(): void;
+
+export function productionWriteIdentity(): { type: string; clientEmail: string; projectId: string } | null;
 export const CATALOG_COLLECTIONS: readonly string[];
 export const IMPORT_LOCK_ID: string;
 
@@ -54,6 +66,7 @@ export interface ImportReport {
   remainingPlanned: number;
   idempotent: boolean;
   runStatus: string;
+  totalWrites?: number;
   batches: Array<{
     index: number;
     objects: number;
@@ -67,6 +80,8 @@ export interface ImportRunContext {
   runId: string;
   importedAt: string;
   actor?: string;
+  operator?: string;
+  serviceAccount?: string;
   lockToken: string;
   beforeBatch?: (batch: { index: number; paths: string[] }) => void | Promise<void>;
   /** Test-only crash simulation. The import CLI never sets this. */
@@ -160,19 +175,28 @@ export function deleteDocuments(
     lockToken?: string;
     plans: readonly PlannedDocument[];
     paths: readonly string[];
-    expected?: ReadonlyMap<string, string>;
+    expected: ReadonlyMap<string, string>;
+    planSource: "trusted";
   },
 ): Promise<void>;
 
 export function beginRun(
   db: Firestore,
-  input: { runId: string; workbookSha256: string; actor?: string; gitSha?: string; initial?: boolean },
+  input: {
+    runId: string;
+    workbookSha256: string;
+    actor?: string;
+    gitSha?: string;
+    initial?: boolean;
+    lockToken?: string;
+    serviceAccount?: string;
+  },
 ): Promise<MigrationRecord>;
 
 export function recoverImportLock(
   db: Firestore,
-  input: { runId: string; actor: string; confirmHolderDead?: boolean },
-): Promise<{ runId: string; actor: string; lockToken: string; recoveredAt: string }>;
+  input: { runId: string; actor: string; reason: string; confirmHolderDead?: boolean },
+): Promise<{ runId: string; actor: string; lockToken: string; previousToken: string; recoveredAt: string; reason: string }>;
 
 export function rollbackImport(
   db: Firestore,

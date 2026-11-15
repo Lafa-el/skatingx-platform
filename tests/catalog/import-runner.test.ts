@@ -153,7 +153,7 @@ describe("shared import runner", () => {
     expect(left.parentPaths).toEqual(later.parentPaths);
     expect(left.versionPaths).toEqual(later.versionPaths);
     expect(left.refs).toEqual({ blockToDrill: 115, sessionToBlock: 57, total: 172, emptyDrills: 68 });
-    expect(left.baseBudget).toBe(772);
+    expect(left.baseBudget).toBe(780);
     expect(left.migrationId).toBe("run-shared");
     expect(left.migrationPath).toBe(`${MIGRATIONS}/run-shared`);
     expect(left.auditIds).toEqual(later.auditIds);
@@ -163,32 +163,75 @@ describe("shared import runner", () => {
     expect(JSON.stringify(left.plans)).not.toBe(JSON.stringify(later.plans));
   });
 
-  it("returns the same plan from a production preflight without opening Firestore", async () => {
+  it("keeps production preflight closed until the read switch is on, then reads without writing", async () => {
     const planned = buildImportPlan("2026-11-14T00:00:00.000Z", "run-shared");
-    const tracked = trackedDeps();
-    const outcome = await runImportEntry(productionRequest({ execute: false, runId: "run-shared" }), tracked.deps);
-    expect(tracked.calls).toEqual({ open: 0, read: 0, write: 0, describe: 0 });
-    expect(outcome.plan?.planSummary.digest).toBe(planned.planSummary.digest);
-    expect(outcome.plan?.parentPaths).toEqual(planned.parentPaths);
-    expect(outcome.plan?.checksums).toEqual(planned.checksums);
-    expect(outcome.publicReport).toMatchObject({
-      phase: "preflight",
-      target: "production",
-      writes: 0,
-      planDigest: planned.planSummary.digest,
-      baseBudget: 772,
-      parents: 257,
-      versions: 257,
-      identity: "unverified",
+    const closed = trackedDeps();
+    await expect(runImportEntry(productionRequest({ execute: false, runId: "run-shared" }), closed.deps)).rejects.toThrow(/production read is disabled/);
+    expect(closed.calls).toEqual({ open: 0, read: 0, write: 0, describe: 0 });
+
+    const calls = { open: 0, read: 0, write: 0, describe: 0 };
+    const tracked = trackedDeps({
+      openFirestore: async () => {
+        calls.open += 1;
+        return {
+          _settings: { projectId: "skatingx-prod", databaseId: "(default)" },
+          doc() {
+            return { get: async () => { calls.read += 1; return { exists: false, data: () => undefined }; } };
+          },
+          collection() {
+            return {
+              get: async () => { calls.read += 1; return { size: 0, docs: [] }; },
+              listDocuments: async () => { calls.read += 1; return []; },
+            };
+          },
+        };
+      },
+      countAuthUsers: async () => ({ status: "available", count: 4 }),
+      countBusiness: async () => ({ status: "available", firestoreUsers: 2, raceResults: 1, videoMetadata: 0 }),
     });
+    const previousHost = process.env.FIRESTORE_EMULATOR_HOST;
+    delete process.env.FIRESTORE_EMULATOR_HOST;
+    try {
+      const outcome = await runImportEntry(productionRequest({
+        execute: false,
+        runId: "run-shared",
+        allowProductionRead: true,
+      }), tracked.deps);
+      expect(outcome.plan?.planSummary.digest).toBe(planned.planSummary.digest);
+      expect(outcome.publicReport).toMatchObject({
+        phase: "preflight",
+        target: "production",
+        writes: 0,
+        planDigest: planned.planSummary.digest,
+        baseBudget: 780,
+        parents: 257,
+        versions: 257,
+        identity: FIXTURE_EMAIL,
+        authUsers: 4,
+        firestoreUsers: 2,
+        migrationStatus: "absent",
+      });
+      expect(calls.open).toBe(1);
+      expect(calls.write).toBe(0);
+      expect(calls.read).toBeGreaterThan(0);
+    } finally {
+      if (previousHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+      else process.env.FIRESTORE_EMULATOR_HOST = previousHost;
+    }
   });
 
   it("refuses every production guard mismatch and still closes the connection when they all pass", async () => {
-    expect(ALLOWED_PRODUCTION_SERVICE_ACCOUNTS).toEqual([]);
+    expect(ALLOWED_PRODUCTION_SERVICE_ACCOUNTS).toEqual([
+      "catalog-importer@skatingx-prod.iam.gserviceaccount.com",
+    ]);
     const runnerSource = readFileSync(path.join(rootDir, "scripts/catalog/import-runner.mjs"), "utf8");
     const coreSource = readFileSync(path.join(rootDir, "scripts/catalog/import-core.mjs"), "utf8");
-    expect(runnerSource).toContain("assertProductionConnectionDisabled()");
+    const idempotencySource = readFileSync(path.join(rootDir, "scripts/catalog/check-idempotency.mjs"), "utf8");
+    expect(runnerSource).not.toContain("assertProductionConnectionDisabled");
+    expect(runnerSource).toContain("production write is disabled");
     expect(runnerSource).not.toContain("initializeApp");
+    expect(idempotencySource).toContain("actor: args.actor");
+    expect(idempotencySource).not.toContain("catalog-import");
     expect(coreSource).toContain("batch.create");
     expect(coreSource).not.toContain("batch.set");
 
@@ -222,7 +265,7 @@ describe("shared import runner", () => {
         described: 0,
       },
       { name: "not allowed", deps: { allowedEmails: ["other@example.com"] }, message: /not allowed/, described: 1 },
-      { name: "empty allowlist", deps: { allowedEmails: undefined }, message: /not allowed/, described: 1 },
+      { name: "empty allowlist", deps: { allowedEmails: [] }, message: /not allowed/, described: 1 },
     ];
 
     for (const item of cases) {
@@ -236,15 +279,50 @@ describe("shared import runner", () => {
     }
 
     const skipped = trackedDeps();
-    const preview = await runImportEntry(productionRequest({ execute: false }), skipped.deps);
-    expect(preview.publicReport?.writes).toBe(0);
+    await expect(runImportEntry(productionRequest({ execute: false }), skipped.deps)).rejects.toThrow(/production read is disabled/);
     expect(skipped.calls).toEqual({ open: 0, read: 0, write: 0, describe: 0 });
 
     const ready = trackedDeps();
-    await expect(runImportEntry(productionRequest(), ready.deps)).rejects.toThrow(/production Firestore connection is disabled/);
+    await expect(runImportEntry(productionRequest(), ready.deps)).rejects.toThrow(/production write is disabled/);
     expect(ready.calls).toMatchObject({ open: 0, read: 0, write: 0, describe: 1 });
     expect(ready.logs.join("\n")).not.toContain(SECRET);
     expect(JSON.stringify(ready.calls)).not.toContain(SECRET);
+
+    const opened = trackedDeps({
+      credentialProvider: {
+        source: "test-fixture",
+        async describe() {
+          return {
+            type: "service_account",
+            clientEmail: "catalog-importer@skatingx-prod.iam.gserviceaccount.com",
+            projectId: "skatingx-prod",
+          };
+        },
+      },
+      allowedEmails: ["catalog-importer@skatingx-prod.iam.gserviceaccount.com"],
+    });
+    opened.deps.openFirestore = async () => {
+      opened.calls.open += 1;
+      return {
+        _settings: { projectId: "skatingx-prod", databaseId: "(default)" },
+        doc() {
+          return { get: async () => ({ exists: false, data: () => undefined }) };
+        },
+        collection() {
+          return { get: async () => ({ size: 0, docs: [] }), listDocuments: async () => [] };
+        },
+      };
+    };
+    const previousHost = process.env.FIRESTORE_EMULATOR_HOST;
+    process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
+    try {
+      await expect(runImportEntry(productionRequest({ allowProductionWrite: true }), opened.deps)).rejects.toThrow(/FIRESTORE_EMULATOR_HOST/);
+      expect(opened.calls.open).toBe(1);
+      expect(opened.calls.write).toBe(0);
+    } finally {
+      if (previousHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+      else process.env.FIRESTORE_EMULATOR_HOST = previousHost;
+    }
   });
 });
 
@@ -320,6 +398,7 @@ describe.sequential("shared runner emulator chain", () => {
       plannedAuditWrites: 257,
       actualContentWrites: 514,
       actualAuditWrites: 257,
+      totalWrites: 780,
       runStatus: "completed",
     });
     expect(outcome.plan?.parentPaths).toHaveLength(257);

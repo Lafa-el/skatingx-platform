@@ -250,7 +250,7 @@ export function evaluateCatalogImport(input) {
   checks.push(check(
     "budgetSeparation",
     migration.status === "completed" && migration.progress?.completedObjects === 257 && migration.progress?.remainingObjects === 0,
-    `baseBudget ${BASE_IMPORT_BUDGET}; migration status updates are outside that budget`,
+    `baseBudget ${BASE_IMPORT_BUDGET}; includes content, audits, migration create, progress, and lock writes`,
     [`${ROOT}/${MIGRATIONS}/${runId}`],
   ));
 
@@ -270,9 +270,9 @@ export function evaluateCatalogImport(input) {
 
   const rules = input.rules ?? {};
   if (input.mode === "production") {
-    checks.push(check("rulesAnonymous", rules.skipped === true, "client rules spot check stays on the emulator"));
-    checks.push(check("rulesSignedIn", rules.skipped === true, "client rules spot check stays on the emulator"));
-    checks.push(check("rulesAdmin", rules.skipped === true, "client rules spot check stays on the emulator"));
+    checks.push({ name: "rulesAnonymous", status: "skipped", passed: false, detail: "client rules spot check stays on the emulator", paths: [] });
+    checks.push({ name: "rulesSignedIn", status: "skipped", passed: false, detail: "client rules spot check stays on the emulator", paths: [] });
+    checks.push({ name: "rulesAdmin", status: "skipped", passed: false, detail: "client rules spot check stays on the emulator", paths: [] });
   } else {
     checks.push(check("rulesAnonymous", rules.anonymous === "denied", String(rules.anonymous ?? "missing")));
     checks.push(check("rulesSignedIn", rules.signedIn === "denied", String(rules.signedIn ?? "missing")));
@@ -299,7 +299,8 @@ export function evaluateCatalogImport(input) {
         actualContentWrites: idem.actualContentWrites ?? null,
         actualAuditWrites: idem.actualAuditWrites ?? null,
       },
-    passed: checks.filter((item) => item.status !== "skipped").every((item) => item.passed),
+    passed: checks.filter((item) => item.status !== "skipped").every((item) => item.passed)
+      && (input.mode !== "production" || checks.every((item) => item.status !== "skipped")),
   };
 }
 
@@ -339,12 +340,14 @@ export async function checkDraftReads({ host, port, projectId, draftPath }) {
   }
 }
 
-export function resumeIdempotency({ runId, projectId, rootDir }) {
-  const child = spawnSync(process.execPath, [
+export function resumeIdempotency({ runId, projectId, rootDir, actor }) {
+  const args = [
     path.join(rootDir, "scripts/catalog/run-import.mjs"),
     "--mode", "resume", "--execute", "--target", "emulator",
     "--runId", runId, "--project", projectId,
-  ], { cwd: rootDir, encoding: "utf8", env: process.env });
+  ];
+  if (typeof actor === "string" && actor.trim() !== "") args.push("--actor", actor.trim());
+  const child = spawnSync(process.execPath, args, { cwd: rootDir, encoding: "utf8", env: process.env });
   if (child.status !== 0) {
     return { actualContentWrites: null, actualAuditWrites: null, passed: false };
   }
