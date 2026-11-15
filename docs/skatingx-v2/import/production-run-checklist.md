@@ -9,6 +9,15 @@
 - 导入验收：`scripts/catalog/verify-import.mjs` 只读，不启动导入。幂等由 `scripts/catalog/check-idempotency.mjs` 在 demo- 模拟器上单独验证。生产验收设置 `SKATINGX_IMPORT_VERIFY=allow` 后只读，不启动导入程序。
 - `scripts/catalog/run-import.mjs` 的生产连接保持关闭。
 
+本次线上 Rules API 返回内容与仓库 #181 基线只有末尾 LF 差异。比较工具只去掉结尾 LF，再计算 SHA-256。正文、空格、注释、缩进或其他位置的换行不一致时，核对失败。本地磁盘文件仍按原始 SHA 与批准常量严格比较。
+
+| 内容 | SHA-256 |
+|---|---|
+| #181 原始文件 | `68b6a84684fe1753c454b000dacc18933e25f50b7a065d03597d1453ecc149e8` |
+| #181 去掉结尾 LF | `3851e82d571651914f6c26560b66077f168c15b3e56d6dfc579356c1fa83db15` |
+
+Ruleset 的 `createTime` 是该 Ruleset 的创建时间。Release 的 `updateTime` 是当前 Release 的更新时间。两个时间不能互相代替。
+
 ## 执行顺序
 
 1. 确认 P1/P2 冻结契约、最终 main SHA 与该 SHA 上的 CI 全部通过。
