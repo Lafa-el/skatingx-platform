@@ -9,6 +9,7 @@ import {
   auditDocId,
   beginRun,
   executeImport,
+  importLockPath,
   loadPlans,
   rollbackImport,
 } from "../../scripts/catalog/import-core.mjs";
@@ -60,7 +61,7 @@ async function wipeCatalog(db: Firestore): Promise<void> {
 }
 
 async function startRun(db: Firestore, runId: string, stopAfterObjects?: number) {
-  const run = await beginRun(db, { runId, workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR });
+  const run = await beginRun(db, { runId, workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR, initial: true });
   const { plans } = loadPlans(run.importedAt);
   await executeImport(db, plans, {
     runId: run.runId,
@@ -85,7 +86,8 @@ describe.sequential("catalog import rollback guard", () => {
     const written = parents.slice(0, 100);
     const missing = parents[150];
     const result = await rollbackImport(db, run.runId, { lockToken: run.lockToken ?? "" });
-    expect(result.rollbackResult).toEqual({ deletedParents: 100, deletedSnapshots: 100, retainedAudits: 100 });
+    expect(result.rollbackResult).toMatchObject({ deletedParents: 100, deletedSnapshots: 100, retainedAudits: 100 });
+    expect(result.rollbackResult?.controlWrites).toBeGreaterThan(0);
     for (const parent of written) expect((await db.doc(parent.path).get()).exists).toBe(false);
     expect((await db.doc(missing?.path ?? "").get()).exists).toBe(false);
     expect((await db.collection(AUDIT).get()).size).toBe(100);
@@ -173,5 +175,44 @@ describe.sequential("catalog import rollback guard", () => {
     for (const parent of parents) expect((await db.doc(parent.path).get()).exists).toBe(false);
     expect((await db.collection(AUDIT).get()).size).toBe(2);
     expect((await migration.get()).data()?.rollbackProgress).toMatchObject({ stage: "done" });
+    expect(result.rollbackResult?.controlWrites).toBeGreaterThan(0);
+  });
+
+  it("fails a rollback commit without deleting, then finishes on retry", async () => {
+    const { run } = await startRun(db, "run-rollback-fault", 2);
+    const original = db.batch.bind(db);
+    let commits = 0;
+    db.batch = (() => {
+      const batch = original();
+      const commit = batch.commit.bind(batch);
+      batch.commit = async () => {
+        commits += 1;
+        if (commits === 1) throw new Error("injected rollback commit failure");
+        return commit();
+      };
+      return batch;
+    }) as typeof db.batch;
+    await expect(rollbackImport(db, run.runId, { lockToken: run.lockToken ?? "" })).rejects.toThrow(/commit failed/);
+    db.batch = original;
+    const parent = (await db.collection(OBJECTS).limit(1).get()).docs[0];
+    expect(parent?.exists).toBe(true);
+    expect((await db.doc(`${MIGRATIONS}/${run.runId}`).get()).data()?.status).not.toBe("rolled_back");
+    const token = (await db.doc(importLockPath()).get()).data()?.token;
+    const result = await rollbackImport(db, run.runId, { lockToken: String(token) });
+    expect(result.status).toBe("rolled_back");
+    expect(result.rollbackResult?.controlWrites).toBeGreaterThan(0);
+    expect((await db.collection(OBJECTS).get()).size).toBe(0);
+    expect((await db.collection(AUDIT).get()).size).toBe(2);
+  });
+
+  it("refuses rollback while the import lock is still held", async () => {
+    const run = await beginRun(db, { runId: "run-live", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR, initial: true });
+    await expect(rollbackImport(db, run.runId, { lockToken: run.lockToken ?? "" })).rejects.toThrow(/import is still running/);
+    await expect(beginRun(db, {
+      runId: run.runId,
+      workbookSha256: EXPECTED_WORKBOOK_SHA256,
+      actor: IMPORT_ACTOR,
+      lockToken: run.lockToken,
+    })).resolves.toMatchObject({ lockToken: run.lockToken });
   });
 });

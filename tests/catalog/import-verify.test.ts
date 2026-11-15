@@ -108,6 +108,7 @@ describe.sequential("catalog import verification", () => {
       workbookSha256: EXPECTED_WORKBOOK_SHA256,
       actor: IMPORT_ACTOR,
       gitSha: "verify-git",
+      initial: true,
     });
     plans = loadPlans(run.importedAt).plans;
     await executeImport(db, plans, {
@@ -148,6 +149,7 @@ describe.sequential("catalog import verification", () => {
       stored: read.stored,
       inspected: read.inspected,
       audits: read.audits,
+      lock: read.lock,
       business: businessReport(loadBusinessBaseline(baselineFile), await snapshotBusiness(db)),
       rules,
       idempotency: { skipped: true },
@@ -165,6 +167,45 @@ describe.sequential("catalog import verification", () => {
     const problems = report.checks.filter((item) => item.status !== "skipped" && !item.passed).map((item) => `${item.name}: ${item.detail}`);
     expect(problems, problems.join("; ")).toEqual([]);
     expect(report.passed).toBe(true);
+    expect(report.acceptance).toBe("passed");
+    const pendingRead = await readCatalogVerification(db, RUN_ID);
+    const pending = evaluateCatalogImport({
+      mode: "production",
+      runId: RUN_ID,
+      projectId: pendingRead.projectId,
+      databaseId: pendingRead.databaseId,
+      gitHead: "verify-git",
+      workbookSha256: EXPECTED_WORKBOOK_SHA256,
+      migration: pendingRead.migration,
+      plans: pendingRead.plans,
+      stored: pendingRead.stored,
+      inspected: pendingRead.inspected,
+      audits: pendingRead.audits,
+      lock: pendingRead.lock,
+      business: businessReport(loadBusinessBaseline(baselineFile), await snapshotBusiness(db)),
+      rules: { skipped: true },
+      idempotency: { skipped: true, invoked: false },
+    });
+    expect(pending.passed).toBe(false);
+    expect(pending.acceptance).toBe("pending-evidence");
+    const extraFail = evaluateCatalogImport({
+      mode: "production",
+      runId: RUN_ID,
+      projectId: pendingRead.projectId,
+      databaseId: pendingRead.databaseId,
+      gitHead: "wrong-sha",
+      workbookSha256: EXPECTED_WORKBOOK_SHA256,
+      migration: pendingRead.migration,
+      plans: pendingRead.plans,
+      stored: pendingRead.stored,
+      inspected: pendingRead.inspected,
+      audits: pendingRead.audits,
+      lock: pendingRead.lock,
+      business: businessReport(loadBusinessBaseline(baselineFile), await snapshotBusiness(db)),
+      rules: { skipped: true },
+      idempotency: { skipped: true, invoked: false },
+    });
+    expect(extraFail.acceptance).toBe("failed");
     expect(failed(report, "idempotency").status).toBe("skipped");
     expect(report.idempotency).toMatchObject({
       mode: "read-only",
@@ -333,6 +374,7 @@ describe.sequential("catalog import verification", () => {
     expect(failed(production, "rulesSignedIn")).toMatchObject({ status: "skipped", passed: false });
     expect(failed(production, "rulesAdmin")).toMatchObject({ status: "skipped", passed: false });
     expect(production.passed).toBe(false);
+    expect(production.acceptance).toBe("failed");
   });
 });
 

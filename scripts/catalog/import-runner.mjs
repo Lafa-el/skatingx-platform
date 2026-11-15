@@ -209,11 +209,12 @@ async function productionPreflight(request, deps, db, identity) {
       firestoreUsers: counted.firestoreUsers,
       raceResults: counted.raceResults,
       videoMetadata: counted.videoMetadata,
+      raceVideos: counted.raceVideos ?? 0,
     },
   };
 }
 
-async function runEmulator(request, deps) {
+async function runEmulator(request, deps, labels = {}) {
   if (typeof deps.openFirestore !== "function") {
     throw new Error("refusing to run: emulator connection is not configured");
   }
@@ -226,10 +227,10 @@ async function runEmulator(request, deps) {
   });
   const business = await businessSummary(db, deps.countBusiness);
   const summaryBase = {
-    target: "emulator",
+    target: labels.target ?? "emulator",
     projectId: request.project,
     databaseId: databaseIdOf(db),
-    identity: "unverified emulator admin",
+    identity: labels.identity ?? "unverified emulator admin",
     runId: request.runId,
     mode: request.mode,
     actor,
@@ -365,22 +366,47 @@ async function runEmulator(request, deps) {
     serviceAccount: run.serviceAccount ?? budget.serviceAccount ?? "emulator",
     lockToken: run.lockToken,
   });
-  const publicReport = { ...imported, plannedMigrationCreates: 0 };
+  const contentBatches = Array.isArray(imported.batches) ? imported.batches.length : 0;
+  const progressWrites = imported.actualMigrationWrites;
+  const publicReport = {
+    ...imported,
+    plannedMigrationCreates: 0,
+    totalWrites: imported.actualContentWrites + imported.actualAuditWrites + progressWrites + 1
+      + contentBatches + progressWrites,
+  };
   deps.writeReport(publicReport);
   return { publicReport, lockToken: run.lockToken, runId: run.runId, importedAt: run.importedAt };
 }
 
-async function runRollback(request, deps, db) {
-  if (typeof deps.confirmProject !== "function") {
-    throw new Error("refusing to run: stdin confirmation is not configured");
+async function runRollback(request, deps, db, options = {}) {
+  if (options.alreadyConfirmed !== true) {
+    if (typeof deps.confirmProject !== "function") {
+      throw new Error("refusing to run: stdin confirmation is not configured");
+    }
+    await deps.confirmProject(request.project);
   }
-  await deps.confirmProject(request.project);
   const lock = await db.doc(importLockPath()).get();
   if (!lock.exists || lock.data().runId !== request.runId) {
     throw new Error(`rollback refused: lock is not held by ${request.runId}`);
   }
-  return rollbackImport(db, request.runId, { lockToken: lock.data().token });
+  const result = await rollbackImport(db, request.runId, { lockToken: lock.data().token });
+  return result;
 }
+
+function rollbackReport(result, target) {
+  const counts = result.rollbackResult ?? {};
+  return {
+    phase: "rollback",
+    target,
+    status: result.status,
+    deletedParents: counts.deletedParents ?? 0,
+    deletedSnapshots: counts.deletedSnapshots ?? 0,
+    retainedAudits: counts.retainedAudits ?? 0,
+    controlWrites: counts.controlWrites ?? 0,
+  };
+}
+
+let productionEntryActive = false;
 
 export async function runImportEntry(request, deps) {
   const bound = withDefaults(deps);
@@ -405,36 +431,74 @@ export async function runImportEntry(request, deps) {
       throw new Error("refusing to run: production read is disabled");
     }
     const identity = await verifiedProductionIdentity(request, bound);
-    if (writing) {
-      if (typeof bound.confirmProject !== "function") {
-        throw new Error("refusing to run: stdin confirmation is not configured");
-      }
-      await bound.confirmProject(request.project);
-      grantProductionWrite(identity);
+    if (writing && request.allowProductionWrite === true && productionEntryActive) {
+      // The write grant is process-global, so a second production entry cannot be isolated.
+      throw new Error("refusing to run: a production import is already active in this process");
     }
+    if (writing && request.allowProductionWrite === true) productionEntryActive = true;
     if (typeof bound.openFirestore !== "function") {
+      productionEntryActive = false;
       throw new Error("refusing to run: production connection is not configured");
     }
-    const db = await bound.openFirestore(request.project);
+    let db;
     try {
+      db = await bound.openFirestore(request.project);
+    } catch (error) {
+      productionEntryActive = false;
+      clearProductionWriteGrant();
+      throw error;
+    }
+    try {
+      const prepared = await productionPreflight(request, bound, db, identity);
+      bound.writeSummary(formatExecutionSummary({
+        target: "production",
+        projectId: request.project,
+        databaseId: databaseIdOf(db),
+        identity: identity.clientEmail,
+        runId: request.runId,
+        mode: request.mode,
+        actor: actorOfRequest(request),
+        gitSha: bound.gitSha(),
+        workbookSha256: prepared.plan.workbookSha256,
+        plannedContentWrites: prepared.plan.parentPaths.length * 2,
+        plannedAuditWrites: prepared.plan.parentPaths.length,
+        plannedMigrationCreates: request.mode === "initial" ? 1 : 0,
+        baseBudget: prepared.plan.baseBudget,
+        planDigest: prepared.plan.planSummary.digest,
+        remainingObjectGroups: prepared.plan.parentPaths.length,
+        authUsers: { status: "available", count: prepared.publicReport.authUsers },
+        business: {
+          status: "available",
+          firestoreUsers: prepared.publicReport.firestoreUsers,
+          raceResults: prepared.publicReport.raceResults,
+          videoMetadata: prepared.publicReport.videoMetadata,
+          raceVideos: prepared.publicReport.raceVideos,
+        },
+      }));
       if (!writing) {
-        const prepared = await productionPreflight(request, bound, db, identity);
         bound.writeReport(prepared.publicReport);
         return prepared;
       }
-      await productionPreflight(request, bound, db, identity);
+      if (typeof bound.confirmProject !== "function") {
+        throw new Error("refusing to run: stdin confirmation is not configured");
+      }
+      const confirmation = await bound.confirmProject(request.project);
+      if (confirmation !== undefined && confirmation !== "IMPORT" && confirmation !== request.project) {
+        throw new Error("refusing to run: production confirmation was rejected");
+      }
+      grantProductionWrite(identity);
       if (request.rollback === true) {
-        const result = await runRollback(request, bound, db);
-        const publicReport = { phase: "rollback", writes: 0, status: result.status };
+        const result = await runRollback(request, bound, db, { alreadyConfirmed: true });
+        const publicReport = rollbackReport(result, "production");
         bound.writeReport(publicReport);
         return { publicReport };
       }
-      return runEmulator({ ...request, target: "emulator", project: request.project }, {
+      return await runEmulator(request, {
         ...bound,
-        emulatorHost: "production-granted",
         openFirestore: async () => db,
-      });
+      }, { target: "production", identity: identity.clientEmail });
     } finally {
+      productionEntryActive = false;
       clearProductionWriteGrant();
     }
   }
@@ -444,7 +508,7 @@ export async function runImportEntry(request, deps) {
     }
     const db = await bound.openFirestore(request.project);
     const result = await runRollback(request, bound, db);
-    const publicReport = { phase: "rollback", status: result.status };
+    const publicReport = rollbackReport(result, "emulator");
     bound.writeReport(publicReport);
     return { publicReport };
   }

@@ -111,6 +111,7 @@ describe.sequential("catalog import resume", () => {
       workbookSha256: EXPECTED_WORKBOOK_SHA256,
       actor: IMPORT_ACTOR,
       gitSha: "abc123",
+      initial: true,
     });
     expect(run.created).toBe(true);
     expect(run.actor).toBe(IMPORT_ACTOR);

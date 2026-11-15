@@ -79,6 +79,7 @@ export async function readCatalogVerification(db, runId, mode = "emulator") {
   const storedDocs = plans.length === 0 ? new Map() : await readPlannedDocs(db, plans, mode);
   const auditPaths = inspected.collectionDocs.get(AUDIT) ?? [];
   const auditDocs = auditPaths.length === 0 ? new Map() : await readPlannedDocs(db, auditPaths.map((docPath) => ({ path: docPath })), mode);
+  const lockSnap = await db.doc(importLockPath()).get();
   return {
     projectId: projectIdOf(db),
     databaseId: databaseIdOf(db),
@@ -91,6 +92,7 @@ export async function readCatalogVerification(db, runId, mode = "emulator") {
       versionPaths: [...inspected.versionPaths],
     },
     audits: [...auditDocs.entries()].map(([docPath, data]) => ({ path: docPath, data })),
+    lock: lockSnap.exists ? lockSnap.data() : null,
   };
 }
 
@@ -146,7 +148,12 @@ export function evaluateCatalogImport(input) {
   const auditPaths = [];
   const auditProblems = [];
   const seenObjects = new Map();
+  const recoveryAudits = [];
   for (const audit of input.audits ?? []) {
+    if (audit.data?.action === "lock-recovery") {
+      recoveryAudits.push(audit);
+      continue;
+    }
     auditPaths.push(audit.path);
     const data = audit.data ?? {};
     const objectId = data.target?.id;
@@ -160,10 +167,20 @@ export function evaluateCatalogImport(input) {
     if (data.action !== "import" || data.actor !== migration.actor || data.runId !== runId || data.result !== "ok") {
       auditProblems.push(audit.path);
     }
+    if (data.at !== migration.importedAt) auditProblems.push(audit.path);
+    if ((data.operator ?? data.actor) !== (migration.operator ?? migration.actor)) auditProblems.push(audit.path);
+    if ((data.serviceAccount ?? "emulator") !== (migration.serviceAccount ?? "emulator")) auditProblems.push(audit.path);
     if (data.target?.collection !== OBJECTS || data.target?.contentVersion !== CONTENT_VERSION) auditProblems.push(audit.path);
     if (!parent || data.checksum !== parent.checksum) {
       auditProblems.push(audit.path);
       conflicts.push({ path: audit.path, kind: "audit-checksum" });
+    }
+  }
+  for (const audit of recoveryAudits) {
+    const data = audit.data ?? {};
+    if (data.result !== "ok" || data.runId !== runId || data.actor !== migration.actor) auditProblems.push(audit.path);
+    if (typeof data.previousToken !== "string" || data.previousToken === "" || typeof data.token !== "string" || data.token === "") {
+      auditProblems.push(audit.path);
     }
   }
   for (const docPath of expectedAudits) if (!auditPaths.includes(docPath)) auditProblems.push(docPath);
@@ -247,10 +264,31 @@ export function evaluateCatalogImport(input) {
   }
   checks.push(check("conditionalSafety", conditionalPaths.length === 0, "four conditional exercises keep their safety fields", conditionalPaths));
 
+  const rounds = Array.isArray(migration.importRounds) ? migration.importRounds : [];
+  const roundContent = rounds.reduce((sum, round) => sum + (typeof round.content === "number" ? round.content : 0), 0);
+  const roundAudits = rounds.reduce((sum, round) => sum + (typeof round.audits === "number" ? round.audits : 0), 0);
+  const roundsOk = rounds.length > 0
+    && rounds.every((round) => typeof round.content === "number" && typeof round.audits === "number")
+    && roundContent === 514
+    && roundAudits === 257
+    && typeof migration.roundContentWrites === "number"
+    && typeof migration.roundAuditWrites === "number";
+  const lock = input.lock;
+  const lockOk = lock == null || (
+    migration.status === "rolled_back"
+      ? lock.status === "rolled_back" && lock.runId === runId
+      : lock.status === "released" && lock.runId === runId
+  );
   checks.push(check(
     "budgetSeparation",
-    migration.status === "completed" && migration.progress?.completedObjects === 257 && migration.progress?.remainingObjects === 0,
-    `baseBudget ${BASE_IMPORT_BUDGET}; includes content, audits, migration create, progress, and lock writes`,
+    migration.status === "completed"
+      && migration.progress?.completedObjects === 257
+      && migration.progress?.remainingObjects === 0
+      && migration.cumulativeContentWrites === 514
+      && migration.cumulativeAuditWrites === 257
+      && roundsOk
+      && lockOk,
+    `baseBudget ${BASE_IMPORT_BUDGET}; cumulative ${String(migration.cumulativeContentWrites)}/${String(migration.cumulativeAuditWrites)}; rounds ${rounds.length}; lock ${String(lock?.status ?? "unread")}`,
     [`${ROOT}/${MIGRATIONS}/${runId}`],
   ));
 
@@ -279,6 +317,15 @@ export function evaluateCatalogImport(input) {
     checks.push(check("rulesAdmin", rules.admin === "allowed", String(rules.admin ?? "missing")));
   }
 
+  const failed = checks.some((item) => item.status !== "skipped" && item.passed !== true);
+  const skippedNames = checks.filter((item) => item.status === "skipped").map((item) => item.name);
+  const pendingNames = ["rulesAnonymous", "rulesSignedIn", "rulesAdmin", "idempotency"];
+  const pendingEvidence = input.mode === "production"
+    && !failed
+    && skippedNames.length === pendingNames.length
+    && pendingNames.every((name) => skippedNames.includes(name));
+  const passed = checks.filter((item) => item.status !== "skipped").every((item) => item.passed)
+    && (input.mode !== "production" || checks.every((item) => item.status !== "skipped"));
   return {
     projectId: input.projectId,
     databaseId: input.databaseId,
@@ -299,8 +346,8 @@ export function evaluateCatalogImport(input) {
         actualContentWrites: idem.actualContentWrites ?? null,
         actualAuditWrites: idem.actualAuditWrites ?? null,
       },
-    passed: checks.filter((item) => item.status !== "skipped").every((item) => item.passed)
-      && (input.mode !== "production" || checks.every((item) => item.status !== "skipped")),
+    passed,
+    acceptance: passed ? "passed" : pendingEvidence ? "pending-evidence" : "failed",
   };
 }
 

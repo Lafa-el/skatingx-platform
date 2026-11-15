@@ -10,6 +10,20 @@ export const FIRESTORE_USERS_COLLECTION = "artifacts/skatingx-production/users";
 export const RACE_RESULT_PATH =
   "artifacts/skatingx-production/users/{userId}/raceDay/{eventId}/results/{resultId}";
 export const VIDEO_METADATA_PATH = "artifacts/skatingx-production/users/{userId}/videos/{videoId}";
+export const RACE_VIDEO_PATH =
+  "artifacts/skatingx-production/users/{userId}/raceDay/{eventId}/videos/{videoId}";
+
+const IAM_IMPERSONATION_URL =
+  /^https:\/\/iamcredentials\.googleapis\.com\/v1\/projects\/-\/serviceAccounts\/([^:/?#]+):generateAccessToken$/;
+
+export function assertRunDocumentId(runId) {
+  if (typeof runId !== "string" || runId === "" || runId !== runId.trim()) {
+    throw new Error("refusing to run: runId is not a single document id");
+  }
+  if (runId.includes("/") || runId.includes("\\") || runId === "." || runId === "..") {
+    throw new Error("refusing to run: runId is not a single document id");
+  }
+}
 
 // Short-lived impersonated ADC only. Long-lived JSON private keys are refused.
 export const ALLOWED_PRODUCTION_SERVICE_ACCOUNTS = [
@@ -57,11 +71,14 @@ export function parseImportArgs(argv) {
   if (args.project === "") throw new Error("--project is required");
   if (args.mode === "resume" && args.runId === "") throw new Error("--runId is required for resume");
   if (args.mode === "initial" && args.runId === "") throw new Error("--runId is required");
+  if (args.recoverLock && args.rollback) throw new Error("refusing to run: lock recovery cannot be combined with rollback");
   if (args.rollback && args.execute) throw new Error("refusing to run: rollback is a separate command");
   if (args.recoverLock && args.mode !== "resume") throw new Error("refusing to run: lock recovery requires resume");
+  if (args.recoverLock && args.execute !== true) throw new Error("refusing to run: lock recovery requires --execute");
   if (args.recoverLock && args.recoverReason.trim() === "") {
     throw new Error("refusing to run: lock recovery requires a reason");
   }
+  if (args.runId !== "") assertRunDocumentId(args.runId);
   return args;
 }
 
@@ -116,21 +133,37 @@ export function assertServiceAccountIdentity(input) {
   return { type: "service_account", clientEmail: email, projectId: credential.projectId };
 }
 
+function assertNoLongLivedKey(value) {
+  if (!value || typeof value !== "object") return;
+  if (typeof value.private_key === "string" || value.type === "service_account") {
+    throw new Error("refusing to run: long-lived service account keys are not accepted");
+  }
+  if (value.source_credentials) assertNoLongLivedKey(value.source_credentials);
+  if (value.credential_source) assertNoLongLivedKey(value.credential_source);
+}
+
 export function identityFromAdcPayload(payload) {
   if (!payload || typeof payload !== "object") {
     throw new Error("refusing to run: credential type is not service_account");
   }
-  if (typeof payload.private_key === "string" || payload.type === "service_account") {
-    throw new Error("refusing to run: long-lived service account keys are not accepted");
-  }
+  assertNoLongLivedKey(payload);
   if (payload.type !== "impersonated_service_account") {
     throw new Error("refusing to run: credential type is not service_account");
+  }
+  const source = payload.source_credentials;
+  if (!source || source.type !== "authorized_user") {
+    throw new Error("refusing to run: impersonation source is not a user credential");
+  }
+  for (const field of ["client_id", "client_secret", "refresh_token"]) {
+    if (typeof source[field] !== "string" || source[field].trim() === "") {
+      throw new Error("refusing to run: impersonation source is not a user credential");
+    }
   }
   const url = typeof payload.service_account_impersonation_url === "string"
     ? payload.service_account_impersonation_url
     : "";
-  const match = url.match(/serviceAccounts\/([^:/]+):/);
-  if (!match) throw new Error("refusing to run: service account email is missing");
+  const match = url.match(IAM_IMPERSONATION_URL);
+  if (!match) throw new Error("refusing to run: impersonation url is not a Google IAM endpoint");
   return {
     type: "service_account",
     clientEmail: decodeURIComponent(match[1]),
@@ -166,11 +199,15 @@ export async function countBusinessData(db) {
   const usersSnap = await db.collection(FIRESTORE_USERS_COLLECTION).get();
   let raceResults = 0;
   let videoMetadata = 0;
+  let raceVideos = 0;
   for (const user of usersSnap.docs) {
     const events = await user.ref.collection("raceDay").get();
     for (const event of events.docs) {
       const results = await event.ref.collection("results").get();
       raceResults += results.size;
+      const eventVideos = await event.ref.collection("videos").get();
+      raceVideos += eventVideos.size;
+      videoMetadata += eventVideos.size;
     }
     const videos = await user.ref.collection("videos").get();
     videoMetadata += videos.size;
@@ -180,10 +217,12 @@ export async function countBusinessData(db) {
     firestoreUsers: usersSnap.size,
     raceResults,
     videoMetadata,
+    raceVideos,
     paths: {
       firestoreUsers: FIRESTORE_USERS_COLLECTION,
       raceResults: RACE_RESULT_PATH,
       videoMetadata: VIDEO_METADATA_PATH,
+      raceVideos: RACE_VIDEO_PATH,
     },
   };
 }
@@ -209,8 +248,9 @@ export function formatExecutionSummary(summary) {
           `firestoreUsers: ${business.firestoreUsers}`,
           `raceResults: ${business.raceResults}`,
           `videoMetadata: ${business.videoMetadata}`,
+          `raceVideos: ${business.raceVideos ?? 0}`,
         ].join("\n")
-      : "firestoreUsers: unavailable\nraceResults: unavailable\nvideoMetadata: unavailable";
+      : "firestoreUsers: unavailable\nraceResults: unavailable\nvideoMetadata: unavailable\nraceVideos: unavailable";
   return [
     `target: ${summary.target}`,
     `projectId: ${summary.projectId}`,
@@ -225,6 +265,7 @@ export function formatExecutionSummary(summary) {
     `plannedAuditWrites: ${summary.plannedAuditWrites}`,
     `plannedMigrationCreates: ${summary.plannedMigrationCreates}`,
     `baseBudget: ${summary.baseBudget}`,
+    `planDigest: ${summary.planDigest ?? ""}`,
     `roundBudget: ${summary.roundBudget ?? summary.plannedContentWrites + summary.plannedAuditWrites + summary.plannedMigrationCreates}`,
     `remainingObjectGroups: ${summary.remainingObjectGroups ?? ""}`,
     `authUsers: ${authText}`,
@@ -232,6 +273,7 @@ export function formatExecutionSummary(summary) {
     `userPath: ${FIRESTORE_USERS_COLLECTION}`,
     `raceResultPath: ${RACE_RESULT_PATH}`,
     `videoMetadataPath: ${VIDEO_METADATA_PATH}`,
+    `raceVideoPath: ${RACE_VIDEO_PATH}`,
     "safety: production writes require --allow-production-write, a verified service account, --confirm, and stdin",
   ].join("\n");
 }

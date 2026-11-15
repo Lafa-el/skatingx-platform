@@ -52,7 +52,7 @@ export interface MigrationRecord {
   rolledBackAt?: string;
   created?: boolean;
   lockToken?: string;
-  rollbackResult?: { deletedParents: number; deletedSnapshots: number; retainedAudits: number };
+  rollbackResult?: { deletedParents: number; deletedSnapshots: number; retainedAudits: number; controlWrites?: number };
 }
 
 export interface ImportReport {
@@ -167,18 +167,6 @@ export function importDocuments(
   plans: readonly PlannedDocument[],
   context: ImportRunContext & { stopAfterObjects?: number },
 ): Promise<number>;
-
-export function deleteDocuments(
-  db: Firestore,
-  request: {
-    runId: string;
-    lockToken?: string;
-    plans: readonly PlannedDocument[];
-    paths: readonly string[];
-    expected: ReadonlyMap<string, string>;
-    planSource: "trusted";
-  },
-): Promise<void>;
 
 export function beginRun(
   db: Firestore,

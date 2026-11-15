@@ -8,6 +8,7 @@ import {
   ALLOWED_PRODUCTION_SERVICE_ACCOUNTS,
   FIRESTORE_USERS_COLLECTION,
   RACE_RESULT_PATH,
+  RACE_VIDEO_PATH,
   VIDEO_METADATA_PATH,
   assertBusinessCountsForProduction,
   assertExecutionTarget,
@@ -96,6 +97,11 @@ describe("catalog import target guards", () => {
     await expect(confirmProjectOnStdin("skatingx-prod", async () => "wrong\n")).rejects.toThrow(/stdin confirmation/);
     await expect(confirmProjectOnStdin("skatingx-prod", async () => "skatingx-prod")).resolves.toBeUndefined();
     expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "r", "--yes"])).toThrow(/--yes/);
+    expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "r", "--recover-lock", "--mode", "resume"])).toThrow(/requires --execute/);
+    expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "r", "--recover-lock", "--execute", "--rollback"])).toThrow(/cannot be combined with rollback/);
+    expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "a/b", "--mode", "initial"])).toThrow(/single document id/);
+    expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", ".", "--mode", "initial"])).toThrow(/single document id/);
+    expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "..", "--mode", "initial"])).toThrow(/single document id/);
   });
 
   it("does not print an unknown Auth count as zero and fail-closes production", () => {
@@ -135,7 +141,9 @@ describe("catalog import target guards", () => {
                 docs: [
                   {
                     ref: {
-                      collection: () => ({ get: async () => ({ size: 2 }) }),
+                      collection: (name: string) => ({
+                        get: async () => ({ size: name === "videos" ? 3 : 2 }),
+                      }),
                     },
                   },
                 ],
@@ -154,15 +162,34 @@ describe("catalog import target guards", () => {
       },
     };
     const counts = await countBusinessData(db as never);
-    expect(counts).toMatchObject({ status: "available", firestoreUsers: 1, raceResults: 2, videoMetadata: 4 });
+    expect(counts).toMatchObject({
+      status: "available",
+      firestoreUsers: 1,
+      raceResults: 2,
+      videoMetadata: 7,
+      raceVideos: 3,
+    });
     expect(counts.paths?.raceResults).toBe(RACE_RESULT_PATH);
+    expect(counts.paths?.raceVideos).toBe(RACE_VIDEO_PATH);
   });
 
   it("accepts only impersonated ADC and stops production before opening Firestore", () => {
     expect(() => identityFromAdcPayload({ type: "service_account", private_key: "secret" })).toThrow(/long-lived service account keys/);
     expect(() => identityFromAdcPayload({ type: "authorized_user" })).toThrow(/credential type is not service_account/);
+    const source = { type: "authorized_user", client_id: "synthetic-client", client_secret: "synthetic-secret", refresh_token: "synthetic-refresh" };
+    expect(() => identityFromAdcPayload({
+      type: "impersonated_service_account",
+      source_credentials: { ...source, private_key: "nested" },
+      service_account_impersonation_url: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/catalog-importer@skatingx-prod.iam.gserviceaccount.com:generateAccessToken",
+    })).toThrow(/long-lived service account keys/);
+    expect(() => identityFromAdcPayload({
+      type: "impersonated_service_account",
+      source_credentials: source,
+      service_account_impersonation_url: "https://evil.example/v1/projects/-/serviceAccounts/catalog-importer@skatingx-prod.iam.gserviceaccount.com:generateAccessToken",
+    })).toThrow(/impersonation url is not a Google IAM endpoint/);
     expect(identityFromAdcPayload({
       type: "impersonated_service_account",
+      source_credentials: source,
       service_account_impersonation_url: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/catalog-importer@skatingx-prod.iam.gserviceaccount.com:generateAccessToken",
     })).toMatchObject({
       type: "service_account",

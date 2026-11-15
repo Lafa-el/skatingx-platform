@@ -147,7 +147,7 @@ describe.sequential("catalog import hardening", () => {
       before.set(sentinel.path, canonicalCatalogJson(data));
     }
 
-    const run = await beginRun(db, { runId: "run-sentinel", workbookSha256: EXPECTED_WORKBOOK_SHA256 });
+    const run = await beginRun(db, { runId: "run-sentinel", workbookSha256: EXPECTED_WORKBOOK_SHA256, initial: true });
     const { plans } = loadPlans(run.importedAt);
     expect(await importDocuments(db, plans, contextOf(run))).toBe(514);
     await rollbackImport(db, run.runId, { lockToken: run.lockToken ?? "" });
@@ -160,7 +160,10 @@ describe.sequential("catalog import hardening", () => {
   });
 
   it("imports once and writes nothing when a new process reuses the run id", async () => {
-    const run = await beginRun(db, { runId: "run-idempotent", workbookSha256: EXPECTED_WORKBOOK_SHA256 });
+    const oldAudits = await db.collection(`${ROOT}/trainingCatalogAuditLogs`).get();
+    for (const item of oldAudits.docs) await item.ref.delete();
+    await db.doc(`${ROOT}/trainingCatalogMigrations/run-sentinel`).delete();
+    const run = await beginRun(db, { runId: "run-idempotent", workbookSha256: EXPECTED_WORKBOOK_SHA256, initial: true });
     const { plans } = loadPlans(run.importedAt);
     expect(await importDocuments(db, plans, contextOf(run))).toBe(514);
     const content = dumpCatalog(await readPlannedDocs(db, plans));
