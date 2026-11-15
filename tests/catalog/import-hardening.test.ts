@@ -115,8 +115,8 @@ describe.sequential("catalog import hardening", () => {
     const plans = fakePlans(134);
     const batches = planBatches(plans, "run-plan", { actor: IMPORT_ACTOR, importedAt: "2026-11-13T00:00:00.000Z" });
     expect(batches).toHaveLength(2);
-    expect(batches[0]).toHaveLength(399);
-    expect(batches[1]).toHaveLength(3);
+    expect(batches[0]).toHaveLength(396);
+    expect(batches[1]).toHaveLength(6);
     const seen = new Map<string, number>();
     batches.forEach((batch, batchIndex) => {
       expect(batch.length).toBeLessThanOrEqual(400);

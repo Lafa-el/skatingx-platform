@@ -152,7 +152,7 @@ describe.sequential("catalog import verification", () => {
       lock: read.lock,
       business: businessReport(loadBusinessBaseline(baselineFile), await snapshotBusiness(db)),
       rules,
-      idempotency: { skipped: true },
+      idempotency: { skipped: false, readOnly: true, actualContentWrites: 0, actualAuditWrites: 0 },
     });
   }
 
@@ -184,7 +184,7 @@ describe.sequential("catalog import verification", () => {
       lock: pendingRead.lock,
       business: businessReport(loadBusinessBaseline(baselineFile), await snapshotBusiness(db)),
       rules: { skipped: true },
-      idempotency: { skipped: true, invoked: false },
+      idempotency: { skipped: false, readOnly: true, invoked: false, actualContentWrites: 0, actualAuditWrites: 0 },
     });
     expect(pending.passed).toBe(false);
     expect(pending.acceptance).toBe("pending-evidence");
@@ -206,11 +206,12 @@ describe.sequential("catalog import verification", () => {
       idempotency: { skipped: true, invoked: false },
     });
     expect(extraFail.acceptance).toBe("failed");
-    expect(failed(report, "idempotency").status).toBe("skipped");
+    expect(failed(report, "idempotency").passed).toBe(true);
     expect(report.idempotency).toMatchObject({
       mode: "read-only",
       invoked: false,
-      note: "幂等由独立的集成测试入口验证，不由本次只读验收验证",
+      actualContentWrites: 0,
+      actualAuditWrites: 0,
     });
     expect(report.counts).toMatchObject({ exercise: 120, drill: 68, block: 51, session: 18, refs: 172, audits: 257 });
     expect(rules).toEqual({ anonymous: "denied", signedIn: "denied", admin: "allowed" });

@@ -120,7 +120,7 @@ describe("catalog import target guards", () => {
       plannedContentWrites: 514,
       plannedAuditWrites: 257,
       plannedMigrationCreates: 1,
-      baseBudget: 780,
+      baseBudget: 778,
       authUsers: auth,
       business: { status: "unavailable" },
     });

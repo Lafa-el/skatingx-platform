@@ -12,6 +12,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 await register(pathToFileURL(path.join(here, "typescript-loader.mjs")).href, { parentURL: import.meta.url });
 
 const { evaluateCatalogImport, readCatalogVerification, checkDraftReads, businessReport, verificationActions } = await import("./verify-catalog.mjs");
+const { readOnlyClassification } = await import("./import-core.mjs");
 const { loadBusinessBaseline, snapshotBusiness } = await import("./backup-prod.mjs");
 
 function argument(flag) {
@@ -56,6 +57,13 @@ async function main() {
       draftPath: "artifacts/skatingx-production/trainingCatalogObjects/EX-L039",
     })
     : { skipped: true };
+  const classification = read.migration?.importedAt
+    ? await readOnlyClassification(db, read.plans, {
+      runId,
+      importedAt: String(read.migration.importedAt),
+      actor: typeof read.migration.actor === "string" ? read.migration.actor : "catalog-import",
+    })
+    : null;
   const report = evaluateCatalogImport({
     mode,
     runId,
@@ -71,11 +79,19 @@ async function main() {
     lock: read.lock,
     business,
     rules,
-    idempotency: { skipped: true, invoked: false },
+    idempotency: classification
+      ? {
+        skipped: false,
+        invoked: false,
+        readOnly: true,
+        actualContentWrites: classification.plannedContentWrites,
+        actualAuditWrites: classification.plannedAuditWrites,
+      }
+      : { skipped: true, invoked: false },
   });
   console.log(JSON.stringify(report));
   if (report.acceptance === "pending-evidence") {
-    console.error("client permission checks and idempotency are pending evidence");
+    console.error("client permission checks are pending evidence");
     process.exitCode = 1;
   } else if (!report.passed) {
     console.error("verification failed");

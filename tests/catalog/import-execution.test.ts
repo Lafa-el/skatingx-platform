@@ -101,16 +101,17 @@ describe.sequential("catalog import execution guard", () => {
     expect(recovered.lockToken).not.toBe(run.lockToken);
     expect(recovered.previousToken).toBe(run.lockToken);
     const audits = await db.collection(AUDIT).get();
-    expect(audits.docs.map((item) => item.data())).toEqual([
-      expect.objectContaining({
-        action: "lock-recovery",
-        previousToken: run.lockToken,
-        token: recovered.lockToken,
-        actor: IMPORT_ACTOR,
-        reason: "holder crashed",
-        result: "ok",
-      }),
-    ]);
+    const audit = audits.docs[0]?.data() ?? {};
+    expect(audit).toMatchObject({
+      action: "lock-recovery",
+      actor: IMPORT_ACTOR,
+      reason: "holder crashed",
+      result: "ok",
+    });
+    expect(audit.previousTokenFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(audit.tokenFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(audit).not.toHaveProperty("previousToken");
+    expect(audit).not.toHaveProperty("token");
     const accepted = await beginRun(db, {
       runId: "run-lock",
       workbookSha256: EXPECTED_WORKBOOK_SHA256,
@@ -212,8 +213,8 @@ describe.sequential("catalog import execution guard", () => {
 
     expect((await db.doc(conflict).get()).data()).toMatchObject({ marker: "external" });
     expect((await db.doc(parents[0]?.path ?? "").get()).exists).toBe(true);
-    expect((await db.doc(parents[133]?.path ?? "").get()).exists).toBe(conflict === parents[133]?.path);
-    const untouched = parents.slice(133).find((plan) => plan.path !== conflict);
+    expect((await db.doc(parents[132]?.path ?? "").get()).exists).toBe(conflict === parents[132]?.path);
+    const untouched = parents.slice(132).find((plan) => plan.path !== conflict);
     expect((await db.doc(untouched?.path ?? "").get()).exists).toBe(false);
     await expect(
       executeImport(db, plans, {

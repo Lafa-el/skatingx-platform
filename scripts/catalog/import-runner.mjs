@@ -18,6 +18,7 @@ import {
   grantProductionWrite,
   importLockPath,
   inspectCatalog,
+  readOnlyClassification,
   loadPlans,
   planSummary,
   preflightInitial,
@@ -94,6 +95,7 @@ function withDefaults(deps) {
     openFirestore: deps.openFirestore,
     credentialProvider: deps.credentialProvider ?? unconfiguredCredentialProvider(),
     confirmProject: deps.confirmProject,
+    afterGrant: deps.afterGrant,
     writeSummary: deps.writeSummary ?? ((text) => console.error(text)),
     writeReport: deps.writeReport ?? ((value) => console.log(JSON.stringify(value))),
     gitSha: deps.gitSha ?? (() => ""),
@@ -181,10 +183,29 @@ async function productionPreflight(request, deps, db, identity) {
     }
   }
   const migration = await db.doc(plan.migrationPath).get();
+  const lockSnap = await db.doc(importLockPath()).get();
+  const lock = lockSnap.exists ? lockSnap.data() : null;
+  if (request.mode === "initial" && (lock?.status === "held" || inspected.orphans.length > 0)) {
+    throw new Error(lock?.status === "held"
+      ? `initial refused: import lock is held by ${lock.runId}`
+      : `initial refused: orphan catalog path ${inspected.orphans[0]}`);
+  }
   if (request.mode === "initial" && migration.exists) {
     throw new Error(`initial refused: migration ${request.runId} already exists`);
   }
   if (request.mode === "resume" && !migration.exists) throw new Error(`migration ${request.runId} does not exist`);
+  if (request.mode === "resume" && inspected.orphans.length > 0) {
+    throw new Error(`resume refused: orphan catalog path ${inspected.orphans[0]}`);
+  }
+  let classification = null;
+  if (request.mode === "resume" && migration.exists) {
+    classification = await readOnlyClassification(db, plan.plans, {
+      runId: request.runId,
+      importedAt: migration.data().importedAt,
+      actor: migration.data().actor ?? actorOfRequest(request),
+    });
+  }
+  const collectionResults = Object.fromEntries(CATALOG_COLLECTIONS.map((name) => [name, (inspected.collectionDocs.get(name) ?? []).length]));
   if (typeof deps.countAuthUsers !== "function") {
     throw new Error("refusing to run: Firebase Auth user count is unavailable");
   }
@@ -205,6 +226,14 @@ async function productionPreflight(request, deps, db, identity) {
       identity: identity.clientEmail,
       operator: actorOfRequest(request),
       migrationStatus: migration.exists ? migration.data().status ?? "present" : "absent",
+      lockStatus: lock?.status ?? "absent",
+      orphans: inspected.orphans,
+      collections: collectionResults,
+      plannedContentWrites: classification ? classification.plannedContentWrites : plan.parentPaths.length * 2,
+      plannedAuditWrites: classification ? classification.plannedAuditWrites : plan.parentPaths.length,
+      gitSha: deps.gitSha(),
+      workbookSha256: plan.workbookSha256,
+      databaseId: databaseIdOf(db),
       authUsers: counted.authUsers,
       firestoreUsers: counted.firestoreUsers,
       raceResults: counted.raceResults,
@@ -289,8 +318,6 @@ async function runEmulator(request, deps, labels = {}) {
       serviceAccount: run.serviceAccount ?? "emulator",
       lockToken: run.lockToken,
     });
-    const contentBatches = Array.isArray(imported.batches) ? imported.batches.length : 0;
-    const progressWrites = imported.actualMigrationWrites;
     const publicReport = {
       ...imported,
       plannedMigrationCreates: run.created ? 1 : 0,
@@ -298,30 +325,20 @@ async function runEmulator(request, deps, labels = {}) {
       totalWrites:
         imported.actualContentWrites +
         imported.actualAuditWrites +
-        (run.created ? 1 : 0) +
-        progressWrites +
-        (run.created ? 1 : 0) +
-        1 +
-        contentBatches +
-        progressWrites,
+        (run.created ? 2 : (run.lockWrites ?? 0)) +
+        (imported.controlWrites ?? 0),
     };
     deps.writeSummary(formatExecutionSummary({
-      target: "emulator",
-      projectId: request.project,
+      ...summaryBase,
       databaseId: run.databaseId,
-      identity: "unverified emulator admin",
       runId: run.runId,
-      mode: "initial",
       actor: run.actor,
       gitSha: run.gitSha ?? gitSha,
       workbookSha256: run.workbookSha256,
       plannedContentWrites: publicReport.plannedContentWrites,
       plannedAuditWrites: publicReport.plannedAuditWrites,
       plannedMigrationCreates: publicReport.plannedMigrationCreates,
-      baseBudget: BASE_IMPORT_BUDGET,
       remainingObjectGroups: publicReport.plannedAuditWrites,
-      authUsers,
-      business,
     }));
     deps.writeReport(publicReport);
     return { publicReport, lockToken: run.lockToken, runId: run.runId, importedAt: run.importedAt, plan: planned };
@@ -366,13 +383,13 @@ async function runEmulator(request, deps, labels = {}) {
     serviceAccount: run.serviceAccount ?? budget.serviceAccount ?? "emulator",
     lockToken: run.lockToken,
   });
-  const contentBatches = Array.isArray(imported.batches) ? imported.batches.length : 0;
-  const progressWrites = imported.actualMigrationWrites;
   const publicReport = {
     ...imported,
     plannedMigrationCreates: 0,
-    totalWrites: imported.actualContentWrites + imported.actualAuditWrites + progressWrites + 1
-      + contentBatches + progressWrites,
+    totalWrites: imported.actualContentWrites + imported.actualAuditWrites
+      + (run.lockWrites ?? 0)
+      + (imported.controlWrites ?? 0)
+      + (request.recoverLock === true ? 3 : 0),
   };
   deps.writeReport(publicReport);
   return { publicReport, lockToken: run.lockToken, runId: run.runId, importedAt: run.importedAt };
@@ -385,11 +402,12 @@ async function runRollback(request, deps, db, options = {}) {
     }
     await deps.confirmProject(request.project);
   }
-  const lock = await db.doc(importLockPath()).get();
-  if (!lock.exists || lock.data().runId !== request.runId) {
-    throw new Error(`rollback refused: lock is not held by ${request.runId}`);
+  const result = await rollbackImport(db, request.runId, {
+    memoryToken: rollbackTokens.get(request.runId) ?? "",
+  });
+  if (typeof result.lockToken === "string" && result.lockToken !== "") {
+    rollbackTokens.set(request.runId, result.lockToken);
   }
-  const result = await rollbackImport(db, request.runId, { lockToken: lock.data().token });
   return result;
 }
 
@@ -406,7 +424,8 @@ function rollbackReport(result, target) {
   };
 }
 
-let productionEntryActive = false;
+const rollbackTokens = new Map();
+let productionWriter = "";
 
 export async function runImportEntry(request, deps) {
   const bound = withDefaults(deps);
@@ -431,25 +450,20 @@ export async function runImportEntry(request, deps) {
       throw new Error("refusing to run: production read is disabled");
     }
     const identity = await verifiedProductionIdentity(request, bound);
-    if (writing && request.allowProductionWrite === true && productionEntryActive) {
-      // The write grant is process-global, so a second production entry cannot be isolated.
-      throw new Error("refusing to run: a production import is already active in this process");
-    }
-    if (writing && request.allowProductionWrite === true) productionEntryActive = true;
     if (typeof bound.openFirestore !== "function") {
-      productionEntryActive = false;
       throw new Error("refusing to run: production connection is not configured");
     }
+    const owner = writing ? `${request.runId}:${Date.now()}:${Math.random()}` : "";
+    if (writing && productionWriter !== "") {
+      throw new Error("refusing to run: a production import is already active in this process");
+    }
+    if (writing) productionWriter = owner;
     let db;
     try {
       db = await bound.openFirestore(request.project);
-    } catch (error) {
-      productionEntryActive = false;
-      clearProductionWriteGrant();
-      throw error;
-    }
-    try {
       const prepared = await productionPreflight(request, bound, db, identity);
+      const pendingContent = prepared.publicReport.plannedContentWrites;
+      const pendingAudits = prepared.publicReport.plannedAuditWrites;
       bound.writeSummary(formatExecutionSummary({
         target: "production",
         projectId: request.project,
@@ -460,12 +474,16 @@ export async function runImportEntry(request, deps) {
         actor: actorOfRequest(request),
         gitSha: bound.gitSha(),
         workbookSha256: prepared.plan.workbookSha256,
-        plannedContentWrites: prepared.plan.parentPaths.length * 2,
-        plannedAuditWrites: prepared.plan.parentPaths.length,
+        plannedContentWrites: pendingContent,
+        plannedAuditWrites: pendingAudits,
         plannedMigrationCreates: request.mode === "initial" ? 1 : 0,
         baseBudget: prepared.plan.baseBudget,
         planDigest: prepared.plan.planSummary.digest,
-        remainingObjectGroups: prepared.plan.parentPaths.length,
+        remainingObjectGroups: pendingAudits,
+        collections: prepared.publicReport.collections,
+        lockStatus: prepared.publicReport.lockStatus,
+        orphans: prepared.publicReport.orphans,
+        migrationStatus: prepared.publicReport.migrationStatus,
         authUsers: { status: "available", count: prepared.publicReport.authUsers },
         business: {
           status: "available",
@@ -483,10 +501,11 @@ export async function runImportEntry(request, deps) {
         throw new Error("refusing to run: stdin confirmation is not configured");
       }
       const confirmation = await bound.confirmProject(request.project);
-      if (confirmation !== undefined && confirmation !== "IMPORT" && confirmation !== request.project) {
+      if (confirmation !== "IMPORT" && confirmation !== request.project) {
         throw new Error("refusing to run: production confirmation was rejected");
       }
       grantProductionWrite(identity);
+      if (typeof bound.afterGrant === "function") await bound.afterGrant();
       if (request.rollback === true) {
         const result = await runRollback(request, bound, db, { alreadyConfirmed: true });
         const publicReport = rollbackReport(result, "production");
@@ -498,8 +517,10 @@ export async function runImportEntry(request, deps) {
         openFirestore: async () => db,
       }, { target: "production", identity: identity.clientEmail });
     } finally {
-      productionEntryActive = false;
-      clearProductionWriteGrant();
+      if (owner !== "" && productionWriter === owner) {
+        productionWriter = "";
+        clearProductionWriteGrant();
+      }
     }
   }
   if (request.rollback === true) {
