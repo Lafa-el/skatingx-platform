@@ -5,6 +5,8 @@ export const PRODUCTION_APP_NAME: string;
 
 export function bindVerifiedAdc(file: string): unknown;
 
+export function assertBoundAdcUnchanged(): unknown;
+
 export function openProductionFirestore(adcFile: string): Promise<App>;
 
 export function productionFirestore(app: App): Promise<Firestore>;

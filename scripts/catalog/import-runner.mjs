@@ -26,6 +26,7 @@ import {
   projectIdOf,
   recoverImportLock,
   rollbackImport,
+  tokenFingerprint,
 } from "./import-core.mjs";
 import {
   ALLOWED_PRODUCTION_SERVICE_ACCOUNTS,
@@ -33,6 +34,7 @@ import {
   PRODUCTION_PROJECT_ID,
   assertBusinessCountsForProduction,
   assertExecutionTarget,
+  assertExplicitConfirmation,
   assertServiceAccountIdentity,
   countBusinessData,
   formatExecutionSummary,
@@ -134,6 +136,8 @@ async function resumeBudget(db, request, actor) {
     runId: record.runId,
     importedAt: record.importedAt,
     actor: record.actor,
+    operator: record.operator ?? record.actor,
+    serviceAccount: record.serviceAccount ?? "emulator",
   });
   return {
     ...preview,
@@ -142,6 +146,8 @@ async function resumeBudget(db, request, actor) {
     runId: record.runId,
     importedAt: record.importedAt,
     actor: record.actor,
+    operator: record.operator ?? record.actor,
+    serviceAccount: record.serviceAccount ?? "emulator",
   };
 }
 
@@ -172,7 +178,7 @@ function assertOpenedProductionRead(db) {
 async function productionPreflight(request, deps, db, identity) {
   assertOpenedProductionRead(db);
   if (CATALOG_COLLECTIONS.length !== 11) throw new Error("refusing to run: catalog collection list is incomplete");
-  const plan = buildImportPlan(deps.now().toISOString(), request.runId);
+  let plan = buildImportPlan(deps.now().toISOString(), request.runId);
   const inspected = await inspectCatalog(db);
   for (const name of CATALOG_COLLECTIONS) {
     const paths = inspected.collectionDocs.get(name);
@@ -194,16 +200,25 @@ async function productionPreflight(request, deps, db, identity) {
     throw new Error(`initial refused: migration ${request.runId} already exists`);
   }
   if (request.mode === "resume" && !migration.exists) throw new Error(`migration ${request.runId} does not exist`);
+  if (request.mode === "resume" && migration.exists && typeof migration.data().importedAt === "string") {
+    plan = buildImportPlan(migration.data().importedAt, request.runId);
+  }
   if (request.mode === "resume" && inspected.orphans.length > 0) {
     throw new Error(`resume refused: orphan catalog path ${inspected.orphans[0]}`);
   }
   let classification = null;
   if (request.mode === "resume" && migration.exists) {
+    const stored = migration.data();
     classification = await readOnlyClassification(db, plan.plans, {
       runId: request.runId,
-      importedAt: migration.data().importedAt,
-      actor: migration.data().actor ?? actorOfRequest(request),
+      importedAt: stored.importedAt,
+      actor: stored.actor ?? actorOfRequest(request),
+      operator: stored.operator ?? stored.actor ?? actorOfRequest(request),
+      serviceAccount: stored.serviceAccount ?? "emulator",
     });
+    if (classification.mismatched.length > 0 || classification.incomplete.length > 0) {
+      throw new Error(`resume refused: ${[...classification.mismatched, ...classification.incomplete].join("; ")}`);
+    }
   }
   const collectionResults = Object.fromEntries(CATALOG_COLLECTIONS.map((name) => [name, (inspected.collectionDocs.get(name) ?? []).length]));
   if (typeof deps.countAuthUsers !== "function") {
@@ -215,9 +230,14 @@ async function productionPreflight(request, deps, db, identity) {
   return {
     plan,
     identity,
+    confirmedTokenFingerprint: lockSnap.exists ? tokenFingerprint(String(lock?.token ?? "")) : "",
+    confirmedUpdateTimeMillis: lockSnap.updateTime?.toMillis?.() ?? null,
     publicReport: {
       phase: "preflight",
       target: "production",
+      projectId: request.project,
+      runId: request.runId,
+      mode: request.mode,
       writes: 0,
       planDigest: plan.planSummary.digest,
       baseBudget: plan.baseBudget,
@@ -295,7 +315,16 @@ async function runEmulator(request, deps, labels = {}) {
         throw new Error(`resume refused: ${[...budget.mismatched, ...budget.incomplete].join("; ")}`);
       }
     }
-    const publicReport = { phase: "preflight", actualContentWrites: 0, actualAuditWrites: 0, actualMigrationWrites: 0 };
+    const publicReport = {
+      phase: "preflight",
+      projectId: request.project,
+      runId: request.runId,
+      mode: request.mode,
+      actualContentWrites: 0,
+      actualAuditWrites: 0,
+      migrationDocumentWrites: 0,
+      lockDocumentWrites: 0,
+    };
     deps.writeReport(publicReport);
     return { publicReport };
   }
@@ -309,6 +338,16 @@ async function runEmulator(request, deps, labels = {}) {
       gitSha,
       initial: true,
     });
+    if (request.stopAfterLock === true) {
+      const heldReport = {
+        phase: "lock-held",
+        projectId: request.project,
+        runId: run.runId,
+        mode: request.mode,
+      };
+      deps.writeReport(heldReport);
+      return { publicReport: heldReport, lockToken: run.lockToken, runId: run.runId, importedAt: run.importedAt };
+    }
     const planned = buildImportPlan(run.importedAt, run.runId);
     const imported = await executeImport(db, planned.plans, {
       runId: run.runId,
@@ -321,7 +360,9 @@ async function runEmulator(request, deps, labels = {}) {
     const publicReport = {
       ...imported,
       plannedMigrationCreates: run.created ? 1 : 0,
-      actualMigrationWrites: (run.created ? 1 : 0) + imported.actualMigrationWrites,
+      actualMigrationWrites: (run.created ? 1 : 0) + (imported.migrationDocumentWrites ?? 0),
+      migrationDocumentWrites: (run.created ? 1 : 0) + (imported.migrationDocumentWrites ?? 0),
+      lockDocumentWrites: (run.created ? 1 : 0) + (imported.lockDocumentWrites ?? 0),
       totalWrites:
         imported.actualContentWrites +
         imported.actualAuditWrites +
@@ -353,19 +394,48 @@ async function runEmulator(request, deps, labels = {}) {
     plannedMigrationCreates: 0,
     remainingObjectGroups: budget.remainingObjectGroups,
   }));
+  if (budget.mismatched.length > 0 || budget.incomplete.length > 0) {
+    throw new Error(`resume refused: ${[...budget.mismatched, ...budget.incomplete].join("; ")}`);
+  }
   let lockToken;
+  let recoveredWrites = 0;
   if (request.recoverLock === true) {
-    if (typeof deps.confirmProject !== "function") {
-      throw new Error("refusing to run: stdin confirmation is not configured");
+    const lockSnap = await db.doc(importLockPath()).get();
+    if (!lockSnap.exists) throw new Error("lock recovery refused: import lock does not exist");
+    const confirmedTokenFingerprint = labels.confirmedTokenFingerprint
+      ?? tokenFingerprint(String(lockSnap.data()?.token ?? ""));
+    const confirmedUpdateTimeMillis = labels.confirmedUpdateTimeMillis
+      ?? lockSnap.updateTime?.toMillis?.();
+    if (labels.alreadyConfirmed !== true) {
+      if (typeof deps.confirmProject !== "function") {
+        throw new Error("refusing to run: stdin confirmation is not configured");
+      }
+      assertExplicitConfirmation(await deps.confirmProject(request.project), request.project);
     }
-    await deps.confirmProject(request.project);
     const recovered = await recoverImportLock(db, {
       runId: budget.runId,
       actor: budget.actor,
       confirmHolderDead: true,
       reason: request.recoverReason,
+      confirmedTokenFingerprint,
+      confirmedUpdateTimeMillis,
     });
     lockToken = recovered.lockToken;
+    recoveredWrites = 3;
+    if (recovered.purpose === "rollback" || request.stopAfterRecover === true) {
+      const publicReport = {
+        phase: "recovered",
+        projectId: request.project,
+        runId: request.runId,
+        mode: request.mode,
+        purpose: recovered.purpose,
+        migrationStatus: recovered.migrationStatus,
+        lockStatus: recovered.lockStatus,
+        recoveryControlWrites: recoveredWrites,
+      };
+      deps.writeReport(publicReport);
+      return { publicReport, lockToken: recovered.lockToken, runId: request.runId };
+    }
   }
   const run = await beginRun(db, {
     runId: budget.runId,
@@ -375,6 +445,16 @@ async function runEmulator(request, deps, labels = {}) {
     lockToken,
     serviceAccount: budget.serviceAccount,
   });
+  if (request.stopAfterLock === true) {
+    const heldReport = {
+      phase: "lock-held",
+      projectId: request.project,
+      runId: run.runId,
+      mode: request.mode,
+    };
+    deps.writeReport(heldReport);
+    return { publicReport: heldReport, lockToken: run.lockToken, runId: run.runId, importedAt: run.importedAt };
+  }
   const imported = await executeImport(db, budget.plans, {
     runId: run.runId,
     importedAt: run.importedAt,
@@ -386,10 +466,14 @@ async function runEmulator(request, deps, labels = {}) {
   const publicReport = {
     ...imported,
     plannedMigrationCreates: 0,
+    actualMigrationWrites: imported.migrationDocumentWrites ?? 0,
+    migrationDocumentWrites: imported.migrationDocumentWrites ?? 0,
+    lockDocumentWrites: (run.lockWrites ?? 0) + (imported.lockDocumentWrites ?? 0) + recoveredWrites,
+    recoveryControlWrites: recoveredWrites,
     totalWrites: imported.actualContentWrites + imported.actualAuditWrites
       + (run.lockWrites ?? 0)
       + (imported.controlWrites ?? 0)
-      + (request.recoverLock === true ? 3 : 0),
+      + recoveredWrites,
   };
   deps.writeReport(publicReport);
   return { publicReport, lockToken: run.lockToken, runId: run.runId, importedAt: run.importedAt };
@@ -400,10 +484,14 @@ async function runRollback(request, deps, db, options = {}) {
     if (typeof deps.confirmProject !== "function") {
       throw new Error("refusing to run: stdin confirmation is not configured");
     }
-    await deps.confirmProject(request.project);
+    assertExplicitConfirmation(await deps.confirmProject(request.project), request.project);
   }
   const result = await rollbackImport(db, request.runId, {
     memoryToken: rollbackTokens.get(request.runId) ?? "",
+    crashAfterLock: request.crashAfterLock === true,
+    onLockToken: (token) => {
+      rollbackTokens.set(request.runId, token);
+    },
   });
   if (typeof result.lockToken === "string" && result.lockToken !== "") {
     rollbackTokens.set(request.runId, result.lockToken);
@@ -421,6 +509,8 @@ function rollbackReport(result, target) {
     deletedSnapshots: counts.deletedSnapshots ?? 0,
     retainedAudits: counts.retainedAudits ?? 0,
     controlWrites: counts.controlWrites ?? 0,
+    controlUpdates: counts.controlUpdates ?? 0,
+    totalOperations: counts.totalOperations ?? counts.controlWrites ?? 0,
   };
 }
 
@@ -428,6 +518,9 @@ const rollbackTokens = new Map();
 let productionWriter = "";
 
 export async function runImportEntry(request, deps) {
+  if (request.target === "production" && (request.crashAfterLock === true || request.stopAfterLock === true || request.stopAfterRecover === true)) {
+    throw new Error("refusing to run: test limits are not available for production");
+  }
   const bound = withDefaults(deps);
   assertExecutionTarget({
     target: request.target,
@@ -500,10 +593,7 @@ export async function runImportEntry(request, deps) {
       if (typeof bound.confirmProject !== "function") {
         throw new Error("refusing to run: stdin confirmation is not configured");
       }
-      const confirmation = await bound.confirmProject(request.project);
-      if (confirmation !== "IMPORT" && confirmation !== request.project) {
-        throw new Error("refusing to run: production confirmation was rejected");
-      }
+      assertExplicitConfirmation(await bound.confirmProject(request.project), request.project);
       grantProductionWrite(identity);
       if (typeof bound.afterGrant === "function") await bound.afterGrant();
       if (request.rollback === true) {
@@ -515,7 +605,13 @@ export async function runImportEntry(request, deps) {
       return await runEmulator(request, {
         ...bound,
         openFirestore: async () => db,
-      }, { target: "production", identity: identity.clientEmail });
+      }, {
+        target: "production",
+        identity: identity.clientEmail,
+        alreadyConfirmed: true,
+        confirmedTokenFingerprint: prepared.confirmedTokenFingerprint,
+        confirmedUpdateTimeMillis: prepared.confirmedUpdateTimeMillis,
+      });
     } finally {
       if (owner !== "" && productionWriter === owner) {
         productionWriter = "";

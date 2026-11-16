@@ -12,6 +12,7 @@ import {
   importLockPath,
   loadPlans,
   recoverImportLock,
+  tokenFingerprint,
 } from "../../scripts/catalog/import-core.mjs";
 
 const PROJECT_ID = "demo-skatingx-import";
@@ -36,6 +37,14 @@ function openFirestore(): Firestore {
   const existing = getApps().find((app) => app.name === "catalog-import-execution");
   const app = existing ?? initializeApp({ projectId: PROJECT_ID }, "catalog-import-execution");
   return getFirestore(app);
+}
+
+async function confirmedGeneration(db: Firestore) {
+  const snap = await db.doc(importLockPath()).get();
+  return {
+    confirmedTokenFingerprint: tokenFingerprint(String(snap.data()?.token ?? "")),
+    confirmedUpdateTimeMillis: snap.updateTime?.toMillis() ?? 0,
+  };
 }
 
 async function wipeCatalog(db: Firestore): Promise<void> {
@@ -89,14 +98,16 @@ describe.sequential("catalog import execution guard", () => {
     await expect(
       beginRun(db, { runId: "run-other", workbookSha256: EXPECTED_WORKBOOK_SHA256, actor: IMPORT_ACTOR }),
     ).rejects.toThrow(/import lock is held by run-lock/);
+    const generation = await confirmedGeneration(db);
     await expect(
-      recoverImportLock(db, { runId: "run-lock", actor: IMPORT_ACTOR, reason: "holder crashed", confirmHolderDead: false }),
+      recoverImportLock(db, { runId: "run-lock", actor: IMPORT_ACTOR, reason: "holder crashed", confirmHolderDead: false, ...generation }),
     ).rejects.toThrow(/holder has not been confirmed dead/);
     const recovered = await recoverImportLock(db, {
       runId: "run-lock",
       actor: IMPORT_ACTOR,
       reason: "holder crashed",
       confirmHolderDead: true,
+      ...generation,
     });
     expect(recovered.lockToken).not.toBe(run.lockToken);
     expect(recovered.previousToken).toBe(run.lockToken);
@@ -140,6 +151,7 @@ describe.sequential("catalog import execution guard", () => {
       actor: IMPORT_ACTOR,
       reason: "holder crashed",
       confirmHolderDead: true,
+      ...(await confirmedGeneration(db)),
     });
     const adopted = await beginRun(db, {
       runId: "run-adopt",
@@ -169,6 +181,7 @@ describe.sequential("catalog import execution guard", () => {
       actor: IMPORT_ACTOR,
       reason: "holder crashed",
       confirmHolderDead: true,
+      ...(await confirmedGeneration(db)),
     })).rejects.toThrow(/content conflict/);
     expect((await db.doc(importLockPath()).get()).data()?.token).toBe(before);
   });

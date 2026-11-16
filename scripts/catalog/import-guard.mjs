@@ -147,6 +147,9 @@ export function identityFromAdcPayload(payload) {
     throw new Error("refusing to run: credential type is not service_account");
   }
   assertNoLongLivedKey(payload);
+  if (Object.hasOwn(payload, "delegates")) {
+    throw new Error("refusing to run: impersonation delegates are not accepted");
+  }
   if (payload.type !== "impersonated_service_account") {
     throw new Error("refusing to run: credential type is not service_account");
   }
@@ -171,11 +174,16 @@ export function identityFromAdcPayload(payload) {
   };
 }
 
-export async function confirmProjectOnStdin(projectId, readLine) {
-  const entered = (await readLine()).trim();
-  if (entered !== projectId) {
-    throw new Error("refusing to run: stdin confirmation does not match the project id");
+export function assertExplicitConfirmation(confirmation, projectId) {
+  if (confirmation !== "IMPORT" && confirmation !== projectId) {
+    throw new Error("refusing to run: production confirmation was rejected");
   }
+  return confirmation;
+}
+
+export async function confirmProjectOnStdin(projectId, readLine) {
+  const entered = await readLine();
+  return assertExplicitConfirmation(typeof entered === "string" ? entered : "", projectId);
 }
 
 export function readLineFromStdin() {
@@ -196,25 +204,27 @@ export function resolveAuthUserCount(result) {
 }
 
 export async function countBusinessData(db) {
-  const usersSnap = await db.collection(FIRESTORE_USERS_COLLECTION).get();
+  const userRefs = await db.collection(FIRESTORE_USERS_COLLECTION).listDocuments();
   let raceResults = 0;
   let videoMetadata = 0;
   let raceVideos = 0;
-  for (const user of usersSnap.docs) {
-    const events = await user.ref.collection("raceDay").get();
-    for (const event of events.docs) {
-      const results = await event.ref.collection("results").get();
+  let firestoreUsers = 0;
+  for (const userRef of userRefs) {
+    firestoreUsers += 1;
+    const events = await userRef.collection("raceDay").listDocuments();
+    for (const eventRef of events) {
+      const results = await eventRef.collection("results").get();
       raceResults += results.size;
-      const eventVideos = await event.ref.collection("videos").get();
+      const eventVideos = await eventRef.collection("videos").get();
       raceVideos += eventVideos.size;
       videoMetadata += eventVideos.size;
     }
-    const videos = await user.ref.collection("videos").get();
+    const videos = await userRef.collection("videos").get();
     videoMetadata += videos.size;
   }
   return {
     status: "available",
-    firestoreUsers: usersSnap.size,
+    firestoreUsers,
     raceResults,
     videoMetadata,
     raceVideos,
@@ -266,7 +276,8 @@ export function formatExecutionSummary(summary) {
     `plannedMigrationCreates: ${summary.plannedMigrationCreates}`,
     `baseBudget: ${summary.baseBudget}`,
     `planDigest: ${summary.planDigest ?? ""}`,
-    `roundBudget: ${summary.roundBudget ?? summary.plannedContentWrites + summary.plannedAuditWrites + summary.plannedMigrationCreates}`,
+    `plannedDocuments: ${summary.plannedDocuments ?? summary.plannedContentWrites + summary.plannedAuditWrites + summary.plannedMigrationCreates}`,
+    "plannedDocumentsNote: content, audits, and migration create; lock writes stay inside baseBudget",
     `remainingObjectGroups: ${summary.remainingObjectGroups ?? ""}`,
     `lockStatus: ${summary.lockStatus ?? ""}`,
     `migrationStatus: ${summary.migrationStatus ?? ""}`,

@@ -244,7 +244,7 @@ describe("shared import runner", () => {
       {
         name: "stdin",
         deps: { confirmProject: (projectId: string) => confirmProjectOnStdin(projectId, async () => "wrong-project") },
-        message: /stdin confirmation/,
+        message: /confirmation was rejected/,
         described: 1,
       },
       { name: "emulator host", deps: { emulatorHost: "127.0.0.1:8080" }, message: /FIRESTORE_EMULATOR_HOST/, described: 0 },
@@ -515,7 +515,9 @@ describe.sequential("shared runner emulator chain", () => {
     await db.doc(importLockPath()).update({ status: "released", purpose: "import" });
     const rolled = await rollbackImport(db, RUN_ID, {});
     expect(rolled.rollbackResult).toMatchObject({ deletedParents: 257, deletedSnapshots: 257, retainedAudits: 257 });
-    expect(rolled.rollbackResult?.controlWrites).toBeGreaterThan(0);
+    expect(rolled.rollbackResult?.controlUpdates).toBe(16);
+    expect(rolled.rollbackResult?.totalOperations).toBe(530);
+    expect(rolled.rollbackResult?.controlWrites).toBe(530);
     expect((await db.collection(OBJECTS).listDocuments())).toHaveLength(0);
     expect((await db.collection(AUDIT).get()).size).toBe(257);
     expect((await db.doc(`${MIGRATIONS}/${RUN_ID}`).get()).data()?.status).toBe("rolled_back");

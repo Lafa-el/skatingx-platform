@@ -69,7 +69,8 @@ export function assertServiceAccountIdentity(input: {
 
 export function identityFromAdcPayload(payload: unknown): ServiceAccountCredential;
 
-export function confirmProjectOnStdin(projectId: string, readLine: () => Promise<string>): Promise<void>;
+export function assertExplicitConfirmation(confirmation: unknown, projectId: string): string;
+export function confirmProjectOnStdin(projectId: string, readLine: () => Promise<string>): Promise<string>;
 
 export function readLineFromStdin(): Promise<string>;
 

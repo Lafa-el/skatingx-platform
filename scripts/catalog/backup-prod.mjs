@@ -365,6 +365,8 @@ function isKeptError(error) {
     error.message === "基线必须是备份快照对象，不是文档数组"
     || error.message === "backup decryption failed"
     || error.message === "refusing a plaintext baseline for production verification"
+    || error.message === "refusing a baseline for a different project"
+    || error.message === "refusing a baseline for a different database"
     || error.message.startsWith("backup document ")
   );
 }
@@ -679,6 +681,12 @@ export function verifyBackup(outDir, options = {}) {
     if (snapshot.documents.length !== manifest.documentCount) throw new Error("backup file is missing or corrupt");
     const pathDigest = sha256Text(snapshot.documents.map((item) => item.path).join("\n"));
     if (pathDigest !== manifest.pathDigest) throw new Error("backup file is missing or corrupt");
+    if (options.expectedProjectId && manifest.projectId !== options.expectedProjectId) {
+      throw new Error("refusing a baseline for a different project");
+    }
+    if (options.expectedDatabaseId && manifest.databaseId !== options.expectedDatabaseId) {
+      throw new Error("refusing a baseline for a different database");
+    }
     return { documents: snapshot.documents, snapshot, manifest };
   } catch (error) {
     if (isKeptError(error)) throw error;

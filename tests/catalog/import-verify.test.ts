@@ -13,10 +13,12 @@ import {
   CONTENT_VERSION,
   EXPECTED_WORKBOOK_SHA256,
   IMPORT_ACTOR,
+  actorOf,
   auditDocId,
   beginRun,
   executeImport,
   loadPlans,
+  readOnlyClassification,
   readPlannedDocs,
 } from "../../scripts/catalog/import-core.mjs";
 import {
@@ -152,8 +154,31 @@ describe.sequential("catalog import verification", () => {
       lock: read.lock,
       business: businessReport(loadBusinessBaseline(baselineFile), await snapshotBusiness(db)),
       rules,
-      idempotency: { skipped: false, readOnly: true, actualContentWrites: 0, actualAuditWrites: 0 },
+      idempotency: await classifiedIdempotency(read),
     });
+  }
+
+  async function classifiedIdempotency(read: Awaited<ReturnType<typeof readCatalogVerification>>) {
+    const record = read.migration ?? {};
+    const classification = await readOnlyClassification(db, read.plans, {
+      runId: RUN_ID,
+      importedAt: String(record.importedAt),
+      actor: actorOf(record),
+      operator: typeof record.operator === "string" && record.operator !== "" ? record.operator : actorOf(record),
+      serviceAccount: typeof record.serviceAccount === "string" && record.serviceAccount !== "" ? record.serviceAccount : "emulator",
+      lockToken: "",
+    });
+    return {
+      skipped: false as const,
+      readOnly: true as const,
+      present: classification.present,
+      absent: classification.absent,
+      mismatched: classification.mismatched,
+      incomplete: classification.incomplete,
+      conflicts: classification.mismatched,
+      actualContentWrites: 0,
+      actualAuditWrites: 0,
+    };
   }
 
   function failed(report: Report, name: string) {
@@ -184,7 +209,7 @@ describe.sequential("catalog import verification", () => {
       lock: pendingRead.lock,
       business: businessReport(loadBusinessBaseline(baselineFile), await snapshotBusiness(db)),
       rules: { skipped: true },
-      idempotency: { skipped: false, readOnly: true, invoked: false, actualContentWrites: 0, actualAuditWrites: 0 },
+      idempotency: await classifiedIdempotency(pendingRead),
     });
     expect(pending.passed).toBe(false);
     expect(pending.acceptance).toBe("pending-evidence");
@@ -210,6 +235,8 @@ describe.sequential("catalog import verification", () => {
     expect(report.idempotency).toMatchObject({
       mode: "read-only",
       invoked: false,
+      present: 257,
+      absent: 0,
       actualContentWrites: 0,
       actualAuditWrites: 0,
     });

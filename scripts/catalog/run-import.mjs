@@ -2,7 +2,8 @@
 // Production reads and writes are separate switches and both default off.
 // Production Firestore and Auth share one named app built from the verified ADC.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { lstatSync, readFileSync } from "node:fs";
 import { register } from "node:module";
 import os from "node:os";
 import path from "node:path";
@@ -17,41 +18,60 @@ const { runImportEntry, unconfiguredCredentialProvider } = await import("./impor
 const rootDir = path.resolve(here, "../..");
 export const PRODUCTION_APP_NAME = "catalog-run-import-production";
 let productionApp;
+let boundAdc = null;
+
+function adcDigest(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
 
 function gitHead() {
   return execFileSync("git", ["rev-parse", "HEAD"], { cwd: rootDir, encoding: "utf8" }).trim();
 }
 
-function readAdcPayload() {
-  const configured = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  const file = configured && configured.trim() !== ""
-    ? configured
-    : path.join(os.homedir(), ".config", "gcloud", "application_default_credentials.json");
-  try {
-    return JSON.parse(readFileSync(file, "utf8"));
-  } catch (error) {
-    throw new Error("refusing to run: credential type is not service_account", { cause: error });
-  }
-}
-
-function adcCredentialProvider(payload) {
+function adcCredentialProvider() {
   return {
     source: "adc",
     async describe() {
-      return identityFromAdcPayload(payload);
+      return identityFromAdcPayload(assertBoundAdcUnchanged());
     },
   };
 }
 
 export function bindVerifiedAdc(file) {
-  const payload = JSON.parse(readFileSync(file, "utf8"));
-  identityFromAdcPayload(payload);
+  let stat;
+  try {
+    stat = lstatSync(file);
+  } catch (error) {
+    throw new Error("refusing to run: credential type is not service_account", { cause: error });
+  }
+  if (stat.isSymbolicLink()) throw new Error("refusing to run: ADC path is a symlink");
   const resolved = path.resolve(file);
+  const bytes = readFileSync(file);
+  const digest = adcDigest(bytes);
+  if (boundAdc && (boundAdc.file !== resolved || boundAdc.sha256 !== digest)) {
+    throw new Error("refusing to run: ADC file changed after verification");
+  }
+  const payload = JSON.parse(bytes.toString("utf8"));
+  identityFromAdcPayload(payload);
   const configured = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim() ?? "";
   if (configured !== "" && path.resolve(configured) !== resolved) {
     throw new Error("refusing to run: GOOGLE_APPLICATION_CREDENTIALS does not point at the verified ADC file");
   }
   process.env.GOOGLE_APPLICATION_CREDENTIALS = resolved;
+  boundAdc = { file: resolved, sha256: digest, payload };
+  return payload;
+}
+
+export function assertBoundAdcUnchanged() {
+  if (!boundAdc) throw new Error("refusing to run: ADC file is not bound");
+  const stat = lstatSync(boundAdc.file);
+  if (stat.isSymbolicLink()) throw new Error("refusing to run: ADC path is a symlink");
+  const bytes = readFileSync(boundAdc.file);
+  if (adcDigest(bytes) !== boundAdc.sha256) {
+    throw new Error("refusing to run: ADC file changed after verification");
+  }
+  const payload = JSON.parse(bytes.toString("utf8"));
+  identityFromAdcPayload(payload);
   return payload;
 }
 
@@ -70,6 +90,7 @@ export async function openProductionFirestore(adcFile) {
     throw new Error("refusing to run: FIREBASE_AUTH_EMULATOR_HOST must be unset for production");
   }
   bindVerifiedAdc(adcFile);
+  assertBoundAdcUnchanged();
   const { applicationDefault, initializeApp } = await import("firebase-admin/app");
   if (!productionApp) {
     productionApp = initializeApp({
@@ -81,11 +102,13 @@ export async function openProductionFirestore(adcFile) {
 }
 
 export async function productionFirestore(app) {
+  assertBoundAdcUnchanged();
   const { getFirestore } = await import("firebase-admin/firestore");
   return getFirestore(app, "(default)");
 }
 
 export async function countAuthUsers(app) {
+  assertBoundAdcUnchanged();
   if (!app) throw new Error("refusing to run: Firebase Auth user count is unavailable");
   const { getAuth } = await import("firebase-admin/auth");
   let count = 0;
@@ -100,12 +123,12 @@ export async function countAuthUsers(app) {
 
 async function main() {
   const args = parseImportArgs(process.argv.slice(2));
-  const payload = args.target === "production" ? readAdcPayload() : null;
   const adcFile = args.target === "production"
     ? (process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim()
       || path.join(os.homedir(), ".config", "gcloud", "application_default_credentials.json"))
     : "";
   let app;
+  if (args.target === "production") bindVerifiedAdc(adcFile);
   await runImportEntry({
     mode: args.mode,
     runId: args.runId,
@@ -128,7 +151,7 @@ async function main() {
           return productionFirestore(app);
         }
       : (projectId) => openEmulatorFirestore(projectId, args.runId),
-    credentialProvider: args.target === "production" ? adcCredentialProvider(payload) : unconfiguredCredentialProvider(),
+    credentialProvider: args.target === "production" ? adcCredentialProvider() : unconfiguredCredentialProvider(),
     confirmProject: (projectId) => confirmProjectOnStdin(projectId, readLineFromStdin),
     gitSha: gitHead,
     countAuthUsers: args.target === "production" ? () => countAuthUsers(app) : undefined,

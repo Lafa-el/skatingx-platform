@@ -6,7 +6,7 @@
 
 - 线上 Rules 只读核对：`scripts/catalog/verify-live-rules.mjs`。默认拒绝访问生产。受控环境设置 `SKATINGX_RULES_READ=allow` 后才读取。`--postdeploy` 只用于部署之后的独立核对。
 - 业务数据只读备份：`scripts/catalog/backup-prod.mjs`。生产读取需要 `SKATINGX_BACKUP_READ=allow`。`--skip-storage` 不能用于生产成功报告。生产备份必须加密保存，且不得写入 Git 工作区。口令由操作员从受控环境提供，与备份分开保管，不得提交仓库。
-- 导入验收：`scripts/catalog/verify-import.mjs` 只读，不启动导入。生产幂等是同一 runId 的只读对象分类，不包含恢复写入。生产验收设置 `SKATINGX_IMPORT_VERIFY=allow` 后只读。16 项机器检查之外，客户端权限三项仍是待补证据，验收字段为 `pending-evidence`，进程以退出码 1 结束。缺报告、读取异常、任一失败或额外跳过都视为失败。
+- 导入验收：`scripts/catalog/verify-import.mjs` 只读，不启动导入。生产幂等是同一 runId 的只读对象分类，不包含恢复写入。生产验收设置 `SKATINGX_IMPORT_VERIFY=allow` 后只读。17 项机器检查之外，客户端权限三项仍是待补证据，验收字段为 `pending-evidence`，进程以退出码 1 结束。缺报告、读取异常、任一失败或额外跳过都视为失败。
 
 本次线上 Rules API 返回内容与仓库 #181 基线只有末尾 LF 差异。比较工具只去掉结尾 LF，再计算 SHA-256。正文、空格、注释、缩进或其他位置的换行不一致时，核对失败。本地磁盘文件仍按原始 SHA 与批准常量严格比较。
 
@@ -27,7 +27,7 @@ Ruleset 的 `createTime` 是该 Ruleset 的创建时间。Release 的 `updateTim
 6. Rules 部署已在 Gate A 完成，不再作为导入执行步骤。Indexes 不属于这一执行步骤。
 7. 等待规则生效，重新读取线上 Ruleset，确认内容与已批准的候选源码一致。Rules API 一致不能代替客户端权限抽查。Indexes 不在本次部署范围内。
 8. 完成生产客户端权限抽查，并回归原有业务功能。
-9. 重新执行无写入预检。核对项目、数据库、runId、工作簿摘要，以及本次操作的真实待写计数。原始总预算 778 与本次待写分开记录。778 覆盖 771 个内容与审计写入、1 次 Migration 创建、1 次锁创建、1 次锁释放，以及每个内容批内各 1 次账本更新和 1 次锁 fencing 写入。
+9. 重新执行无写入预检。核对项目、数据库、runId、工作簿摘要，以及本次操作的真实待写计数。原始总预算 778 与本次待写分开记录。778 覆盖 771 个内容与审计写入、1 次 Migration 创建、1 次锁创建、1 次锁释放，以及每个内容批内各 1 次账本更新和 1 次锁 fencing 写入。预检字段 `plannedDocuments` 只是正文、审计和 Migration 创建的小计（完整计划为 772），它不是 778。Migration 文档写入与锁写入分开计数。
 10. 执行前独立复核通过之后，才能另行授权真实 initial 导入。
 11. 导入后运行扩展验收。保存机器可读报告和审计证据。报告不得包含生产文档正文。
 12. 全部检查通过后关闭本次导入运行，保留恢复与回滚资料。
