@@ -11,6 +11,7 @@ import {
   executeImport,
   importLockPath,
   loadPlans,
+  recoverImportLock,
   rollbackImport,
 } from "../../scripts/catalog/import-core.mjs";
 
@@ -141,7 +142,12 @@ describe.sequential("catalog import rollback guard", () => {
     expect((await db.doc(parentPath).get()).exists).toBe(true);
 
     await expect(rollbackImport(db, "run-other", { lockToken: token })).rejects.toThrow(/does not exist/);
-    await expect(rollbackImport(db, run.runId, { lockToken: "wrong-token" })).rejects.toThrow(/lock is not held/);
+    const lockRef = db.doc(importLockPath());
+    await lockRef.update({ status: "held", purpose: "import" });
+    await expect(rollbackImport(db, run.runId, { lockToken: token })).rejects.toThrow(/import is still running/);
+    await lockRef.update({ status: "held", purpose: "rollback", token: "stored-from-database" });
+    await expect(rollbackImport(db, run.runId, { memoryToken: "stored-from-database" })).rejects.toThrow(/must be recovered explicitly/);
+    await lockRef.update({ status: "released", purpose: "import", token });
     expect((await db.doc(parentPath).get()).exists).toBe(true);
     expect((await db.doc(auditPath).get()).exists).toBe(true);
 
@@ -176,6 +182,21 @@ describe.sequential("catalog import rollback guard", () => {
     expect((await db.collection(AUDIT).get()).size).toBe(2);
     expect((await migration.get()).data()?.rollbackProgress).toMatchObject({ stage: "done" });
     expect(result.rollbackResult?.controlWrites).toBeGreaterThan(0);
+  });
+
+  it("moves a recovered lock into rollback without a resume", async () => {
+    const { run } = await startRun(db, "run-recovered-rollback", 1);
+    await db.doc(importLockPath()).update({ status: "held", purpose: "import" });
+    await recoverImportLock(db, {
+      runId: run.runId,
+      actor: IMPORT_ACTOR,
+      reason: "holder crashed",
+      confirmHolderDead: true,
+    });
+    const result = await rollbackImport(db, run.runId, {});
+    expect(result.status).toBe("rolled_back");
+    expect((await db.doc(importLockPath()).get()).data()?.status).toBe("rolled_back");
+    expect((await db.doc(importLockPath()).get()).data()?.purpose).toBe("rollback");
   });
 
   it("fails a rollback commit without deleting, then finishes on retry", async () => {

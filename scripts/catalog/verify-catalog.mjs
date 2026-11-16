@@ -18,7 +18,9 @@ import {
   inspectCatalog,
   loadPlans,
   importLockPath,
+  isRecoveryAuditPath,
   planSummary,
+  recoveryAuditProblem,
   projectIdOf,
   readPlannedDocs,
 } from "./import-core.mjs";
@@ -130,9 +132,13 @@ export function evaluateCatalogImport(input) {
   const expectedAudits = new Set(parents.map((plan) => `${ROOT}/${AUDIT}/${auditDocId(runId, String(plan.data.id))}`));
   const allowed = new Set([...allowedContent, ...expectedAudits, `${ROOT}/${MIGRATIONS}/${runId}`]);
   const unknown = [...(input.inspected?.orphans ?? [])];
+  const recoveryByPath = new Map(
+    (input.audits ?? []).filter((audit) => audit.data?.action === "lock-recovery").map((audit) => [audit.path, audit.data]),
+  );
   for (const paths of Object.values(input.inspected?.collectionDocs ?? {})) {
     for (const docPath of paths) {
       if (docPath === importLockPath()) continue;
+      if (isRecoveryAuditPath(docPath, runId) && recoveryAuditProblem(recoveryByPath.get(docPath), { runId, actor: migration.actor }) === "") continue;
       if (!allowed.has(docPath)) unknown.push(docPath);
     }
   }
@@ -171,17 +177,16 @@ export function evaluateCatalogImport(input) {
     if ((data.operator ?? data.actor) !== (migration.operator ?? migration.actor)) auditProblems.push(audit.path);
     if ((data.serviceAccount ?? "emulator") !== (migration.serviceAccount ?? "emulator")) auditProblems.push(audit.path);
     if (data.target?.collection !== OBJECTS || data.target?.contentVersion !== CONTENT_VERSION) auditProblems.push(audit.path);
+    const pathId = String(audit.path).split("/").pop();
+    if (pathId !== `imp-${runId}-${objectId}`) auditProblems.push(audit.path);
     if (!parent || data.checksum !== parent.checksum) {
       auditProblems.push(audit.path);
       conflicts.push({ path: audit.path, kind: "audit-checksum" });
     }
   }
   for (const audit of recoveryAudits) {
-    const data = audit.data ?? {};
-    if (data.result !== "ok" || data.runId !== runId || data.actor !== migration.actor) auditProblems.push(audit.path);
-    if (typeof data.previousToken !== "string" || data.previousToken === "" || typeof data.token !== "string" || data.token === "") {
-      auditProblems.push(audit.path);
-    }
+    const problem = recoveryAuditProblem(audit.data, { runId, actor: migration.actor });
+    if (problem) auditProblems.push(audit.path);
   }
   for (const docPath of expectedAudits) if (!auditPaths.includes(docPath)) auditProblems.push(docPath);
   const uniqueAuditProblems = [...new Set(auditProblems)];
@@ -274,10 +279,10 @@ export function evaluateCatalogImport(input) {
     && typeof migration.roundContentWrites === "number"
     && typeof migration.roundAuditWrites === "number";
   const lock = input.lock;
-  const lockOk = lock == null || (
+  const lockOk = lock != null && lock.runId === runId && (
     migration.status === "rolled_back"
-      ? lock.status === "rolled_back" && lock.runId === runId
-      : lock.status === "released" && lock.runId === runId
+      ? lock.status === "rolled_back" && lock.purpose === "rollback"
+      : lock.status === "released" && lock.purpose === "import"
   );
   checks.push(check(
     "budgetSeparation",
@@ -319,7 +324,7 @@ export function evaluateCatalogImport(input) {
 
   const failed = checks.some((item) => item.status !== "skipped" && item.passed !== true);
   const skippedNames = checks.filter((item) => item.status === "skipped").map((item) => item.name);
-  const pendingNames = ["rulesAnonymous", "rulesSignedIn", "rulesAdmin", "idempotency"];
+  const pendingNames = ["rulesAnonymous", "rulesSignedIn", "rulesAdmin"];
   const pendingEvidence = input.mode === "production"
     && !failed
     && skippedNames.length === pendingNames.length
@@ -341,8 +346,8 @@ export function evaluateCatalogImport(input) {
     idempotency: idem.skipped === true
       ? { mode: "read-only", invoked: false, note: IDEMPOTENCY_SKIPPED }
       : {
-        mode: input.mode === "production" ? "read-only" : "emulator",
-        invoked: true,
+        mode: idem.readOnly === true || input.mode === "production" ? "read-only" : "emulator",
+        invoked: idem.readOnly === true ? false : true,
         actualContentWrites: idem.actualContentWrites ?? null,
         actualAuditWrites: idem.actualAuditWrites ?? null,
       },

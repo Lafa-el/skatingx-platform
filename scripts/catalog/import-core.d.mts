@@ -139,6 +139,32 @@ export function assertResumeIdentity(
   },
 ): MigrationRecord;
 
+export function tokenFingerprint(token: string): string;
+
+export function isRecoveryAuditPath(docPath: string, runId: string): boolean;
+
+export function recoveryAuditProblem(
+  data: Record<string, unknown> | undefined,
+  context: { runId: string; actor: string },
+): string;
+
+export function readOnlyClassification(
+  db: Firestore,
+  plans: readonly PlannedDocument[],
+  context: ImportRunContext,
+): Promise<{
+  present: number;
+  absent: number;
+  mismatched: string[];
+  incomplete: string[];
+  plannedContentWrites: number;
+  plannedAuditWrites: number;
+  plannedMigrationCreates: number;
+  baseBudget: number;
+  roundBudget: number;
+  remainingObjectGroups: number;
+}>;
+
 export function previewImport(
   db: Firestore,
   plans: readonly PlannedDocument[],
@@ -189,5 +215,5 @@ export function recoverImportLock(
 export function rollbackImport(
   db: Firestore,
   runId: string,
-  claim: { lockToken: string; beforeDelete?: () => void | Promise<void> },
+  claim?: { lockToken?: string; memoryToken?: string; beforeDelete?: () => void | Promise<void> },
 ): Promise<MigrationRecord>;

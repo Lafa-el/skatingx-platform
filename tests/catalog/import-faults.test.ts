@@ -172,16 +172,16 @@ describe.sequential("catalog import fault injection", () => {
       }),
     ).rejects.toThrow(/batch 2 commit failed/);
     expect((await db.doc(parents[0]?.path ?? "").get()).exists).toBe(true);
-    expect((await db.doc(parents[133]?.path ?? "").get()).exists).toBe(false);
+    expect((await db.doc(parents[132]?.path ?? "").get()).exists).toBe(false);
     const migration = (await db.doc(`${MIGRATIONS}/${run.runId}`).get()).data();
     expect(migration?.status).toBe("running");
-    expect(migration?.completedObjects).toBe(133);
+    expect(migration?.completedObjects).toBe(132);
     expect(migration?.lastCompletedBatch).toBe(1);
     const child = resume(run.runId);
     expect(child.status, `${child.stderr}\n${child.stdout}`).toBe(0);
     const report = JSON.parse(child.stdout) as { actualContentWrites: number; actualAuditWrites: number };
-    expect(report.actualContentWrites).toBe(248);
-    expect(report.actualAuditWrites).toBe(124);
+    expect(report.actualContentWrites).toBe(250);
+    expect(report.actualAuditWrites).toBe(125);
     expect((await db.collection(OBJECTS).get()).size).toBe(257);
     const audits = await db.collection(AUDIT).get();
     const ids = audits.docs.map((doc) => doc.id);
@@ -200,15 +200,14 @@ describe.sequential("catalog import fault injection", () => {
         actor: run.actor,
         lockToken: run.lockToken ?? "",
       }),
-    ).rejects.toThrow(/batch 2 committed 124 objects; migration progress update failed/);
-    expect((await db.collection(OBJECTS).get()).size).toBe(257);
+    ).rejects.toThrow(/batch 2 commit failed/);
+    expect((await db.collection(OBJECTS).get()).size).toBe(132);
     expect((await db.doc(`${MIGRATIONS}/${run.runId}`).get()).data()?.status).toBe("running");
     const child = resume(run.runId);
     expect(child.status, `${child.stderr}\n${child.stdout}`).toBe(0);
-    const report = JSON.parse(child.stdout) as { actualContentWrites: number; actualAuditWrites: number; idempotent: boolean };
-    expect(report.actualContentWrites).toBe(0);
-    expect(report.actualAuditWrites).toBe(0);
-    expect(report.idempotent).toBe(true);
+    const report = JSON.parse(child.stdout) as { actualContentWrites: number; actualAuditWrites: number };
+    expect(report.actualContentWrites).toBe(250);
+    expect(report.actualAuditWrites).toBe(125);
     const audits = await db.collection(AUDIT).get();
     expect(audits.size).toBe(257);
     expect(new Set(audits.docs.map((doc) => doc.id)).size).toBe(257);
@@ -216,6 +215,8 @@ describe.sequential("catalog import fault injection", () => {
     expect(migration?.status).toBe("completed");
     expect(migration?.completedObjects).toBe(257);
     expect(migration?.remainingObjects).toBe(0);
+    const rounds = migration?.importRounds as Array<{ content: number }> | undefined;
+    expect(rounds?.reduce((sum, round) => sum + round.content, 0)).toBe(514);
     for (const parent of plans.filter((plan) => !plan.path.includes("/versions/"))) {
       expect((await db.doc(`${AUDIT}/${auditDocId(run.runId, String(parent.data.id))}`).get()).exists).toBe(true);
     }
@@ -231,16 +232,16 @@ describe.sequential("catalog import fault injection", () => {
         actor: run.actor,
         lockToken: run.lockToken ?? "",
       }),
-    ).rejects.toThrow(/batch 1 committed 133 objects; migration progress update failed/);
+    ).rejects.toThrow(/batch 1 commit failed/);
     const migration = (await db.doc(`${MIGRATIONS}/${run.runId}`).get()).data();
     expect(migration?.completedObjects).toBe(0);
     expect(migration?.status).toBe("running");
-    expect((await db.collection(OBJECTS).get()).size).toBe(133);
+    expect((await db.collection(OBJECTS).get()).size).toBe(0);
     const child = resume(run.runId);
     expect(child.status, `${child.stderr}\n${child.stdout}`).toBe(0);
     const report = JSON.parse(child.stdout) as { actualContentWrites: number; actualAuditWrites: number };
-    expect(report.actualContentWrites).toBe(248);
-    expect(report.actualAuditWrites).toBe(124);
+    expect(report.actualContentWrites).toBe(514);
+    expect(report.actualAuditWrites).toBe(257);
     expect((await db.collection(OBJECTS).get()).size).toBe(257);
     const audits = await db.collection(AUDIT).get();
     expect(new Set(audits.docs.map((doc) => doc.id)).size).toBe(257);

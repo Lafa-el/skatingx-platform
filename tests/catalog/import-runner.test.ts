@@ -153,7 +153,7 @@ describe("shared import runner", () => {
     expect(left.parentPaths).toEqual(later.parentPaths);
     expect(left.versionPaths).toEqual(later.versionPaths);
     expect(left.refs).toEqual({ blockToDrill: 115, sessionToBlock: 57, total: 172, emptyDrills: 68 });
-    expect(left.baseBudget).toBe(780);
+    expect(left.baseBudget).toBe(778);
     expect(left.migrationId).toBe("run-shared");
     expect(left.migrationPath).toBe(`${MIGRATIONS}/run-shared`);
     expect(left.auditIds).toEqual(later.auditIds);
@@ -203,7 +203,7 @@ describe("shared import runner", () => {
         target: "production",
         writes: 0,
         planDigest: planned.planSummary.digest,
-        baseBudget: 780,
+        baseBudget: 778,
         parents: 257,
         versions: 257,
         identity: FIXTURE_EMAIL,
@@ -400,7 +400,7 @@ describe.sequential("shared runner emulator chain", () => {
       plannedAuditWrites: 257,
       actualContentWrites: 514,
       actualAuditWrites: 257,
-      totalWrites: 780,
+      totalWrites: 778,
       runStatus: "completed",
     });
     expect(outcome.plan?.parentPaths).toHaveLength(257);
@@ -510,8 +510,10 @@ describe.sequential("shared runner emulator chain", () => {
     expect(typeof lock?.token).toBe("string");
     expect(lock?.token).not.toBe(firstToken);
     expect(lock?.token).not.toBe("forged-token");
-    await expect(rollbackImport(db, RUN_ID, { lockToken: "forged-token" })).rejects.toThrow(/lock is not held/);
-    const rolled = await rollbackImport(db, RUN_ID, { lockToken: String(lock?.token) });
+    await db.doc(importLockPath()).update({ status: "held", purpose: "import" });
+    await expect(rollbackImport(db, RUN_ID, { lockToken: "forged-token" })).rejects.toThrow(/import is still running/);
+    await db.doc(importLockPath()).update({ status: "released", purpose: "import" });
+    const rolled = await rollbackImport(db, RUN_ID, {});
     expect(rolled.rollbackResult).toMatchObject({ deletedParents: 257, deletedSnapshots: 257, retainedAudits: 257 });
     expect(rolled.rollbackResult?.controlWrites).toBeGreaterThan(0);
     expect((await db.collection(OBJECTS).listDocuments())).toHaveLength(0);

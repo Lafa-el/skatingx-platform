@@ -62,6 +62,7 @@ export function runImportEntry(
     openFirestore?: (projectId: string) => Promise<unknown>;
     credentialProvider?: CredentialProvider;
     confirmProject?: (projectId: string) => Promise<void | string>;
+    afterGrant?: () => Promise<void>;
     writeSummary?: (text: string) => void;
     writeReport?: (value: Record<string, unknown>) => void;
     gitSha?: () => string;

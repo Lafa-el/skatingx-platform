@@ -43,34 +43,16 @@ function adcCredentialProvider(payload) {
   };
 }
 
-export function credentialFromVerifiedAdc(payload) {
-  const identity = identityFromAdcPayload(payload);
-  return {
-    getAccessToken: async () => {
-      const { GoogleAuth, Impersonated } = await import("google-auth-library");
-      const source = new GoogleAuth({
-        credentials: payload.source_credentials,
-        scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-      });
-      const impersonated = new Impersonated({
-        sourceClient: await source.getClient(),
-        targetPrincipal: identity.clientEmail,
-        lifetime: 3600,
-        delegates: [],
-        targetScopes: [
-          "https://www.googleapis.com/auth/cloud-platform",
-          "https://www.googleapis.com/auth/datastore",
-          "https://www.googleapis.com/auth/firebase",
-        ],
-      });
-      const token = await impersonated.getAccessToken();
-      const accessToken = typeof token === "string" ? token : token?.token;
-      if (typeof accessToken !== "string" || accessToken === "") {
-        throw new Error("refusing to run: impersonated access token is missing");
-      }
-      return { access_token: accessToken, expires_in: 3600 };
-    },
-  };
+export function bindVerifiedAdc(file) {
+  const payload = JSON.parse(readFileSync(file, "utf8"));
+  identityFromAdcPayload(payload);
+  const resolved = path.resolve(file);
+  const configured = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim() ?? "";
+  if (configured !== "" && path.resolve(configured) !== resolved) {
+    throw new Error("refusing to run: GOOGLE_APPLICATION_CREDENTIALS does not point at the verified ADC file");
+  }
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = resolved;
+  return payload;
 }
 
 async function openEmulatorFirestore(projectId, runId) {
@@ -80,19 +62,27 @@ async function openEmulatorFirestore(projectId, runId) {
   return getFirestore(app);
 }
 
-export async function openProductionFirestore(payload) {
+export async function openProductionFirestore(adcFile) {
   if (process.env.FIRESTORE_EMULATOR_HOST) {
     throw new Error("refusing to run: FIRESTORE_EMULATOR_HOST must be unset for production");
   }
   if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
     throw new Error("refusing to run: FIREBASE_AUTH_EMULATOR_HOST must be unset for production");
   }
-  const credential = credentialFromVerifiedAdc(payload);
-  const { initializeApp } = await import("firebase-admin/app");
+  bindVerifiedAdc(adcFile);
+  const { applicationDefault, initializeApp } = await import("firebase-admin/app");
   if (!productionApp) {
-    productionApp = initializeApp({ credential, projectId: "skatingx-prod" }, PRODUCTION_APP_NAME);
+    productionApp = initializeApp({
+      credential: applicationDefault(),
+      projectId: "skatingx-prod",
+    }, PRODUCTION_APP_NAME);
   }
   return productionApp;
+}
+
+export async function productionFirestore(app) {
+  const { getFirestore } = await import("firebase-admin/firestore");
+  return getFirestore(app, "(default)");
 }
 
 export async function countAuthUsers(app) {
@@ -111,6 +101,10 @@ export async function countAuthUsers(app) {
 async function main() {
   const args = parseImportArgs(process.argv.slice(2));
   const payload = args.target === "production" ? readAdcPayload() : null;
+  const adcFile = args.target === "production"
+    ? (process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim()
+      || path.join(os.homedir(), ".config", "gcloud", "application_default_credentials.json"))
+    : "";
   let app;
   await runImportEntry({
     mode: args.mode,
@@ -130,9 +124,8 @@ async function main() {
     emulatorHost: process.env.FIRESTORE_EMULATOR_HOST,
     openFirestore: args.target === "production"
       ? async () => {
-          app = await openProductionFirestore(payload);
-          const { getFirestore } = await import("firebase-admin/firestore");
-          return getFirestore(app);
+          app = await openProductionFirestore(adcFile);
+          return productionFirestore(app);
         }
       : (projectId) => openEmulatorFirestore(projectId, args.runId),
     credentialProvider: args.target === "production" ? adcCredentialProvider(payload) : unconfiguredCredentialProvider(),
