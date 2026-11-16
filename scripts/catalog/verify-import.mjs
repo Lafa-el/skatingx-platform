@@ -68,7 +68,9 @@ async function main() {
       importedAt: String(record.importedAt),
       actor: actorOf(record),
       operator: typeof record.operator === "string" && record.operator !== "" ? record.operator : actorOf(record),
-      serviceAccount: typeof record.serviceAccount === "string" && record.serviceAccount !== "" ? record.serviceAccount : "emulator",
+      serviceAccount: mode === "production"
+        ? (typeof record.serviceAccount === "string" ? record.serviceAccount : "")
+        : (typeof record.serviceAccount === "string" && record.serviceAccount !== "" ? record.serviceAccount : "emulator"),
     })
     : null;
   const report = evaluateCatalogImport({

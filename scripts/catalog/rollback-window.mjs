@@ -40,15 +40,50 @@ const request = {
 
 if (mode === "import") {
   await runImportEntry({ ...request, mode: "initial", execute: true }, deps());
-} else if (mode === "crash-rollback") {
+} else if (mode === "crash-rollback" || mode === "crash-snapshots" || mode === "crash-parents" || mode === "crash-before-mark" || mode === "crash-after-mark" || mode === "crash-after-commit") {
+  const crashes = {
+    "crash-rollback": { crashAfterLock: true, needle: "injected rollback holder crash" },
+    "crash-snapshots": { crashAfterSnapshots: 1, needle: "injected rollback crash after snapshots" },
+    "crash-parents": { crashAfterParents: 1, needle: "injected rollback crash after parents" },
+    "crash-before-mark": { crashBeforeMark: true, needle: "injected rollback crash before mark" },
+    "crash-after-mark": { crashAfterMark: true, needle: "injected rollback crash after mark" },
+    "crash-after-commit": { crashAfterCommit: true, needle: "injected rollback response loss" },
+  };
+  const crash = crashes[mode];
+  const { needle, ...flags } = crash;
   try {
-    await runImportEntry({ ...request, mode: "initial", execute: false, rollback: true, crashAfterLock: true }, deps());
-    throw new Error("rollback holder did not crash");
+    await runImportEntry({ ...request, mode: "initial", execute: false, rollback: true, ...flags }, deps());
+    throw new Error(`${mode} did not crash`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (!message.includes("injected rollback holder crash")) throw error;
-    process.stdout.write(`${JSON.stringify({ crashed: true })}\n`);
+    if (!message.includes(needle)) throw error;
+    process.stdout.write(`${JSON.stringify({ crashed: mode === "crash-rollback" ? true : mode })}\n`);
   }
+} else if (mode === "verify-rollback") {
+  const objects = await db.collection("artifacts/skatingx-production/trainingCatalogObjects").listDocuments();
+  const audits = await db.collection("artifacts/skatingx-production/trainingCatalogAuditLogs").get();
+  const migration = (await db.doc(`artifacts/skatingx-production/trainingCatalogMigrations/${runId}`).get()).data() ?? {};
+  const counts = migration.rollbackResult ?? {};
+  const objectAudits = audits.docs.filter((doc) => doc.id.startsWith(`imp-${runId}-`) && doc.data().result === "ok");
+  const report = {
+    contentRemaining: objects.length,
+    objectAudits: objectAudits.length,
+    status: migration.status ?? null,
+    deletedParents: counts.deletedParents ?? null,
+    deletedSnapshots: counts.deletedSnapshots ?? null,
+    controlUpdates: counts.controlUpdates ?? null,
+    totalOperations: counts.totalOperations ?? null,
+    controlWrites: counts.controlWrites ?? null,
+  };
+  const consistent = report.contentRemaining === 0
+    && report.objectAudits === 257
+    && report.status === "rolled_back"
+    && report.deletedParents === 257
+    && report.deletedSnapshots === 257
+    && report.totalOperations === 514 + report.controlUpdates
+    && report.controlWrites === report.totalOperations;
+  process.stdout.write(`${JSON.stringify({ ...report, consistent })}\n`);
+  if (!consistent) process.exit(1);
 } else if (mode === "reject-join") {
   try {
     await runImportEntry({ ...request, mode: "initial", execute: false, rollback: true }, deps());

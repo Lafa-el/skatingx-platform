@@ -22,6 +22,7 @@ describe("real stdin confirmation chain", () => {
       const accepted = confirm(mode, "skatingx-prod\n");
       expect(accepted.status, `${accepted.stderr}\n${accepted.stdout}`).toBe(0);
       expect(accepted.stdout).toContain("confirmation-accepted");
+      expect(accepted.stderr).toContain(`post-confirm checkpoint ${mode}`);
       expect(accepted.stderr).not.toMatch(/confirmation was rejected/);
 
       for (const input of ["\n", "wrong-project\n", "SkatingX-Prod\n"]) {

@@ -132,12 +132,13 @@ async function resumeBudget(db, request, actor) {
     planSummary: loaded.planSummary,
   });
   await assertResumeCatalog(db, loaded.plans, record.runId);
+  const production = projectIdOf(db) === PRODUCTION_PROJECT_ID;
   const preview = await previewImport(db, loaded.plans, {
     runId: record.runId,
     importedAt: record.importedAt,
     actor: record.actor,
-    operator: record.operator ?? record.actor,
-    serviceAccount: record.serviceAccount ?? "emulator",
+    operator: production ? record.operator : (record.operator ?? record.actor),
+    serviceAccount: production ? record.serviceAccount : (record.serviceAccount ?? "emulator"),
   });
   return {
     ...preview,
@@ -146,8 +147,8 @@ async function resumeBudget(db, request, actor) {
     runId: record.runId,
     importedAt: record.importedAt,
     actor: record.actor,
-    operator: record.operator ?? record.actor,
-    serviceAccount: record.serviceAccount ?? "emulator",
+    operator: production ? record.operator : (record.operator ?? record.actor),
+    serviceAccount: production ? record.serviceAccount : (record.serviceAccount ?? "emulator"),
   };
 }
 
@@ -175,9 +176,115 @@ function assertOpenedProductionRead(db) {
   }
 }
 
+function recoveryWriteSplit(recoveredWrites) {
+  if (recoveredWrites !== 3) {
+    return { recoveryLockWrites: 0, recoveryMigrationWrites: 0, recoveryAuditWrites: 0, recoveryControlWrites: 0 };
+  }
+  return { recoveryLockWrites: 1, recoveryMigrationWrites: 1, recoveryAuditWrites: 1, recoveryControlWrites: 3 };
+}
+
+async function rollbackPreflight(request, deps, db, identity) {
+  if (identity.projectId !== PRODUCTION_PROJECT_ID || projectIdOf(db) !== PRODUCTION_PROJECT_ID) {
+    throw new Error("refusing to run: credential project does not match the target project");
+  }
+  if (databaseIdOf(db) !== EXPECTED_DATABASE_ID) {
+    throw new Error("refusing to run: database id must be (default)");
+  }
+  const migrationSnap = await db.doc(`artifacts/skatingx-production/trainingCatalogMigrations/${request.runId}`).get();
+  if (!migrationSnap.exists) throw new Error(`migration ${request.runId} does not exist`);
+  const record = migrationSnap.data();
+  if (record.runId !== request.runId) {
+    throw new Error(`rollback refused: migration runId is ${String(record.runId)}`);
+  }
+  if (record.status === "rolled_back") throw new Error(`rollback refused: run ${request.runId} is rolled_back`);
+  if (record.projectId !== PRODUCTION_PROJECT_ID) {
+    throw new Error("rollback refused: projectId expected skatingx-prod");
+  }
+  if (record.databaseId !== EXPECTED_DATABASE_ID) {
+    throw new Error("rollback refused: databaseId expected (default)");
+  }
+  if (typeof record.importedAt !== "string") throw new Error("rollback refused: stored importedAt is missing");
+  const plan = buildImportPlan(record.importedAt, request.runId);
+  if (record.workbookSha256 !== EXPECTED_WORKBOOK_SHA256 || plan.workbookSha256 !== EXPECTED_WORKBOOK_SHA256) {
+    throw new Error(`rollback refused: workbookSha256 expected ${EXPECTED_WORKBOOK_SHA256}`);
+  }
+  if (!record.planSummary || record.planSummary.digest !== plan.planSummary.digest) {
+    throw new Error("rollback refused: plan summary does not match the stored run");
+  }
+  const lockSnap = await db.doc(importLockPath()).get();
+  if (!lockSnap.exists) throw new Error(`rollback refused: lock is not held by ${request.runId}`);
+  const lock = lockSnap.data();
+  if (lock.runId !== request.runId) throw new Error(`rollback refused: lock belongs to ${lock.runId}`);
+  if (lock.purpose !== "import" && lock.purpose !== "rollback") {
+    throw new Error("rollback refused: lock purpose is not recognized");
+  }
+  if (lock.status !== "held" && lock.status !== "released" && lock.status !== "failed" && lock.status !== "recovered") {
+    throw new Error(`rollback refused: lock is ${lock.status}`);
+  }
+  if (request.recoverLock === true) {
+    if (lock.status !== "held") throw new Error("lock recovery refused: there is no active holder");
+    if (lock.purpose === "rollback" && record.status !== "rolling_back") {
+      throw new Error("lock recovery refused: migration stage does not match the lock");
+    }
+  }
+  if (!lockSnap.updateTime || typeof lockSnap.updateTime.isEqual !== "function" || typeof lock.token !== "string" || lock.token === "") {
+    throw new Error("rollback refused: confirmed lock version is missing");
+  }
+  const inspected = await inspectCatalog(db);
+  const collectionResults = Object.fromEntries(CATALOG_COLLECTIONS.map((name) => [name, (inspected.collectionDocs.get(name) ?? []).length]));
+  if (typeof deps.countAuthUsers !== "function") {
+    throw new Error("refusing to run: Firebase Auth user count is unavailable");
+  }
+  const authUsers = await deps.countAuthUsers();
+  const business = await deps.countBusiness(db);
+  const counted = assertBusinessCountsForProduction(authUsers, business);
+  return {
+    plan,
+    identity,
+    route: "rollback",
+    confirmedTokenFingerprint: tokenFingerprint(lock.token),
+    confirmedLockUpdateTime: lockSnap.updateTime,
+    confirmedPurpose: lock.purpose,
+    confirmedHolder: lock.actor,
+    publicReport: {
+      phase: "preflight",
+      target: "production",
+      route: request.recoverLock === true ? "recover" : "rollback",
+      projectId: request.project,
+      runId: request.runId,
+      mode: request.mode,
+      writes: 0,
+      planDigest: plan.planSummary.digest,
+      baseBudget: plan.baseBudget,
+      parents: plan.parentPaths.length,
+      versions: plan.versionPaths.length,
+      identity: identity.clientEmail,
+      operator: actorOfRequest(request),
+      migrationStatus: record.status ?? "present",
+      lockStatus: lock.status,
+      lockPurpose: lock.purpose,
+      orphans: inspected.orphans,
+      collections: collectionResults,
+      plannedContentWrites: 0,
+      plannedAuditWrites: 0,
+      gitSha: deps.gitSha(),
+      workbookSha256: plan.workbookSha256,
+      databaseId: databaseIdOf(db),
+      authUsers: counted.authUsers,
+      firestoreUsers: counted.firestoreUsers,
+      raceResults: counted.raceResults,
+      videoMetadata: counted.videoMetadata,
+      raceVideos: counted.raceVideos ?? 0,
+    },
+  };
+}
+
 async function productionPreflight(request, deps, db, identity) {
   assertOpenedProductionRead(db);
   if (CATALOG_COLLECTIONS.length !== 11) throw new Error("refusing to run: catalog collection list is incomplete");
+  if (request.rollback === true || request.recoverLock === true) {
+    return rollbackPreflight(request, deps, db, identity);
+  }
   let plan = buildImportPlan(deps.now().toISOString(), request.runId);
   const inspected = await inspectCatalog(db);
   for (const name of CATALOG_COLLECTIONS) {
@@ -212,9 +319,9 @@ async function productionPreflight(request, deps, db, identity) {
     classification = await readOnlyClassification(db, plan.plans, {
       runId: request.runId,
       importedAt: stored.importedAt,
-      actor: stored.actor ?? actorOfRequest(request),
-      operator: stored.operator ?? stored.actor ?? actorOfRequest(request),
-      serviceAccount: stored.serviceAccount ?? "emulator",
+      actor: stored.actor,
+      operator: stored.operator,
+      serviceAccount: stored.serviceAccount,
     });
     if (classification.mismatched.length > 0 || classification.incomplete.length > 0) {
       throw new Error(`resume refused: ${[...classification.mismatched, ...classification.incomplete].join("; ")}`);
@@ -231,7 +338,9 @@ async function productionPreflight(request, deps, db, identity) {
     plan,
     identity,
     confirmedTokenFingerprint: lockSnap.exists ? tokenFingerprint(String(lock?.token ?? "")) : "",
-    confirmedUpdateTimeMillis: lockSnap.updateTime?.toMillis?.() ?? null,
+    confirmedLockUpdateTime: lockSnap.updateTime ?? null,
+    confirmedPurpose: lock?.purpose ?? "",
+    confirmedHolder: lock?.actor ?? "",
     publicReport: {
       phase: "preflight",
       target: "production",
@@ -311,7 +420,7 @@ async function runEmulator(request, deps, labels = {}) {
         plannedMigrationCreates: 0,
         remainingObjectGroups: budget.remainingObjectGroups,
       }));
-      if (budget.mismatched.length > 0 || budget.incomplete.length > 0) {
+      if (request.recoverLock !== true && (budget.mismatched.length > 0 || budget.incomplete.length > 0)) {
         throw new Error(`resume refused: ${[...budget.mismatched, ...budget.incomplete].join("; ")}`);
       }
     }
@@ -394,7 +503,7 @@ async function runEmulator(request, deps, labels = {}) {
     plannedMigrationCreates: 0,
     remainingObjectGroups: budget.remainingObjectGroups,
   }));
-  if (budget.mismatched.length > 0 || budget.incomplete.length > 0) {
+  if (request.recoverLock !== true && (budget.mismatched.length > 0 || budget.incomplete.length > 0)) {
     throw new Error(`resume refused: ${[...budget.mismatched, ...budget.incomplete].join("; ")}`);
   }
   let lockToken;
@@ -404,8 +513,9 @@ async function runEmulator(request, deps, labels = {}) {
     if (!lockSnap.exists) throw new Error("lock recovery refused: import lock does not exist");
     const confirmedTokenFingerprint = labels.confirmedTokenFingerprint
       ?? tokenFingerprint(String(lockSnap.data()?.token ?? ""));
-    const confirmedUpdateTimeMillis = labels.confirmedUpdateTimeMillis
-      ?? lockSnap.updateTime?.toMillis?.();
+    const confirmedLockUpdateTime = labels.confirmedLockUpdateTime ?? lockSnap.updateTime;
+    const confirmedPurpose = labels.confirmedPurpose ?? lockSnap.data()?.purpose;
+    const confirmedHolder = labels.confirmedHolder ?? lockSnap.data()?.actor;
     if (labels.alreadyConfirmed !== true) {
       if (typeof deps.confirmProject !== "function") {
         throw new Error("refusing to run: stdin confirmation is not configured");
@@ -418,11 +528,14 @@ async function runEmulator(request, deps, labels = {}) {
       confirmHolderDead: true,
       reason: request.recoverReason,
       confirmedTokenFingerprint,
-      confirmedUpdateTimeMillis,
+      confirmedLockUpdateTime,
+      confirmedPurpose,
+      confirmedHolder,
     });
     lockToken = recovered.lockToken;
     recoveredWrites = 3;
     if (recovered.purpose === "rollback" || request.stopAfterRecover === true) {
+      const split = recoveryWriteSplit(recoveredWrites);
       const publicReport = {
         phase: "recovered",
         projectId: request.project,
@@ -431,7 +544,7 @@ async function runEmulator(request, deps, labels = {}) {
         purpose: recovered.purpose,
         migrationStatus: recovered.migrationStatus,
         lockStatus: recovered.lockStatus,
-        recoveryControlWrites: recoveredWrites,
+        ...split,
       };
       deps.writeReport(publicReport);
       return { publicReport, lockToken: recovered.lockToken, runId: request.runId };
@@ -463,17 +576,22 @@ async function runEmulator(request, deps, labels = {}) {
     serviceAccount: run.serviceAccount ?? budget.serviceAccount ?? "emulator",
     lockToken: run.lockToken,
   });
+  const split = recoveryWriteSplit(recoveredWrites);
   const publicReport = {
     ...imported,
     plannedMigrationCreates: 0,
-    actualMigrationWrites: imported.migrationDocumentWrites ?? 0,
-    migrationDocumentWrites: imported.migrationDocumentWrites ?? 0,
-    lockDocumentWrites: (run.lockWrites ?? 0) + (imported.lockDocumentWrites ?? 0) + recoveredWrites,
-    recoveryControlWrites: recoveredWrites,
-    totalWrites: imported.actualContentWrites + imported.actualAuditWrites
+    actualMigrationWrites: (imported.migrationDocumentWrites ?? 0) + split.recoveryMigrationWrites,
+    migrationDocumentWrites: (imported.migrationDocumentWrites ?? 0) + split.recoveryMigrationWrites,
+    lockDocumentWrites: (run.lockWrites ?? 0) + (imported.lockDocumentWrites ?? 0) + split.recoveryLockWrites,
+    recoveryAuditWrites: split.recoveryAuditWrites,
+    recoveryControlWrites: split.recoveryControlWrites,
+    totalWrites: imported.actualContentWrites
+      + imported.actualAuditWrites
+      + split.recoveryAuditWrites
       + (run.lockWrites ?? 0)
+      + split.recoveryLockWrites
       + (imported.controlWrites ?? 0)
-      + recoveredWrites,
+      + split.recoveryMigrationWrites,
   };
   deps.writeReport(publicReport);
   return { publicReport, lockToken: run.lockToken, runId: run.runId, importedAt: run.importedAt };
@@ -489,6 +607,15 @@ async function runRollback(request, deps, db, options = {}) {
   const result = await rollbackImport(db, request.runId, {
     memoryToken: rollbackTokens.get(request.runId) ?? "",
     crashAfterLock: request.crashAfterLock === true,
+    crashAfterSnapshots: request.crashAfterSnapshots,
+    crashAfterParents: request.crashAfterParents,
+    crashBeforeMark: request.crashBeforeMark === true,
+    crashAfterMark: request.crashAfterMark === true,
+    crashAfterCommit: request.crashAfterCommit === true,
+    confirmedTokenFingerprint: options.confirmedTokenFingerprint,
+    confirmedLockUpdateTime: options.confirmedLockUpdateTime,
+    confirmedPurpose: options.confirmedPurpose,
+    confirmedHolder: options.confirmedHolder,
     onLockToken: (token) => {
       rollbackTokens.set(request.runId, token);
     },
@@ -518,7 +645,16 @@ const rollbackTokens = new Map();
 let productionWriter = "";
 
 export async function runImportEntry(request, deps) {
-  if (request.target === "production" && (request.crashAfterLock === true || request.stopAfterLock === true || request.stopAfterRecover === true)) {
+  if (request.target === "production" && (
+    request.crashAfterLock === true
+    || request.stopAfterLock === true
+    || request.stopAfterRecover === true
+    || request.crashAfterSnapshots !== undefined
+    || request.crashAfterParents !== undefined
+    || request.crashBeforeMark === true
+    || request.crashAfterMark === true
+    || request.crashAfterCommit === true
+  )) {
     throw new Error("refusing to run: test limits are not available for production");
   }
   const bound = withDefaults(deps);
@@ -597,7 +733,13 @@ export async function runImportEntry(request, deps) {
       grantProductionWrite(identity);
       if (typeof bound.afterGrant === "function") await bound.afterGrant();
       if (request.rollback === true) {
-        const result = await runRollback(request, bound, db, { alreadyConfirmed: true });
+        const result = await runRollback(request, bound, db, {
+          alreadyConfirmed: true,
+          confirmedTokenFingerprint: prepared.confirmedTokenFingerprint,
+          confirmedLockUpdateTime: prepared.confirmedLockUpdateTime,
+          confirmedPurpose: prepared.confirmedPurpose,
+          confirmedHolder: prepared.confirmedHolder,
+        });
         const publicReport = rollbackReport(result, "production");
         bound.writeReport(publicReport);
         return { publicReport };
@@ -610,7 +752,9 @@ export async function runImportEntry(request, deps) {
         identity: identity.clientEmail,
         alreadyConfirmed: true,
         confirmedTokenFingerprint: prepared.confirmedTokenFingerprint,
-        confirmedUpdateTimeMillis: prepared.confirmedUpdateTimeMillis,
+        confirmedLockUpdateTime: prepared.confirmedLockUpdateTime,
+        confirmedPurpose: prepared.confirmedPurpose,
+        confirmedHolder: prepared.confirmedHolder,
       });
     } finally {
       if (owner !== "" && productionWriter === owner) {

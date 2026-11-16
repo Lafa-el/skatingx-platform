@@ -7,25 +7,63 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 await register(pathToFileURL(path.join(here, "typescript-loader.mjs")).href, { parentURL: import.meta.url });
 
 const { confirmProjectOnStdin, readLineFromStdin } = await import("./import-guard.mjs");
-const { runImportEntry } = await import("./import-runner.mjs");
+const { buildImportPlan, runImportEntry } = await import("./import-runner.mjs");
 
 const mode = process.argv[2];
 delete process.env.FIRESTORE_EMULATOR_HOST;
 delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
 
-function emptySnap() {
-  return { exists: false, data: () => undefined, docs: [], size: 0, ref: { path: "" } };
+const importedAt = "2026-11-15T00:00:00.000Z";
+const plan = buildImportPlan(importedAt, "stdin-run");
+const lockVersion = {
+  marker: "stdin-lock-v1",
+  isEqual(other) {
+    return Boolean(other) && other.marker === "stdin-lock-v1";
+  },
+};
+
+function emptySnap(docPath = "") {
+  return { exists: false, data: () => undefined, docs: [], size: 0, empty: true, ref: { path: docPath } };
 }
 
-function presentSnap(data) {
+function presentSnap(data, docPath) {
   return {
     exists: true,
     data: () => data,
     docs: [],
     size: 1,
-    updateTime: { toMillis: () => 5 },
-    ref: { path: "lock" },
+    updateTime: lockVersion,
+    ref: { path: docPath },
   };
+}
+
+const migration = {
+  runId: "stdin-run",
+  actor: "catalog-import",
+  operator: "catalog-import",
+  serviceAccount: "catalog-importer@skatingx-prod.iam.gserviceaccount.com",
+  importedAt,
+  workbookSha256: plan.workbookSha256,
+  planSummary: plan.planSummary,
+  projectId: "skatingx-prod",
+  databaseId: "(default)",
+  status: "completed",
+  committedObjectIds: [],
+};
+
+function snapFor(docPath) {
+  if (mode === "initial") return emptySnap(docPath);
+  if (String(docPath).endsWith("/stdin-run")) return presentSnap(migration, docPath);
+  if (String(docPath).endsWith("__import_lock")) {
+    return presentSnap({
+      token: "held-token",
+      status: mode === "recover" ? "held" : "released",
+      runId: "stdin-run",
+      actor: "catalog-import",
+      purpose: "import",
+    }, docPath);
+  }
+  return emptySnap(docPath);
 }
 
 const db = {
@@ -37,28 +75,10 @@ const db = {
   doc(docPath) {
     return {
       path: docPath,
-      get: async () => {
-        if (mode === "initial" || mode === "rollback") return emptySnap();
-        if (String(docPath).includes("trainingCatalogMigrations")) {
-          return presentSnap({
-            importedAt: "2026-11-15T00:00:00.000Z",
-            actor: "catalog-import",
-            operator: "catalog-import",
-            serviceAccount: "catalog-importer@skatingx-prod.iam.gserviceaccount.com",
-            status: "running",
-            runId: "stdin-run",
-          });
-        }
-        if (String(docPath).endsWith("__import_lock")) {
-          return presentSnap({
-            token: "held-token",
-            status: "held",
-            runId: "stdin-run",
-            actor: "catalog-import",
-            purpose: mode === "recover" ? "import" : "rollback",
-          });
-        }
-        return emptySnap();
+      get: async () => snapFor(docPath),
+      listCollections: async () => [],
+      collection() {
+        return { get: async () => emptySnap(docPath), listDocuments: async () => [] };
       },
     };
   },
@@ -66,7 +86,7 @@ const db = {
     return [];
   },
   async runTransaction() {
-    throw new Error("confirmation-accepted");
+    throw new Error(`post-confirm checkpoint ${mode}`);
   },
 };
 
@@ -85,13 +105,18 @@ const writing = {
   recoverReason: mode === "recover" ? "holder crashed" : "",
 };
 
+let confirmed = false;
 try {
   await runImportEntry(writing, {
     emulatorHost: "",
     now: () => new Date("2026-11-15T00:00:00.000Z"),
     gitSha: () => "stdin-chain",
     openFirestore: async () => db,
-    confirmProject: (projectId) => confirmProjectOnStdin(projectId, readLineFromStdin),
+    confirmProject: async (projectId) => {
+      const value = await confirmProjectOnStdin(projectId, readLineFromStdin);
+      confirmed = true;
+      return value;
+    },
     credentialProvider: {
       source: "stdin-chain",
       async describe() {
@@ -105,12 +130,17 @@ try {
     countAuthUsers: async () => ({ status: "available", count: 1 }),
     countBusiness: async () => ({ status: "available", firestoreUsers: 1, raceResults: 1, videoMetadata: 0, raceVideos: 0 }),
   });
-  process.stdout.write("confirmation-accepted\n");
+  process.stderr.write("confirmation gate returned without its checkpoint\n");
+  process.exit(1);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes("confirmation was rejected")) {
     process.stderr.write(`${message}\n`);
     process.exit(2);
+  }
+  if (!confirmed || !message.includes(`post-confirm checkpoint ${mode}`)) {
+    process.stderr.write(`${message}\n`);
+    process.exit(1);
   }
   process.stdout.write("confirmation-accepted\n");
   process.stderr.write(`${message}\n`);

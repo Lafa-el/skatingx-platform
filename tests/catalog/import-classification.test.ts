@@ -59,6 +59,20 @@ async function wipeCatalog(db: Firestore): Promise<void> {
   }
 }
 
+it("refuses a production classification when the service account is missing", async () => {
+  const productionDb = {
+    _settings: { projectId: "skatingx-prod", databaseId: "(default)" },
+    databaseId: "(default)",
+  };
+  await expect(readOnlyClassification(productionDb as never, [], {
+    runId: "run-missing-account",
+    importedAt: "2026-11-15T00:00:00.000Z",
+    actor: IMPORT_ACTOR,
+    operator: IMPORT_ACTOR,
+    lockToken: "",
+  })).rejects.toThrow(/serviceAccount is required/);
+});
+
 describe.sequential("production-shaped classification and business baseline", () => {
   const db = openFirestore();
 

@@ -82,6 +82,10 @@ describe.sequential("second process rollback", () => {
       purpose: "rollback",
       migrationStatus: "rolling_back",
       lockStatus: "recovered",
+      recoveryLockWrites: 1,
+      recoveryMigrationWrites: 1,
+      recoveryAuditWrites: 1,
+      recoveryControlWrites: 3,
     });
     const lock = (await db.doc(`${ROOT}/trainingCatalogMigrations/__import_lock`).get()).data();
     expect(lock?.purpose).toBe("rollback");

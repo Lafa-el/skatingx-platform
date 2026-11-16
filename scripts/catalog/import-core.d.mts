@@ -225,7 +225,9 @@ export function recoverImportLock(
     reason: string;
     confirmHolderDead?: boolean;
     confirmedTokenFingerprint: string;
-    confirmedUpdateTimeMillis: number;
+    confirmedLockUpdateTime: { isEqual(other: unknown): boolean };
+    confirmedPurpose: string;
+    confirmedHolder: string;
   },
 ): Promise<{
   runId: string;
@@ -248,5 +250,14 @@ export function rollbackImport(
     beforeDelete?: () => void | Promise<void>;
     onLockToken?: (token: string) => void;
     crashAfterLock?: boolean;
+    crashAfterSnapshots?: number;
+    crashAfterParents?: number;
+    crashBeforeMark?: boolean;
+    crashAfterMark?: boolean;
+    crashAfterCommit?: boolean;
+    confirmedTokenFingerprint?: string;
+    confirmedLockUpdateTime?: { isEqual(other: unknown): boolean };
+    confirmedPurpose?: string;
+    confirmedHolder?: string;
   },
 ): Promise<MigrationRecord>;

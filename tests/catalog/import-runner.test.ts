@@ -401,8 +401,11 @@ describe.sequential("shared runner emulator chain", () => {
       actualContentWrites: 514,
       actualAuditWrites: 257,
       totalWrites: 778,
+      migrationDocumentWrites: 3,
+      lockDocumentWrites: 4,
       runStatus: "completed",
     });
+    expect(outcome.publicReport?.lockFailureWrites).toBeUndefined();
     expect(outcome.plan?.parentPaths).toHaveLength(257);
     expect(outcome.plan?.versionPaths).toHaveLength(257);
     expect((await readPlannedDocs(db, outcome.plan?.plans ?? [])).size).toBe(514);

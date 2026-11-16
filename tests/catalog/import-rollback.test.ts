@@ -192,17 +192,37 @@ describe.sequential("catalog import rollback guard", () => {
     expect(result.rollbackResult?.controlWrites).toBeGreaterThan(0);
   });
 
+  it("refuses the rollback when an audit checksum changes after verification", async () => {
+    const { run, plans } = await startRun(db, "run-audit-race", 1);
+    const parent = plans.find((plan) => !plan.path.includes("/versions/"));
+    if (!parent) throw new Error("missing parent");
+    const auditRef = db.doc(`${AUDIT}/${auditDocId(run.runId, String(parent.data.id))}`);
+    const snapshot = db.doc(`${parent.path}/versions/${CONTENT_VERSION}`);
+    await expect(rollbackImport(db, run.runId, {
+      lockToken: run.lockToken ?? "",
+      beforeDelete: async () => {
+        await auditRef.update({ checksum: "changed-after-verification" });
+      },
+    })).rejects.toThrow(/changed after verification/);
+    expect((await snapshot.get()).exists).toBe(true);
+    expect((await auditRef.get()).data()).toMatchObject({ result: "ok", runId: run.runId });
+  });
+
   it("moves a recovered lock into rollback without a resume", async () => {
     const { run } = await startRun(db, "run-recovered-rollback", 1);
     await db.doc(importLockPath()).update({ status: "held", purpose: "import" });
     const lockSnap = await db.doc(importLockPath()).get();
+    const lockVersion = lockSnap.updateTime;
+    if (!lockVersion) throw new Error("lock version missing");
     await recoverImportLock(db, {
       runId: run.runId,
       actor: IMPORT_ACTOR,
       reason: "holder crashed",
       confirmHolderDead: true,
       confirmedTokenFingerprint: tokenFingerprint(String(lockSnap.data()?.token ?? "")),
-      confirmedUpdateTimeMillis: lockSnap.updateTime?.toMillis() ?? 0,
+      confirmedLockUpdateTime: lockVersion,
+      confirmedPurpose: String(lockSnap.data()?.purpose ?? ""),
+      confirmedHolder: String(lockSnap.data()?.actor ?? ""),
     });
     expect((await db.doc(importLockPath()).get()).data()).toMatchObject({ purpose: "import", status: "recovered" });
     const result = await rollbackImport(db, run.runId, {});
