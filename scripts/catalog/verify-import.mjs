@@ -12,7 +12,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 await register(pathToFileURL(path.join(here, "typescript-loader.mjs")).href, { parentURL: import.meta.url });
 
 const { evaluateCatalogImport, readCatalogVerification, checkDraftReads, businessReport, verificationActions } = await import("./verify-catalog.mjs");
-const { readOnlyClassification } = await import("./import-core.mjs");
+const { actorOf, readOnlyClassification } = await import("./import-core.mjs");
 const { loadBusinessBaseline, snapshotBusiness } = await import("./backup-prod.mjs");
 
 function argument(flag) {
@@ -46,7 +46,11 @@ async function main() {
   const read = await readCatalogVerification(db, runId, mode);
   const after = await snapshotBusiness(db);
   const before = baselinePath
-    ? loadBusinessBaseline(baselinePath, { requireEncrypted: mode === "production" })
+    ? loadBusinessBaseline(baselinePath, {
+      requireEncrypted: mode === "production",
+      expectedProjectId: mode === "production" ? "skatingx-prod" : undefined,
+      expectedDatabaseId: mode === "production" ? "(default)" : undefined,
+    })
     : after;
   const business = businessReport(before, after);
   const rules = actions.rulesClient
@@ -57,11 +61,14 @@ async function main() {
       draftPath: "artifacts/skatingx-production/trainingCatalogObjects/EX-L039",
     })
     : { skipped: true };
-  const classification = read.migration?.importedAt
+  const record = read.migration ?? {};
+  const classification = record.importedAt
     ? await readOnlyClassification(db, read.plans, {
       runId,
-      importedAt: String(read.migration.importedAt),
-      actor: typeof read.migration.actor === "string" ? read.migration.actor : "catalog-import",
+      importedAt: String(record.importedAt),
+      actor: actorOf(record),
+      operator: typeof record.operator === "string" && record.operator !== "" ? record.operator : actorOf(record),
+      serviceAccount: typeof record.serviceAccount === "string" && record.serviceAccount !== "" ? record.serviceAccount : "emulator",
     })
     : null;
   const report = evaluateCatalogImport({
@@ -84,6 +91,11 @@ async function main() {
         skipped: false,
         invoked: false,
         readOnly: true,
+        present: classification.present,
+        absent: classification.absent,
+        mismatched: classification.mismatched,
+        incomplete: classification.incomplete,
+        conflicts: classification.mismatched,
         actualContentWrites: classification.plannedContentWrites,
         actualAuditWrites: classification.plannedAuditWrites,
       }

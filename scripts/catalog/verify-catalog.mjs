@@ -12,6 +12,7 @@ import {
   BASE_IMPORT_BUDGET,
   CONTENT_VERSION,
   EXPECTED_WORKBOOK_SHA256,
+  actorOf,
   auditDocId,
   databaseIdOf,
   documentData,
@@ -121,10 +122,15 @@ export function evaluateCatalogImport(input) {
   checks.push(check("migrationStatus", migration.status === "completed", `status ${String(migration.status)}`, [`${ROOT}/${MIGRATIONS}/${runId}`]));
 
   const business = input.business ?? { countBefore: 0, countAfter: 0, changes: [] };
+  const baselineEmpty = !(typeof business.countBefore === "number" && business.countBefore > 0);
   checks.push(check(
     "businessUnchanged",
-    business.changes.length === 0 && business.countBefore === business.countAfter,
-    business.changes.length === 0 ? "business documents match the baseline" : "business documents changed; this does not by itself identify the catalog import as the cause",
+    !baselineEmpty && business.changes.length === 0 && business.countBefore === business.countAfter,
+    baselineEmpty
+      ? "business baseline is empty"
+      : business.changes.length === 0
+        ? "business documents match the baseline"
+        : "business documents changed; this does not by itself identify the catalog import as the cause",
     business.changes.map((item) => item.path),
   ));
 
@@ -132,13 +138,11 @@ export function evaluateCatalogImport(input) {
   const expectedAudits = new Set(parents.map((plan) => `${ROOT}/${AUDIT}/${auditDocId(runId, String(plan.data.id))}`));
   const allowed = new Set([...allowedContent, ...expectedAudits, `${ROOT}/${MIGRATIONS}/${runId}`]);
   const unknown = [...(input.inspected?.orphans ?? [])];
-  const recoveryByPath = new Map(
-    (input.audits ?? []).filter((audit) => audit.data?.action === "lock-recovery").map((audit) => [audit.path, audit.data]),
-  );
+  const normalizedActor = actorOf(migration);
   for (const paths of Object.values(input.inspected?.collectionDocs ?? {})) {
     for (const docPath of paths) {
       if (docPath === importLockPath()) continue;
-      if (isRecoveryAuditPath(docPath, runId) && recoveryAuditProblem(recoveryByPath.get(docPath), { runId, actor: migration.actor }) === "") continue;
+      if (isRecoveryAuditPath(docPath, runId)) continue;
       if (!allowed.has(docPath)) unknown.push(docPath);
     }
   }
@@ -170,7 +174,7 @@ export function evaluateCatalogImport(input) {
     }
     if (!expectedAudits.has(audit.path)) auditProblems.push(audit.path);
     const parent = docs.get(`${ROOT}/${OBJECTS}/${objectId}`);
-    if (data.action !== "import" || data.actor !== migration.actor || data.runId !== runId || data.result !== "ok") {
+    if (data.action !== "import" || data.actor !== normalizedActor || data.runId !== runId || data.result !== "ok") {
       auditProblems.push(audit.path);
     }
     if (data.at !== migration.importedAt) auditProblems.push(audit.path);
@@ -185,7 +189,7 @@ export function evaluateCatalogImport(input) {
     }
   }
   for (const audit of recoveryAudits) {
-    const problem = recoveryAuditProblem(audit.data, { runId, actor: migration.actor });
+    const problem = recoveryAuditProblem(audit.data, { runId, actor: normalizedActor, path: audit.path });
     if (problem) auditProblems.push(audit.path);
   }
   for (const docPath of expectedAudits) if (!auditPaths.includes(docPath)) auditProblems.push(docPath);
@@ -298,17 +302,23 @@ export function evaluateCatalogImport(input) {
   ));
 
   const idem = input.idempotency ?? {};
-  const hasCounts = typeof idem.actualContentWrites === "number" && typeof idem.actualAuditWrites === "number";
+  const mismatched = Array.isArray(idem.mismatched) ? idem.mismatched : null;
+  const incomplete = Array.isArray(idem.incomplete) ? idem.incomplete : null;
+  const idempotencyConflicts = Array.isArray(idem.conflicts) ? idem.conflicts : null;
+  const classified = typeof idem.present === "number" && typeof idem.absent === "number" && mismatched && incomplete && idempotencyConflicts;
   if (idem.skipped === true) {
     checks.push({ name: "idempotency", status: "skipped", passed: false, detail: IDEMPOTENCY_SKIPPED, paths: [] });
-  } else if (hasCounts) {
+  } else if (classified) {
+    const idempotent = idem.present === 257 && idem.absent === 0 && mismatched.length === 0 && incomplete.length === 0 && idempotencyConflicts.length === 0;
+    const listed = [...mismatched, ...incomplete, ...idempotencyConflicts.map((item) => typeof item === "string" ? item : JSON.stringify(item))];
     checks.push(check(
       "idempotency",
-      idem.actualContentWrites === 0 && idem.actualAuditWrites === 0,
-      `content ${idem.actualContentWrites} audits ${idem.actualAuditWrites}`,
+      idempotent,
+      `present ${idem.present} absent ${idem.absent} mismatched ${mismatched.length} incomplete ${incomplete.length} conflicts ${idempotencyConflicts.length}${listed.length === 0 ? "" : `: ${listed.join("; ")}`}`,
+      listed,
     ));
   } else {
-    checks.push(check("idempotency", false, "idempotency result is missing"));
+    checks.push(check("idempotency", false, "idempotency classification is missing"));
   }
 
   const rules = input.rules ?? {};
@@ -350,6 +360,11 @@ export function evaluateCatalogImport(input) {
         invoked: idem.readOnly === true ? false : true,
         actualContentWrites: idem.actualContentWrites ?? null,
         actualAuditWrites: idem.actualAuditWrites ?? null,
+        present: idem.present ?? null,
+        absent: idem.absent ?? null,
+        mismatched: mismatched ?? [],
+        incomplete: incomplete ?? [],
+        conflicts: idempotencyConflicts ?? [],
       },
     passed,
     acceptance: passed ? "passed" : pendingEvidence ? "pending-evidence" : "failed",

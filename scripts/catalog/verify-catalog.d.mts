@@ -70,7 +70,18 @@ export function evaluateCatalogImport(input: {
   lock?: Record<string, unknown> | null;
   business: { countBefore: number; countAfter: number; changes: Array<{ path: string; kind: string }> };
   rules?: { anonymous?: string; signedIn?: string; admin?: string; skipped?: boolean };
-  idempotency?: { actualContentWrites?: number | null; actualAuditWrites?: number | null; skipped?: boolean; invoked?: boolean; readOnly?: boolean };
+  idempotency?: {
+    actualContentWrites?: number | null;
+    actualAuditWrites?: number | null;
+    skipped?: boolean;
+    invoked?: boolean;
+    readOnly?: boolean;
+    present?: number;
+    absent?: number;
+    mismatched?: string[];
+    incomplete?: string[];
+    conflicts?: unknown[];
+  };
 }): CatalogVerification;
 
 export function businessReport(

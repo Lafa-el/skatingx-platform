@@ -1,6 +1,6 @@
 import http from "node:http";
 import https from "node:https";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -10,7 +10,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 
-import { openProductionFirestore, productionFirestore } from "../../scripts/catalog/run-import.mjs";
+import { bindVerifiedAdc, openProductionFirestore, productionFirestore } from "../../scripts/catalog/run-import.mjs";
 
 const payload = {
   type: "impersonated_service_account",
@@ -58,6 +58,11 @@ describe("firebase-admin production credential", () => {
       expect(firestore).toBeTruthy();
       expect(auth).toBeTruthy();
       expect(calls).toEqual([]);
+      writeFileSync(file, JSON.stringify({ ...payload, delegates: ["other@skatingx-prod.iam.gserviceaccount.com"] }));
+      await expect(productionFirestore(app)).rejects.toThrow(/ADC file changed after verification/);
+      const link = path.join(dir, "adc-link.json");
+      symlinkSync(file, link);
+      expect(() => bindVerifiedAdc(link)).toThrow(/ADC path is a symlink/);
     } finally {
       net.Socket.prototype.connect = originalConnect;
       http.request = originalHttp;

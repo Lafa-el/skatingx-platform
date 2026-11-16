@@ -13,6 +13,7 @@ import {
   loadPlans,
   recoverImportLock,
   rollbackImport,
+  tokenFingerprint,
 } from "../../scripts/catalog/import-core.mjs";
 
 const PROJECT_ID = "demo-skatingx-import";
@@ -48,8 +49,15 @@ async function wipeCatalog(db: Firestore): Promise<void> {
   }
   const refs = await db.collection(OBJECTS).listDocuments();
   for (const ref of refs) {
-    const versions = await db.collection(`${ref.path}/versions`).get();
-    for (const item of versions.docs) paths.push(item.ref.path);
+    const versions = await db.collection(`${ref.path}/versions`).listDocuments();
+    for (const versionRef of versions) {
+      paths.push(versionRef.path);
+      const nested = await versionRef.listCollections();
+      for (const collection of nested) {
+        const children = await collection.get();
+        for (const child of children.docs) paths.push(child.ref.path);
+      }
+    }
     const notes = await db.collection(`${ref.path}/notes`).get();
     for (const item of notes.docs) paths.push(item.ref.path);
   }
@@ -187,12 +195,16 @@ describe.sequential("catalog import rollback guard", () => {
   it("moves a recovered lock into rollback without a resume", async () => {
     const { run } = await startRun(db, "run-recovered-rollback", 1);
     await db.doc(importLockPath()).update({ status: "held", purpose: "import" });
+    const lockSnap = await db.doc(importLockPath()).get();
     await recoverImportLock(db, {
       runId: run.runId,
       actor: IMPORT_ACTOR,
       reason: "holder crashed",
       confirmHolderDead: true,
+      confirmedTokenFingerprint: tokenFingerprint(String(lockSnap.data()?.token ?? "")),
+      confirmedUpdateTimeMillis: lockSnap.updateTime?.toMillis() ?? 0,
     });
+    expect((await db.doc(importLockPath()).get()).data()).toMatchObject({ purpose: "import", status: "recovered" });
     const result = await rollbackImport(db, run.runId, {});
     expect(result.status).toBe("rolled_back");
     expect((await db.doc(importLockPath()).get()).data()?.status).toBe("rolled_back");
@@ -201,20 +213,15 @@ describe.sequential("catalog import rollback guard", () => {
 
   it("fails a rollback commit without deleting, then finishes on retry", async () => {
     const { run } = await startRun(db, "run-rollback-fault", 2);
-    const original = db.batch.bind(db);
-    let commits = 0;
-    db.batch = (() => {
-      const batch = original();
-      const commit = batch.commit.bind(batch);
-      batch.commit = async () => {
-        commits += 1;
-        if (commits === 1) throw new Error("injected rollback commit failure");
-        return commit();
-      };
-      return batch;
-    }) as typeof db.batch;
+    const original = db.runTransaction.bind(db);
+    let attempts = 0;
+    db.runTransaction = (async (updateFunction) => {
+      attempts += 1;
+      if (attempts === 2) throw new Error("injected rollback commit failure");
+      return original(updateFunction);
+    }) as typeof db.runTransaction;
     await expect(rollbackImport(db, run.runId, { lockToken: run.lockToken ?? "" })).rejects.toThrow(/commit failed/);
-    db.batch = original;
+    db.runTransaction = original;
     const parent = (await db.collection(OBJECTS).limit(1).get()).docs[0];
     expect(parent?.exists).toBe(true);
     expect((await db.doc(`${MIGRATIONS}/${run.runId}`).get()).data()?.status).not.toBe("rolled_back");
@@ -235,5 +242,51 @@ describe.sequential("catalog import rollback guard", () => {
       actor: IMPORT_ACTOR,
       lockToken: run.lockToken,
     })).resolves.toMatchObject({ lockToken: run.lockToken });
+  });
+
+  it("refuses a v1 delete when the parent or audit version changed, a stage moves backward, or a ghost version remains", async () => {
+    const { run, plans } = await startRun(db, "run-bound-delete", 1);
+    const parent = plans.find((plan) => !plan.path.includes("/versions/"));
+    const parentPath = parent?.path ?? "";
+    const snapshotPath = `${parentPath}/versions/${CONTENT_VERSION}`;
+    const auditPath = `${AUDIT}/imp-${run.runId}-${String(parent?.data.id)}`;
+    await expect(rollbackImport(db, run.runId, {
+      lockToken: run.lockToken ?? "",
+      beforeDelete: async () => {
+        await db.doc(parentPath).update({ note: "changed-after-verification" });
+      },
+    })).rejects.toThrow(new RegExp(`${parentPath} changed after verification`));
+    expect((await db.doc(snapshotPath).get()).exists).toBe(true);
+
+    await db.doc(parentPath).update({ note: "restored" });
+    const restored = await db.doc(parentPath).get();
+    const original = plans.find((plan) => plan.path === parentPath);
+    await db.doc(parentPath).set(original?.data ?? restored.data() ?? {});
+    await expect(rollbackImport(db, run.runId, {
+      lockToken: (await db.doc(importLockPath()).get()).data()?.token as string,
+      beforeDelete: async () => {
+        await db.doc(auditPath).update({ note: "audit-changed" });
+      },
+    })).rejects.toThrow(new RegExp(`${auditPath} changed after verification`));
+    expect((await db.doc(snapshotPath).get()).exists).toBe(true);
+
+    await expect(rollbackImport(db, run.runId, {
+      lockToken: (await db.doc(importLockPath()).get()).data()?.token as string,
+      beforeDelete: async () => {
+        await db.doc(`${MIGRATIONS}/${run.runId}`).update({ rollbackProgress: { stage: "parents", updatedAt: "2026-11-15T00:00:00.000Z" } });
+      },
+    })).rejects.toThrow(/migration stage moved after verification/);
+    expect((await db.doc(snapshotPath).get()).exists).toBe(true);
+
+    const ghost = `${parentPath}/versions/v2/nested/child`;
+    try {
+      await db.doc(ghost).set({ ghost: true });
+      await expect(rollbackImport(db, run.runId, {
+        lockToken: (await db.doc(importLockPath()).get()).data()?.token as string,
+      })).rejects.toThrow(/ghost version/);
+      expect((await db.doc(snapshotPath).get()).exists).toBe(true);
+    } finally {
+      await db.doc(ghost).delete();
+    }
   });
 });

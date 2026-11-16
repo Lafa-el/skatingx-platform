@@ -94,8 +94,11 @@ describe("catalog import target guards", () => {
   });
 
   it("requires the operator to type the project id and does not accept --yes", async () => {
-    await expect(confirmProjectOnStdin("skatingx-prod", async () => "wrong\n")).rejects.toThrow(/stdin confirmation/);
-    await expect(confirmProjectOnStdin("skatingx-prod", async () => "skatingx-prod")).resolves.toBeUndefined();
+    await expect(confirmProjectOnStdin("skatingx-prod", async () => "wrong\n")).rejects.toThrow(/confirmation was rejected/);
+    await expect(confirmProjectOnStdin("skatingx-prod", async () => "")).rejects.toThrow(/confirmation was rejected/);
+    await expect(confirmProjectOnStdin("skatingx-prod", async () => "Skatingx-Prod")).rejects.toThrow(/confirmation was rejected/);
+    await expect(confirmProjectOnStdin("skatingx-prod", async () => "skatingx-prod")).resolves.toBe("skatingx-prod");
+    await expect(confirmProjectOnStdin("skatingx-prod", async () => "IMPORT")).resolves.toBe("IMPORT");
     expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "r", "--yes"])).toThrow(/--yes/);
     expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "r", "--recover-lock", "--mode", "resume"])).toThrow(/requires --execute/);
     expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "r", "--recover-lock", "--execute", "--rollback"])).toThrow(/cannot be combined with rollback/);
@@ -132,33 +135,22 @@ describe("catalog import target guards", () => {
   });
 
   it("counts Firestore users, race-day results, and video metadata from the schema paths", async () => {
-    const user = {
-      ref: {
-        collection(name: string) {
-          if (name === "raceDay") {
-            return {
-              get: async () => ({
-                docs: [
-                  {
-                    ref: {
-                      collection: (name: string) => ({
-                        get: async () => ({ size: name === "videos" ? 3 : 2 }),
-                      }),
-                    },
-                  },
-                ],
-              }),
-            };
-          }
-          if (name === "videos") return { get: async () => ({ size: 4 }) };
-          throw new Error(`unexpected user collection ${name}`);
-        },
+    const eventRef = {
+      collection(name: string) {
+        return { get: async () => ({ size: name === "videos" ? 3 : 2 }) };
+      },
+    };
+    const userRef = {
+      collection(name: string) {
+        if (name === "raceDay") return { listDocuments: async () => [eventRef] };
+        if (name === "videos") return { get: async () => ({ size: 4 }) };
+        throw new Error(`unexpected user collection ${name}`);
       },
     };
     const db = {
       collection(collectionPath: string) {
         expect(collectionPath).toBe(FIRESTORE_USERS_COLLECTION);
-        return { get: async () => ({ size: 1, docs: [user] }) };
+        return { listDocuments: async () => [userRef] };
       },
     };
     const counts = await countBusinessData(db as never);
@@ -176,6 +168,12 @@ describe("catalog import target guards", () => {
   it("accepts only impersonated ADC and stops production before opening Firestore", () => {
     expect(() => identityFromAdcPayload({ type: "service_account", private_key: "secret" })).toThrow(/long-lived service account keys/);
     expect(() => identityFromAdcPayload({ type: "authorized_user" })).toThrow(/credential type is not service_account/);
+    expect(() => identityFromAdcPayload({
+      type: "impersonated_service_account",
+      delegates: ["other@skatingx-prod.iam.gserviceaccount.com"],
+      source_credentials: { type: "authorized_user", client_id: "synthetic-client", client_secret: "synthetic-secret", refresh_token: "synthetic-refresh" },
+      service_account_impersonation_url: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/catalog-importer@skatingx-prod.iam.gserviceaccount.com:generateAccessToken",
+    })).toThrow(/delegates are not accepted/);
     const source = { type: "authorized_user", client_id: "synthetic-client", client_secret: "synthetic-secret", refresh_token: "synthetic-refresh" };
     expect(() => identityFromAdcPayload({
       type: "impersonated_service_account",

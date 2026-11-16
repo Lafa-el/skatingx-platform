@@ -63,6 +63,7 @@ describe.sequential("catalog recovery crash window", () => {
 
   beforeEach(async () => {
     await wipeCatalog(db);
+    await db.doc(`${ROOT}/users/recovery-ghost/raceDay/event-1/results/race_roster`).set({ status: "finished" });
   });
 
   it("resumes to acceptance after recovery exits before the claim", () => {

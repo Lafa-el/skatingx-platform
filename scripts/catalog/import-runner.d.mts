@@ -39,6 +39,10 @@ export interface ImportRequest {
   rollback?: boolean;
   recoverLock?: boolean;
   recoverReason?: string;
+  /** Emulator crash seams. Production entry refuses these. */
+  crashAfterLock?: boolean;
+  stopAfterLock?: boolean;
+  stopAfterRecover?: boolean;
 }
 
 export interface ImportEntryResult {
