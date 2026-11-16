@@ -174,7 +174,37 @@ describe("catalog import target guards", () => {
       source_credentials: { type: "authorized_user", client_id: "synthetic-client", client_secret: "synthetic-secret", refresh_token: "synthetic-refresh" },
       service_account_impersonation_url: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/catalog-importer@skatingx-prod.iam.gserviceaccount.com:generateAccessToken",
     })).toThrow(/delegates are not accepted/);
+    expect(() => identityFromAdcPayload({
+      type: "impersonated_service_account",
+      delegates: { chain: "not-an-array" },
+      source_credentials: { type: "authorized_user", client_id: "synthetic-client", client_secret: "synthetic-secret", refresh_token: "synthetic-refresh" },
+      service_account_impersonation_url: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/catalog-importer@skatingx-prod.iam.gserviceaccount.com:generateAccessToken",
+    })).toThrow(/delegates are not accepted/);
     const source = { type: "authorized_user", client_id: "synthetic-client", client_secret: "synthetic-secret", refresh_token: "synthetic-refresh" };
+    const url = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/catalog-importer@skatingx-prod.iam.gserviceaccount.com:generateAccessToken";
+    expect(identityFromAdcPayload({
+      type: "impersonated_service_account",
+      delegates: [],
+      quota_project_id: "some-other-quota-project",
+      universe_domain: "googleapis.com",
+      source_credentials: source,
+      service_account_impersonation_url: url,
+    })).toMatchObject({
+      clientEmail: "catalog-importer@skatingx-prod.iam.gserviceaccount.com",
+      projectId: "skatingx-prod",
+    });
+    expect(() => identityFromAdcPayload({
+      type: "impersonated_service_account",
+      universe_domain: "example.com",
+      source_credentials: source,
+      service_account_impersonation_url: url,
+    })).toThrow(/universe domain is not accepted/);
+    expect(() => identityFromAdcPayload({
+      type: "impersonated_service_account",
+      token_uri: "https://example.com/token",
+      source_credentials: source,
+      service_account_impersonation_url: url,
+    })).toThrow(/unexpected credential endpoint/);
     expect(() => identityFromAdcPayload({
       type: "impersonated_service_account",
       source_credentials: { ...source, private_key: "nested" },

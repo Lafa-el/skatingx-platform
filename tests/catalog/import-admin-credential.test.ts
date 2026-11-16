@@ -1,16 +1,20 @@
+import { spawnSync } from "node:child_process";
 import http from "node:http";
 import https from "node:https";
 import { mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 
-import { bindVerifiedAdc, openProductionFirestore, productionFirestore } from "../../scripts/catalog/run-import.mjs";
+import { assertBoundAdcUnchanged, bindVerifiedAdc, openProductionFirestore, productionClients, productionFirestore } from "../../scripts/catalog/run-import.mjs";
+
+const rootDir = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../..");
 
 const payload = {
   type: "impersonated_service_account",
@@ -55,9 +59,19 @@ describe("firebase-admin production credential", () => {
       const app = await openProductionFirestore(file);
       const firestore = await productionFirestore(app);
       const auth = getAuth(app);
+      const clients = await productionClients(app);
       expect(firestore).toBeTruthy();
       expect(auth).toBeTruthy();
+      expect(clients.firestore).toBe(firestore);
+      expect(clients.auth).toBe(auth);
+      expect(clients.sha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(clients.clientEmail).toBe("catalog-importer@skatingx-prod.iam.gserviceaccount.com");
       expect(calls).toEqual([]);
+      const other = path.join(dir, "other.json");
+      writeFileSync(other, JSON.stringify(payload));
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = other;
+      expect(() => assertBoundAdcUnchanged()).toThrow(/GOOGLE_APPLICATION_CREDENTIALS does not point/);
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = file;
       writeFileSync(file, JSON.stringify({ ...payload, delegates: ["other@skatingx-prod.iam.gserviceaccount.com"] }));
       await expect(productionFirestore(app)).rejects.toThrow(/ADC file changed after verification/);
       const link = path.join(dir, "adc-link.json");
@@ -74,6 +88,27 @@ describe("firebase-admin production credential", () => {
       if (previousAdc === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
       else process.env.GOOGLE_APPLICATION_CREDENTIALS = previousAdc;
     }
+  });
+
+  it("binds a fixture ADC with an empty delegates array", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "skatingx-empty-delegates-"));
+    const file = path.join(dir, "adc.json");
+    writeFileSync(file, JSON.stringify({ ...payload, delegates: [] }));
+    const child = spawnSync(process.execPath, [
+      "--input-type=module",
+      "-e",
+      [
+        "import { bindVerifiedAdc } from \"./scripts/catalog/run-import.mjs\";",
+        "const bound = bindVerifiedAdc(process.argv[1]);",
+        "if (!Array.isArray(bound.delegates) || bound.delegates.length !== 0) process.exit(2);",
+      ].join("\n"),
+      file,
+    ], {
+      cwd: rootDir,
+      encoding: "utf8",
+      env: { ...process.env, GOOGLE_APPLICATION_CREDENTIALS: file },
+    });
+    expect(child.status, child.stderr).toBe(0);
   });
 
   it("rejects a plain getAccessToken credential for Firestore", () => {

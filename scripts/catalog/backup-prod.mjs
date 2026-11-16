@@ -758,13 +758,19 @@ export async function restoreBackupToEmulator(db, documentsOrDir, options) {
   }
 }
 
-function databaseIdOf(db) {
-  return typeof db.databaseId === "string" && db.databaseId !== "" ? db.databaseId : "(default)";
-}
-
 function projectIdOf(db) {
   const settings = db._settings;
   return typeof settings?.projectId === "string" ? settings.projectId : "";
+}
+
+export function assertBackupClientTarget(db) {
+  const projectId = projectIdOf(db);
+  const fromClient = typeof db?.databaseId === "string" ? db.databaseId : "";
+  const fromSettings = typeof db?._settings?.databaseId === "string" ? db._settings.databaseId : "";
+  const databaseId = fromClient !== "" ? fromClient : fromSettings;
+  if (projectId === "") throw new Error("refusing backup: Firestore project is not set on the client");
+  if (databaseId === "") throw new Error("refusing backup: database id is not set on the client");
+  return { projectId, databaseId };
 }
 
 async function main() {
@@ -795,9 +801,10 @@ async function main() {
       fetchImpl: globalThis.fetch,
     }));
   if (storage.failures?.length) throw new Error(`storage check failed: ${storage.failures[0].path}`);
+  const target = assertBackupClientTarget(db);
   const summary = writeBackup(outDir, snap, {
-    projectId: projectIdOf(db) || projectId,
-    databaseId: databaseIdOf(db),
+    projectId: target.projectId,
+    databaseId: target.databaseId,
     repoRoot: rootDir,
     storage,
     passphrase: process.env.SKATINGX_BACKUP_PASSPHRASE,

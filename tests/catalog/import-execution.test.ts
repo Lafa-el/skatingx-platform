@@ -41,9 +41,13 @@ function openFirestore(): Firestore {
 
 async function confirmedGeneration(db: Firestore) {
   const snap = await db.doc(importLockPath()).get();
+  const updateTime = snap.updateTime;
+  if (!updateTime) throw new Error("lock version missing");
   return {
     confirmedTokenFingerprint: tokenFingerprint(String(snap.data()?.token ?? "")),
-    confirmedUpdateTimeMillis: snap.updateTime?.toMillis() ?? 0,
+    confirmedLockUpdateTime: updateTime,
+    confirmedPurpose: String(snap.data()?.purpose ?? ""),
+    confirmedHolder: String(snap.data()?.actor ?? ""),
   };
 }
 

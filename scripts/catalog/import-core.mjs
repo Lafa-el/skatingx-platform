@@ -633,12 +633,24 @@ export async function assertResumeCatalog(db, plans, runId) {
   return migration.data();
 }
 
+function timestampsEqual(left, right) {
+  if (!left || !right || typeof left.isEqual !== "function") return false;
+  return left.isEqual(right) === true;
+}
+
 export async function readOnlyClassification(db, plans, context) {
   const runId = requireText(context.runId, "runId");
   const importedAt = requireText(context.importedAt, "importedAt");
-  const actor = requireText(context.actor ?? IMPORT_ACTOR, "actor");
-  const serviceAccount = requireText(context.serviceAccount ?? "emulator", "serviceAccount");
-  const operator = requireText(context.operator ?? actor, "operator");
+  const production = readModeOf(db) === "production";
+  const actor = requireText(production ? context.actor : (context.actor ?? IMPORT_ACTOR), "actor");
+  const serviceAccount = requireText(
+    production ? context.serviceAccount : (context.serviceAccount ?? "emulator"),
+    "serviceAccount",
+  );
+  if (production && serviceAccount === "emulator") {
+    throw new Error("refusing to classify: production service account is missing");
+  }
+  const operator = requireText(production ? context.operator : (context.operator ?? actor), "operator");
   const objects = objectPlans(plans, runId, { actor, importedAt, serviceAccount, operator });
   const existing = await readPlannedDocs(
     db,
@@ -710,6 +722,11 @@ function assertProductionHooks(projectId, context) {
     || context.leaveLockHeld === true
     || context.stopAfterObjects !== undefined
     || context.crashAfterLock === true
+    || context.crashAfterSnapshots !== undefined
+    || context.crashAfterParents !== undefined
+    || context.crashBeforeMark === true
+    || context.crashAfterMark === true
+    || context.crashAfterCommit === true
   ) {
     throw new Error("refusing to run: test limits are not available for production");
   }
@@ -1047,6 +1064,8 @@ async function assertRecoverableContent(db, record) {
     const audit = stored.get(auditPath(record.runId, plan.data.id));
     if (!parent && !snapshot && !audit) continue;
     if (record.status === "rolling_back") {
+      // A crashed rollback may already have removed the snapshot or both content documents.
+      // Those groups stay recoverable. A changed document is still a conflict.
       if (parent && !sameDocument(parent, plan.data)) throw new Error(`lock recovery refused: content conflict ${plan.path}`);
       if (snapshot && snapshotPlan && !sameDocument(snapshot, snapshotPlan.data)) {
         throw new Error(`lock recovery refused: content conflict ${snapshotPath}`);
@@ -1085,7 +1104,9 @@ export async function recoverImportLock(db, input) {
     throw new Error(`lock recovery refused: run ${runId} is rolled_back`);
   }
   const confirmedFingerprint = requireText(input.confirmedTokenFingerprint, "confirmedTokenFingerprint");
-  if (typeof input.confirmedUpdateTimeMillis !== "number") {
+  const confirmedPurpose = requireText(input.confirmedPurpose, "confirmedPurpose");
+  const confirmedHolder = requireText(input.confirmedHolder, "confirmedHolder");
+  if (!input.confirmedLockUpdateTime || typeof input.confirmedLockUpdateTime.isEqual !== "function") {
     throw new Error("lock recovery refused: confirmed lock version is missing");
   }
   await assertRecoverableContent(db, record);
@@ -1112,7 +1133,10 @@ export async function recoverImportLock(db, input) {
     if (lock.purpose !== "import" && lock.purpose !== "rollback") {
       throw new Error("lock recovery refused: lock purpose is not recognized");
     }
-    if (tokenFingerprint(String(lock.token ?? "")) !== confirmedFingerprint || !snap.updateTime || snap.updateTime.toMillis() !== input.confirmedUpdateTimeMillis) {
+    if (tokenFingerprint(String(lock.token ?? "")) !== confirmedFingerprint
+      || lock.purpose !== confirmedPurpose
+      || lock.actor !== confirmedHolder
+      || !timestampsEqual(snap.updateTime, input.confirmedLockUpdateTime)) {
       throw new Error("lock recovery refused: lock version changed after confirmation");
     }
     previousToken = lock.token;
@@ -1218,7 +1242,7 @@ async function assertDescendants(db, parentPath) {
 
 const issuedRollbackTokens = new Set();
 
-async function acquireRollbackLock(db, { runId, actor, memoryToken, migrationRef, objectSet }) {
+async function acquireRollbackLock(db, { runId, actor, memoryToken, migrationRef, objectSet, confirmedTokenFingerprint, confirmedLockUpdateTime, confirmedPurpose, confirmedHolder }) {
   const lockRef = db.doc(importLockPath());
   const freshToken = newLockToken();
   let activeToken = freshToken;
@@ -1236,6 +1260,18 @@ async function acquireRollbackLock(db, { runId, actor, memoryToken, migrationRef
     const ids = Array.isArray(migration.committedObjectIds) ? migration.committedObjectIds : [];
     if (ids.join("\n") !== objectSet) throw new Error("rollback refused: confirmed object set changed");
     if (migration.status === "rolled_back") throw new Error(`rollback refused: run ${runId} is rolled_back`);
+    if (typeof confirmedPurpose === "string" && lock.purpose !== confirmedPurpose) {
+      throw new Error("rollback refused: lock version changed after confirmation");
+    }
+    if (typeof confirmedHolder === "string" && lock.actor !== confirmedHolder) {
+      throw new Error("rollback refused: lock version changed after confirmation");
+    }
+    if (confirmedLockUpdateTime && !timestampsEqual(lockSnap.updateTime, confirmedLockUpdateTime)) {
+      throw new Error("rollback refused: lock version changed after confirmation");
+    }
+    if (typeof confirmedTokenFingerprint === "string" && confirmedTokenFingerprint !== "" && tokenFingerprint(String(lock.token ?? "")) !== confirmedTokenFingerprint) {
+      throw new Error("rollback refused: lock version changed after confirmation");
+    }
     if (lock.purpose === "rollback" && memoryToken && lock.token !== memoryToken) {
       throw new Error("rollback refused: rollback holder must be recovered explicitly");
     }
@@ -1291,48 +1327,64 @@ function assertRollbackStage(currentStage, expectedStage, nextStage) {
   }
 }
 
+async function txGetAll(tx, refs) {
+  const snaps = [];
+  for (let index = 0; index < refs.length; index += 100) {
+    const slice = refs.slice(index, index + 100);
+    snaps.push(...await tx.getAll(...slice));
+  }
+  return snaps;
+}
+
 async function commitRollbackBatch(db, { runId, token, actor, migrationRef, deletes, verified, auditPaths = [], auditVersions, migrationPatch, expectedStage, lockPatch = {} }) {
   const lockRef = db.doc(importLockPath());
   const nextStage = migrationPatch.rollbackProgress?.stage;
   try {
     await db.runTransaction(async (tx) => {
-      const lockSnap = await tx.get(lockRef);
-      const migrationSnap = await tx.get(migrationRef);
-      const deleteSnaps = [];
-      for (const docPath of deletes) {
-        deleteSnaps.push([docPath, await tx.get(db.doc(docPath))]);
-      }
-      const parentSnaps = new Map();
+      const parentPaths = [];
       for (const docPath of deletes) {
         if (!docPath.endsWith(`/versions/${CONTENT_VERSION}`)) continue;
         const parentPath = docPath.slice(0, -`/versions/${CONTENT_VERSION}`.length);
-        if (!parentSnaps.has(parentPath)) parentSnaps.set(parentPath, await tx.get(db.doc(parentPath)));
+        if (!parentPaths.includes(parentPath)) parentPaths.push(parentPath);
       }
-      const auditSnaps = [];
-      for (const docPath of auditPaths) auditSnaps.push([docPath, await tx.get(db.doc(docPath))]);
-      const lock = lockSnap.exists ? lockSnap.data() : null;
-      if (!lockSnap.exists || !lockMatches(lock, { runId, actor, token }, "rollback")) {
+      const readRefs = [lockRef, migrationRef];
+      const seen = new Set([lockRef.path, migrationRef.path]);
+      for (const docPath of [...deletes, ...parentPaths, ...auditPaths]) {
+        if (seen.has(docPath)) continue;
+        seen.add(docPath);
+        readRefs.push(db.doc(docPath));
+      }
+      const snaps = await txGetAll(tx, readRefs);
+      const byPath = new Map(snaps.map((snap) => [snap.ref.path, snap]));
+      const lockSnap = byPath.get(lockRef.path);
+      const migrationSnap = byPath.get(migrationRef.path);
+      const deleteSnaps = deletes.map((docPath) => [docPath, byPath.get(docPath)]);
+      const parentSnaps = parentPaths.map((docPath) => [docPath, byPath.get(docPath)]);
+      const auditSnaps = auditPaths.map((docPath) => [docPath, byPath.get(docPath)]);
+      const lock = lockSnap?.exists ? lockSnap.data() : null;
+      if (!lockSnap?.exists || !lockMatches(lock, { runId, actor, token }, "rollback")) {
         throw new Error(`rollback refused: lock is not held by ${runId}`);
       }
-      if (!migrationSnap.exists) throw new Error("rollback refused: migration precondition is missing");
+      if (!migrationSnap?.exists) throw new Error("rollback refused: migration precondition is missing");
       assertRollbackStage(migrationSnap.data().rollbackProgress?.stage, expectedStage, nextStage);
       for (const [docPath, snap] of deleteSnaps) {
         const saved = verified?.get(docPath);
-        const actual = snap.exists ? canonicalCatalogJson(snap.data()) : "";
-        if (!saved?.updateTime || !snap.exists || !snap.updateTime || actual !== saved.checksum || snap.updateTime.toMillis() !== saved.updateTime.toMillis()) {
+        const actual = snap?.exists ? canonicalCatalogJson(snap.data()) : "";
+        if (!saved?.updateTime || !snap?.exists || !timestampsEqual(snap.updateTime, saved.updateTime) || actual !== saved.checksum) {
           throw new Error(`rollback refused: ${docPath} changed after verification`);
         }
       }
       for (const [parentPath, snap] of parentSnaps) {
         const saved = verified?.get(parentPath);
-        const actual = snap.exists ? canonicalCatalogJson(snap.data()) : "";
-        if (!saved?.updateTime || !snap.exists || !snap.updateTime || actual !== saved.checksum || snap.updateTime.toMillis() !== saved.updateTime.toMillis()) {
+        const actual = snap?.exists ? canonicalCatalogJson(snap.data()) : "";
+        if (!saved?.updateTime || !snap?.exists || !timestampsEqual(snap.updateTime, saved.updateTime) || actual !== saved.checksum) {
           throw new Error(`rollback refused: ${parentPath} changed after verification`);
         }
       }
       for (const [docPath, snap] of auditSnaps) {
-        const savedTime = auditVersions?.get(docPath);
-        if (!snap.exists || !snap.updateTime || !savedTime || snap.updateTime.toMillis() !== savedTime.toMillis() || snap.data()?.result !== "ok" || snap.data()?.runId !== runId) {
+        const saved = auditVersions?.get(docPath);
+        const problem = saved ? auditProblem(snap?.exists ? snap.data() : null, saved.context) : "audit missing";
+        if (!snap?.exists || !saved?.updateTime || !timestampsEqual(snap.updateTime, saved.updateTime) || problem) {
           throw new Error(`rollback refused: ${docPath} changed after verification`);
         }
       }
@@ -1390,6 +1442,7 @@ export async function rollbackImport(db, runId, claim = {}) {
   }
   const parents = plans.filter((plan) => isParentPath(plan.path));
   const auditPlans = parents.map((plan) => ({ path: auditPath(id, plan.data.id), id: plan.data.id }));
+  const auditContexts = new Map();
   const stored = await readPlannedDocs(db, [
     ...plans,
     ...auditPlans.map((plan) => ({ path: plan.path })),
@@ -1443,6 +1496,7 @@ export async function rollbackImport(db, runId, claim = {}) {
       }
       const problem = auditProblem(auditData, { id, actor, objectId, parent, record });
       if (problem) throw new Error(`rollback refused: ${problem} ${audit}`);
+      auditContexts.set(audit, { id, actor, objectId, parent, record });
       await assertDescendants(db, parentPath);
       expected.set(parentPath, canonicalCatalogJson(parent));
       parentDeletes.push({ path: parentPath, audit });
@@ -1467,6 +1521,7 @@ export async function rollbackImport(db, runId, claim = {}) {
     }
     const problem = auditProblem(auditData, { id, actor, objectId, parent, record });
     if (problem) throw new Error(`rollback refused: ${problem} ${audit}`);
+    auditContexts.set(audit, { id, actor, objectId, parent, record });
     await assertDescendants(db, parentPath);
     if (stage === "snapshots") {
       expected.set(snapshotPath, canonicalCatalogJson(snapshot));
@@ -1489,12 +1544,14 @@ export async function rollbackImport(db, runId, claim = {}) {
     verified.set(docPath, { checksum, updateTime: current.updateTime });
   }
   const auditVersions = new Map();
-  for (const auditPath of [...new Set([...snapshotDeletes, ...parentDeletes].map((item) => item.audit))]) {
-    const current = await db.doc(auditPath).get();
-    if (!current.exists || !current.updateTime || current.data()?.result !== "ok" || current.data()?.runId !== id) {
-      throw new Error(`rollback refused: ${auditPath} changed after verification`);
+  for (const auditDocPath of [...new Set([...snapshotDeletes, ...parentDeletes].map((item) => item.audit))]) {
+    const context = auditContexts.get(auditDocPath);
+    const current = await db.doc(auditDocPath).get();
+    const problem = context ? auditProblem(current.exists ? current.data() : null, context) : "audit missing";
+    if (!current.exists || !current.updateTime || problem) {
+      throw new Error(`rollback refused: ${auditDocPath} changed after verification`);
     }
-    auditVersions.set(auditPath, current.updateTime);
+    auditVersions.set(auditDocPath, { updateTime: current.updateTime, context });
   }
   if (typeof claim.beforeDelete === "function") await claim.beforeDelete();
   const objectSet = (Array.isArray(fresh.data().committedObjectIds) ? fresh.data().committedObjectIds : []).join("\n");
@@ -1504,6 +1561,10 @@ export async function rollbackImport(db, runId, claim = {}) {
     memoryToken,
     migrationRef: ref,
     objectSet,
+    confirmedTokenFingerprint: claim.confirmedTokenFingerprint,
+    confirmedLockUpdateTime: claim.confirmedLockUpdateTime,
+    confirmedPurpose: claim.confirmedPurpose,
+    confirmedHolder: claim.confirmedHolder,
   });
   const token = ownership.token;
   if (typeof claim.onLockToken === "function") claim.onLockToken(token);
@@ -1539,6 +1600,12 @@ export async function rollbackImport(db, runId, claim = {}) {
           rollbackResult: operationCounts(),
         },
       });
+      if (kind === "snapshots" && typeof claim.crashAfterSnapshots === "number" && deletedSnapshots >= claim.crashAfterSnapshots) {
+        throw new Error("injected rollback crash after snapshots");
+      }
+      if (kind === "parents" && typeof claim.crashAfterParents === "number" && deletedParents >= claim.crashAfterParents) {
+        throw new Error("injected rollback crash after parents");
+      }
     }
   }
   if (stage === "snapshots") {
@@ -1563,6 +1630,7 @@ export async function rollbackImport(db, runId, claim = {}) {
   }
   if (stage === "parents") {
     await commitChunks(parentDeletes, "parents", "parents");
+    if (claim.crashBeforeMark === true) throw new Error("injected rollback crash before mark");
     stage = "mark";
     controlUpdates += 2;
     await commitRollbackBatch(db, {
@@ -1580,6 +1648,7 @@ export async function rollbackImport(db, runId, claim = {}) {
         rollbackResult: operationCounts(),
       },
     });
+    if (claim.crashAfterMark === true) throw new Error("injected rollback crash after mark");
   }
   const rolledBackAt = new Date().toISOString();
   controlUpdates += 2;
@@ -1601,5 +1670,6 @@ export async function rollbackImport(db, runId, claim = {}) {
     },
     lockPatch: { status: "rolled_back", rolledBackAt, rollbackResult },
   });
+  if (claim.crashAfterCommit === true) throw new Error("injected rollback response loss");
   return { ...record, status: "rolled_back", rolledBackAt, rollbackResult, lockToken: token };
 }

@@ -7,6 +7,13 @@ export function bindVerifiedAdc(file: string): unknown;
 
 export function assertBoundAdcUnchanged(): unknown;
 
+export function productionClients(app: App): Promise<{
+  firestore: Firestore;
+  auth: unknown;
+  sha256: string;
+  clientEmail: string;
+}>;
+
 export function openProductionFirestore(adcFile: string): Promise<App>;
 
 export function productionFirestore(app: App): Promise<Firestore>;

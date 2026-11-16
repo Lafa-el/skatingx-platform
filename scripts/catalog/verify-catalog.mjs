@@ -80,7 +80,10 @@ export async function readCatalogVerification(db, runId, mode = "emulator") {
   const inspected = await inspectCatalog(db);
   const plans = migration?.importedAt ? loadPlans(migration.importedAt).plans : [];
   const storedDocs = plans.length === 0 ? new Map() : await readPlannedDocs(db, plans, mode);
-  const auditPaths = inspected.collectionDocs.get(AUDIT) ?? [];
+  const auditPaths = (inspected.collectionDocs.get(AUDIT) ?? []).filter((docPath) => {
+    const id = docPath.split("/").pop() ?? "";
+    return id.startsWith(`imp-${runId}-`) || isRecoveryAuditPath(docPath, runId);
+  });
   const auditDocs = auditPaths.length === 0 ? new Map() : await readPlannedDocs(db, auditPaths.map((docPath) => ({ path: docPath })), mode);
   const lockSnap = await db.doc(importLockPath()).get();
   return {
@@ -309,12 +312,13 @@ export function evaluateCatalogImport(input) {
   if (idem.skipped === true) {
     checks.push({ name: "idempotency", status: "skipped", passed: false, detail: IDEMPOTENCY_SKIPPED, paths: [] });
   } else if (classified) {
-    const idempotent = idem.present === 257 && idem.absent === 0 && mismatched.length === 0 && incomplete.length === 0 && idempotencyConflicts.length === 0;
+    const aliasAgrees = idempotencyConflicts.length === mismatched.length;
+    const idempotent = idem.present === 257 && idem.absent === 0 && mismatched.length === 0 && incomplete.length === 0 && idempotencyConflicts.length === 0 && aliasAgrees;
     const listed = [...mismatched, ...incomplete, ...idempotencyConflicts.map((item) => typeof item === "string" ? item : JSON.stringify(item))];
     checks.push(check(
       "idempotency",
       idempotent,
-      `present ${idem.present} absent ${idem.absent} mismatched ${mismatched.length} incomplete ${incomplete.length} conflicts ${idempotencyConflicts.length}${listed.length === 0 ? "" : `: ${listed.join("; ")}`}`,
+      `present ${idem.present} absent ${idem.absent} mismatched ${mismatched.length} incomplete ${incomplete.length} conflicts ${idempotencyConflicts.length} (conflicts aliases mismatched)${listed.length === 0 ? "" : `: ${listed.join("; ")}`}`,
       listed,
     ));
   } else {
@@ -365,6 +369,7 @@ export function evaluateCatalogImport(input) {
         mismatched: mismatched ?? [],
         incomplete: incomplete ?? [],
         conflicts: idempotencyConflicts ?? [],
+        conflictsNote: "alias of mismatched",
       },
     passed,
     acceptance: passed ? "passed" : pendingEvidence ? "pending-evidence" : "failed",

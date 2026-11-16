@@ -148,7 +148,16 @@ export function identityFromAdcPayload(payload) {
   }
   assertNoLongLivedKey(payload);
   if (Object.hasOwn(payload, "delegates")) {
-    throw new Error("refusing to run: impersonation delegates are not accepted");
+    const delegates = payload.delegates;
+    if (!Array.isArray(delegates) || delegates.length > 0) {
+      throw new Error("refusing to run: impersonation delegates are not accepted");
+    }
+  }
+  if (Object.hasOwn(payload, "universe_domain") && payload.universe_domain !== "googleapis.com") {
+    throw new Error("refusing to run: universe domain is not accepted");
+  }
+  if (Object.hasOwn(payload, "token_uri") || Object.hasOwn(payload, "token_url")) {
+    throw new Error("refusing to run: unexpected credential endpoint");
   }
   if (payload.type !== "impersonated_service_account") {
     throw new Error("refusing to run: credential type is not service_account");
@@ -167,6 +176,7 @@ export function identityFromAdcPayload(payload) {
     : "";
   const match = url.match(IAM_IMPERSONATION_URL);
   if (!match) throw new Error("refusing to run: impersonation url is not a Google IAM endpoint");
+  // quota_project_id attributes API quota. It does not prove the Firestore project.
   return {
     type: "service_account",
     clientEmail: decodeURIComponent(match[1]),

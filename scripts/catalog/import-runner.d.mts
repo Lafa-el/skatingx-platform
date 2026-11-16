@@ -43,6 +43,11 @@ export interface ImportRequest {
   crashAfterLock?: boolean;
   stopAfterLock?: boolean;
   stopAfterRecover?: boolean;
+  crashAfterSnapshots?: number;
+  crashAfterParents?: number;
+  crashBeforeMark?: boolean;
+  crashAfterMark?: boolean;
+  crashAfterCommit?: boolean;
 }
 
 export interface ImportEntryResult {

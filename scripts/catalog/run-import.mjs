@@ -64,6 +64,10 @@ export function bindVerifiedAdc(file) {
 
 export function assertBoundAdcUnchanged() {
   if (!boundAdc) throw new Error("refusing to run: ADC file is not bound");
+  const configured = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim() ?? "";
+  if (configured === "" || path.resolve(configured) !== boundAdc.file) {
+    throw new Error("refusing to run: GOOGLE_APPLICATION_CREDENTIALS does not point at the verified ADC file");
+  }
   const stat = lstatSync(boundAdc.file);
   if (stat.isSymbolicLink()) throw new Error("refusing to run: ADC path is a symlink");
   const bytes = readFileSync(boundAdc.file);
@@ -73,6 +77,19 @@ export function assertBoundAdcUnchanged() {
   const payload = JSON.parse(bytes.toString("utf8"));
   identityFromAdcPayload(payload);
   return payload;
+}
+
+export async function productionClients(app) {
+  const payload = assertBoundAdcUnchanged();
+  const identity = identityFromAdcPayload(payload);
+  const { getFirestore } = await import("firebase-admin/firestore");
+  const { getAuth } = await import("firebase-admin/auth");
+  return {
+    firestore: getFirestore(app, "(default)"),
+    auth: getAuth(app),
+    sha256: boundAdc.sha256,
+    clientEmail: identity.clientEmail,
+  };
 }
 
 async function openEmulatorFirestore(projectId, runId) {
@@ -102,19 +119,16 @@ export async function openProductionFirestore(adcFile) {
 }
 
 export async function productionFirestore(app) {
-  assertBoundAdcUnchanged();
-  const { getFirestore } = await import("firebase-admin/firestore");
-  return getFirestore(app, "(default)");
+  return (await productionClients(app)).firestore;
 }
 
 export async function countAuthUsers(app) {
-  assertBoundAdcUnchanged();
   if (!app) throw new Error("refusing to run: Firebase Auth user count is unavailable");
-  const { getAuth } = await import("firebase-admin/auth");
+  const clients = await productionClients(app);
   let count = 0;
   let pageToken;
   do {
-    const page = await getAuth(app).listUsers(1000, pageToken);
+    const page = await clients.auth.listUsers(1000, pageToken);
     count += page.users.length;
     pageToken = page.pageToken;
   } while (pageToken);
@@ -148,7 +162,8 @@ async function main() {
     openFirestore: args.target === "production"
       ? async () => {
           app = await openProductionFirestore(adcFile);
-          return productionFirestore(app);
+          const clients = await productionClients(app);
+          return clients.firestore;
         }
       : (projectId) => openEmulatorFirestore(projectId, args.runId),
     credentialProvider: args.target === "production" ? adcCredentialProvider() : unconfiguredCredentialProvider(),

@@ -9,6 +9,7 @@ import { GeoPoint, type Firestore, Timestamp, getFirestore } from "firebase-admi
 import { afterAll, describe, expect, it } from "vitest";
 
 import {
+  assertBackupClientTarget,
   assertBackupOptions,
   assertBackupOutput,
   checkStorageReferences,
@@ -414,6 +415,17 @@ describe("business backup", () => {
     writeFileSync(docsPath, bytes);
     await expect(restoreBackupToEmulator(db, outDir, { projectId: PROJECT_ID })).rejects.toThrow(/corrupt/);
     expect((await db.doc(secretPath).get()).exists).toBe(false);
+  });
+
+  it("requires the client project and database instead of falling back", () => {
+    expect(() => assertBackupClientTarget({ _settings: {} })).toThrow(/project is not set/);
+    expect(() => assertBackupClientTarget({
+      _settings: { projectId: "skatingx-prod" },
+    })).toThrow(/database id is not set/);
+    expect(assertBackupClientTarget({
+      databaseId: "(default)",
+      _settings: { projectId: "skatingx-prod", databaseId: "(default)" },
+    })).toEqual({ projectId: "skatingx-prod", databaseId: "(default)" });
   });
 });
 

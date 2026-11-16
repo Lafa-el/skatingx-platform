@@ -105,6 +105,11 @@ export interface BackupSummary {
   projectDisasterRecovery: false;
 }
 
+export function assertBackupClientTarget(db: {
+  databaseId?: string;
+  _settings?: { projectId?: string; databaseId?: string };
+}): { projectId: string; databaseId: string };
+
 export function writeBackup(
   outDir: string,
   snapshot: BusinessSnapshot,
