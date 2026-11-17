@@ -15,6 +15,7 @@ import {
 } from "../../packages/training-catalog/src/catalog-object.ts";
 import { checkPublishedBinding } from "../../packages/training-catalog/src/validate.ts";
 import { computeCatalogChecksum } from "../../packages/training-catalog/src/checksum.ts";
+import { evaluateSafety } from "../../packages/training-catalog/src/safety-evaluate.ts";
 
 const ROOT = "artifacts/skatingx-production";
 const OBJECTS = "trainingCatalogObjects";
@@ -22,6 +23,7 @@ const RELEASES = "trainingCatalogReleases";
 const LINKS = "trainingCatalogLinks";
 const PUBLIC_LINKS = "trainingCatalogPublicLinks";
 const AUDIT = "trainingCatalogAuditLogs";
+const POLICIES = "trainingCatalogSafetyPolicies";
 const EDITOR_ACTIONS = new Set(["create", "edit", "import"]);
 
 function collectionPath(name) {
@@ -610,6 +612,55 @@ async function main() {
       "usage: review | publish | withdraw | revoke | link-review | link-publish | link-withdraw",
     );
   }
+}
+
+const SAFETY_READ_TIMEOUT_MS = 5000;
+
+function failedSafetyRead() {
+  return { decision: "review_required", reasonCodes: ["POLICY_MISSING"], policyVersion: null };
+}
+
+async function readWithin(read, timeoutMs) {
+  let timer;
+  const pending = Promise.resolve()
+    .then(read)
+    .then(
+      (value) => ({ ok: true, value }),
+      () => ({ ok: false }),
+    );
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve({ ok: false }), timeoutMs);
+  });
+  try {
+    return await Promise.race([pending, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function readPolicyDocument(db, policyId, policyVersion) {
+  const snap = await db.doc(`${collectionPath(POLICIES)}/${policyId}`).get();
+  if (!snap.exists) return null;
+  const data = snap.data();
+  if (!data) return null;
+  if (typeof data.policyVersion === "string" && data.policyVersion !== policyVersion) return null;
+  return data;
+}
+
+/**
+ * Emulator-only safety read. The caller supplies the Firestore client already
+ * pointed at the emulator, or a readPolicy function in tests. A thrown read,
+ * a timeout, and an empty result all evaluate as review_required.
+ * This does not use a production service account.
+ */
+export async function assessEmulatorSafety(db, request, options = {}) {
+  assertDemoProject(db);
+  const policyId = requireText(request.policyId, "policyId");
+  const policyVersion = requireText(request.policyVersion, "policyVersion");
+  const readPolicy = options.readPolicy ?? (() => readPolicyDocument(db, policyId, policyVersion));
+  const read = await readWithin(() => readPolicy({ policyId, policyVersion }), options.timeoutMs ?? SAFETY_READ_TIMEOUT_MS);
+  if (!read.ok || read.value == null) return failedSafetyRead();
+  return evaluateSafety(request, read.value);
 }
 
 function isDirectRun() {
