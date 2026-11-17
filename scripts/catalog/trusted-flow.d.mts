@@ -1,5 +1,16 @@
 import type { Firestore } from "firebase-admin/firestore";
 
+import type { SafetyEvaluation, SafetyEvaluationInput } from "../../packages/training-catalog/src/safety-evaluate";
+
+export function assessEmulatorSafety(
+  db: Firestore,
+  request: SafetyEvaluationInput & { policyId: string; policyVersion: string },
+  options?: {
+    readPolicy?: (request: { policyId: string; policyVersion: string }) => Promise<unknown>;
+    timeoutMs?: number;
+  },
+): Promise<SafetyEvaluation>;
+
 export function assertCatalogProject(projectId: string): void;
 
 export function reviewCatalogVersion(
