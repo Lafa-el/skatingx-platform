@@ -9,11 +9,15 @@
 
 import {
   SAFETY_AGE_BANDS,
+  SAFETY_LOADS,
   parseSafetyPolicy,
   policyVersionOf,
   type SafetyAgeBand,
+  type SafetyLoad,
   type SafetyPolicy,
 } from "./safety-policy";
+
+export { SAFETY_LOADS, type SafetyLoad };
 
 export const SAFETY_DECISIONS = [
   "allow",
@@ -23,10 +27,6 @@ export const SAFETY_DECISIONS = [
 ] as const;
 
 export type SafetyDecision = (typeof SAFETY_DECISIONS)[number];
-
-export const SAFETY_LOADS = ["low", "moderate", "high"] as const;
-
-export type SafetyLoad = (typeof SAFETY_LOADS)[number];
 
 /** ADR-021 Conditional exercises. A satisfied policy yields allow_with_supervision. */
 export const CONDITIONAL_SAFETY_OBJECT_IDS = ["EX-L039", "EX-L078", "EX-L079", "EX-L080"] as const;
@@ -135,11 +135,38 @@ export function evaluateSafety(input: SafetyEvaluationInput, policy: unknown | n
   const recovery = stringList(input.recoveryFlags) ?? [];
   const restrictions = stringList(input.authorizedRestrictions) ?? [];
   const supervision = supervisionOf(input.supervision);
+  if (restrictions.some((item) => !parsed.policy.knownRestrictions.includes(item))) {
+    return closed("review_required", ["UNKNOWN_RESTRICTION"], version);
+  }
+  if (recovery.some((item) => !parsed.policy.knownRecoveryFlags.includes(item))) {
+    return closed("review_required", ["UNKNOWN_RECOVERY_FLAG"], version);
+  }
   if (restrictions.some((item) => parsed.policy.blockingRestrictions.includes(item))) {
     return closed("block", ["RESTRICTION_BLOCK"], version);
   }
   if (recovery.some((item) => parsed.policy.blockingRecoveryFlags.includes(item))) {
     return closed("block", ["RECOVERY_FLAG_BLOCK"], version);
+  }
+  const condition = parsed.policy.objectConditions?.find((item) => item.objectId === input.objectId);
+  if (condition !== undefined) {
+    const trainingAge = input.trainingAge;
+    if (
+      condition.minTrainingAgeYears !== undefined &&
+      typeof trainingAge === "number" &&
+      trainingAge < condition.minTrainingAgeYears
+    ) {
+      return closed("review_required", ["TRAINING_AGE_INSUFFICIENT"], version);
+    }
+    if (condition.requiredSkills?.some((skill) => !skills.includes(skill))) {
+      return closed("review_required", ["REQUIRED_SKILL_MISSING"], version);
+    }
+    const recentLoad = input.recentLoad;
+    if (
+      condition.allowedLoads !== undefined &&
+      (typeof recentLoad !== "string" || !(condition.allowedLoads as readonly string[]).includes(recentLoad))
+    ) {
+      return closed("review_required", ["LOAD_NOT_ALLOWED"], version);
+    }
   }
   if (skills.length === 0) return closed("review_required", ["NO_VERIFIED_SKILLS"], version);
   if (supervision === null || !supervision.qualified || !supervision.present) {
