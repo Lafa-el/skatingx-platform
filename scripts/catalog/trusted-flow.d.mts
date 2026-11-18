@@ -43,6 +43,21 @@ export function reviewKnowledgeArticle(
   input: { articleId: string; reviewer: string; decision: "approved" | "rejected" },
 ): Promise<void>;
 
+export function publishKnowledgeArticle(
+  db: Firestore,
+  input: { articleId: string; actor: string },
+): Promise<void>;
+
+export function reviewSafetyPolicy(
+  db: Firestore,
+  input: { policyId: string; reviewer: string; decision: "approved" | "rejected" },
+): Promise<void>;
+
+export function publishSafetyPolicy(
+  db: Firestore,
+  input: { policyId: string; actor: string },
+): Promise<void>;
+
 export function publishCatalogLink(
   db: Firestore,
   input: { academyItemId: string; actor: string },
