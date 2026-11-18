@@ -3,6 +3,9 @@
 // The default path runs against the Firestore emulator and refuses a project
 // id that does not start with demo-. Production is a separate gated path and
 // is not opened by importing this file.
+//
+// The CLI (main()) is the only supported production entry point. The exported
+// functions must not be called directly with a production database outside it.
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
@@ -749,9 +752,30 @@ const FLOW_COMMANDS = new Set([
   "policy-review",
   "policy-publish",
 ]);
+const PRODUCTION_COMMANDS = new Set(["article-review", "article-publish", "policy-review", "policy-publish"]);
+const FLOW_ARG_KEYS = new Set([
+  "target",
+  "project",
+  "confirm",
+  "objectId",
+  "contentVersion",
+  "reviewer",
+  "decision",
+  "notes",
+  "actor",
+  "academyItemId",
+  "articleId",
+  "policyId",
+]);
 const FLOW_USAGE = `usage: ${[...FLOW_COMMANDS].join(" | ")}`;
 
-function parseArgs(argv) {
+export function assertProductionCommand(command) {
+  if (!PRODUCTION_COMMANDS.has(command)) {
+    throw new Error(`command ${command} is not allowed with --target production`);
+  }
+}
+
+export function parseArgs(argv) {
   const [command, ...rest] = argv;
   const args = {};
   for (let index = 0; index < rest.length; index += 1) {
@@ -759,6 +783,7 @@ function parseArgs(argv) {
     if (token === "--yes") throw new Error("refusing to run: --yes is not a confirmation");
     if (!token.startsWith("--")) throw new Error(`unexpected argument ${token}`);
     const key = token.slice(2);
+    if (!FLOW_ARG_KEYS.has(key)) throw new Error(`unknown argument --${key}`);
     const value = rest[index + 1];
     if (value === undefined || value.startsWith("--")) throw new Error(`missing value for --${key}`);
     args[key] = value;
@@ -790,7 +815,7 @@ async function dispatchFlow(db, command, input, options) {
   throw new Error(FLOW_USAGE);
 }
 
-async function openProductionFlowDb(project, confirm) {
+export async function openProductionFlowDb(project, confirm, readLine = readLineFromStdin) {
   assertExecutionTarget({
     target: "production",
     projectId: project,
@@ -805,7 +830,7 @@ async function openProductionFlowDb(project, confirm) {
   const { bindVerifiedAdc, openProductionFirestore, productionFirestore } = await import("./run-import.mjs");
   const identity = identityFromAdcPayload(bindVerifiedAdc(adcFile));
   assertServiceAccountIdentity({ credential: identity, projectId: PRODUCTION_PROJECT_ID });
-  await confirmProjectOnStdin(PRODUCTION_PROJECT_ID, readLineFromStdin);
+  await confirmProjectOnStdin(PRODUCTION_PROJECT_ID, readLine);
   return {
     db: productionFirestore(await openProductionFirestore(adcFile)),
     operator: identity.clientEmail,
@@ -821,6 +846,7 @@ async function main() {
   }
   const input = flowInput(args);
   if (flowTarget === "production") {
+    assertProductionCommand(command);
     const { db, operator } = await openProductionFlowDb(args.project, args.confirm);
     await dispatchFlow(db, command, input, { target: "production", operator });
     return;
