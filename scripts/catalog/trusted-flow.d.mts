@@ -13,6 +13,16 @@ export function assessEmulatorSafety(
 
 export function assertCatalogProject(projectId: string): void;
 
+export function parseArgs(argv: string[]): { command: string; args: Record<string, string> };
+
+export function assertProductionCommand(command: string): void;
+
+export function openProductionFlowDb(
+  project: string | undefined,
+  confirm: string | undefined,
+  readLine?: () => Promise<string>,
+): Promise<{ db: Firestore; operator: string }>;
+
 export function assertProductionProject(db: Firestore): void;
 
 type FlowOptions = { target?: "emulator" | "production"; operator?: string };

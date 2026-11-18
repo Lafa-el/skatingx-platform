@@ -8,7 +8,10 @@ import {
   parseImportArgs,
 } from "../../scripts/catalog/import-guard.mjs";
 import {
+  assertProductionCommand,
   assertProductionProject,
+  openProductionFlowDb,
+  parseArgs,
   reviewKnowledgeArticle,
 } from "../../scripts/catalog/trusted-flow.mjs";
 
@@ -138,5 +141,58 @@ describe("P3 production review gate on the emulator", () => {
     expect(() => parseImportArgs(["--project", "skatingx-prod", "--runId", "r"])).toThrow(
       /--target emulator\|production is required/,
     );
+  });
+});
+
+describe("P3-8 production gate tightening", () => {
+  const readLine = async () => "skatingx-prod";
+
+  it("rejects an unknown argument and keeps known article-review args", () => {
+    expect(() => parseArgs(["article-review", "--bogus", "x"])).toThrow(/unknown argument --bogus/);
+    expect(parseArgs(["article-review", "--articleId", "KA-1", "--reviewer", "r", "--decision", "approved"])).toEqual({
+      command: "article-review",
+      args: { articleId: "KA-1", reviewer: "r", decision: "approved" },
+    });
+    expect(() => parseArgs(["review", "--yes"])).toThrow(/--yes is not a confirmation/);
+  });
+
+  it("allows only article and policy commands in production", () => {
+    for (const command of ["article-review", "article-publish", "policy-review", "policy-publish"]) {
+      expect(() => assertProductionCommand(command)).not.toThrow();
+    }
+    for (const command of ["review", "publish", "withdraw", "revoke", "link-review", "link-publish", "link-withdraw"]) {
+      expect(() => assertProductionCommand(command)).toThrow(/is not allowed with --target production/);
+    }
+  });
+
+  it("refuses a production open when the project id is wrong", async () => {
+    await expect(openProductionFlowDb("demo-x", "demo-x", readLine)).rejects.toThrow(
+      /production project id must be skatingx-prod/,
+    );
+  });
+
+  it("refuses a production open when confirm does not match the project", async () => {
+    await expect(openProductionFlowDb("skatingx-prod", "demo-x", readLine)).rejects.toThrow(
+      /--confirm must equal the production project id/,
+    );
+  });
+
+  it("refuses a production open when the ADC file is not set", async () => {
+    const savedAdc = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    const savedHost = process.env.FIRESTORE_EMULATOR_HOST;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    // The project and confirm checks pass first. The emulator host check is next,
+    // so this test has to clear it to reach the ADC refusal.
+    delete process.env.FIRESTORE_EMULATOR_HOST;
+    try {
+      await expect(openProductionFlowDb("skatingx-prod", "skatingx-prod", readLine)).rejects.toThrow(
+        /GOOGLE_APPLICATION_CREDENTIALS is not set/,
+      );
+    } finally {
+      if (savedAdc === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      else process.env.GOOGLE_APPLICATION_CREDENTIALS = savedAdc;
+      if (savedHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+      else process.env.FIRESTORE_EMULATOR_HOST = savedHost;
+    }
   });
 });
