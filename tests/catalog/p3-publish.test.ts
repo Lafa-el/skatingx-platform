@@ -277,6 +277,8 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
       reviewStatus: "approved",
       reviewer: REVIEWER,
       reviewedAt: CREATED,
+      knownRestrictions: [],
+      knownRecoveryFlags: [],
     });
 
     await publishSafetyPolicy(db, { policyId: "synth-pub-1", actor: ACTOR });

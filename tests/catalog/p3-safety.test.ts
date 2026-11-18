@@ -7,6 +7,8 @@ import {
   type CatalogObject,
   type CatalogVersion,
   contentChecksumPayload,
+  evaluateSafety,
+  parseSafetyPolicy,
 } from "@skatingx/training-catalog";
 import { computeCatalogChecksum } from "../../packages/training-catalog/src/checksum";
 import {
@@ -103,6 +105,11 @@ function synthPolicy() {
     ageBands: ["age8_10", "age11_13", "age14_16"],
     blockingRestrictions: ["no_high_impact"],
     blockingRecoveryFlags: ["injury"],
+    knownRestrictions: ["no_high_impact", "knee_brace"],
+    knownRecoveryFlags: ["injury", "fatigue"],
+    reviewStatus: "approved",
+    reviewer: "reviewer-1",
+    reviewedAt: "2026-11-16T00:00:00.000Z",
   };
 }
 
@@ -241,6 +248,11 @@ describe("P3 youth safety on the emulator", () => {
       ageBands: ["age8_10", "age14_16"],
       blockingRestrictions: ["no_high_impact"],
       blockingRecoveryFlags: ["injury"],
+      knownRestrictions: ["no_high_impact"],
+      knownRecoveryFlags: ["injury"],
+      reviewStatus: "approved",
+      reviewer: "reviewer-1",
+      reviewedAt: STARTED,
     });
     const result = await assess(db, "EX-L079", READY, { policyId: "p1", policyVersion: "p1" });
     expect(result).toEqual({
@@ -423,5 +435,153 @@ describe("P3 youth safety on the emulator", () => {
         policyVersion: null,
       });
     }
+  });
+});
+
+function approvedPolicy(overrides: Record<string, unknown> = {}) {
+  return {
+    policyId: "p",
+    policyVersion: "p",
+    status: "published",
+    objectIds: ["EX-L001"],
+    ageBands: ["age11_13"],
+    blockingRestrictions: ["no_high_impact"],
+    blockingRecoveryFlags: ["injury"],
+    knownRestrictions: ["no_high_impact", "knee_brace"],
+    knownRecoveryFlags: ["injury", "fatigue"],
+    reviewStatus: "approved",
+    reviewer: "reviewer-1",
+    reviewedAt: "2026-11-16T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+const CONDITIONED = {
+  ...approvedPolicy({
+    policyId: "synth-hard",
+    policyVersion: "synth-hard",
+    objectIds: ["EX-L039"],
+    ageBands: ["age8_10", "age11_13", "age14_16"],
+  }),
+  objectConditions: [
+    {
+      objectId: "EX-L039",
+      minTrainingAgeYears: 1,
+      requiredSkills: ["landing"],
+      allowedLoads: ["low", "moderate"],
+    },
+  ],
+};
+
+const CONDITIONED_ATHLETE = {
+  objectId: "EX-L039",
+  ageBand: "age11_13",
+  trainingAge: 2,
+  verifiedSkills: ["landing"],
+  recentLoad: "moderate",
+  recoveryFlags: [] as string[],
+  supervision: { qualified: true, present: true },
+  authorizedRestrictions: [] as string[],
+};
+
+describe("P3-5 policy parse fail-closed", () => {
+  it("rejects a published policy that is missing reviewStatus", () => {
+    const { reviewStatus, ...policy } = approvedPolicy();
+    expect(reviewStatus).toBe("approved");
+    expect(parseSafetyPolicy(policy).ok).toBe(false);
+  });
+
+  it("rejects reviewStatus rejected and pending", () => {
+    expect(parseSafetyPolicy(approvedPolicy({ reviewStatus: "rejected" })).ok).toBe(false);
+    expect(parseSafetyPolicy(approvedPolicy({ reviewStatus: "pending" })).ok).toBe(false);
+  });
+
+  it("accepts reviewStatus approved with a reviewer and a parseable reviewedAt", () => {
+    expect(parseSafetyPolicy(approvedPolicy()).ok).toBe(true);
+  });
+
+  it("rejects a blocking restriction that is not in the known list", () => {
+    expect(parseSafetyPolicy(approvedPolicy({
+      blockingRestrictions: ["no_high_impact", "unknown_limit"],
+    })).ok).toBe(false);
+  });
+
+  it("rejects a blocking recovery flag that is not in the known list", () => {
+    expect(parseSafetyPolicy(approvedPolicy({
+      blockingRecoveryFlags: ["injury", "unknown_flag"],
+    })).ok).toBe(false);
+  });
+});
+
+describe("P3-5 evaluator hardening", () => {
+  it("returns UNKNOWN_RESTRICTION for a restriction outside the known list", () => {
+    expect(evaluateSafety({
+      ...CONDITIONED_ATHLETE,
+      authorizedRestrictions: ["not_listed"],
+    }, CONDITIONED)).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["UNKNOWN_RESTRICTION"],
+    });
+  });
+
+  it("returns UNKNOWN_RECOVERY_FLAG for a recovery flag outside the known list", () => {
+    expect(evaluateSafety({
+      ...CONDITIONED_ATHLETE,
+      recoveryFlags: ["not_listed"],
+    }, CONDITIONED)).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["UNKNOWN_RECOVERY_FLAG"],
+    });
+  });
+
+  it("does not treat a known non-blocking restriction or recovery flag as unknown", () => {
+    expect(evaluateSafety({
+      ...CONDITIONED_ATHLETE,
+      authorizedRestrictions: ["knee_brace"],
+    }, CONDITIONED)).toEqual({
+      decision: "allow_with_supervision",
+      reasonCodes: ["POLICY_SATISFIED"],
+      policyVersion: "synth-hard",
+    });
+    expect(evaluateSafety({
+      ...CONDITIONED_ATHLETE,
+      recoveryFlags: ["fatigue"],
+    }, CONDITIONED)).toEqual({
+      decision: "allow_with_supervision",
+      reasonCodes: ["POLICY_SATISFIED"],
+      policyVersion: "synth-hard",
+    });
+  });
+
+  it("returns TRAINING_AGE_INSUFFICIENT when training age is below the object minimum", () => {
+    expect(evaluateSafety({ ...CONDITIONED_ATHLETE, trainingAge: 0 }, CONDITIONED)).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["TRAINING_AGE_INSUFFICIENT"],
+    });
+  });
+
+  it("returns REQUIRED_SKILL_MISSING when a required skill is absent", () => {
+    expect(evaluateSafety({
+      ...CONDITIONED_ATHLETE,
+      verifiedSkills: ["balance"],
+    }, CONDITIONED)).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["REQUIRED_SKILL_MISSING"],
+    });
+  });
+
+  it("returns LOAD_NOT_ALLOWED when the recent load is outside the allowed list", () => {
+    expect(evaluateSafety({ ...CONDITIONED_ATHLETE, recentLoad: "high" }, CONDITIONED)).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["LOAD_NOT_ALLOWED"],
+    });
+  });
+
+  it("returns allow_with_supervision for EX-L039 when every object condition is met", () => {
+    expect(evaluateSafety(CONDITIONED_ATHLETE, CONDITIONED)).toEqual({
+      decision: "allow_with_supervision",
+      reasonCodes: ["POLICY_SATISFIED"],
+      policyVersion: "synth-hard",
+    });
   });
 });
