@@ -183,7 +183,14 @@ const PREICE = {
   updatedAt: CREATED,
 };
 
-const OWN_IDS = ["KA-PREICE-001", "KA-PREICE-REJECT", "KA-PREICE-APPROVED", "KA-PREICE-PUBLISHED", "KA-MISSING"];
+const OWN_IDS = [
+  "KA-PREICE-001",
+  "KA-PREICE-REJECT",
+  "KA-PREICE-APPROVED",
+  "KA-PREICE-PUBLISHED",
+  "KA-PREICE-RACE",
+  "KA-MISSING",
+];
 
 function openFirestore(): Firestore {
   const existing = getApps().find((app) => app.name === "catalog-p3-article-review");
@@ -371,5 +378,46 @@ describe("P3 knowledge article review on the emulator", () => {
     const rejected = (await articleAudits(db, "KA-PREICE-PUBLISHED")).filter((entry) => entry.result === "rejected");
     expect(rejected).toHaveLength(1);
     expect(String(rejected[0]?.detail)).toMatch(/status must be draft/);
+  });
+
+  it("two concurrent reviews of one draft leave a single decision", async () => {
+    await seedArticle(db, {
+      id: "KA-PREICE-RACE",
+      status: "draft",
+      reviewStatus: "pending",
+      schemaVersion: 1,
+      titleZh: PREICE.titleZh,
+      bodyZh: "同一篇文章",
+      createdAt: CREATED,
+      updatedAt: CREATED,
+    });
+
+    const results = await Promise.allSettled([
+      reviewKnowledgeArticle(db, {
+        articleId: "KA-PREICE-RACE",
+        reviewer: "reviewer-a",
+        decision: "approved",
+      }),
+      reviewKnowledgeArticle(db, {
+        articleId: "KA-PREICE-RACE",
+        reviewer: "reviewer-b",
+        decision: "approved",
+      }),
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+
+    const article = await readArticle(db, "KA-PREICE-RACE");
+    const logs = await articleAudits(db, "KA-PREICE-RACE");
+    const ok = logs.filter((entry) => entry.result === "ok");
+    const rejected = logs.filter((entry) => entry.result === "rejected");
+    expect(ok).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(article?.status).toBe("draft");
+    expect(article?.reviewStatus).toBe("approved");
+    expect(article?.reviewer).toBe(ok[0]?.actor);
+    expect(["reviewer-a", "reviewer-b"]).toContain(article?.reviewer);
+    expect(typeof article?.reviewedContentSha256).toBe("string");
   });
 });

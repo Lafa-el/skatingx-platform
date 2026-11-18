@@ -3,6 +3,7 @@
 // The default path runs against the Firestore emulator and refuses a project
 // id that does not start with demo-. Production is a separate gated path and
 // is not opened by importing this file.
+import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 
@@ -27,6 +28,7 @@ import {
 import { checkPublishedBinding } from "../../packages/training-catalog/src/validate.ts";
 import { computeCatalogChecksum } from "../../packages/training-catalog/src/checksum.ts";
 import { evaluateSafety } from "../../packages/training-catalog/src/safety-evaluate.ts";
+import { parseSafetyPolicy } from "../../packages/training-catalog/src/safety-policy.ts";
 
 const ROOT = "artifacts/skatingx-production";
 const OBJECTS = "trainingCatalogObjects";
@@ -37,6 +39,38 @@ const AUDIT = "trainingCatalogAuditLogs";
 const POLICIES = "trainingCatalogSafetyPolicies";
 const KNOWLEDGE_ARTICLES = "trainingCatalogKnowledgeArticles";
 const EDITOR_ACTIONS = new Set(["create", "edit", "import"]);
+const CONTENT_HASH_OMIT = new Set([
+  "status",
+  "reviewStatus",
+  "reviewer",
+  "reviewedAt",
+  "publishedAt",
+  "reviewedContentSha256",
+]);
+
+function canonical(value) {
+  if (value === undefined) return "null";
+  if (Array.isArray(value)) return `[${value.map((item) => canonical(item)).join(",")}]`;
+  if (value !== null && typeof value === "object") {
+    const keys = Object.keys(value).sort();
+    return `{${keys.map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function contentHash(doc) {
+  const body = {};
+  for (const key of Object.keys(doc)) {
+    if (!CONTENT_HASH_OMIT.has(key)) body[key] = doc[key];
+  }
+  return createHash("sha256").update(canonical(body)).digest("hex");
+}
+
+function assertReviewedContent(doc) {
+  if (typeof doc.reviewedContentSha256 !== "string" || contentHash(doc) !== doc.reviewedContentSha256) {
+    throw new Error("content changed since review");
+  }
+}
 
 function collectionPath(name) {
   return `${ROOT}/${name}`;
@@ -462,35 +496,39 @@ async function reviewRecord(db, collectionName, id, reviewer, decision, action, 
     if (decision !== "approved" && decision !== "rejected") {
       throw new Error("decision must be approved or rejected");
     }
-    const current = await readDoc(db, `${collectionPath(collectionName)}/${id}`);
-    if (current === null) throw new Error("document does not exist");
-    if (current.status !== undefined && current.status !== "draft") {
-      throw new Error("status must be draft");
-    }
-    // A missing field is the initial pending state. null, "", and any other value are not.
-    if (
-      current.reviewStatus !== undefined &&
-      current.reviewStatus !== "pending" &&
-      current.reviewStatus !== "rejected"
-    ) {
-      throw new Error("reviewStatus must be pending or rejected");
-    }
-    const reviewedAt = nowIso();
-    const batch = db.batch();
-    batch.update(db.doc(`${collectionPath(collectionName)}/${id}`), {
-      reviewStatus: decision,
-      reviewer: reviewerId,
-      reviewedAt,
+    const docPath = `${collectionPath(collectionName)}/${id}`;
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(db.doc(docPath));
+      if (!snap.exists) throw new Error("document does not exist");
+      const current = snap.data();
+      if (current === undefined) throw new Error("document does not exist");
+      if (current.status !== undefined && current.status !== "draft") {
+        throw new Error("status must be draft");
+      }
+      // A missing field is the initial pending state. null, "", and any other value are not.
+      if (
+        current.reviewStatus !== undefined &&
+        current.reviewStatus !== "pending" &&
+        current.reviewStatus !== "rejected"
+      ) {
+        throw new Error("reviewStatus must be pending or rejected");
+      }
+      const reviewedAt = nowIso();
+      tx.update(db.doc(docPath), {
+        reviewStatus: decision,
+        reviewer: reviewerId,
+        reviewedAt,
+        reviewedContentSha256: contentHash(current),
+      });
+      tx.set(db.collection(collectionPath(AUDIT)).doc(), {
+        action,
+        actor: reviewerId,
+        target,
+        at: reviewedAt,
+        detail: decision,
+        result: "ok",
+      });
     });
-    batch.set(db.collection(collectionPath(AUDIT)).doc(), {
-      action,
-      actor: reviewerId,
-      target,
-      at: reviewedAt,
-      detail: decision,
-      result: "ok",
-    });
-    await batch.commit();
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("refusing to run")) throw error;
     await reject(db, action, reviewer, target, error);
@@ -518,7 +556,7 @@ function reviewApproved(record) {
   );
 }
 
-async function publishReviewedDraft(db, collectionName, id, actor, action, missingMessage, unapprovedMessage) {
+async function publishReviewedDraft(db, collectionName, id, actor, action, missingMessage, unapprovedMessage, validate) {
   const target = auditTarget(collectionName, id);
   const docPath = `${collectionPath(collectionName)}/${id}`;
   try {
@@ -536,6 +574,8 @@ async function publishReviewedDraft(db, collectionName, id, actor, action, missi
       const current = snap.data();
       if (current.status !== "draft") throw new Error("status must be draft");
       if (!reviewApproved(current)) throw new Error(unapprovedMessage);
+      assertReviewedContent(current);
+      validate?.(current);
       tx.update(db.doc(docPath), { status: "published", publishedAt });
       tx.set(db.collection(collectionPath(AUDIT)).doc(), {
         action,
@@ -562,6 +602,7 @@ export async function publishKnowledgeArticle(db, input, options = {}) {
     "article_publish",
     "article does not exist",
     "article is not approved",
+    undefined,
   );
 }
 
@@ -577,6 +618,11 @@ export async function publishSafetyPolicy(db, input, options = {}) {
     "policy_publish",
     "policy does not exist",
     "policy is not approved",
+    (current) => {
+      // parseSafetyPolicy requires status published, and this transaction has not written it yet.
+      const parsed = parseSafetyPolicy({ ...current, status: "published" });
+      if (!parsed.ok) throw new Error("safety policy is invalid");
+    },
   );
 }
 
@@ -631,6 +677,7 @@ export async function publishCatalogLink(db, input, options = {}) {
       const link = linkSnap.data();
       const parent = parentSnap.data();
       if (!linkApproved(link)) throw new Error("link is not approved");
+      assertReviewedContent(link);
       const freshRef = catalogRefOf(link);
       if (parent.status !== "published" || parent.publishedVersion !== freshRef.contentVersion) {
         throw new Error("target is not published at the linked version");
