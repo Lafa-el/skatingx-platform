@@ -1,12 +1,23 @@
 // Trusted catalog review and publish. Admin SDK only.
 //
-// Run against the Firestore emulator. A project id that does not start with
-// demo- is refused. This file is also the CLI; importing it does not run a command.
+// The default path runs against the Firestore emulator and refuses a project
+// id that does not start with demo-. Production is a separate gated path and
+// is not opened by importing this file.
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
+
+import {
+  EXPECTED_DATABASE_ID,
+  PRODUCTION_PROJECT_ID,
+  assertExecutionTarget,
+  assertServiceAccountIdentity,
+  confirmProjectOnStdin,
+  identityFromAdcPayload,
+  readLineFromStdin,
+} from "./import-guard.mjs";
 
 import {
   contentChecksumPayload,
@@ -66,6 +77,21 @@ function projectIdOf(db) {
 
 function assertDemoProject(db) {
   assertCatalogProject(projectIdOf(db));
+}
+
+export function assertProductionProject(db) {
+  if (projectIdOf(db) !== PRODUCTION_PROJECT_ID) {
+    throw new Error("refusing to run: production project id must be skatingx-prod");
+  }
+  const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
+  if (typeof emulatorHost === "string" && emulatorHost.trim() !== "") {
+    throw new Error("refusing to run: FIRESTORE_EMULATOR_HOST must be unset for production");
+  }
+}
+
+function assertFlowProject(db, target = "emulator") {
+  if (target === "production") assertProductionProject(db);
+  else assertDemoProject(db);
 }
 
 function requireText(value, label) {
@@ -143,8 +169,8 @@ function auditTarget(collection, id, contentVersion) {
   return target;
 }
 
-export async function reviewCatalogVersion(db, input) {
-  assertDemoProject(db);
+export async function reviewCatalogVersion(db, input, options = {}) {
+  assertFlowProject(db, options.target);
   const objectId = input.objectId;
   const contentVersion = input.contentVersion;
   const target = auditTarget(OBJECTS, objectId, contentVersion);
@@ -285,8 +311,8 @@ async function validatePublish(db, input) {
   return { idempotent: false, publishedSnapshot };
 }
 
-export async function publishCatalogVersionFlow(db, input) {
-  assertDemoProject(db);
+export async function publishCatalogVersionFlow(db, input, options = {}) {
+  assertFlowProject(db, options.target);
   const actor = requireText(input.reviewer, "reviewer");
   const objectId = requireText(input.objectId, "objectId");
   const contentVersion = requireText(input.contentVersion, "contentVersion");
@@ -343,8 +369,8 @@ export async function publishCatalogVersionFlow(db, input) {
   }
 }
 
-export async function withdrawCatalogVersion(db, input) {
-  assertDemoProject(db);
+export async function withdrawCatalogVersion(db, input, options = {}) {
+  assertFlowProject(db, options.target);
   const actor = requireText(input.actor, "actor");
   const objectId = requireText(input.objectId, "objectId");
   const contentVersion = requireText(input.contentVersion, "contentVersion");
@@ -388,8 +414,8 @@ export async function withdrawCatalogVersion(db, input) {
   }
 }
 
-export async function revokeCatalogApprovalFlow(db, input) {
-  assertDemoProject(db);
+export async function revokeCatalogApprovalFlow(db, input, options = {}) {
+  assertFlowProject(db, options.target);
   const actor = requireText(input.actor, "actor");
   const objectId = requireText(input.objectId, "objectId");
   const contentVersion = requireText(input.contentVersion, "contentVersion");
@@ -427,8 +453,8 @@ export async function revokeCatalogApprovalFlow(db, input) {
   }
 }
 
-async function reviewRecord(db, collectionName, id, reviewer, decision, action) {
-  assertDemoProject(db);
+async function reviewRecord(db, collectionName, id, reviewer, decision, action, flowTarget) {
+  assertFlowProject(db, flowTarget);
   const target = auditTarget(collectionName, id);
   try {
     requireText(id, "id");
@@ -471,16 +497,16 @@ async function reviewRecord(db, collectionName, id, reviewer, decision, action) 
   }
 }
 
-export async function reviewCatalogLink(db, input) {
-  await reviewRecord(db, LINKS, input.academyItemId, input.reviewer, input.decision, "link_review");
+export async function reviewCatalogLink(db, input, options = {}) {
+  await reviewRecord(db, LINKS, input.academyItemId, input.reviewer, input.decision, "link_review", options.target);
 }
 
-export async function reviewKnowledgeArticle(db, input) {
-  await reviewRecord(db, KNOWLEDGE_ARTICLES, input.articleId, input.reviewer, input.decision, "article_review");
+export async function reviewKnowledgeArticle(db, input, options = {}) {
+  await reviewRecord(db, KNOWLEDGE_ARTICLES, input.articleId, input.reviewer, input.decision, "article_review", options.target);
 }
 
-export async function reviewSafetyPolicy(db, input) {
-  await reviewRecord(db, POLICIES, input.policyId, input.reviewer, input.decision, "policy_review");
+export async function reviewSafetyPolicy(db, input, options = {}) {
+  await reviewRecord(db, POLICIES, input.policyId, input.reviewer, input.decision, "policy_review", options.target);
 }
 
 function reviewApproved(record) {
@@ -524,8 +550,8 @@ async function publishReviewedDraft(db, collectionName, id, actor, action, missi
   }
 }
 
-export async function publishKnowledgeArticle(db, input) {
-  assertDemoProject(db);
+export async function publishKnowledgeArticle(db, input, options = {}) {
+  assertFlowProject(db, options.target);
   const actor = requireText(input.actor, "actor");
   const articleId = requireText(input.articleId, "articleId");
   await publishReviewedDraft(
@@ -539,8 +565,8 @@ export async function publishKnowledgeArticle(db, input) {
   );
 }
 
-export async function publishSafetyPolicy(db, input) {
-  assertDemoProject(db);
+export async function publishSafetyPolicy(db, input, options = {}) {
+  assertFlowProject(db, options.target);
   const actor = requireText(input.actor, "actor");
   const policyId = requireText(input.policyId, "policyId");
   await publishReviewedDraft(
@@ -577,8 +603,8 @@ function catalogRefOf(link) {
   return { kind: ref.kind, id: ref.id, contentVersion: ref.contentVersion };
 }
 
-export async function publishCatalogLink(db, input) {
-  assertDemoProject(db);
+export async function publishCatalogLink(db, input, options = {}) {
+  assertFlowProject(db, options.target);
   const actor = requireText(input.actor, "actor");
   const academyItemId = requireText(input.academyItemId, "academyItemId");
   const target = auditTarget(LINKS, academyItemId);
@@ -623,8 +649,8 @@ export async function publishCatalogLink(db, input) {
   }
 }
 
-export async function withdrawCatalogLink(db, input) {
-  assertDemoProject(db);
+export async function withdrawCatalogLink(db, input, options = {}) {
+  assertFlowProject(db, options.target);
   const actor = requireText(input.actor, "actor");
   const academyItemId = requireText(input.academyItemId, "academyItemId");
   const target = auditTarget(PUBLIC_LINKS, academyItemId);
@@ -652,11 +678,27 @@ export async function withdrawCatalogLink(db, input) {
   }
 }
 
+const FLOW_COMMANDS = new Set([
+  "review",
+  "publish",
+  "withdraw",
+  "revoke",
+  "link-review",
+  "link-publish",
+  "link-withdraw",
+  "article-review",
+  "article-publish",
+  "policy-review",
+  "policy-publish",
+]);
+const FLOW_USAGE = `usage: ${[...FLOW_COMMANDS].join(" | ")}`;
+
 function parseArgs(argv) {
   const [command, ...rest] = argv;
   const args = {};
   for (let index = 0; index < rest.length; index += 1) {
     const token = rest[index];
+    if (token === "--yes") throw new Error("refusing to run: --yes is not a confirmation");
     if (!token.startsWith("--")) throw new Error(`unexpected argument ${token}`);
     const key = token.slice(2);
     const value = rest[index + 1];
@@ -667,31 +709,66 @@ function parseArgs(argv) {
   return { command, args };
 }
 
+function flowInput(args) {
+  const input = { ...args };
+  delete input.target;
+  delete input.project;
+  delete input.confirm;
+  return input;
+}
+
+async function dispatchFlow(db, command, input, options) {
+  if (command === "review") return reviewCatalogVersion(db, input, options);
+  if (command === "publish") return publishCatalogVersionFlow(db, input, options);
+  if (command === "withdraw") return withdrawCatalogVersion(db, input, options);
+  if (command === "revoke") return revokeCatalogApprovalFlow(db, input, options);
+  if (command === "link-review") return reviewCatalogLink(db, input, options);
+  if (command === "link-publish") return publishCatalogLink(db, input, options);
+  if (command === "link-withdraw") return withdrawCatalogLink(db, input, options);
+  if (command === "article-review") return reviewKnowledgeArticle(db, input, options);
+  if (command === "article-publish") return publishKnowledgeArticle(db, input, options);
+  if (command === "policy-review") return reviewSafetyPolicy(db, input, options);
+  if (command === "policy-publish") return publishSafetyPolicy(db, input, options);
+  throw new Error(FLOW_USAGE);
+}
+
+async function openProductionFlowDb(project, confirm) {
+  assertExecutionTarget({
+    target: "production",
+    projectId: project,
+    confirm,
+    emulatorHost: process.env.FIRESTORE_EMULATOR_HOST,
+    databaseId: EXPECTED_DATABASE_ID,
+    execute: true,
+  });
+  const adcFile = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim() ?? "";
+  if (adcFile === "") throw new Error("refusing to run: GOOGLE_APPLICATION_CREDENTIALS is not set");
+  // run-import.mjs registers a module loader as soon as it is imported.
+  const { bindVerifiedAdc, openProductionFirestore, productionFirestore } = await import("./run-import.mjs");
+  const identity = identityFromAdcPayload(bindVerifiedAdc(adcFile));
+  assertServiceAccountIdentity({ credential: identity, projectId: PRODUCTION_PROJECT_ID });
+  await confirmProjectOnStdin(PRODUCTION_PROJECT_ID, readLineFromStdin);
+  return productionFirestore(await openProductionFirestore(adcFile));
+}
+
 async function main() {
+  const { command, args } = parseArgs(process.argv.slice(2));
+  if (!FLOW_COMMANDS.has(command)) throw new Error(FLOW_USAGE);
+  const flowTarget = args.target ?? "emulator";
+  if (flowTarget !== "emulator" && flowTarget !== "production") {
+    throw new Error("--target emulator|production is required");
+  }
+  const input = flowInput(args);
+  if (flowTarget === "production") {
+    const db = await openProductionFlowDb(args.project, args.confirm);
+    await dispatchFlow(db, command, input, { target: "production" });
+    return;
+  }
   const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "";
   assertCatalogProject(projectId);
-  const { command, args } = parseArgs(process.argv.slice(2));
   const app = initializeApp({ projectId });
   const db = getFirestore(app);
-  if (command === "review") {
-    await reviewCatalogVersion(db, args);
-  } else if (command === "publish") {
-    await publishCatalogVersionFlow(db, args);
-  } else if (command === "withdraw") {
-    await withdrawCatalogVersion(db, args);
-  } else if (command === "revoke") {
-    await revokeCatalogApprovalFlow(db, args);
-  } else if (command === "link-review") {
-    await reviewCatalogLink(db, args);
-  } else if (command === "link-publish") {
-    await publishCatalogLink(db, args);
-  } else if (command === "link-withdraw") {
-    await withdrawCatalogLink(db, args);
-  } else {
-    throw new Error(
-      "usage: review | publish | withdraw | revoke | link-review | link-publish | link-withdraw",
-    );
-  }
+  await dispatchFlow(db, command, input);
 }
 
 const SAFETY_READ_TIMEOUT_MS = 5000;
