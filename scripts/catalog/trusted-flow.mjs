@@ -24,6 +24,7 @@ const LINKS = "trainingCatalogLinks";
 const PUBLIC_LINKS = "trainingCatalogPublicLinks";
 const AUDIT = "trainingCatalogAuditLogs";
 const POLICIES = "trainingCatalogSafetyPolicies";
+const KNOWLEDGE_ARTICLES = "trainingCatalogKnowledgeArticles";
 const EDITOR_ACTIONS = new Set(["create", "edit", "import"]);
 
 function collectionPath(name) {
@@ -472,6 +473,10 @@ async function reviewRecord(db, collectionName, id, reviewer, decision, action) 
 
 export async function reviewCatalogLink(db, input) {
   await reviewRecord(db, LINKS, input.academyItemId, input.reviewer, input.decision, "link_review");
+}
+
+export async function reviewKnowledgeArticle(db, input) {
+  await reviewRecord(db, KNOWLEDGE_ARTICLES, input.articleId, input.reviewer, input.decision, "article_review");
 }
 
 function linkApproved(link) {
