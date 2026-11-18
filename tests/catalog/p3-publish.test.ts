@@ -68,9 +68,10 @@ const ARTICLE_IDS = [
   "KA-PREICE-PENDING",
   "KA-PREICE-PUBLISHED",
   "KA-PREICE-REJECTED",
+  "KA-PREICE-CHANGED",
   "KA-MISSING",
 ];
-const POLICY_IDS = ["synth-pub-1"];
+const POLICY_IDS = ["synth-pub-1", "synth-invalid"];
 
 function openFirestore(): Firestore {
   const existing = getApps().find((app) => app.name === "catalog-p3-publish");
@@ -274,11 +275,14 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
     await seedPolicy(db, {
       ...POLICY_CONTENT,
       status: "draft",
-      reviewStatus: "approved",
-      reviewer: REVIEWER,
-      reviewedAt: CREATED,
+      reviewStatus: "pending",
       knownRestrictions: [],
       knownRecoveryFlags: [],
+    });
+    await reviewSafetyPolicy(db, {
+      policyId: "synth-pub-1",
+      reviewer: REVIEWER,
+      decision: "approved",
     });
 
     await publishSafetyPolicy(db, { policyId: "synth-pub-1", actor: ACTOR });
@@ -320,5 +324,66 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
     const rejected = (await audits(db, "synth-pub-1", "policy_publish")).filter((entry) => entry.result === "rejected");
     expect(rejected).toHaveLength(1);
     expect(String(rejected[0]?.detail)).toMatch(/policy is not approved/);
+  });
+
+  it("refuses to publish an article whose body changed after review", async () => {
+    await seedArticle(db, {
+      id: "KA-PREICE-CHANGED",
+      status: "draft",
+      reviewStatus: "pending",
+      titleZh: ARTICLE.titleZh,
+      bodyZh: "原始正文",
+      sources: SOURCES,
+      catalogRefs: [],
+    });
+    await reviewKnowledgeArticle(db, {
+      articleId: "KA-PREICE-CHANGED",
+      reviewer: REVIEWER,
+      decision: "approved",
+    });
+    await db.doc(`${ARTICLES}/KA-PREICE-CHANGED`).update({ bodyZh: "改过的正文" });
+
+    await expect(publishKnowledgeArticle(db, {
+      articleId: "KA-PREICE-CHANGED",
+      actor: ACTOR,
+    })).rejects.toThrow(/content changed since review/);
+
+    const article = await readArticle(db, "KA-PREICE-CHANGED");
+    expect(article?.status).toBe("draft");
+    expect(article?.bodyZh).toBe("改过的正文");
+    const rejected = (await audits(db, "KA-PREICE-CHANGED", "article_publish")).filter((entry) => entry.result === "rejected");
+    expect(rejected).toHaveLength(1);
+    expect(String(rejected[0]?.detail)).toMatch(/content changed since review/);
+  });
+
+  it("refuses to publish a policy that does not parse", async () => {
+    await seedPolicy(db, {
+      policyId: "synth-invalid",
+      policyVersion: "synth-invalid",
+      status: "draft",
+      reviewStatus: "pending",
+      ageBands: ["age11_13"],
+      blockingRestrictions: [],
+      blockingRecoveryFlags: [],
+      knownRestrictions: [],
+      knownRecoveryFlags: [],
+    });
+    await reviewSafetyPolicy(db, {
+      policyId: "synth-invalid",
+      reviewer: REVIEWER,
+      decision: "approved",
+    });
+
+    await expect(publishSafetyPolicy(db, {
+      policyId: "synth-invalid",
+      actor: ACTOR,
+    })).rejects.toThrow(/safety policy is invalid/);
+
+    const policy = await readPolicy(db, "synth-invalid");
+    expect(policy?.status).toBe("draft");
+    expect(policy?.reviewStatus).toBe("approved");
+    const rejected = (await audits(db, "synth-invalid", "policy_publish")).filter((entry) => entry.result === "rejected");
+    expect(rejected).toHaveLength(1);
+    expect(String(rejected[0]?.detail)).toMatch(/safety policy is invalid/);
   });
 });
