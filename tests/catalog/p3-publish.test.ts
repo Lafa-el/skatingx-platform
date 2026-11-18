@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { parseSafetyPolicy } from "@skatingx/training-catalog";
 import {
+  policyDocId,
   publishKnowledgeArticle,
   publishSafetyPolicy,
   reviewKnowledgeArticle,
@@ -61,7 +62,10 @@ const POLICY_CONTENT = {
   ageBands: ["age11_13"],
   blockingRestrictions: [] as string[],
   blockingRecoveryFlags: [] as string[],
+  objectConditions: [{ objectId: "EX-L001", decisionMode: "conditional", minTrainingAgeYears: 0 }],
 };
+const PUB_DOC = policyDocId("synth-pub-1", "synth-pub-1");
+const INVALID_DOC = policyDocId("synth-invalid", "synth-invalid");
 
 const ARTICLE_IDS = [
   "KA-PREICE-001",
@@ -71,7 +75,7 @@ const ARTICLE_IDS = [
   "KA-PREICE-CHANGED",
   "KA-MISSING",
 ];
-const POLICY_IDS = ["synth-pub-1", "synth-invalid"];
+const POLICY_IDS = [PUB_DOC, INVALID_DOC];
 
 function openFirestore(): Firestore {
   const existing = getApps().find((app) => app.name === "catalog-p3-publish");
@@ -88,7 +92,9 @@ async function readArticle(db: Firestore, id: string): Promise<Record<string, un
 }
 
 async function seedPolicy(db: Firestore, policy: { policyId: string } & Record<string, unknown>): Promise<void> {
-  await db.doc(`${POLICIES}/${policy.policyId}`).set(policy);
+  const version = typeof policy.policyVersion === "string" ? policy.policyVersion : "";
+  const docId = version === "" ? policy.policyId : policyDocId(policy.policyId, version);
+  await db.doc(`${POLICIES}/${docId}`).set(policy);
 }
 
 async function readPolicy(db: Firestore, id: string): Promise<Record<string, unknown> | undefined> {
@@ -250,23 +256,24 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
 
     await reviewSafetyPolicy(db, {
       policyId: "synth-pub-1",
+      policyVersion: "synth-pub-1",
       reviewer: REVIEWER,
       decision: "approved",
     });
 
-    const policy = await readPolicy(db, "synth-pub-1");
+    const policy = await readPolicy(db, PUB_DOC);
     expect(policy?.status).toBe("draft");
     expect(policy?.reviewStatus).toBe("approved");
     expect(policy?.reviewer).toBe(REVIEWER);
     expect(parseableDate(policy?.reviewedAt)).toBe(true);
-    const approved = (await audits(db, "synth-pub-1", "policy_review")).filter((entry) => entry.result === "ok");
+    const approved = (await audits(db, PUB_DOC, "policy_review")).filter((entry) => entry.result === "ok");
     expect(approved).toEqual([
       expect.objectContaining({
         action: "policy_review",
         actor: REVIEWER,
         result: "ok",
         detail: "approved",
-        target: { collection: "trainingCatalogSafetyPolicies", id: "synth-pub-1" },
+        target: { collection: "trainingCatalogSafetyPolicies", id: PUB_DOC },
       }),
     ]);
   });
@@ -281,13 +288,14 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
     });
     await reviewSafetyPolicy(db, {
       policyId: "synth-pub-1",
+      policyVersion: "synth-pub-1",
       reviewer: REVIEWER,
       decision: "approved",
     });
 
-    await publishSafetyPolicy(db, { policyId: "synth-pub-1", actor: ACTOR });
+    await publishSafetyPolicy(db, { policyId: "synth-pub-1", policyVersion: "synth-pub-1", actor: ACTOR });
 
-    const policy = await readPolicy(db, "synth-pub-1");
+    const policy = await readPolicy(db, PUB_DOC);
     expect(policy?.status).toBe("published");
     expect(policy?.policyId).toBe(POLICY_CONTENT.policyId);
     expect(policy?.policyVersion).toBe(POLICY_CONTENT.policyVersion);
@@ -299,13 +307,13 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
     expect(parseableDate(policy?.publishedAt)).toBe(true);
     expect(parseSafetyPolicy(policy)).toMatchObject({ ok: true });
 
-    const published = (await audits(db, "synth-pub-1", "policy_publish")).filter((entry) => entry.result === "ok");
+    const published = (await audits(db, PUB_DOC, "policy_publish")).filter((entry) => entry.result === "ok");
     expect(published).toEqual([
       expect.objectContaining({
         action: "policy_publish",
         actor: ACTOR,
         result: "ok",
-        target: { collection: "trainingCatalogSafetyPolicies", id: "synth-pub-1" },
+        target: { collection: "trainingCatalogSafetyPolicies", id: PUB_DOC },
       }),
     ]);
   });
@@ -315,13 +323,14 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
 
     await expect(publishSafetyPolicy(db, {
       policyId: "synth-pub-1",
+      policyVersion: "synth-pub-1",
       actor: ACTOR,
     })).rejects.toThrow(/policy is not approved/);
 
-    const policy = await readPolicy(db, "synth-pub-1");
+    const policy = await readPolicy(db, PUB_DOC);
     expect(policy?.status).toBe("draft");
     expect(policy?.reviewStatus).toBe("pending");
-    const rejected = (await audits(db, "synth-pub-1", "policy_publish")).filter((entry) => entry.result === "rejected");
+    const rejected = (await audits(db, PUB_DOC, "policy_publish")).filter((entry) => entry.result === "rejected");
     expect(rejected).toHaveLength(1);
     expect(String(rejected[0]?.detail)).toMatch(/policy is not approved/);
   });
@@ -370,19 +379,21 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
     });
     await reviewSafetyPolicy(db, {
       policyId: "synth-invalid",
+      policyVersion: "synth-invalid",
       reviewer: REVIEWER,
       decision: "approved",
     });
 
     await expect(publishSafetyPolicy(db, {
       policyId: "synth-invalid",
+      policyVersion: "synth-invalid",
       actor: ACTOR,
     })).rejects.toThrow(/safety policy is invalid/);
 
-    const policy = await readPolicy(db, "synth-invalid");
+    const policy = await readPolicy(db, INVALID_DOC);
     expect(policy?.status).toBe("draft");
     expect(policy?.reviewStatus).toBe("approved");
-    const rejected = (await audits(db, "synth-invalid", "policy_publish")).filter((entry) => entry.result === "rejected");
+    const rejected = (await audits(db, INVALID_DOC, "policy_publish")).filter((entry) => entry.result === "rejected");
     expect(rejected).toHaveLength(1);
     expect(String(rejected[0]?.detail)).toMatch(/safety policy is invalid/);
   });

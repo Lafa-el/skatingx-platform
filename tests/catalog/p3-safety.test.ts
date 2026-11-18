@@ -9,11 +9,14 @@ import {
   contentChecksumPayload,
   evaluateSafety,
   parseSafetyPolicy,
+  type SafetyEvaluationInput,
 } from "@skatingx/training-catalog";
 import { computeCatalogChecksum } from "../../packages/training-catalog/src/checksum";
 import {
   assessEmulatorSafety,
+  policyDocId,
   publishCatalogVersionFlow,
+  readPolicyDocument,
   reviewCatalogVersion,
 } from "../../scripts/catalog/trusted-flow.mjs";
 
@@ -96,6 +99,14 @@ async function seedObject(
   await batch.commit();
 }
 
+function conditionalCover(objectIds: readonly string[]) {
+  return objectIds.map((objectId) => ({
+    objectId,
+    decisionMode: "conditional" as const,
+    minTrainingAgeYears: 0,
+  }));
+}
+
 function synthPolicy() {
   return {
     policyId: "synth-1",
@@ -107,14 +118,18 @@ function synthPolicy() {
     blockingRecoveryFlags: ["injury"],
     knownRestrictions: ["no_high_impact", "knee_brace"],
     knownRecoveryFlags: ["injury", "fatigue"],
+    objectConditions: conditionalCover(OBJECT_IDS),
     reviewStatus: "approved",
     reviewer: "reviewer-1",
     reviewedAt: "2026-11-16T00:00:00.000Z",
   };
 }
 
-async function setPolicy(db: Firestore, policyId: string, policy: Record<string, unknown>): Promise<void> {
-  await db.doc(`${POLICIES}/${policyId}`).set(policy);
+async function setPolicy(db: Firestore, policy: Record<string, unknown>, version?: string): Promise<void> {
+  const policyId = String(policy.policyId);
+  const policyVersion = version ?? (typeof policy.policyVersion === "string" ? policy.policyVersion : "");
+  const docId = policyVersion === "" ? policyId : policyDocId(policyId, policyVersion);
+  await db.doc(`${POLICIES}/${docId}`).set(policy);
 }
 
 async function assess(
@@ -144,7 +159,16 @@ async function removeOwnDocuments(db: Firestore): Promise<void> {
     batch.delete(db.doc(`${OBJECTS}/${id}`));
     batch.delete(db.doc(`${RELEASES}/rel-${id}-${CONTENT_VERSION}`));
   }
-  for (const policyId of ["synth-1", "p1", "p1-draft", "p1-missing"]) {
+  for (const policyId of [
+    "synth-1",
+    "p1",
+    "p1-draft",
+    "p1-missing",
+    policyDocId("synth-1", "synth-1"),
+    policyDocId("p1", "p1"),
+    policyDocId("p1-draft", "p1-draft"),
+    policyDocId("p1-missing", "p1-missing"),
+  ]) {
     batch.delete(db.doc(`${POLICIES}/${policyId}`));
   }
   const logs = await db.collection(AUDIT).where("target.id", "in", [...OBJECT_IDS]).get();
@@ -228,7 +252,7 @@ describe("P3 youth safety on the emulator", () => {
   );
 
   it("E1 and E2 return POLICY_MISSING for an empty policy library", async () => {
-    await db.doc(`${POLICIES}/synth-1`).delete();
+    await db.doc(`${POLICIES}/${policyDocId("synth-1", "synth-1")}`).delete();
     for (const objectId of ["EX-L039", "EX-L001"]) {
       const result = await assess(db, objectId, READY);
       expect(result).toEqual({
@@ -240,7 +264,7 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("E3 returns POLICY_NOT_APPLICABLE when the policy scope misses the object", async () => {
-    await setPolicy(db, "p1", {
+    await setPolicy(db, {
       policyId: "p1",
       policyVersion: "p1",
       status: "published",
@@ -250,6 +274,7 @@ describe("P3 youth safety on the emulator", () => {
       blockingRecoveryFlags: ["injury"],
       knownRestrictions: ["no_high_impact"],
       knownRecoveryFlags: ["injury"],
+      objectConditions: conditionalCover(["EX-L001"]),
       reviewStatus: "approved",
       reviewer: "reviewer-1",
       reviewedAt: STARTED,
@@ -263,7 +288,7 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("E4 returns POLICY_INVALID for an unpublished policy and for a missing version", async () => {
-    await setPolicy(db, "p1-draft", {
+    await setPolicy(db, {
       policyId: "p1-draft",
       policyVersion: "p1-draft",
       status: "draft",
@@ -279,22 +304,22 @@ describe("P3 youth safety on the emulator", () => {
       policyVersion: "p1-draft",
     });
 
-    await setPolicy(db, "p1-missing", {
+    await setPolicy(db, {
       policyId: "p1-missing",
       status: "published",
       objectIds: ["EX-L080"],
       ageBands: ["age11_13"],
-    });
+    }, "p1-missing");
     const missingVersion = await assess(db, "EX-L080", READY, { policyId: "p1-missing", policyVersion: "p1-missing" });
     expect(missingVersion).toEqual({
       decision: "review_required",
-      reasonCodes: ["POLICY_INVALID"],
+      reasonCodes: ["POLICY_MISSING"],
       policyVersion: null,
     });
   });
 
   it("E5 returns INPUT_MISSING:trainingAge", async () => {
-    await setPolicy(db, "synth-1", synthPolicy());
+    await setPolicy(db, synthPolicy());
     const result = await assess(db, "EX-L039", without("trainingAge"));
     expect(result).toEqual({
       decision: "review_required",
@@ -304,7 +329,7 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("E6a distinguishes a missing skills field from an empty skill list", async () => {
-    await setPolicy(db, "synth-1", synthPolicy());
+    await setPolicy(db, synthPolicy());
     const result = await assess(db, "EX-L001", without("verifiedSkills"));
     expect(result).toEqual({
       decision: "review_required",
@@ -314,7 +339,7 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("E6b returns NO_VERIFIED_SKILLS when the skill list is empty", async () => {
-    await setPolicy(db, "synth-1", synthPolicy());
+    await setPolicy(db, synthPolicy());
     const result = await assess(db, "EX-L001", { ...READY, verifiedSkills: [] });
     expect(result).toEqual({
       decision: "review_required",
@@ -329,7 +354,7 @@ describe("P3 youth safety on the emulator", () => {
     ["supervision", "INPUT_MISSING:supervision"],
     ["authorizedRestrictions", "INPUT_MISSING:authorizedRestrictions"],
   ] as const)("E7 omits %s", async (field, reason) => {
-    await setPolicy(db, "synth-1", synthPolicy());
+    await setPolicy(db, synthPolicy());
     const result = await assess(db, "EX-L078", without(field));
     expect(result).toEqual({
       decision: "review_required",
@@ -339,7 +364,7 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("E8 and E9 return SUPERVISION_INSUFFICIENT when qualified or present is false", async () => {
-    await setPolicy(db, "synth-1", synthPolicy());
+    await setPolicy(db, synthPolicy());
     const unqualified = await assess(db, "EX-L039", {
       ...READY,
       supervision: { qualified: false, present: true },
@@ -357,7 +382,7 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("E10 allows an ordinary object when the synthetic policy is satisfied", async () => {
-    await setPolicy(db, "synth-1", synthPolicy());
+    await setPolicy(db, synthPolicy());
     const athlete = { ...READY, verifiedSkills: ["jogging"] };
     for (const ageBand of ["age8_10", "age11_13", "age14_16"]) {
       const result = await assess(db, "EX-L001", { ...athlete, ageBand });
@@ -370,7 +395,7 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("E11 returns allow_with_supervision for a conditional object", async () => {
-    await setPolicy(db, "synth-1", synthPolicy());
+    await setPolicy(db, synthPolicy());
     const result = await assess(db, "EX-L039", READY);
     expect(result).toEqual({
       decision: "allow_with_supervision",
@@ -383,7 +408,7 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("E12 blocks on a restriction or a recovery flag", async () => {
-    await setPolicy(db, "synth-1", synthPolicy());
+    await setPolicy(db, synthPolicy());
     const restricted = await assess(db, "EX-L039", { ...READY, authorizedRestrictions: ["no_high_impact"] });
     const injured = await assess(db, "EX-L039", { ...READY, recoveryFlags: ["injury"] });
     expect(restricted).toEqual({
@@ -399,7 +424,7 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("E13 separates a missing age band from an unrecognized age band", async () => {
-    await setPolicy(db, "synth-1", synthPolicy());
+    await setPolicy(db, synthPolicy());
     const missing = await assess(db, "EX-L001", without("ageBand"));
     const unknown = await assess(db, "EX-L001", { ...READY, ageBand: "age99_99" });
     expect(missing).toEqual({
@@ -449,6 +474,7 @@ function approvedPolicy(overrides: Record<string, unknown> = {}) {
     blockingRecoveryFlags: ["injury"],
     knownRestrictions: ["no_high_impact", "knee_brace"],
     knownRecoveryFlags: ["injury", "fatigue"],
+    objectConditions: conditionalCover(["EX-L001"]),
     reviewStatus: "approved",
     reviewer: "reviewer-1",
     reviewedAt: "2026-11-16T00:00:00.000Z",
@@ -466,6 +492,7 @@ const CONDITIONED = {
   objectConditions: [
     {
       objectId: "EX-L039",
+      decisionMode: "conditional" as const,
       minTrainingAgeYears: 1,
       requiredSkills: ["landing"],
       allowedLoads: ["low", "moderate"],
@@ -583,5 +610,421 @@ describe("P3-5 evaluator hardening", () => {
       reasonCodes: ["POLICY_SATISFIED"],
       policyVersion: "synth-hard",
     });
+  });
+});
+
+const V1_OBJECTS = ["EX-L039", "EX-L078", "EX-L079", "EX-L080"] as const;
+const V1_RESTRICTIONS = [
+  "medical_exercise_restriction",
+  "no_high_impact",
+  "active_lower_limb_injury",
+  "current_joint_pain",
+  "vascular_or_clotting_risk",
+];
+const V1_RECOVERY = [
+  "current_injury",
+  "acute_illness",
+  "significant_fatigue",
+  "persistent_pain",
+  "dizziness_or_fainting",
+  "inadequate_recovery",
+  "dehydration",
+];
+
+function v1Policy(overrides: Record<string, unknown> = {}) {
+  return {
+    policyId: "youth-conditional-v1",
+    policyVersion: "1",
+    status: "published",
+    reviewStatus: "approved",
+    reviewer: "reviewer-1",
+    reviewedAt: "2026-11-18T00:00:00.000Z",
+    objectIds: [...V1_OBJECTS],
+    ageBands: ["age8_10", "age11_13", "age14_16"],
+    knownRestrictions: [...V1_RESTRICTIONS],
+    blockingRestrictions: [...V1_RESTRICTIONS],
+    knownRecoveryFlags: [...V1_RECOVERY],
+    blockingRecoveryFlags: [...V1_RECOVERY],
+    objectConditions: [
+      { objectId: "EX-L039", decisionMode: "manual_review_only" },
+      { objectId: "EX-L078", decisionMode: "blocked" },
+      { objectId: "EX-L079", decisionMode: "blocked" },
+      { objectId: "EX-L080", decisionMode: "blocked" },
+    ],
+    ...overrides,
+  };
+}
+
+function publishedShell(objectIds: string[], objectConditions: Record<string, unknown>[]) {
+  return {
+    policyId: "synth-mode",
+    policyVersion: "1",
+    status: "published",
+    reviewStatus: "approved",
+    reviewer: "reviewer-1",
+    reviewedAt: "2026-11-18T00:00:00.000Z",
+    objectIds,
+    ageBands: ["age8_10", "age11_13", "age14_16"],
+    knownRestrictions: ["knee_brace"],
+    blockingRestrictions: [] as string[],
+    knownRecoveryFlags: ["current_injury"],
+    blockingRecoveryFlags: [] as string[],
+    objectConditions,
+  };
+}
+
+const FULL_INPUT = {
+  ageBand: "age11_13",
+  trainingAge: 2,
+  verifiedSkills: ["controlled_landing_verified"],
+  recentLoad: "low",
+  recoveryFlags: [] as string[],
+  supervision: { qualified: true, present: true },
+  authorizedRestrictions: [] as string[],
+};
+
+function dropField(objectId: string, field: string): SafetyEvaluationInput {
+  const input: Record<string, unknown> = { objectId, ...FULL_INPUT };
+  delete input[field];
+  return input as unknown as SafetyEvaluationInput;
+}
+
+describe("P3-9 policy parse decision mode", () => {
+  it("P-01 accepts the reviewed v1 policy", () => {
+    expect(parseSafetyPolicy(v1Policy())).toMatchObject({ ok: true });
+  });
+
+  it("P-02 rejects an object condition without decisionMode", () => {
+    const policy = v1Policy({
+      objectConditions: [
+        { objectId: "EX-L039" },
+        { objectId: "EX-L078", decisionMode: "blocked" },
+        { objectId: "EX-L079", decisionMode: "blocked" },
+        { objectId: "EX-L080", decisionMode: "blocked" },
+      ],
+    });
+    expect(parseSafetyPolicy(policy)).toMatchObject({ ok: false, detail: "object conditions are invalid" });
+  });
+
+  it("P-03 and P-04 reject unrecognized decision modes", () => {
+    for (const decisionMode of ["auto_allow", "allow"]) {
+      const policy = v1Policy({
+        objectConditions: V1_OBJECTS.map((objectId) => ({ objectId, decisionMode })),
+      });
+      expect(parseSafetyPolicy(policy).ok).toBe(false);
+    }
+  });
+
+  it("P-05 rejects an object condition outside objectIds", () => {
+    const policy = v1Policy({
+      objectConditions: [
+        ...(v1Policy().objectConditions as Record<string, unknown>[]),
+        { objectId: "EX-L999", decisionMode: "blocked" },
+      ],
+    });
+    expect(parseSafetyPolicy(policy).ok).toBe(false);
+  });
+
+  it("P-06 rejects an empty object id", () => {
+    expect(parseSafetyPolicy(publishedShell([""], [{ objectId: "", decisionMode: "blocked" }])).ok).toBe(false);
+  });
+
+  it("P-07 rejects a missing or empty policyVersion", () => {
+    const { policyVersion: _version, ...missing } = v1Policy();
+    expect(parseSafetyPolicy(missing).ok).toBe(false);
+    expect(parseSafetyPolicy(v1Policy({ policyVersion: "" })).ok).toBe(false);
+    expect(parseSafetyPolicy(v1Policy({ policyVersion: "   " })).ok).toBe(false);
+  });
+
+  it("P-08 rejects a blocking restriction outside the known list", () => {
+    expect(parseSafetyPolicy(v1Policy({
+      blockingRestrictions: [...V1_RESTRICTIONS, "not_known"],
+    })).ok).toBe(false);
+  });
+
+  it("P-09 and P-10 reject a missing objectConditions field", () => {
+    const { objectConditions: _conditions, ...missing } = v1Policy();
+    expect(parseSafetyPolicy(missing).ok).toBe(false);
+    expect(parseSafetyPolicy(v1Policy({ objectConditions: undefined })).ok).toBe(false);
+  });
+
+  it("P-11 rejects an empty objectConditions array", () => {
+    expect(parseSafetyPolicy(v1Policy({ objectConditions: [] })).ok).toBe(false);
+  });
+
+  it("P-12 rejects a policy that omits one object", () => {
+    expect(parseSafetyPolicy(v1Policy({
+      objectConditions: [
+        { objectId: "EX-L039", decisionMode: "manual_review_only" },
+        { objectId: "EX-L078", decisionMode: "blocked" },
+        { objectId: "EX-L079", decisionMode: "blocked" },
+      ],
+    })).ok).toBe(false);
+  });
+
+  it("P-13 rejects a repeated object id", () => {
+    expect(parseSafetyPolicy(v1Policy({
+      objectConditions: [
+        { objectId: "EX-L039", decisionMode: "manual_review_only" },
+        { objectId: "EX-L039", decisionMode: "blocked" },
+        { objectId: "EX-L078", decisionMode: "blocked" },
+        { objectId: "EX-L079", decisionMode: "blocked" },
+      ],
+    })).ok).toBe(false);
+  });
+
+  it("P-14 rejects a conditional entry with no trusted condition", () => {
+    expect(parseSafetyPolicy(publishedShell(
+      ["EX-L001"],
+      [{ objectId: "EX-L001", decisionMode: "conditional" }],
+    )).ok).toBe(false);
+  });
+
+  it("P-15 accepts a conditional entry with only a minimum training age", () => {
+    expect(parseSafetyPolicy(publishedShell(
+      ["EX-L001"],
+      [{ objectId: "EX-L001", decisionMode: "conditional", minTrainingAgeYears: 2 }],
+    )).ok).toBe(true);
+  });
+
+  it("P-16 accepts a conditional entry with only required skills", () => {
+    expect(parseSafetyPolicy(publishedShell(
+      ["EX-L001"],
+      [{ objectId: "EX-L001", decisionMode: "conditional", requiredSkills: ["skill-a"] }],
+    )).ok).toBe(true);
+  });
+
+  it("P-17 accepts a conditional entry with only allowed loads", () => {
+    expect(parseSafetyPolicy(publishedShell(
+      ["EX-L001"],
+      [{ objectId: "EX-L001", decisionMode: "conditional", allowedLoads: ["low"] }],
+    )).ok).toBe(true);
+  });
+
+  it("P-18 and P-19 reject empty condition arrays", () => {
+    expect(parseSafetyPolicy(publishedShell(
+      ["EX-L001"],
+      [{ objectId: "EX-L001", decisionMode: "conditional", requiredSkills: [] }],
+    )).ok).toBe(false);
+    expect(parseSafetyPolicy(publishedShell(
+      ["EX-L001"],
+      [{ objectId: "EX-L001", decisionMode: "conditional", allowedLoads: [] }],
+    )).ok).toBe(false);
+  });
+
+  it("P-20 rejects a blocked entry that carries a training age", () => {
+    expect(parseSafetyPolicy(publishedShell(
+      ["EX-L078"],
+      [{ objectId: "EX-L078", decisionMode: "blocked", minTrainingAgeYears: 2 }],
+    )).ok).toBe(false);
+  });
+
+  it("P-21 rejects a manual-review entry that carries skills", () => {
+    expect(parseSafetyPolicy(publishedShell(
+      ["EX-L039"],
+      [{ objectId: "EX-L039", decisionMode: "manual_review_only", requiredSkills: ["skill-a"] }],
+    )).ok).toBe(false);
+  });
+
+  it("P-22 rejects a blocked entry that carries loads", () => {
+    expect(parseSafetyPolicy(publishedShell(
+      ["EX-L078"],
+      [{ objectId: "EX-L078", decisionMode: "blocked", allowedLoads: ["low"] }],
+    )).ok).toBe(false);
+  });
+
+  it("P-23 reads a policy only when the document id and fields match", async () => {
+    expect(process.env.FIRESTORE_EMULATOR_HOST).toBeTruthy();
+    const db = openFirestore();
+    const id = policyDocId("youth-conditional-v1", "1");
+    await db.doc(`${POLICIES}/${id}`).set(v1Policy());
+    await expect(readPolicyDocument(db, "youth-conditional-v1", "1")).resolves.toMatchObject({
+      policyId: "youth-conditional-v1",
+      policyVersion: "1",
+    });
+    await expect(readPolicyDocument(db, "youth-conditional-v1", "2")).resolves.toBeNull();
+    await db.doc(`${POLICIES}/${id}`).delete();
+  });
+});
+
+describe("P3-9 evaluator decision mode", () => {
+  const policy = v1Policy();
+
+  function decide(objectId: string, input: Record<string, unknown> = {}, source: unknown = policy) {
+    return evaluateSafety({ objectId, ...FULL_INPUT, ...input }, source);
+  }
+
+  it("E-01 through E-03 block the three BFR exercises", () => {
+    for (const objectId of ["EX-L078", "EX-L079", "EX-L080"]) {
+      expect(decide(objectId)).toEqual({
+        decision: "block",
+        reasonCodes: ["OBJECT_BLOCKED"],
+        policyVersion: "1",
+      });
+    }
+  });
+
+  it("E-04 through E-06 keep a block when BFR input is restricted, missing, or unknown", () => {
+    expect(decide("EX-L078", { authorizedRestrictions: ["medical_exercise_restriction"] }).reasonCodes).toEqual(["OBJECT_BLOCKED"]);
+    const { supervision: _supervision, ...withoutSupervision } = { ...FULL_INPUT, objectId: "EX-L078" };
+    expect(evaluateSafety(withoutSupervision, policy)).toMatchObject({ decision: "block", reasonCodes: ["OBJECT_BLOCKED"] });
+    expect(decide("EX-L078", { authorizedRestrictions: ["knee_brace"] })).toMatchObject({
+      decision: "block",
+      reasonCodes: ["OBJECT_BLOCKED"],
+    });
+  });
+
+  it("E-07 and E-08 keep drop jumps in manual review even when the form is complete", () => {
+    expect(decide("EX-L039")).toMatchObject({ decision: "review_required", reasonCodes: ["MANUAL_REVIEW_ONLY"] });
+    expect(decide("EX-L039", { recentLoad: "high" })).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["MANUAL_REVIEW_ONLY"],
+    });
+  });
+
+  it("E-09 through E-11 keep drop jumps in manual review for flags and missing age", () => {
+    expect(decide("EX-L039", { recoveryFlags: ["current_injury"] }).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
+    expect(decide("EX-L039", { recoveryFlags: ["unknown_flag"] }).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
+    const { trainingAge: _age, ...withoutAge } = { ...FULL_INPUT, objectId: "EX-L039" };
+    expect(evaluateSafety(withoutAge, policy).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
+  });
+
+  it("E-12 allows a conditional object when its load condition passes", () => {
+    const conditional = publishedShell(
+      ["EX-L039", "EX-L001"],
+      [
+        { objectId: "EX-L039", decisionMode: "conditional", allowedLoads: ["low"] },
+        { objectId: "EX-L001", decisionMode: "conditional", allowedLoads: ["low"] },
+      ],
+    );
+    expect(decide("EX-L039", {}, conditional)).toEqual({
+      decision: "allow_with_supervision",
+      reasonCodes: ["POLICY_SATISFIED"],
+      policyVersion: "1",
+    });
+    expect(decide("EX-L001", {}, conditional)).toEqual({
+      decision: "allow",
+      reasonCodes: ["POLICY_SATISFIED"],
+      policyVersion: "1",
+    });
+  });
+
+  it("E-13 returns POLICY_INVALID when an object has no condition entry", () => {
+    const incomplete = v1Policy({
+      objectIds: ["EX-L039", "EX-L078"],
+      objectConditions: [{ objectId: "EX-L078", decisionMode: "blocked" }],
+    });
+    expect(decide("EX-L039", {}, incomplete)).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["POLICY_INVALID"],
+    });
+  });
+
+  it("E-14 and E-15 reject an object or age band outside the policy", () => {
+    expect(decide("EX-L001")).toMatchObject({ decision: "review_required", reasonCodes: ["POLICY_NOT_APPLICABLE"] });
+    expect(decide("EX-L039", { ageBand: "age17_18" })).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["POLICY_NOT_APPLICABLE"],
+    });
+  });
+
+  it("E-17 through E-21 block BFR when a general input is missing", () => {
+    for (const field of ["trainingAge", "verifiedSkills", "recentLoad", "recoveryFlags", "authorizedRestrictions"] as const) {
+      expect(evaluateSafety(dropField("EX-L078", field), policy)).toMatchObject({ decision: "block", reasonCodes: ["OBJECT_BLOCKED"] });
+    }
+  });
+
+  it("E-22 requires an age band before the BFR decision", () => {
+    expect(evaluateSafety(dropField("EX-L078", "ageBand"), policy)).toEqual({
+      decision: "review_required",
+      reasonCodes: ["INPUT_MISSING:ageBand"],
+      policyVersion: "1",
+    });
+  });
+
+  it("E-23 through E-29 block BFR for unknown flags, weak supervision, and empty lists", () => {
+    expect(decide("EX-L078", { recoveryFlags: ["unknown_flag"] }).reasonCodes).toEqual(["OBJECT_BLOCKED"]);
+    expect(decide("EX-L078", { supervision: { qualified: false, present: true } }).reasonCodes).toEqual(["OBJECT_BLOCKED"]);
+    expect(decide("EX-L078", { supervision: { qualified: true, present: false } }).reasonCodes).toEqual(["OBJECT_BLOCKED"]);
+    expect(decide("EX-L078", { verifiedSkills: [] }).reasonCodes).toEqual(["OBJECT_BLOCKED"]);
+    expect(decide("EX-L078", { recoveryFlags: [] }).reasonCodes).toEqual(["OBJECT_BLOCKED"]);
+    expect(decide("EX-L078", { authorizedRestrictions: [] }).reasonCodes).toEqual(["OBJECT_BLOCKED"]);
+    expect(decide("EX-L078", { verifiedSkills: [], recoveryFlags: [], authorizedRestrictions: [] }).reasonCodes).toEqual(["OBJECT_BLOCKED"]);
+  });
+
+  it("E-30 and E-31 stay review_required without a usable policy", () => {
+    expect(evaluateSafety({ objectId: "EX-L078", ...FULL_INPUT }, null)).toEqual({
+      decision: "review_required",
+      reasonCodes: ["POLICY_MISSING"],
+      policyVersion: null,
+    });
+    const invalid = v1Policy({
+      objectConditions: [
+        { objectId: "EX-L039" },
+        { objectId: "EX-L078", decisionMode: "blocked" },
+        { objectId: "EX-L079", decisionMode: "blocked" },
+        { objectId: "EX-L080", decisionMode: "blocked" },
+      ],
+    });
+    expect(evaluateSafety({ objectId: "EX-L078", ...FULL_INPUT }, invalid)).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["POLICY_INVALID"],
+    });
+  });
+
+  it("E-32 through E-35 keep drop jumps in manual review", () => {
+    expect(evaluateSafety(dropField("EX-L039", "supervision"), policy).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
+    expect(decide("EX-L039", { authorizedRestrictions: ["knee_brace"] }).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
+    expect(evaluateSafety(dropField("EX-L039", "trainingAge"), policy).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
+    expect(decide("EX-L039", { verifiedSkills: [] }).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
+  });
+
+  it("E-36 through E-38 apply conditional skill and load checks", () => {
+    const conditional = publishedShell(
+      ["EX-L039"],
+      [{ objectId: "EX-L039", decisionMode: "conditional", requiredSkills: ["skill-a"], allowedLoads: ["low"] }],
+    );
+    expect(decide("EX-L039", { verifiedSkills: ["skill-a"], recentLoad: "low" }, conditional)).toMatchObject({
+      decision: "allow_with_supervision",
+      reasonCodes: ["POLICY_SATISFIED"],
+    });
+    expect(decide("EX-L039", { verifiedSkills: ["other"], recentLoad: "low" }, conditional)).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["REQUIRED_SKILL_MISSING"],
+    });
+    expect(decide("EX-L039", { verifiedSkills: ["skill-a"], recentLoad: "high" }, conditional)).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["LOAD_NOT_ALLOWED"],
+    });
+  });
+
+  it("E-39 through E-43 return POLICY_INVALID for a malformed policy", () => {
+    const { objectConditions: _conditions, ...missing } = v1Policy();
+    const cases = [
+      missing,
+      v1Policy({ objectConditions: [] }),
+      v1Policy({
+        objectConditions: [
+          { objectId: "EX-L039", decisionMode: "manual_review_only" },
+          { objectId: "EX-L078", decisionMode: "blocked" },
+          { objectId: "EX-L079", decisionMode: "blocked" },
+        ],
+      }),
+      v1Policy({
+        objectConditions: [
+          { objectId: "EX-L039", decisionMode: "manual_review_only" },
+          { objectId: "EX-L039", decisionMode: "blocked" },
+          { objectId: "EX-L078", decisionMode: "blocked" },
+          { objectId: "EX-L079", decisionMode: "blocked" },
+        ],
+      }),
+      publishedShell(["EX-L039"], [{ objectId: "EX-L039", decisionMode: "conditional" }]),
+    ];
+    for (const source of cases) {
+      expect(evaluateSafety({ objectId: "EX-L078", ...FULL_INPUT }, source)).toMatchObject({
+        decision: "review_required",
+        reasonCodes: ["POLICY_INVALID"],
+      });
+    }
   });
 });
