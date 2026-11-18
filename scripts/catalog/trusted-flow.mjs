@@ -175,7 +175,12 @@ async function writeAudit(db, entry) {
   return ref.id;
 }
 
-async function reject(db, action, actor, target, error) {
+function operatorField(operator) {
+  if (typeof operator !== "string" || operator.trim() === "") return {};
+  return { operator };
+}
+
+async function reject(db, action, actor, target, error, operator) {
   const original = error instanceof Error ? error : new Error(String(error));
   try {
     await writeAudit(db, {
@@ -185,6 +190,7 @@ async function reject(db, action, actor, target, error) {
       at: nowIso(),
       detail: original.message,
       result: "rejected",
+      ...operatorField(operator),
     });
   } catch (auditError) {
     // Keep the original failure as the message and on the audit error, then surface the audit
@@ -487,7 +493,7 @@ export async function revokeCatalogApprovalFlow(db, input, options = {}) {
   }
 }
 
-async function reviewRecord(db, collectionName, id, reviewer, decision, action, flowTarget) {
+async function reviewRecord(db, collectionName, id, reviewer, decision, action, flowTarget, operator) {
   assertFlowProject(db, flowTarget);
   const target = auditTarget(collectionName, id);
   try {
@@ -527,24 +533,25 @@ async function reviewRecord(db, collectionName, id, reviewer, decision, action, 
         at: reviewedAt,
         detail: decision,
         result: "ok",
+        ...operatorField(operator),
       });
     });
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("refusing to run")) throw error;
-    await reject(db, action, reviewer, target, error);
+    await reject(db, action, reviewer, target, error, operator);
   }
 }
 
 export async function reviewCatalogLink(db, input, options = {}) {
-  await reviewRecord(db, LINKS, input.academyItemId, input.reviewer, input.decision, "link_review", options.target);
+  await reviewRecord(db, LINKS, input.academyItemId, input.reviewer, input.decision, "link_review", options.target, options.operator);
 }
 
 export async function reviewKnowledgeArticle(db, input, options = {}) {
-  await reviewRecord(db, KNOWLEDGE_ARTICLES, input.articleId, input.reviewer, input.decision, "article_review", options.target);
+  await reviewRecord(db, KNOWLEDGE_ARTICLES, input.articleId, input.reviewer, input.decision, "article_review", options.target, options.operator);
 }
 
 export async function reviewSafetyPolicy(db, input, options = {}) {
-  await reviewRecord(db, POLICIES, input.policyId, input.reviewer, input.decision, "policy_review", options.target);
+  await reviewRecord(db, POLICIES, input.policyId, input.reviewer, input.decision, "policy_review", options.target, options.operator);
 }
 
 function reviewApproved(record) {
@@ -556,7 +563,7 @@ function reviewApproved(record) {
   );
 }
 
-async function publishReviewedDraft(db, collectionName, id, actor, action, missingMessage, unapprovedMessage, validate) {
+async function publishReviewedDraft(db, collectionName, id, actor, action, missingMessage, unapprovedMessage, validate, operator) {
   const target = auditTarget(collectionName, id);
   const docPath = `${collectionPath(collectionName)}/${id}`;
   try {
@@ -564,7 +571,7 @@ async function publishReviewedDraft(db, collectionName, id, actor, action, missi
     if (current === null) throw new Error(missingMessage);
     if (!reviewApproved(current)) throw new Error(unapprovedMessage);
   } catch (error) {
-    await reject(db, action, actor, target, error);
+    await reject(db, action, actor, target, error, operator);
   }
   const publishedAt = nowIso();
   try {
@@ -583,10 +590,11 @@ async function publishReviewedDraft(db, collectionName, id, actor, action, missi
         target,
         at: publishedAt,
         result: "ok",
+        ...operatorField(operator),
       });
     });
   } catch (error) {
-    await reject(db, action, actor, target, error);
+    await reject(db, action, actor, target, error, operator);
   }
 }
 
@@ -603,6 +611,7 @@ export async function publishKnowledgeArticle(db, input, options = {}) {
     "article does not exist",
     "article is not approved",
     undefined,
+    options.operator,
   );
 }
 
@@ -623,6 +632,7 @@ export async function publishSafetyPolicy(db, input, options = {}) {
       const parsed = parseSafetyPolicy({ ...current, status: "published" });
       if (!parsed.ok) throw new Error("safety policy is invalid");
     },
+    options.operator,
   );
 }
 
@@ -666,7 +676,7 @@ export async function publishCatalogLink(db, input, options = {}) {
       throw new Error("target is not published at the linked version");
     }
   } catch (error) {
-    await reject(db, "link_publish", actor, target, error);
+    await reject(db, "link_publish", actor, target, error, options.operator);
   }
   const publishedAt = nowIso();
   try {
@@ -689,10 +699,11 @@ export async function publishCatalogLink(db, input, options = {}) {
         target,
         at: publishedAt,
         result: "ok",
+        ...operatorField(options.operator),
       });
     });
   } catch (error) {
-    await reject(db, "link_publish", actor, target, error);
+    await reject(db, "link_publish", actor, target, error, options.operator);
   }
 }
 
@@ -795,7 +806,10 @@ async function openProductionFlowDb(project, confirm) {
   const identity = identityFromAdcPayload(bindVerifiedAdc(adcFile));
   assertServiceAccountIdentity({ credential: identity, projectId: PRODUCTION_PROJECT_ID });
   await confirmProjectOnStdin(PRODUCTION_PROJECT_ID, readLineFromStdin);
-  return productionFirestore(await openProductionFirestore(adcFile));
+  return {
+    db: productionFirestore(await openProductionFirestore(adcFile)),
+    operator: identity.clientEmail,
+  };
 }
 
 async function main() {
@@ -807,8 +821,8 @@ async function main() {
   }
   const input = flowInput(args);
   if (flowTarget === "production") {
-    const db = await openProductionFlowDb(args.project, args.confirm);
-    await dispatchFlow(db, command, input, { target: "production" });
+    const { db, operator } = await openProductionFlowDb(args.project, args.confirm);
+    await dispatchFlow(db, command, input, { target: "production", operator });
     return;
   }
   const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "";

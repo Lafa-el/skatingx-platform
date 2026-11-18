@@ -15,7 +15,7 @@ export function assertCatalogProject(projectId: string): void;
 
 export function assertProductionProject(db: Firestore): void;
 
-type FlowOptions = { target?: "emulator" | "production" };
+type FlowOptions = { target?: "emulator" | "production"; operator?: string };
 
 export function reviewCatalogVersion(
   db: Firestore,
