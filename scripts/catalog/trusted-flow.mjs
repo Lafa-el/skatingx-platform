@@ -479,6 +479,81 @@ export async function reviewKnowledgeArticle(db, input) {
   await reviewRecord(db, KNOWLEDGE_ARTICLES, input.articleId, input.reviewer, input.decision, "article_review");
 }
 
+export async function reviewSafetyPolicy(db, input) {
+  await reviewRecord(db, POLICIES, input.policyId, input.reviewer, input.decision, "policy_review");
+}
+
+function reviewApproved(record) {
+  return (
+    record.reviewStatus === "approved" &&
+    typeof record.reviewer === "string" &&
+    record.reviewer.trim() !== "" &&
+    isTimestamp(record.reviewedAt)
+  );
+}
+
+async function publishReviewedDraft(db, collectionName, id, actor, action, missingMessage, unapprovedMessage) {
+  const target = auditTarget(collectionName, id);
+  const docPath = `${collectionPath(collectionName)}/${id}`;
+  try {
+    const current = await readDoc(db, docPath);
+    if (current === null) throw new Error(missingMessage);
+    if (!reviewApproved(current)) throw new Error(unapprovedMessage);
+  } catch (error) {
+    await reject(db, action, actor, target, error);
+  }
+  const publishedAt = nowIso();
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(db.doc(docPath));
+      if (!snap.exists) throw new Error(missingMessage);
+      const current = snap.data();
+      if (current.status !== "draft") throw new Error("status must be draft");
+      if (!reviewApproved(current)) throw new Error(unapprovedMessage);
+      tx.update(db.doc(docPath), { status: "published", publishedAt });
+      tx.set(db.collection(collectionPath(AUDIT)).doc(), {
+        action,
+        actor,
+        target,
+        at: publishedAt,
+        result: "ok",
+      });
+    });
+  } catch (error) {
+    await reject(db, action, actor, target, error);
+  }
+}
+
+export async function publishKnowledgeArticle(db, input) {
+  assertDemoProject(db);
+  const actor = requireText(input.actor, "actor");
+  const articleId = requireText(input.articleId, "articleId");
+  await publishReviewedDraft(
+    db,
+    KNOWLEDGE_ARTICLES,
+    articleId,
+    actor,
+    "article_publish",
+    "article does not exist",
+    "article is not approved",
+  );
+}
+
+export async function publishSafetyPolicy(db, input) {
+  assertDemoProject(db);
+  const actor = requireText(input.actor, "actor");
+  const policyId = requireText(input.policyId, "policyId");
+  await publishReviewedDraft(
+    db,
+    POLICIES,
+    policyId,
+    actor,
+    "policy_publish",
+    "policy does not exist",
+    "policy is not approved",
+  );
+}
+
 function linkApproved(link) {
   return (
     link.reviewStatus === "approved" &&
