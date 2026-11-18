@@ -38,6 +38,11 @@ export function reviewCatalogLink(
   input: { academyItemId: string; reviewer: string; decision: "approved" | "rejected" },
 ): Promise<void>;
 
+export function reviewKnowledgeArticle(
+  db: Firestore,
+  input: { articleId: string; reviewer: string; decision: "approved" | "rejected" },
+): Promise<void>;
+
 export function publishCatalogLink(
   db: Firestore,
   input: { academyItemId: string; actor: string },
