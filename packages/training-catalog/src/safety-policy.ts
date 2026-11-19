@@ -114,7 +114,7 @@ function parseObjectConditions(
       const age = entry.minTrainingAgeYears;
       if (typeof age !== "number" || !Number.isInteger(age) || age < 0) return null;
       condition.minTrainingAgeYears = age;
-      trusted = true;
+      if (age > 0) trusted = true;
     }
     if (hasSkills) {
       const skills = stringList(entry.requiredSkills, true);

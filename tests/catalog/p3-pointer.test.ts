@@ -76,7 +76,7 @@ function policy(version: "1" | "2", status = "published") {
     blockingRecoveryFlags: [...RECOVERY],
     objectConditions: [
       testRelease
-        ? { objectId: "EX-L039", decisionMode: "conditional", minTrainingAgeYears: 0 }
+        ? { objectId: "EX-L039", decisionMode: "conditional", minTrainingAgeYears: 1 }
         : { objectId: "EX-L039", decisionMode: "manual_review_only" },
       { objectId: "EX-L078", decisionMode: "blocked" },
       { objectId: "EX-L079", decisionMode: "blocked" },

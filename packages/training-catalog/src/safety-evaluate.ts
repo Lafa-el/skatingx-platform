@@ -136,6 +136,22 @@ export function evaluateSafety(input: SafetyEvaluationInput, policy: unknown | n
     return closed("block", ["OBJECT_BLOCKED"], version);
   }
   if (condition.decisionMode === "manual_review_only") {
+    // A determined block is visible to the reviewer. Other missing inputs are
+    // not required for that check, and are not consulted on this path.
+    const restrictions = stringList(input.authorizedRestrictions);
+    const recovery = stringList(input.recoveryFlags);
+    if (restrictions?.some((item) => parsed.policy.blockingRestrictions.includes(item))) {
+      return closed("block", ["RESTRICTION_BLOCK"], version);
+    }
+    if (recovery?.some((item) => parsed.policy.blockingRecoveryFlags.includes(item))) {
+      return closed("block", ["RECOVERY_FLAG_BLOCK"], version);
+    }
+    if (restrictions?.some((item) => !parsed.policy.knownRestrictions.includes(item))) {
+      return closed("review_required", ["UNKNOWN_RESTRICTION"], version);
+    }
+    if (recovery?.some((item) => !parsed.policy.knownRecoveryFlags.includes(item))) {
+      return closed("review_required", ["UNKNOWN_RECOVERY_FLAG"], version);
+    }
     return closed("review_required", ["MANUAL_REVIEW_ONLY"], version);
   }
 

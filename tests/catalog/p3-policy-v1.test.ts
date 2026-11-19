@@ -2,7 +2,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { type Firestore, getFirestore } from "firebase-admin/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { evaluateSafety } from "@skatingx/training-catalog";
+import { evaluateSafety, parseSafetyPolicy } from "@skatingx/training-catalog";
 import {
   parseArgs,
   policyDocId,
@@ -235,5 +235,45 @@ describe("P3-9 policy version binding", () => {
       policyId: POLICY_ID,
       actor: ACTOR,
     } as never)).rejects.toThrow(/policyVersion is required/);
+  });
+});
+
+function conditionalPolicy(condition: Record<string, unknown>) {
+  return {
+    policyId: "conditional-constraint",
+    policyVersion: "1",
+    status: "published",
+    reviewStatus: "approved",
+    reviewer: REVIEWER,
+    reviewedAt: "2026-11-18T00:00:00.000Z",
+    objectIds: ["EX-L001"],
+    ageBands: ["age11_13"],
+    knownRestrictions: [] as string[],
+    blockingRestrictions: [] as string[],
+    knownRecoveryFlags: [] as string[],
+    blockingRecoveryFlags: [] as string[],
+    objectConditions: [{ objectId: "EX-L001", decisionMode: "conditional", ...condition }],
+  };
+}
+
+describe("P3-11 conditional constraint parse", () => {
+  it("rejects a conditional entry whose only constraint is a zero training age", () => {
+    expect(parseSafetyPolicy(conditionalPolicy({ minTrainingAgeYears: 0 })).ok).toBe(false);
+    expect(parseSafetyPolicy(conditionalPolicy({
+      minTrainingAgeYears: 0,
+      requiredSkills: [],
+      allowedLoads: [],
+    })).ok).toBe(false);
+  });
+
+  it("accepts a positive minimum training age", () => {
+    expect(parseSafetyPolicy(conditionalPolicy({ minTrainingAgeYears: 1 })).ok).toBe(true);
+  });
+
+  it("accepts a zero training age when a required skill supplies the constraint", () => {
+    expect(parseSafetyPolicy(conditionalPolicy({
+      minTrainingAgeYears: 0,
+      requiredSkills: ["skill-a"],
+    })).ok).toBe(true);
   });
 });
