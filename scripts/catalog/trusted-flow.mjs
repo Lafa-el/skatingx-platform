@@ -30,7 +30,7 @@ import {
 } from "../../packages/training-catalog/src/catalog-object.ts";
 import { checkPublishedBinding } from "../../packages/training-catalog/src/validate.ts";
 import { computeCatalogChecksum } from "../../packages/training-catalog/src/checksum.ts";
-import { evaluateSafety } from "../../packages/training-catalog/src/safety-evaluate.ts";
+import { CONDITIONAL_SAFETY_OBJECT_IDS, evaluateSafety } from "../../packages/training-catalog/src/safety-evaluate.ts";
 import { parseSafetyPolicy } from "../../packages/training-catalog/src/safety-policy.ts";
 
 const ROOT = "artifacts/skatingx-production";
@@ -40,6 +40,7 @@ const LINKS = "trainingCatalogLinks";
 const PUBLIC_LINKS = "trainingCatalogPublicLinks";
 const AUDIT = "trainingCatalogAuditLogs";
 const POLICIES = "trainingCatalogSafetyPolicies";
+const POINTERS = "trainingCatalogSafetyPolicyPointers";
 const KNOWLEDGE_ARTICLES = "trainingCatalogKnowledgeArticles";
 const EDITOR_ACTIONS = new Set(["create", "edit", "import"]);
 const CONTENT_HASH_OMIT = new Set([
@@ -755,6 +756,192 @@ export async function withdrawCatalogLink(db, input, options = {}) {
   }
 }
 
+function pointerPath(policyId) {
+  return `${collectionPath(POINTERS)}/${policyId}`;
+}
+
+function pointerTarget(policyId) {
+  return auditTarget(POINTERS, policyId);
+}
+
+function requireOperator(options) {
+  return requireText(options.operator, "operator");
+}
+
+function requireInteger(value, label) {
+  if (typeof value === "string" && /^-?\d+$/.test(value.trim())) return Number(value.trim());
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  throw new Error(`${label} must be an integer`);
+}
+
+function storedActive(pointer) {
+  if (!pointer) return undefined;
+  const active = pointer.activePolicyVersion;
+  if (active === null || typeof active === "string") return active;
+  throw new Error("pointer activePolicyVersion is invalid");
+}
+
+async function assertPolicyTarget(tx, db, policyId, policyVersion) {
+  const snap = await tx.get(db.doc(`${collectionPath(POLICIES)}/${policyDocId(policyId, policyVersion)}`));
+  if (!snap.exists) throw new Error("policy does not exist");
+  const data = snap.data();
+  if (!data) throw new Error("policy does not exist");
+  if (typeof data.policyId !== "string" || data.policyId !== policyId) {
+    throw new Error("policyId does not match the policy document");
+  }
+  if (typeof data.policyVersion !== "string" || data.policyVersion !== policyVersion) {
+    throw new Error("policyVersion does not match the policy document");
+  }
+  if (data.status !== "published") throw new Error("status must be published");
+  if (data.reviewStatus !== "approved") throw new Error("reviewStatus must be approved");
+  const parsed = parseSafetyPolicy({ ...data, status: "published" });
+  if (!parsed.ok) throw new Error("safety policy is invalid");
+  return data;
+}
+
+function pointerRecord(policyId, activePolicyVersion, previousPolicyVersion, revision, operator, reason) {
+  return {
+    policyId,
+    activePolicyVersion,
+    previousPolicyVersion,
+    revision,
+    updatedBy: operator,
+    updatedAt: nowIso(),
+    reason,
+  };
+}
+
+function bumpedRevision(pointer) {
+  if (typeof pointer.revision !== "number" || !Number.isInteger(pointer.revision)) {
+    throw new Error("pointer revision is invalid");
+  }
+  return pointer.revision + 1;
+}
+
+function writeOkAudit(tx, db, action, operator, policyId, detail) {
+  tx.set(db.collection(collectionPath(AUDIT)).doc(), {
+    action,
+    actor: operator,
+    target: pointerTarget(policyId),
+    at: nowIso(),
+    detail,
+    result: "ok",
+    ...operatorField(operator),
+  });
+}
+
+/**
+ * Enable, disable, and rollback share this failure path: the transaction has
+ * already rolled back, so the rejected audit is a separate write.
+ */
+async function rejectPointer(db, action, operator, policyId, error) {
+  if (error instanceof Error && error.message.startsWith("refusing to run")) throw error;
+  await reject(db, action, operator, pointerTarget(policyId), error, operator);
+}
+
+export async function enablePolicyPointer(db, input, options = {}) {
+  assertFlowProject(db, options.target);
+  const policyId = requireText(input.policyId, "policyId");
+  const policyVersion = requireText(input.policyVersion, "policyVersion");
+  const reason = requireText(input.reason, "reason");
+  const operator = requireOperator(options);
+  try {
+    await db.runTransaction(async (tx) => {
+      const ref = db.doc(pointerPath(policyId));
+      const snap = await tx.get(ref);
+      const current = snap.exists ? snap.data() : null;
+      await assertPolicyTarget(tx, db, policyId, policyVersion);
+      if (current && current.activePolicyVersion === policyVersion) {
+        writeOkAudit(
+          tx,
+          db,
+          "policy_enable",
+          operator,
+          policyId,
+          `already enabled at version ${policyVersion}, no change`,
+        );
+        return;
+      }
+      const previousPolicyVersion = current ? storedActive(current) ?? null : null;
+      const revision = current ? bumpedRevision(current) : 1;
+      tx.set(ref, pointerRecord(policyId, policyVersion, previousPolicyVersion, revision, operator, reason));
+      writeOkAudit(tx, db, "policy_enable", operator, policyId, reason);
+    });
+  } catch (error) {
+    await rejectPointer(db, "policy_enable", operator, policyId, error);
+  }
+}
+
+export async function disablePolicyPointer(db, input, options = {}) {
+  assertFlowProject(db, options.target);
+  const policyId = requireText(input.policyId, "policyId");
+  const reason = requireText(input.reason, "reason");
+  const operator = requireOperator(options);
+  try {
+    await db.runTransaction(async (tx) => {
+      const ref = db.doc(pointerPath(policyId));
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new Error("pointer does not exist");
+      const current = snap.data();
+      if (!current) throw new Error("pointer does not exist");
+      if (current.activePolicyVersion === null) {
+        writeOkAudit(tx, db, "policy_disable", operator, policyId, "already disabled, no change");
+        return;
+      }
+      const previousPolicyVersion = storedActive(current);
+      if (typeof previousPolicyVersion !== "string" || previousPolicyVersion.trim() === "") {
+        throw new Error("pointer activePolicyVersion is invalid");
+      }
+      tx.set(ref, pointerRecord(
+        policyId,
+        null,
+        previousPolicyVersion,
+        bumpedRevision(current),
+        operator,
+        reason,
+      ));
+      writeOkAudit(tx, db, "policy_disable", operator, policyId, reason);
+    });
+  } catch (error) {
+    await rejectPointer(db, "policy_disable", operator, policyId, error);
+  }
+}
+
+export async function rollbackPolicyPointer(db, input, options = {}) {
+  assertFlowProject(db, options.target);
+  const policyId = requireText(input.policyId, "policyId");
+  const reason = requireText(input.reason, "reason");
+  const expectedRevision = requireInteger(input.expectedRevision, "expectedRevision");
+  const operator = requireOperator(options);
+  try {
+    await db.runTransaction(async (tx) => {
+      const ref = db.doc(pointerPath(policyId));
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new Error("pointer does not exist");
+      const current = snap.data();
+      if (!current) throw new Error("pointer does not exist");
+      if (current.revision !== expectedRevision) {
+        throw new Error(
+          `pointer revision mismatch: expected ${expectedRevision}, found ${current.revision} — re-read the pointer and retry`,
+        );
+      }
+      const active = storedActive(current);
+      if (active === null || active === undefined || active.trim() === "") {
+        throw new Error("pointer is disabled; enable an explicit version");
+      }
+      const previous = current.previousPolicyVersion;
+      if (typeof previous !== "string" || previous.trim() === "") {
+        throw new Error("previousPolicyVersion is not set");
+      }
+      await assertPolicyTarget(tx, db, policyId, previous);
+      tx.set(ref, pointerRecord(policyId, previous, active, bumpedRevision(current), operator, reason));
+      writeOkAudit(tx, db, "policy_rollback", operator, policyId, reason);
+    });
+  } catch (error) {
+    await rejectPointer(db, "policy_rollback", operator, policyId, error);
+  }
+}
+
 const FLOW_COMMANDS = new Set([
   "review",
   "publish",
@@ -767,8 +954,21 @@ const FLOW_COMMANDS = new Set([
   "article-publish",
   "policy-review",
   "policy-publish",
+  "policy-enable",
+  "policy-disable",
+  "policy-rollback",
+  "policy-status",
 ]);
-const PRODUCTION_COMMANDS = new Set(["article-review", "article-publish", "policy-review", "policy-publish"]);
+const PRODUCTION_COMMANDS = new Set([
+  "article-review",
+  "article-publish",
+  "policy-review",
+  "policy-publish",
+  "policy-enable",
+  "policy-disable",
+  "policy-rollback",
+  "policy-status",
+]);
 const FLOW_ARG_KEYS = new Set([
   "target",
   "project",
@@ -783,6 +983,8 @@ const FLOW_ARG_KEYS = new Set([
   "articleId",
   "policyId",
   "policyVersion",
+  "reason",
+  "expectedRevision",
 ]);
 const FLOW_USAGE = `usage: ${[...FLOW_COMMANDS].join(" | ")}`;
 
@@ -829,6 +1031,10 @@ async function dispatchFlow(db, command, input, options) {
   if (command === "article-publish") return publishKnowledgeArticle(db, input, options);
   if (command === "policy-review") return reviewSafetyPolicy(db, input, options);
   if (command === "policy-publish") return publishSafetyPolicy(db, input, options);
+  if (command === "policy-enable") return enablePolicyPointer(db, input, options);
+  if (command === "policy-disable") return disablePolicyPointer(db, input, options);
+  if (command === "policy-rollback") return rollbackPolicyPointer(db, input, options);
+  if (command === "policy-status") return showPolicyPointer(db, input, options);
   throw new Error(FLOW_USAGE);
 }
 
@@ -923,6 +1129,112 @@ export async function assessEmulatorSafety(db, request, options = {}) {
   const read = await readWithin(() => readPolicy({ policyId, policyVersion }), options.timeoutMs ?? SAFETY_READ_TIMEOUT_MS);
   if (!read.ok || read.value == null) return failedSafetyRead();
   return evaluateSafety(request, read.value);
+}
+
+export async function readPolicyPointer(db, policyId) {
+  const id = requireText(policyId, "policyId");
+  const snap = await db.doc(pointerPath(id)).get();
+  if (!snap.exists) return null;
+  return snap.data() ?? null;
+}
+
+function pointerStatusView(data) {
+  return {
+    policyId: data.policyId ?? null,
+    activePolicyVersion: data.activePolicyVersion ?? null,
+    previousPolicyVersion: data.previousPolicyVersion ?? null,
+    revision: data.revision ?? null,
+    updatedBy: data.updatedBy ?? null,
+    updatedAt: data.updatedAt ?? null,
+    reason: data.reason ?? null,
+  };
+}
+
+/** Read-only. Prints the pointer JSON and writes neither the pointer nor an audit. */
+export async function showPolicyPointer(db, input, options = {}) {
+  assertFlowProject(db, options.target);
+  const policyId = requireText(input.policyId, "policyId");
+  const pointer = await readPolicyPointer(db, policyId);
+  const view = pointer ? pointerStatusView(pointer) : null;
+  console.log(JSON.stringify(view));
+  return view;
+}
+
+function pointerAlert(decision, reasonCodes, policyVersion, pointerState, alertEvents) {
+  return { decision, reasonCodes, policyVersion, pointerState, alertEvents };
+}
+
+function disabledPointer() {
+  return pointerAlert("review_required", ["POLICY_MISSING"], null, "disabled", []);
+}
+
+function pointerReadError() {
+  return pointerAlert("review_required", ["POLICY_MISSING"], null, "error", ["M-E1"]);
+}
+
+function textField(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+/**
+ * A missing pointer, null active version, or "" is an intentional disable.
+ * Anything else that cannot be trusted is a broken pointer (M-E1).
+ */
+function classifyPointer(pointer, policyId) {
+  if (pointer === null || pointer === undefined) return { kind: "disabled" };
+  const active = pointer.activePolicyVersion;
+  if (active === null || active === "") return { kind: "disabled" };
+  const previous = pointer.previousPolicyVersion;
+  const previousOk = previous === null || typeof previous === "string";
+  const broken = typeof active !== "string"
+    || !textField(pointer.policyId)
+    || pointer.policyId !== policyId
+    || !previousOk
+    || typeof pointer.revision !== "number"
+    || !Number.isInteger(pointer.revision)
+    || !textField(pointer.updatedBy)
+    || !textField(pointer.updatedAt)
+    || !textField(pointer.reason);
+  if (broken) return { kind: "error" };
+  return { kind: "enabled", version: active };
+}
+
+/**
+ * Emulator pointer read. Production evaluation is a P4 consumer and is not
+ * implemented here.
+ *
+ * P4 must use only the result for the current pointer. After a disable or a
+ * failed read, do not reuse an old cache and do not switch to
+ * previousPolicyVersion. A cache, if any, is keyed by revision: a new
+ * revision invalidates it, and a disable clears it.
+ */
+export async function assessPointerSafety(db, request, options = {}) {
+  assertDemoProject(db);
+  const policyId = requireText(request.policyId, "policyId");
+  const timeoutMs = options.timeoutMs ?? SAFETY_READ_TIMEOUT_MS;
+  const readPointer = options.readPointer ?? (() => readPolicyPointer(db, policyId));
+  const read = await readWithin(async () => {
+    const pointer = await readPointer({ policyId });
+    const classified = classifyPointer(pointer, policyId);
+    if (classified.kind !== "enabled") return classified;
+    const readPolicy = options.readPolicy
+      ?? (() => readPolicyDocument(db, policyId, classified.version));
+    const policy = await readPolicy({ policyId, policyVersion: classified.version });
+    return { kind: "policy", version: classified.version, policy };
+  }, timeoutMs);
+  if (!read.ok) return pointerReadError();
+  if (read.value.kind === "disabled") return disabledPointer();
+  if (read.value.kind === "error") return pointerReadError();
+  if (read.value.policy == null) return pointerReadError();
+  const parsed = parseSafetyPolicy(read.value.policy);
+  if (!parsed.ok) {
+    return pointerAlert("review_required", ["POLICY_INVALID"], read.value.version, "error", ["M-E2"]);
+  }
+  const evaluation = evaluateSafety(request, read.value.policy);
+  const conditional = (CONDITIONAL_SAFETY_OBJECT_IDS).includes(request.objectId);
+  const released = evaluation.decision === "allow" || evaluation.decision === "allow_with_supervision";
+  const alertEvents = conditional && released ? ["M-E3"] : [];
+  return pointerAlert(evaluation.decision, evaluation.reasonCodes, evaluation.policyVersion, "enabled", alertEvents);
 }
 
 function isDirectRun() {

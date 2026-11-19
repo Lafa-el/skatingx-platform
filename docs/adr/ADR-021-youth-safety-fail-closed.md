@@ -2,7 +2,7 @@
 
 ## 状态
 
-提议（2026-11-12）
+提议（Proposed，2026-11-12）。2026-11-18 增补指针启停、回退、负责人、监控与 IAM 决定。状态仍为 Proposed，直至节点⑤复核通过。
 
 ## 背景
 
@@ -15,7 +15,85 @@
 - 输入：年龄段、训练年龄、已验证技能、近期负荷、恢复标志、监督条件、已授权限制；不用年龄段映射作成熟度代理。
 - 4 条 Conditional 条目（EX-L039、EX-L078、EX-L079、EX-L080）默认 `review_required`，直到有真实策略数据。
 - 安全策略与审核数据不得无条件公开。
+- 生效版本由独立指针决定。策略正文保持版本不可变，不在策略文档上切换启用标志。
+
+## 启用 / 禁用
+
+集合 `trainingCatalogSafetyPolicyPointers`，文档路径 `/artifacts/skatingx-production/trainingCatalogSafetyPolicyPointers/{policyId}`。文档 ID 等于 `policyId`。
+
+| 字段 | 含义 |
+|---|---|
+| `policyId` | 字符串，必须等于文档 ID |
+| `activePolicyVersion` | 当前生效版本；`null` 表示已禁用 |
+| `previousPolicyVersion` | 上一次生效版本；首次启用为 `null` |
+| `revision` | 整数。创建时为 1。成功的启用、禁用、回退加 1。重复启用当前版本和重复禁用不加 |
+| `updatedBy` | 操作者，取自 operator 绑定（ADC 身份邮箱）。服务账号邮箱只标明执行身份 |
+| `updatedAt` | ISO 时间戳 |
+| `reason` | 非空理由 |
+
+受控 CLI 命令，走生产门禁，写命令绑定 operator：
+
+- `policy-enable --policyId --policyVersion --reason`
+- `policy-disable --policyId --reason`
+- `policy-rollback --policyId --expectedRevision --reason`
+- `policy-status --policyId`：只读，打印指针 JSON，不写指针，不写审计
+
+启用和回退在同一事务内共用一套目标校验：按 `{policyId}--v{policyVersion}` 读取策略，核对正文 `policyId`、`policyVersion` 均为字符串且与请求一致，`status` 为 `published`，`reviewStatus` 为 `approved`，并且 `parseSafetyPolicy` 成功。同一事务提交指针变更和 `ok` 审计。任一校验失败则事务回滚，指针保持原值，事务外另写 `rejected` 审计。
+
+重复启用当前版本、重复禁用：返回成功，不修改指针，不增加 `revision`，保留 `previousPolicyVersion`，`ok` 审计的 `detail` 注明无状态变化。回退必须带操作者刚读到的整数 `revision`；不一致时拒绝，错误写明期望值与实际值。指针已禁用时，恢复只能显式 `policy-enable` 指定版本，不能用回退，也不能自动切回 `previousPolicyVersion`。
+
+Emulator 读取函数是 `assessPointerSafety`。生产评估消费端属于 P4，本 ADR 只定契约：
+
+1. 指针不存在，或 `activePolicyVersion` 为 `null` 或 `""`：`review_required` / `POLICY_MISSING`，`policyVersion: null`，`pointerState: "disabled"`，不触发 M-E1。
+2. 指针损坏（生效版本不是字符串、缺必填字段、指针 `policyId` 与文档 ID 不一致）：`POLICY_MISSING`，`pointerState: "error"`，M-E1。
+3. 指向的版本缺失或身份不匹配：`POLICY_MISSING`，M-E1。
+4. 读取超时或抛错：`POLICY_MISSING`，M-E1。
+5. 解析失败：`POLICY_INVALID`，M-E2。
+6. 评估。若 EX-L039、EX-L078、EX-L079、EX-L080 之一得到 `allow` 或 `allow_with_supervision`，记 M-E3。告警不改写评估决定。
+
+P4 消费端只使用当前指针对应的结果。禁用或读取失败后，禁止沿用旧缓存，禁止自动切到 `previousPolicyVersion`。缓存如有，以 `revision` 为键；修订号变化则失效；禁用时清空。
+
+客户端 Rules 拒绝该集合的 get、list、create、update、delete，包括 `catalogAdmin`。指针读写只走服务端受控 CLI（Admin SDK）。
 
 ## 回退
 
-回退本提交。安全门未建，不影响现有计划生成（计划本身不做安全处方）。
+已发布策略的回退是移动指针，不删除、不修改任何策略版本。操作流程：
+
+1. `policy-status` 读取当前 `revision`。
+2. `policy-rollback --policyId <id> --expectedRevision <读到的修订号> --reason "…"`。
+3. 读回指针。`activePolicyVersion` 变为回退前的 `previousPolicyVersion`，`previousPolicyVersion` 变为回退前的生效版本，`revision` 加 1。
+4. 按回退后的版本抽查 EX-L039、EX-L078、EX-L079、EX-L080。
+
+超时重试若仍携带旧修订号，会被拒绝，避免把刚回退的版本再切回去。没有 `previousPolicyVersion`，或该版本不存在、未发布、未审核、不可解析时，拒绝回退，指针保持原值。
+
+禁用是另一条停用路径：`policy-disable` 后，评估返回 `review_required` / `POLICY_MISSING`，`pointerState` 为 `disabled`，不触发 M-E1。禁用后的恢复必须显式 `policy-enable` 指定版本。
+
+本 ADR 仍为 Proposed。节点⑤若不接受本设计，回退本提交，并且不得在生产启用策略。
+
+## 监控与负责人
+
+策略负责人是 Lafa_el。负责人批准启停并响应告警。专业安全审核保留独立审核人，记录审核人姓名和所审核的确切版本。操作员是执行 CLI 的人；审计里的 operator 来自 ADC。服务账号邮箱只标明执行身份，不能代替具名人员。
+
+告警渠道是邮件。M-E3 单次即发高优先级邮件。M-E5 每次成功的指针变更发通知。P4 接线时用测试事件验证送达，并记录由谁确认收到、由谁处置。
+
+| 事件 | 判定 | 级别 |
+|---|---|---|
+| M-E1 | 读取超时、权限错误、指针损坏、指向版本缺失或身份不匹配。有意禁用不是 M-E1 | 高。单次即告警 |
+| M-E2 | 已发布策略解析失败 | 高。单次即告警 |
+| M-E3 | 四条 Conditional 对象被评估为 `allow` 或 `allow_with_supervision` | 最高。单次即告警 |
+| M-E4 | 审核或发布被拒绝。内容在审核后被修改、策略无效，这两类拒绝是预期行为，不告警；其他原因告警 | 中 |
+| M-E5 | `policy_enable` / `policy_disable` / `policy_rollback` 成功 | 中。每次通知负责人 |
+| M-E6 | 10 分钟内零评估，或最近 10 分钟达到此前 1 小时折算成 10 分钟均值的 10 倍，且当前窗口至少 20 次。零量告警必须有上游请求或定时探针证明该窗口应该有评估。20 次是初始运营值，P4 接线后用真实流量校准 | 低 |
+
+M-E1、M-E2、M-E3、M-E6 的生产接线属于 P4。M-E4 和 M-E5 的信号在 `trainingCatalogAuditLogs`。监控失败不得把评估改成放行，也不得挡住评估。
+
+## IAM
+
+两个身份与本变更并行创建，不在本变更内创建，也不在本变更内配置生产 IAM。
+
+- 专用策略运维写入身份：短时 impersonation，只向授权操作者开放。权限按实际 CLI 调用验证，限于读取、创建、更新和事务。不要 Firebase Auth 权限、删除权限和长期密钥。不再用 `catalog-importer` 做策略写操作。
+- 独立只读评估身份：首选自定义角色，限制在目标数据库，按文档 ID 点读。不把 `roles/datastore.viewer` 授给共享生产库。剩余风险：数据库级 IAM 条件不能把 `get` 限定到指针和策略两个集合；应用只读指定路径也不能缩小 IAM 本身的权限。若业务要求集合级隔离，再评估独立数据库或服务边界。
+
+服务端 SDK 由 IAM 授权，客户端 Rules 不能限制这些服务账号。凭证只用 impersonation，不落地长期 JSON key。
+
+生产 IAM 配置和策略启用由节点⑤单独验收。该验收通过之前，不得在生产启用任何策略。

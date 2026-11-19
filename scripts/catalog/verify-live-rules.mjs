@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 export const LIVE_RULES_PROJECT = "skatingx-prod";
 export const RULES_BASELINE_COMMIT = "96abc3307d5bfe9a826dc1be343e9cc228ba1a32";
 export const APPROVED_BASELINE_SHA256 = "68b6a84684fe1753c454b000dacc18933e25f50b7a065d03597d1453ecc149e8";
-export const APPROVED_CANDIDATE_SHA256 = "774962f3d60251a2c11ec547ec9631a6bf28a9964f07e6aa4580953c726b3457";
+export const APPROVED_CANDIDATE_SHA256 = "b8a8fde9bd8233338425429adaa05b051dbe331f085e33e897dbbc4255045c20";
 
 const RELEASE_NAMES = [
   `projects/${LIVE_RULES_PROJECT}/releases/cloud.firestore`,

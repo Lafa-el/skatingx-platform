@@ -100,3 +100,58 @@ export function withdrawCatalogLink(
   input: { academyItemId: string; actor: string },
   options?: FlowOptions,
 ): Promise<void>;
+
+export function readPolicyPointer(
+  db: Firestore,
+  policyId: string,
+): Promise<Record<string, unknown> | null>;
+
+export function showPolicyPointer(
+  db: Firestore,
+  input: { policyId: string },
+  options?: FlowOptions,
+): Promise<{
+  policyId: unknown;
+  activePolicyVersion: unknown;
+  previousPolicyVersion: unknown;
+  revision: unknown;
+  updatedBy: unknown;
+  updatedAt: unknown;
+  reason: unknown;
+} | null>;
+
+export type PointerSafetyResult = {
+  decision: SafetyEvaluation["decision"];
+  reasonCodes: readonly string[];
+  policyVersion: string | null;
+  pointerState: "enabled" | "disabled" | "error";
+  alertEvents: readonly string[];
+};
+
+export function assessPointerSafety(
+  db: Firestore,
+  request: SafetyEvaluationInput & { policyId: string },
+  options?: {
+    timeoutMs?: number;
+    readPointer?: (request: { policyId: string }) => Promise<unknown>;
+    readPolicy?: (request: { policyId: string; policyVersion: string }) => Promise<unknown>;
+  },
+): Promise<PointerSafetyResult>;
+
+export function enablePolicyPointer(
+  db: Firestore,
+  input: { policyId: string; policyVersion: string; reason: string },
+  options?: FlowOptions,
+): Promise<void>;
+
+export function disablePolicyPointer(
+  db: Firestore,
+  input: { policyId: string; reason: string },
+  options?: FlowOptions,
+): Promise<void>;
+
+export function rollbackPolicyPointer(
+  db: Firestore,
+  input: { policyId: string; expectedRevision: number | string; reason: string },
+  options?: FlowOptions,
+): Promise<void>;
