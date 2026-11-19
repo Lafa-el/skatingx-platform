@@ -818,7 +818,7 @@ function bumpedRevision(pointer) {
   return pointer.revision + 1;
 }
 
-function writeOkAudit(tx, db, action, operator, policyId, detail) {
+function writeOkAudit(tx, db, action, operator, policyId, detail, changed) {
   tx.set(db.collection(collectionPath(AUDIT)).doc(), {
     action,
     actor: operator,
@@ -826,6 +826,7 @@ function writeOkAudit(tx, db, action, operator, policyId, detail) {
     at: nowIso(),
     detail,
     result: "ok",
+    changed,
     ...operatorField(operator),
   });
 }
@@ -859,13 +860,14 @@ export async function enablePolicyPointer(db, input, options = {}) {
           operator,
           policyId,
           `already enabled at version ${policyVersion}, no change`,
+          false,
         );
         return;
       }
       const previousPolicyVersion = current ? storedActive(current) ?? null : null;
       const revision = current ? bumpedRevision(current) : 1;
       tx.set(ref, pointerRecord(policyId, policyVersion, previousPolicyVersion, revision, operator, reason));
-      writeOkAudit(tx, db, "policy_enable", operator, policyId, reason);
+      writeOkAudit(tx, db, "policy_enable", operator, policyId, reason, true);
     });
   } catch (error) {
     await rejectPointer(db, "policy_enable", operator, policyId, error);
@@ -885,7 +887,7 @@ export async function disablePolicyPointer(db, input, options = {}) {
       const current = snap.data();
       if (!current) throw new Error("pointer does not exist");
       if (current.activePolicyVersion === null) {
-        writeOkAudit(tx, db, "policy_disable", operator, policyId, "already disabled, no change");
+        writeOkAudit(tx, db, "policy_disable", operator, policyId, "already disabled, no change", false);
         return;
       }
       const previousPolicyVersion = storedActive(current);
@@ -900,7 +902,7 @@ export async function disablePolicyPointer(db, input, options = {}) {
         operator,
         reason,
       ));
-      writeOkAudit(tx, db, "policy_disable", operator, policyId, reason);
+      writeOkAudit(tx, db, "policy_disable", operator, policyId, reason, true);
     });
   } catch (error) {
     await rejectPointer(db, "policy_disable", operator, policyId, error);
@@ -935,7 +937,7 @@ export async function rollbackPolicyPointer(db, input, options = {}) {
       }
       await assertPolicyTarget(tx, db, policyId, previous);
       tx.set(ref, pointerRecord(policyId, previous, active, bumpedRevision(current), operator, reason));
-      writeOkAudit(tx, db, "policy_rollback", operator, policyId, reason);
+      writeOkAudit(tx, db, "policy_rollback", operator, policyId, reason, true);
     });
   } catch (error) {
     await rejectPointer(db, "policy_rollback", operator, policyId, error);
@@ -1177,18 +1179,18 @@ function textField(value) {
 }
 
 /**
- * A missing pointer, null active version, or "" is an intentional disable.
- * Anything else that cannot be trusted is a broken pointer (M-E1).
+ * A missing pointer is not enabled. A stored pointer is classified only after
+ * its fields are valid, so a broken document is never a normal disable.
  */
 function classifyPointer(pointer, policyId) {
   if (pointer === null || pointer === undefined) return { kind: "disabled" };
   const active = pointer.activePolicyVersion;
-  if (active === null || active === "") return { kind: "disabled" };
   const previous = pointer.previousPolicyVersion;
+  const activeOk = active === null || active === "" || textField(active);
   const previousOk = previous === null || typeof previous === "string";
-  const broken = typeof active !== "string"
-    || !textField(pointer.policyId)
+  const broken = !textField(pointer.policyId)
     || pointer.policyId !== policyId
+    || !activeOk
     || !previousOk
     || typeof pointer.revision !== "number"
     || !Number.isInteger(pointer.revision)
@@ -1196,7 +1198,16 @@ function classifyPointer(pointer, policyId) {
     || !textField(pointer.updatedAt)
     || !textField(pointer.reason);
   if (broken) return { kind: "error" };
+  if (active === null || active === "") return { kind: "disabled" };
   return { kind: "enabled", version: active };
+}
+
+function policyMatchesRequest(policy, policyId, policyVersion) {
+  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) return false;
+  return typeof policy.policyId === "string"
+    && policy.policyId === policyId
+    && typeof policy.policyVersion === "string"
+    && policy.policyVersion === policyVersion;
 }
 
 /**
@@ -1226,6 +1237,7 @@ export async function assessPointerSafety(db, request, options = {}) {
   if (read.value.kind === "disabled") return disabledPointer();
   if (read.value.kind === "error") return pointerReadError();
   if (read.value.policy == null) return pointerReadError();
+  if (!policyMatchesRequest(read.value.policy, policyId, read.value.version)) return pointerReadError();
   const parsed = parseSafetyPolicy(read.value.policy);
   if (!parsed.ok) {
     return pointerAlert("review_required", ["POLICY_INVALID"], read.value.version, "error", ["M-E2"]);

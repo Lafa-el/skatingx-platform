@@ -370,10 +370,13 @@ describe("P3-10 safety policy pointer", () => {
     await expect(readPolicyPointer(db, POLICY_ID)).resolves.toEqual(before);
     const ok = (await audits(db, "policy_enable")).filter((entry) => entry.result === "ok");
     expect(ok).toHaveLength(2);
-    expect(ok.map((entry) => entry.detail)).toEqual(expect.arrayContaining([
-      "enable v1",
-      "already enabled at version 1, no change",
+    expect(ok).toEqual(expect.arrayContaining([
+      expect.objectContaining({ detail: "enable v1", changed: true }),
+      expect.objectContaining({ detail: "already enabled at version 1, no change", changed: false }),
     ]));
+    expect(before?.revision).toBe(1);
+    expect(before?.previousPolicyVersion).toBeNull();
+    expect(before?.activePolicyVersion).toBe("1");
   });
 
   it("T-14 keeps the pointer still when disable is repeated", async () => {
@@ -388,9 +391,9 @@ describe("P3-10 safety policy pointer", () => {
     expect(before?.activePolicyVersion).toBeNull();
     const ok = (await audits(db, "policy_disable")).filter((entry) => entry.result === "ok");
     expect(ok).toHaveLength(2);
-    expect(ok.map((entry) => entry.detail)).toEqual(expect.arrayContaining([
-      "stop",
-      "already disabled, no change",
+    expect(ok).toEqual(expect.arrayContaining([
+      expect.objectContaining({ detail: "stop", changed: true }),
+      expect.objectContaining({ detail: "already disabled, no change", changed: false }),
     ]));
   });
 
@@ -573,5 +576,84 @@ describe("P3-10 safety policy pointer", () => {
       readPointer: () => new Promise(() => {}),
       timeoutMs: 20,
     })).resolves.toMatchObject({ pointerState: "error", alertEvents: ["M-E1"], reasonCodes: ["POLICY_MISSING"] });
+  });
+
+  it("treats a broken disabled pointer as M-E1", async () => {
+    await db.doc(`${POINTERS}/${POLICY_ID}`).set({
+      policyId: "other-policy",
+      activePolicyVersion: null,
+      previousPolicyVersion: null,
+      revision: 1,
+      updatedAt: "2026-11-18T00:00:00.000Z",
+      reason: "broken",
+    });
+    await expect(assess(db, "EX-L039")).resolves.toEqual({
+      decision: "review_required",
+      reasonCodes: ["POLICY_MISSING"],
+      policyVersion: null,
+      pointerState: "error",
+      alertEvents: ["M-E1"],
+    });
+
+    await db.doc(`${POINTERS}/${POLICY_ID}`).set({
+      policyId: POLICY_ID,
+      activePolicyVersion: "",
+      previousPolicyVersion: null,
+      revision: 1.5,
+      updatedBy: OPERATOR,
+      updatedAt: "2026-11-18T00:00:00.000Z",
+      reason: "blank",
+    });
+    await expect(assess(db, "EX-L078")).resolves.toEqual({
+      decision: "review_required",
+      reasonCodes: ["POLICY_MISSING"],
+      policyVersion: null,
+      pointerState: "error",
+      alertEvents: ["M-E1"],
+    });
+  });
+
+  it("keeps a complete disabled pointer as a normal disable", async () => {
+    await db.doc(`${POINTERS}/${POLICY_ID}`).set({
+      policyId: POLICY_ID,
+      activePolicyVersion: null,
+      previousPolicyVersion: "1",
+      revision: 2,
+      updatedBy: OPERATOR,
+      updatedAt: "2026-11-18T00:00:00.000Z",
+      reason: "disabled",
+    });
+    await expect(assess(db, "EX-L080")).resolves.toEqual({
+      decision: "review_required",
+      reasonCodes: ["POLICY_MISSING"],
+      policyVersion: null,
+      pointerState: "disabled",
+      alertEvents: [],
+    });
+  });
+
+  it("rejects a reader result whose policy identity does not match the request", async () => {
+    await seed(db, "1");
+    await enablePolicyPointer(db, { policyId: POLICY_ID, policyVersion: "1", reason: "enable v1" }, OPTIONS);
+    const body = policy("1");
+    const request = { objectId: "EX-L039", policyId: POLICY_ID, ...ATHLETE };
+    await expect(assessPointerSafety(db, request, {
+      readPolicy: async () => ({ ...body, policyVersion: "2" }),
+    })).resolves.toEqual({
+      decision: "review_required",
+      reasonCodes: ["POLICY_MISSING"],
+      policyVersion: null,
+      pointerState: "error",
+      alertEvents: ["M-E1"],
+    });
+    await expect(assessPointerSafety(db, request, {
+      readPolicy: async () => ({ ...body, policyId: "other-policy" }),
+    })).resolves.toEqual({
+      decision: "review_required",
+      reasonCodes: ["POLICY_MISSING"],
+      policyVersion: null,
+      pointerState: "error",
+      alertEvents: ["M-E1"],
+    });
   });
 });
