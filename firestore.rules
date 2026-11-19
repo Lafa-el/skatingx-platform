@@ -603,6 +603,12 @@ service cloud.firestore {
       allow delete: if catalogAdmin() && resource.data.status == "draft";
     }
 
+    // Pointers are operational state. Clients, including catalogAdmin, cannot
+    // read or write them. The controlled CLI uses the Admin SDK.
+    match /artifacts/skatingx-production/trainingCatalogSafetyPolicyPointers/{policyId} {
+      allow get, list, create, update, delete: if false;
+    }
+
     match /artifacts/skatingx-production/trainingCatalogLinks/{academyItemId} {
       allow get: if catalogAdmin();
       allow list: if catalogAdmin();
