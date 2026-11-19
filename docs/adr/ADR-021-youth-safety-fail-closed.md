@@ -40,14 +40,14 @@
 
 启用和回退在同一事务内共用一套目标校验：按 `{policyId}--v{policyVersion}` 读取策略，核对正文 `policyId`、`policyVersion` 均为字符串且与请求一致，`status` 为 `published`，`reviewStatus` 为 `approved`，并且 `parseSafetyPolicy` 成功。同一事务提交指针变更和 `ok` 审计。任一校验失败则事务回滚，指针保持原值，事务外另写 `rejected` 审计。
 
-重复启用当前版本、重复禁用：返回成功，不修改指针，不增加 `revision`，保留 `previousPolicyVersion`，`ok` 审计的 `detail` 注明无状态变化。回退必须带操作者刚读到的整数 `revision`；不一致时拒绝，错误写明期望值与实际值。指针已禁用时，恢复只能显式 `policy-enable` 指定版本，不能用回退，也不能自动切回 `previousPolicyVersion`。
+重复启用当前版本、重复禁用：返回成功，不修改指针，不增加 `revision`，保留 `previousPolicyVersion`。`ok` 审计的 `detail` 注明无状态变化，`changed` 为 `false`。真实启用、禁用、回退的 `ok` 审计 `changed` 为 `true`。`rejected` 审计不带 `changed`。回退必须带操作者刚读到的整数 `revision`；不一致时拒绝，错误写明期望值与实际值。指针已禁用时，恢复只能显式 `policy-enable` 指定版本，不能用回退，也不能自动切回 `previousPolicyVersion`。
 
 Emulator 读取函数是 `assessPointerSafety`。生产评估消费端属于 P4，本 ADR 只定契约：
 
-1. 指针不存在，或 `activePolicyVersion` 为 `null` 或 `""`：`review_required` / `POLICY_MISSING`，`policyVersion: null`，`pointerState: "disabled"`，不触发 M-E1。
-2. 指针损坏（生效版本不是字符串、缺必填字段、指针 `policyId` 与文档 ID 不一致）：`POLICY_MISSING`，`pointerState: "error"`，M-E1。
-3. 指向的版本缺失或身份不匹配：`POLICY_MISSING`，M-E1。
-4. 读取超时或抛错：`POLICY_MISSING`，M-E1。
+1. 指针不存在：`review_required` / `POLICY_MISSING`，`policyVersion: null`，`pointerState: "disabled"`，不触发 M-E1。
+2. 指针存在但字段不合格：无论 `activePolicyVersion` 是 `null`、`""` 还是其他值，一律 `POLICY_MISSING`，`pointerState: "error"`，M-E1。不合格指 `policyId` 不是非空字符串或与文档 ID 不一致，`activePolicyVersion` 不是 `null`、`""` 或非空字符串，`previousPolicyVersion` 不是 `null` 或字符串，`revision` 不是整数，或 `updatedBy`、`updatedAt`、`reason` 任一不是非空字符串。
+3. 字段合格且 `activePolicyVersion` 为 `null` 或 `""`：`POLICY_MISSING`，`pointerState: "disabled"`，不触发 M-E1。
+4. 字段合格且 `activePolicyVersion` 为非空字符串：读取该版本。评估入口统一核对返回值：策略须是对象，且 `policyId`、`policyVersion` 均为字符串并与请求一致。注入的读函数也经过这一次核对。不一致、文档缺失、超时或抛错都是 `POLICY_MISSING` 与 M-E1，不得进入解析与评估。
 5. 解析失败：`POLICY_INVALID`，M-E2。
 6. 评估。若 EX-L039、EX-L078、EX-L079、EX-L080 之一得到 `allow` 或 `allow_with_supervision`，记 M-E3。告警不改写评估决定。
 
@@ -74,7 +74,7 @@ P4 消费端只使用当前指针对应的结果。禁用或读取失败后，�
 
 策略负责人是 Lafa_el。负责人批准启停并响应告警。专业安全审核保留独立审核人，记录审核人姓名和所审核的确切版本。操作员是执行 CLI 的人；审计里的 operator 来自 ADC。服务账号邮箱只标明执行身份，不能代替具名人员。
 
-告警渠道是邮件。M-E3 单次即发高优先级邮件。M-E5 每次成功的指针变更发通知。P4 接线时用测试事件验证送达，并记录由谁确认收到、由谁处置。
+告警渠道是邮件。M-E3 单次即发高优先级邮件。M-E5 只对 `changed: true` 的成功指针变更发通知。`changed: false` 的无状态变化审计不是 M-E5 事件。P4 接线时用测试事件验证送达，并记录由谁确认收到、由谁处置。
 
 | 事件 | 判定 | 级别 |
 |---|---|---|
@@ -82,7 +82,7 @@ P4 消费端只使用当前指针对应的结果。禁用或读取失败后，�
 | M-E2 | 已发布策略解析失败 | 高。单次即告警 |
 | M-E3 | 四条 Conditional 对象被评估为 `allow` 或 `allow_with_supervision` | 最高。单次即告警 |
 | M-E4 | 审核或发布被拒绝。内容在审核后被修改、策略无效，这两类拒绝是预期行为，不告警；其他原因告警 | 中 |
-| M-E5 | `policy_enable` / `policy_disable` / `policy_rollback` 成功 | 中。每次通知负责人 |
+| M-E5 | `policy_enable` / `policy_disable` / `policy_rollback` 成功且 `changed: true`。`changed: false` 的重复启用或重复禁用不是 M-E5 | 中。每次真实变更通知负责人 |
 | M-E6 | 10 分钟内零评估，或最近 10 分钟达到此前 1 小时折算成 10 分钟均值的 10 倍，且当前窗口至少 20 次。零量告警必须有上游请求或定时探针证明该窗口应该有评估。20 次是初始运营值，P4 接线后用真实流量校准 | 低 |
 
 M-E1、M-E2、M-E3、M-E6 的生产接线属于 P4。M-E4 和 M-E5 的信号在 `trainingCatalogAuditLogs`。监控失败不得把评估改成放行，也不得挡住评估。
