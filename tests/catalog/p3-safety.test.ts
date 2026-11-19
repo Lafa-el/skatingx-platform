@@ -103,7 +103,7 @@ function conditionalCover(objectIds: readonly string[]) {
   return objectIds.map((objectId) => ({
     objectId,
     decisionMode: "conditional" as const,
-    minTrainingAgeYears: 0,
+    minTrainingAgeYears: 1,
   }));
 }
 
@@ -882,9 +882,9 @@ describe("P3-9 evaluator decision mode", () => {
     });
   });
 
-  it("E-09 through E-11 keep drop jumps in manual review for flags and missing age", () => {
-    expect(decide("EX-L039", { recoveryFlags: ["current_injury"] }).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
-    expect(decide("EX-L039", { recoveryFlags: ["unknown_flag"] }).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
+  it("E-09 through E-11 surface a drop-jump block or unknown flag before manual review", () => {
+    expect(decide("EX-L039", { recoveryFlags: ["current_injury"] }).reasonCodes).toEqual(["RECOVERY_FLAG_BLOCK"]);
+    expect(decide("EX-L039", { recoveryFlags: ["unknown_flag"] }).reasonCodes).toEqual(["UNKNOWN_RECOVERY_FLAG"]);
     const { trainingAge: _age, ...withoutAge } = { ...FULL_INPUT, objectId: "EX-L039" };
     expect(evaluateSafety(withoutAge, policy).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
   });
@@ -974,7 +974,7 @@ describe("P3-9 evaluator decision mode", () => {
 
   it("E-32 through E-35 keep drop jumps in manual review", () => {
     expect(evaluateSafety(dropField("EX-L039", "supervision"), policy).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
-    expect(decide("EX-L039", { authorizedRestrictions: ["knee_brace"] }).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
+    expect(decide("EX-L039", { authorizedRestrictions: ["knee_brace"] }).reasonCodes).toEqual(["UNKNOWN_RESTRICTION"]);
     expect(evaluateSafety(dropField("EX-L039", "trainingAge"), policy).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
     expect(decide("EX-L039", { verifiedSkills: [] }).reasonCodes).toEqual(["MANUAL_REVIEW_ONLY"]);
   });
@@ -1026,5 +1026,87 @@ describe("P3-9 evaluator decision mode", () => {
         reasonCodes: ["POLICY_INVALID"],
       });
     }
+  });
+});
+
+describe("P3-11 manual review hard block", () => {
+  const policy = v1Policy();
+
+  function decide(objectId: string, input: Record<string, unknown> = {}) {
+    return evaluateSafety({ objectId, ...FULL_INPUT, ...input }, policy);
+  }
+
+  it("blocks EX-L039 when a known restriction is present", () => {
+    expect(decide("EX-L039", { authorizedRestrictions: ["medical_exercise_restriction"] })).toMatchObject({
+      decision: "block",
+      reasonCodes: ["RESTRICTION_BLOCK"],
+    });
+  });
+
+  it("blocks EX-L039 when current_injury is present", () => {
+    expect(decide("EX-L039", { recoveryFlags: ["current_injury"] })).toMatchObject({
+      decision: "block",
+      reasonCodes: ["RECOVERY_FLAG_BLOCK"],
+    });
+  });
+
+  it("prefers a known block when an unknown flag is also present", () => {
+    expect(decide("EX-L039", {
+      authorizedRestrictions: ["medical_exercise_restriction", "knee_brace"],
+      recoveryFlags: ["unknown_flag"],
+    })).toMatchObject({
+      decision: "block",
+      reasonCodes: ["RESTRICTION_BLOCK"],
+    });
+    expect(decide("EX-L039", {
+      recoveryFlags: ["current_injury", "unknown_flag"],
+    })).toMatchObject({
+      decision: "block",
+      reasonCodes: ["RECOVERY_FLAG_BLOCK"],
+    });
+  });
+
+  it("blocks EX-L039 when other inputs are missing but the blocking flag is present", () => {
+    for (const field of ["trainingAge", "verifiedSkills", "recentLoad"] as const) {
+      expect(evaluateSafety({
+        ...dropField("EX-L039", field),
+        authorizedRestrictions: ["no_high_impact"],
+      }, policy)).toMatchObject({
+        decision: "block",
+        reasonCodes: ["RESTRICTION_BLOCK"],
+      });
+      expect(evaluateSafety({
+        ...dropField("EX-L039", field),
+        recoveryFlags: ["current_injury"],
+      }, policy)).toMatchObject({
+        decision: "block",
+        reasonCodes: ["RECOVERY_FLAG_BLOCK"],
+      });
+    }
+  });
+
+  it("requires review for an unknown restriction or recovery flag without a known block", () => {
+    expect(decide("EX-L039", { authorizedRestrictions: ["knee_brace"] })).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["UNKNOWN_RESTRICTION"],
+    });
+    expect(decide("EX-L039", { recoveryFlags: ["unknown_flag"] })).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["UNKNOWN_RECOVERY_FLAG"],
+    });
+  });
+
+  it("keeps a clean EX-L039 in manual review and a blocked BFR object blocked", () => {
+    expect(decide("EX-L039")).toMatchObject({
+      decision: "review_required",
+      reasonCodes: ["MANUAL_REVIEW_ONLY"],
+    });
+    expect(decide("EX-L078", {
+      authorizedRestrictions: ["medical_exercise_restriction"],
+      recoveryFlags: ["current_injury"],
+    })).toMatchObject({
+      decision: "block",
+      reasonCodes: ["OBJECT_BLOCKED"],
+    });
   });
 });

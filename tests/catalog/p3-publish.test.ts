@@ -62,7 +62,7 @@ const POLICY_CONTENT = {
   ageBands: ["age11_13"],
   blockingRestrictions: [] as string[],
   blockingRecoveryFlags: [] as string[],
-  objectConditions: [{ objectId: "EX-L001", decisionMode: "conditional", minTrainingAgeYears: 0 }],
+  objectConditions: [{ objectId: "EX-L001", decisionMode: "conditional", minTrainingAgeYears: 1 }],
 };
 const PUB_DOC = policyDocId("synth-pub-1", "synth-pub-1");
 const INVALID_DOC = policyDocId("synth-invalid", "synth-invalid");
