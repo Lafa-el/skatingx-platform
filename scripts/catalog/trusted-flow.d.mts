@@ -17,6 +17,14 @@ export function parseArgs(argv: string[]): { command: string; args: Record<strin
 
 export function assertProductionCommand(command: string): void;
 
+export function policyDocId(policyId: string, policyVersion: string): string;
+
+export function readPolicyDocument(
+  db: Firestore,
+  policyId: string,
+  policyVersion: string,
+): Promise<Record<string, unknown> | null>;
+
 export function openProductionFlowDb(
   project: string | undefined,
   confirm: string | undefined,
@@ -71,13 +79,13 @@ export function publishKnowledgeArticle(
 
 export function reviewSafetyPolicy(
   db: Firestore,
-  input: { policyId: string; reviewer: string; decision: "approved" | "rejected" },
+  input: { policyId: string; policyVersion: string; reviewer: string; decision: "approved" | "rejected" },
   options?: FlowOptions,
 ): Promise<void>;
 
 export function publishSafetyPolicy(
   db: Firestore,
-  input: { policyId: string; actor: string },
+  input: { policyId: string; policyVersion: string; actor: string },
   options?: FlowOptions,
 ): Promise<void>;
 

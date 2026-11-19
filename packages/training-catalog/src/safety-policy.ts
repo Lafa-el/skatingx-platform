@@ -14,8 +14,13 @@ export const SAFETY_LOADS = ["low", "moderate", "high"] as const;
 
 export type SafetyLoad = (typeof SAFETY_LOADS)[number];
 
+export const SAFETY_OBJECT_DECISION_MODES = ["manual_review_only", "blocked", "conditional"] as const;
+
+export type SafetyObjectDecisionMode = (typeof SAFETY_OBJECT_DECISION_MODES)[number];
+
 export interface SafetyObjectCondition {
   objectId: string;
+  decisionMode: SafetyObjectDecisionMode;
   minTrainingAgeYears?: number;
   requiredSkills?: readonly string[];
   allowedLoads?: readonly SafetyLoad[];
@@ -31,7 +36,7 @@ export interface SafetyPolicy {
   blockingRecoveryFlags: readonly string[];
   knownRestrictions: readonly string[];
   knownRecoveryFlags: readonly string[];
-  objectConditions?: readonly SafetyObjectCondition[];
+  objectConditions: readonly SafetyObjectCondition[];
   reviewStatus: "approved";
   reviewer: string;
   reviewedAt: string;
@@ -79,30 +84,54 @@ function covers(known: readonly string[], used: readonly string[]): boolean {
   return used.every((item) => known.includes(item));
 }
 
-function parseObjectConditions(value: unknown): readonly SafetyObjectCondition[] | null | undefined {
-  if (value === undefined) return undefined;
-  if (!Array.isArray(value)) return null;
+function isDecisionMode(value: unknown): value is SafetyObjectDecisionMode {
+  return typeof value === "string" && (SAFETY_OBJECT_DECISION_MODES as readonly string[]).includes(value);
+}
+
+function parseObjectConditions(
+  value: unknown,
+  objectIds: readonly string[],
+): readonly SafetyObjectCondition[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
   const conditions: SafetyObjectCondition[] = [];
+  const seen = new Set<string>();
   for (const entry of value) {
-    if (!isRecord(entry) || !nonEmptyString(entry.objectId)) return null;
-    const condition: SafetyObjectCondition = { objectId: entry.objectId.trim() };
-    if (entry.minTrainingAgeYears !== undefined) {
+    if (!isRecord(entry) || !nonEmptyString(entry.objectId) || !isDecisionMode(entry.decisionMode)) return null;
+    const objectId = entry.objectId.trim();
+    if (seen.has(objectId) || !objectIds.includes(objectId)) return null;
+    seen.add(objectId);
+    const hasAge = entry.minTrainingAgeYears !== undefined;
+    const hasSkills = entry.requiredSkills !== undefined;
+    const hasLoads = entry.allowedLoads !== undefined;
+    if (entry.decisionMode === "blocked" || entry.decisionMode === "manual_review_only") {
+      if (hasAge || hasSkills || hasLoads) return null;
+      conditions.push({ objectId, decisionMode: entry.decisionMode });
+      continue;
+    }
+    const condition: SafetyObjectCondition = { objectId, decisionMode: "conditional" };
+    let trusted = false;
+    if (hasAge) {
       const age = entry.minTrainingAgeYears;
       if (typeof age !== "number" || !Number.isInteger(age) || age < 0) return null;
       condition.minTrainingAgeYears = age;
+      trusted = true;
     }
-    if (entry.requiredSkills !== undefined) {
+    if (hasSkills) {
       const skills = stringList(entry.requiredSkills, true);
       if (skills === null) return null;
       condition.requiredSkills = skills;
+      if (skills.length > 0) trusted = true;
     }
-    if (entry.allowedLoads !== undefined) {
+    if (hasLoads) {
       const loads = stringList(entry.allowedLoads, true);
       if (loads === null || loads.some((load) => !(SAFETY_LOADS as readonly string[]).includes(load))) return null;
       condition.allowedLoads = loads as SafetyLoad[];
+      if (loads.length > 0) trusted = true;
     }
+    if (!trusted) return null;
     conditions.push(condition);
   }
+  if (objectIds.some((objectId) => !seen.has(objectId))) return null;
   return conditions;
 }
 
@@ -143,7 +172,7 @@ export function parseSafetyPolicy(raw: unknown): ParsedSafetyPolicy {
   if (!covers(knownRecoveryFlags, blockingRecoveryFlags)) {
     return rejected(policyVersion, "blocking recovery flag is not a known recovery flag");
   }
-  const objectConditions = parseObjectConditions(raw.objectConditions);
+  const objectConditions = parseObjectConditions(raw.objectConditions, objectIds);
   if (objectConditions === null) return rejected(policyVersion, "object conditions are invalid");
   return {
     ok: true,
@@ -157,7 +186,7 @@ export function parseSafetyPolicy(raw: unknown): ParsedSafetyPolicy {
       blockingRecoveryFlags,
       knownRestrictions,
       knownRecoveryFlags,
-      ...(objectConditions !== undefined ? { objectConditions } : {}),
+      objectConditions,
       reviewStatus: "approved",
       reviewer,
       reviewedAt,

@@ -553,8 +553,23 @@ export async function reviewKnowledgeArticle(db, input, options = {}) {
   await reviewRecord(db, KNOWLEDGE_ARTICLES, input.articleId, input.reviewer, input.decision, "article_review", options.target, options.operator);
 }
 
+export function policyDocId(policyId, policyVersion) {
+  return `${policyId}--v${policyVersion}`;
+}
+
 export async function reviewSafetyPolicy(db, input, options = {}) {
-  await reviewRecord(db, POLICIES, input.policyId, input.reviewer, input.decision, "policy_review", options.target, options.operator);
+  const policyId = requireText(input.policyId, "policyId");
+  const policyVersion = requireText(input.policyVersion, "policyVersion");
+  await reviewRecord(
+    db,
+    POLICIES,
+    policyDocId(policyId, policyVersion),
+    input.reviewer,
+    input.decision,
+    "policy_review",
+    options.target,
+    options.operator,
+  );
 }
 
 function reviewApproved(record) {
@@ -622,10 +637,11 @@ export async function publishSafetyPolicy(db, input, options = {}) {
   assertFlowProject(db, options.target);
   const actor = requireText(input.actor, "actor");
   const policyId = requireText(input.policyId, "policyId");
+  const policyVersion = requireText(input.policyVersion, "policyVersion");
   await publishReviewedDraft(
     db,
     POLICIES,
-    policyId,
+    policyDocId(policyId, policyVersion),
     actor,
     "policy_publish",
     "policy does not exist",
@@ -766,6 +782,7 @@ const FLOW_ARG_KEYS = new Set([
   "academyItemId",
   "articleId",
   "policyId",
+  "policyVersion",
 ]);
 const FLOW_USAGE = `usage: ${[...FLOW_COMMANDS].join(" | ")}`;
 
@@ -882,12 +899,13 @@ async function readWithin(read, timeoutMs) {
   }
 }
 
-async function readPolicyDocument(db, policyId, policyVersion) {
-  const snap = await db.doc(`${collectionPath(POLICIES)}/${policyId}`).get();
+export async function readPolicyDocument(db, policyId, policyVersion) {
+  const snap = await db.doc(`${collectionPath(POLICIES)}/${policyDocId(policyId, policyVersion)}`).get();
   if (!snap.exists) return null;
   const data = snap.data();
   if (!data) return null;
-  if (typeof data.policyVersion === "string" && data.policyVersion !== policyVersion) return null;
+  if (typeof data.policyId !== "string" || data.policyId !== policyId) return null;
+  if (typeof data.policyVersion !== "string" || data.policyVersion !== policyVersion) return null;
   return data;
 }
 
