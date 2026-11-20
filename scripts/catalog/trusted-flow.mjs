@@ -18,9 +18,9 @@ import {
   PRODUCTION_PROJECT_ID,
   assertExecutionTarget,
   assertServiceAccountIdentity,
-  confirmProjectOnStdin,
+  confirmPolicyOpsProject,
   identityFromAdcPayload,
-  readLineFromStdin,
+  readPolicyOpsConfirmation,
 } from "./import-guard.mjs";
 
 import {
@@ -578,7 +578,7 @@ export async function reviewCatalogLink(db, input, options = {}) {
 }
 
 export async function reviewKnowledgeArticle(db, input, options = {}) {
-  assertFlowProject(db, options.target);
+  const operator = operatorForWrite(db, options, false);
   const expectedContentSha256 = requireText(input.expectedContentSha256, "expectedContentSha256");
   await reviewRecord(
     db,
@@ -588,7 +588,7 @@ export async function reviewKnowledgeArticle(db, input, options = {}) {
     input.decision,
     "article_review",
     options.target,
-    options.operator,
+    operator,
     expectedContentSha256,
   );
 }
@@ -598,7 +598,7 @@ export function policyDocId(policyId, policyVersion) {
 }
 
 export async function reviewSafetyPolicy(db, input, options = {}) {
-  assertFlowProject(db, options.target);
+  const operator = operatorForWrite(db, options, false);
   const policyId = requireText(input.policyId, "policyId");
   const policyVersion = requireText(input.policyVersion, "policyVersion");
   const expectedContentSha256 = requireText(input.expectedContentSha256, "expectedContentSha256");
@@ -610,7 +610,7 @@ export async function reviewSafetyPolicy(db, input, options = {}) {
     input.decision,
     "policy_review",
     options.target,
-    options.operator,
+    operator,
     expectedContentSha256,
     (current) => assertPolicyIdentity(current, policyId, policyVersion),
   );
@@ -661,7 +661,7 @@ async function publishReviewedDraft(db, collectionName, id, actor, action, missi
 }
 
 export async function publishKnowledgeArticle(db, input, options = {}) {
-  assertFlowProject(db, options.target);
+  const operator = operatorForWrite(db, options, false);
   const actor = requireText(input.actor, "actor");
   const articleId = requireText(input.articleId, "articleId");
   await publishReviewedDraft(
@@ -673,12 +673,12 @@ export async function publishKnowledgeArticle(db, input, options = {}) {
     "article does not exist",
     "article is not approved",
     undefined,
-    options.operator,
+    operator,
   );
 }
 
 export async function publishSafetyPolicy(db, input, options = {}) {
-  assertFlowProject(db, options.target);
+  const operator = operatorForWrite(db, options, false);
   const actor = requireText(input.actor, "actor");
   const policyId = requireText(input.policyId, "policyId");
   const policyVersion = requireText(input.policyVersion, "policyVersion");
@@ -696,7 +696,7 @@ export async function publishSafetyPolicy(db, input, options = {}) {
       const parsed = parseSafetyPolicy({ ...current, status: "published" });
       if (!parsed.ok) throw new Error("safety policy is invalid");
     },
-    options.operator,
+    operator,
   );
 }
 
@@ -812,6 +812,43 @@ function requireOperator(options) {
   return requireText(options.operator, "operator");
 }
 
+// Not exported. A caller cannot mint this brand, and copying the object drops it.
+const PRODUCTION_CONTEXT = Symbol("skatingx.policyOpsExecutionContext");
+
+function issueProductionExecutionContext(operator) {
+  const context = { operator };
+  Object.defineProperty(context, PRODUCTION_CONTEXT, {
+    value: true,
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  });
+  return context;
+}
+
+function productionOperator(context) {
+  if (
+    !context ||
+    context[PRODUCTION_CONTEXT] !== true ||
+    typeof context.operator !== "string" ||
+    context.operator.trim() === ""
+  ) {
+    throw new Error("refusing to run: production execution context is required");
+  }
+  return context.operator.trim();
+}
+
+// Production ignores options.operator. The gate-issued context is the only operator.
+function operatorForWrite(db, options, required) {
+  if (options.target === "production") {
+    const operator = productionOperator(options.executionContext);
+    assertFlowProject(db, "production");
+    return operator;
+  }
+  assertFlowProject(db, options.target);
+  return required ? requireOperator(options) : options.operator;
+}
+
 function requireInteger(value, label) {
   if (typeof value === "string" && /^-?\d+$/.test(value.trim())) return Number(value.trim());
   if (typeof value === "number" && Number.isInteger(value)) return value;
@@ -885,11 +922,10 @@ async function rejectPointer(db, action, operator, policyId, error) {
 }
 
 export async function enablePolicyPointer(db, input, options = {}) {
-  assertFlowProject(db, options.target);
+  const operator = operatorForWrite(db, options, true);
   const policyId = requireText(input.policyId, "policyId");
   const policyVersion = requireText(input.policyVersion, "policyVersion");
   const reason = requireText(input.reason, "reason");
-  const operator = requireOperator(options);
   try {
     await db.runTransaction(async (tx) => {
       const ref = db.doc(pointerPath(policyId));
@@ -919,10 +955,9 @@ export async function enablePolicyPointer(db, input, options = {}) {
 }
 
 export async function disablePolicyPointer(db, input, options = {}) {
-  assertFlowProject(db, options.target);
+  const operator = operatorForWrite(db, options, true);
   const policyId = requireText(input.policyId, "policyId");
   const reason = requireText(input.reason, "reason");
-  const operator = requireOperator(options);
   try {
     await db.runTransaction(async (tx) => {
       const ref = db.doc(pointerPath(policyId));
@@ -954,11 +989,10 @@ export async function disablePolicyPointer(db, input, options = {}) {
 }
 
 export async function rollbackPolicyPointer(db, input, options = {}) {
-  assertFlowProject(db, options.target);
+  const operator = operatorForWrite(db, options, true);
   const policyId = requireText(input.policyId, "policyId");
   const reason = requireText(input.reason, "reason");
   const expectedRevision = requireInteger(input.expectedRevision, "expectedRevision");
-  const operator = requireOperator(options);
   try {
     await db.runTransaction(async (tx) => {
       const ref = db.doc(pointerPath(policyId));
@@ -1104,7 +1138,7 @@ async function dispatchFlow(db, command, input, options) {
   throw new Error(FLOW_USAGE);
 }
 
-export async function openProductionFlowDb(project, confirm, readLine = readLineFromStdin) {
+export async function openProductionFlowDb(project, confirm, readLine = readPolicyOpsConfirmation, dependencies = {}) {
   assertExecutionTarget({
     target: "production",
     projectId: project,
@@ -1116,14 +1150,16 @@ export async function openProductionFlowDb(project, confirm, readLine = readLine
   const adcFile = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim() ?? "";
   if (adcFile === "") throw new Error("refusing to run: GOOGLE_APPLICATION_CREDENTIALS is not set");
   // run-import.mjs registers a module loader as soon as it is imported.
-  const { bindVerifiedAdc, openProductionFirestore, productionFirestore } = await import("./run-import.mjs");
+  const runtime = await import("./run-import.mjs");
+  const bindVerifiedAdc = dependencies.bindVerifiedAdc ?? runtime.bindVerifiedAdc;
+  const openProductionFirestore = dependencies.openProductionFirestore ?? runtime.openProductionFirestore;
+  const productionFirestore = dependencies.productionFirestore ?? runtime.productionFirestore;
   const identity = identityFromAdcPayload(bindVerifiedAdc(adcFile));
   assertServiceAccountIdentity({ credential: identity, projectId: PRODUCTION_PROJECT_ID });
-  await confirmProjectOnStdin(PRODUCTION_PROJECT_ID, readLine);
-  return {
-    db: productionFirestore(await openProductionFirestore(adcFile)),
-    operator: identity.clientEmail,
-  };
+  await confirmPolicyOpsProject(PRODUCTION_PROJECT_ID, readLine);
+  const db = productionFirestore(await openProductionFirestore(adcFile));
+  const executionContext = issueProductionExecutionContext(identity.clientEmail);
+  return { db, operator: identity.clientEmail, executionContext };
 }
 
 async function main() {
@@ -1136,8 +1172,8 @@ async function main() {
   const input = flowInput(args);
   if (flowTarget === "production") {
     assertProductionCommand(command);
-    const { db, operator } = await openProductionFlowDb(args.project, args.confirm);
-    await dispatchFlow(db, command, input, { target: "production", operator });
+    const { db, executionContext } = await openProductionFlowDb(args.project, args.confirm);
+    await dispatchFlow(db, command, input, { target: "production", executionContext });
     return;
   }
   const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "";

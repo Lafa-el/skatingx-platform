@@ -196,6 +196,28 @@ export async function confirmProjectOnStdin(projectId, readLine) {
   return assertExplicitConfirmation(typeof entered === "string" ? entered : "", projectId);
 }
 
+// Policy operations do not accept the import-path token. Only the exact project id.
+export function assertPolicyOpsConfirmation(confirmation, projectId) {
+  if (typeof confirmation !== "string" || confirmation !== projectId) {
+    throw new Error("refusing to run: policy operations require the exact target project id");
+  }
+  return confirmation;
+}
+
+export async function confirmPolicyOpsProject(projectId, readLine) {
+  return assertPolicyOpsConfirmation(await readLine(), projectId);
+}
+
+export function readPolicyOpsConfirmation() {
+  return new Promise((resolve) => {
+    const rl = createInterface({ input: process.stdin, output: process.stderr });
+    rl.question("Type the target project id (skatingx-prod). IMPORT is not accepted: ", (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
+
 export function readLineFromStdin() {
   return new Promise((resolve) => {
     const rl = createInterface({ input: process.stdin, output: process.stderr });

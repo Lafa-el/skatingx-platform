@@ -70,7 +70,10 @@ export function assertServiceAccountIdentity(input: {
 export function identityFromAdcPayload(payload: unknown): ServiceAccountCredential;
 
 export function assertExplicitConfirmation(confirmation: unknown, projectId: string): string;
+export function assertPolicyOpsConfirmation(confirmation: unknown, projectId: string): string;
 export function confirmProjectOnStdin(projectId: string, readLine: () => Promise<string>): Promise<string>;
+export function confirmPolicyOpsProject(projectId: string, readLine: () => Promise<unknown>): Promise<string>;
+export function readPolicyOpsConfirmation(): Promise<string>;
 
 export function readLineFromStdin(): Promise<string>;
 

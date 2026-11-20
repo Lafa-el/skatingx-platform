@@ -27,15 +27,29 @@ export function readPolicyDocument(
   policyVersion: string,
 ): Promise<Record<string, unknown> | null>;
 
+export interface ProductionExecutionContext {
+  readonly operator: string;
+}
+
 export function openProductionFlowDb(
   project: string | undefined,
   confirm: string | undefined,
-  readLine?: () => Promise<string>,
-): Promise<{ db: Firestore; operator: string }>;
+  readLine?: () => Promise<unknown>,
+  dependencies?: {
+    bindVerifiedAdc?: (adcFile: string) => unknown;
+    openProductionFirestore?: (adcFile: string) => Promise<unknown>;
+    productionFirestore?: (app: unknown) => Firestore;
+  },
+): Promise<{ db: Firestore; operator: string; executionContext: ProductionExecutionContext }>;
 
 export function assertProductionProject(db: Firestore): void;
 
-type FlowOptions = { target?: "emulator" | "production"; operator?: string };
+type FlowOptions = {
+  target?: "emulator" | "production";
+  /** Emulator audits only. Production uses the operator inside executionContext. */
+  operator?: string;
+  executionContext?: ProductionExecutionContext;
+};
 
 export function reviewCatalogVersion(
   db: Firestore,

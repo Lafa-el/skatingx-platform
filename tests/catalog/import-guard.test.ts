@@ -14,10 +14,12 @@ import {
   assertExecutionTarget,
   assertServiceAccountIdentity,
   identityFromAdcPayload,
+  confirmPolicyOpsProject,
   confirmProjectOnStdin,
   countBusinessData,
   formatExecutionSummary,
   parseImportArgs,
+  readPolicyOpsConfirmation,
   resolveAuthUserCount,
 } from "../../scripts/catalog/import-guard.mjs";
 
@@ -105,6 +107,20 @@ describe("catalog import target guards", () => {
     expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "a/b", "--mode", "initial"])).toThrow(/single document id/);
     expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", ".", "--mode", "initial"])).toThrow(/single document id/);
     expect(() => parseImportArgs(["--target", "emulator", "--project", "demo-x", "--runId", "..", "--mode", "initial"])).toThrow(/single document id/);
+  });
+
+  it("requires the exact project id for policy operations and rejects IMPORT and EOF", async () => {
+    for (const entered of ["IMPORT", "wrong", "", "Skatingx-Prod"]) {
+      await expect(confirmPolicyOpsProject("skatingx-prod", async () => entered)).rejects.toThrow(
+        /policy operations require the exact target project id/,
+      );
+    }
+    await expect(confirmPolicyOpsProject("skatingx-prod", async () => undefined)).rejects.toThrow(
+      /policy operations require the exact target project id/,
+    );
+    await expect(confirmPolicyOpsProject("skatingx-prod", async () => "skatingx-prod")).resolves.toBe("skatingx-prod");
+    expect(readPolicyOpsConfirmation.toString()).toMatch(/Type the target project id/);
+    expect(readPolicyOpsConfirmation.toString()).toMatch(/IMPORT is not accepted/);
   });
 
   it("does not print an unknown Auth count as zero and fail-closes production", () => {
