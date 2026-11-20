@@ -2,7 +2,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { type Firestore, getFirestore } from "firebase-admin/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { publishKnowledgeArticle, reviewKnowledgeArticle } from "../../scripts/catalog/trusted-flow.mjs";
+import { contentHash, publishKnowledgeArticle, reviewKnowledgeArticle } from "../../scripts/catalog/trusted-flow.mjs";
 
 const PROJECT_ID = "demo-skatingx-import";
 const ROOT = "artifacts/skatingx-production";
@@ -58,12 +58,19 @@ describe("P3 operator binding on M4 audits", () => {
 
   it("records the operator on an approved review", async () => {
     await seedDraft(db, "KA-OP-REVIEW");
+    const digest = contentHash((await db.doc(`${ARTICLES}/KA-OP-REVIEW`).get()).data() ?? {});
     await reviewKnowledgeArticle(
       db,
-      { articleId: "KA-OP-REVIEW", reviewer: REVIEWER, decision: "approved" },
+      {
+        articleId: "KA-OP-REVIEW",
+        reviewer: REVIEWER,
+        decision: "approved",
+        expectedContentSha256: digest,
+      },
       { operator: OPERATOR },
     );
 
+    const article = (await db.doc(`${ARTICLES}/KA-OP-REVIEW`).get()).data();
     const ok = (await audits(db, "KA-OP-REVIEW", "article_review")).filter((entry) => entry.result === "ok");
     expect(ok).toEqual([
       expect.objectContaining({
@@ -72,8 +79,10 @@ describe("P3 operator binding on M4 audits", () => {
         operator: OPERATOR,
         result: "ok",
         detail: "approved",
+        reviewedContentSha256: digest,
       }),
     ]);
+    expect(article?.reviewedContentSha256).toBe(digest);
   });
 
   it("records the operator on a publish", async () => {
@@ -82,6 +91,7 @@ describe("P3 operator binding on M4 audits", () => {
       articleId: "KA-OP-PUBLISH",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-OP-PUBLISH`).get()).data() ?? {}),
     });
     await publishKnowledgeArticle(
       db,
@@ -106,6 +116,7 @@ describe("P3 operator binding on M4 audits", () => {
       articleId: "KA-OP-BARE",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-OP-BARE`).get()).data() ?? {}),
     });
 
     const ok = (await audits(db, "KA-OP-BARE", "article_review")).filter((entry) => entry.result === "ok");
@@ -117,7 +128,12 @@ describe("P3 operator binding on M4 audits", () => {
   it("records the operator on a rejected review of a missing article", async () => {
     await expect(reviewKnowledgeArticle(
       db,
-      { articleId: "KA-OP-MISSING", reviewer: REVIEWER, decision: "approved" },
+      {
+        articleId: "KA-OP-MISSING",
+        reviewer: REVIEWER,
+        decision: "approved",
+        expectedContentSha256: contentHash({}),
+      },
       { operator: OPERATOR },
     )).rejects.toThrow(/document does not exist/);
 
@@ -130,5 +146,6 @@ describe("P3 operator binding on M4 audits", () => {
         result: "rejected",
       }),
     ]);
+    expect(rejected[0]).not.toHaveProperty("reviewedContentSha256");
   });
 });

@@ -8,6 +8,7 @@ import {
   policyDocId,
   publishSafetyPolicy,
   readPolicyDocument,
+  contentHash,
   reviewSafetyPolicy,
 } from "../../scripts/catalog/trusted-flow.mjs";
 
@@ -93,6 +94,7 @@ describe("P3-9 policy version binding", () => {
       policyVersion: POLICY_VERSION,
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${POLICIES}/${DOC_ID}`).get()).data() ?? {}),
     });
     const policy = (await db.doc(`${POLICIES}/${DOC_ID}`).get()).data();
     expect(policy?.reviewStatus).toBe("approved");
@@ -149,6 +151,7 @@ describe("P3-9 policy version binding", () => {
       policyVersion: "1",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${POLICIES}/${policyDocId("mode-missing", "1")}`).get()).data() ?? {}),
     });
     await expect(publishSafetyPolicy(db, {
       policyId: "mode-missing",
@@ -166,6 +169,7 @@ describe("P3-9 policy version binding", () => {
       policyVersion: POLICY_VERSION,
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${POLICIES}/${DOC_ID}`).get()).data() ?? {}),
     });
     await db.doc(`${POLICIES}/${DOC_ID}`).update({ ageBands: ["age8_10"] });
     await expect(publishSafetyPolicy(db, {

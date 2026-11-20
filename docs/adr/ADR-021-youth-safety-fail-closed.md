@@ -55,6 +55,18 @@ P4 消费端只使用当前指针对应的结果。禁用或读取失败后，�
 
 客户端 Rules 拒绝该集合的 get、list、create、update、delete，包括 `catalogAdmin`。指针读写只走服务端受控 CLI（Admin SDK）。
 
+## 审核 / 发布
+
+文章、链接和安全策略的审核必须带上审核人看到的内容摘要 `expectedContentSha256`。事务内用同一套 `contentHash` 计算当前正文。不一致则拒绝，不改文档，不写 `ok` 审计，另记 `rejected` 审计。一致时写入的 `reviewedContentSha256` 就是这份已核验摘要。
+
+`article-review`、`policy-review`、`link-review` 先读当前文档并计算摘要，再调用审核。没有摘要不得调用审核。
+
+策略审核和发布都核对正文 `policyId`、`policyVersion` 为字符串且与请求一致。不一致则拒绝。发布在此之后仍做 `parseSafetyPolicy`。
+
+审核成功的审计同时记录具名审核人（`actor`）、操作员（`operator`，生产来自 ADC）和 `reviewedContentSha256`。`rejected` 审计不带摘要。
+
+客户端不能创建或修改 `reviewedContentSha256`。KnowledgeArticles、EvidenceRecords、TeachingMedia、CorrectionRules、SafetyPolicies 的创建不得包含该字段，更新不得改动该字段。
+
 ## 回退
 
 已发布策略的回退是移动指针，不删除、不修改任何策略版本。操作流程：

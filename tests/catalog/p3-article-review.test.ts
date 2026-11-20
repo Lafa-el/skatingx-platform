@@ -2,7 +2,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { type Firestore, getFirestore } from "firebase-admin/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { reviewKnowledgeArticle } from "../../scripts/catalog/trusted-flow.mjs";
+import { contentHash, reviewKnowledgeArticle } from "../../scripts/catalog/trusted-flow.mjs";
 
 const PROJECT_ID = "demo-skatingx-import";
 const ROOT = "artifacts/skatingx-production";
@@ -239,6 +239,7 @@ describe("P3 knowledge article review on the emulator", () => {
       articleId: "KA-PREICE-001",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-PREICE-001`).get()).data() ?? {}),
     });
 
     const article = await readArticle(db, "KA-PREICE-001");
@@ -285,6 +286,7 @@ describe("P3 knowledge article review on the emulator", () => {
       articleId: "KA-PREICE-REJECT",
       reviewer: REVIEWER,
       decision: "rejected",
+      expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-PREICE-REJECT`).get()).data() ?? {}),
     });
 
     const article = await readArticle(db, "KA-PREICE-REJECT");
@@ -322,6 +324,7 @@ describe("P3 knowledge article review on the emulator", () => {
       articleId: "KA-PREICE-APPROVED",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-PREICE-APPROVED`).get()).data() ?? {}),
     })).rejects.toThrow(/reviewStatus must be pending or rejected/);
 
     const article = await readArticle(db, "KA-PREICE-APPROVED");
@@ -345,6 +348,7 @@ describe("P3 knowledge article review on the emulator", () => {
       articleId: "KA-MISSING",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash({}),
     })).rejects.toThrow(/document does not exist/);
     expect((await db.doc(`${ARTICLES}/KA-MISSING`).get()).exists).toBe(false);
     const rejected = (await articleAudits(db, "KA-MISSING")).filter((entry) => entry.result === "rejected");
@@ -368,6 +372,7 @@ describe("P3 knowledge article review on the emulator", () => {
       articleId: "KA-PREICE-PUBLISHED",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-PREICE-PUBLISHED`).get()).data() ?? {}),
     })).rejects.toThrow(/status must be draft/);
 
     const article = await readArticle(db, "KA-PREICE-PUBLISHED");
@@ -397,11 +402,13 @@ describe("P3 knowledge article review on the emulator", () => {
         articleId: "KA-PREICE-RACE",
         reviewer: "reviewer-a",
         decision: "approved",
+        expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-PREICE-RACE`).get()).data() ?? {}),
       }),
       reviewKnowledgeArticle(db, {
         articleId: "KA-PREICE-RACE",
         reviewer: "reviewer-b",
         decision: "approved",
+        expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-PREICE-RACE`).get()).data() ?? {}),
       }),
     ]);
 

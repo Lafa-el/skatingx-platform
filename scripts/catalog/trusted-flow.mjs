@@ -62,7 +62,7 @@ function canonical(value) {
   return JSON.stringify(value);
 }
 
-function contentHash(doc) {
+export function contentHash(doc) {
   const body = {};
   for (const key of Object.keys(doc)) {
     if (!CONTENT_HASH_OMIT.has(key)) body[key] = doc[key];
@@ -497,12 +497,13 @@ export async function revokeCatalogApprovalFlow(db, input, options = {}) {
   }
 }
 
-async function reviewRecord(db, collectionName, id, reviewer, decision, action, flowTarget, operator) {
+async function reviewRecord(db, collectionName, id, reviewer, decision, action, flowTarget, operator, expectedContentSha256, validate) {
   assertFlowProject(db, flowTarget);
   const target = auditTarget(collectionName, id);
   try {
     requireText(id, "id");
     const reviewerId = requireText(reviewer, "reviewer");
+    const expectedDigest = requireText(expectedContentSha256, "expectedContentSha256");
     if (decision !== "approved" && decision !== "rejected") {
       throw new Error("decision must be approved or rejected");
     }
@@ -523,12 +524,14 @@ async function reviewRecord(db, collectionName, id, reviewer, decision, action, 
       ) {
         throw new Error("reviewStatus must be pending or rejected");
       }
+      validate?.(current);
+      if (contentHash(current) !== expectedDigest) throw new Error("content changed since review");
       const reviewedAt = nowIso();
       tx.update(db.doc(docPath), {
         reviewStatus: decision,
         reviewer: reviewerId,
         reviewedAt,
-        reviewedContentSha256: contentHash(current),
+        reviewedContentSha256: expectedDigest,
       });
       tx.set(db.collection(collectionPath(AUDIT)).doc(), {
         action,
@@ -537,6 +540,7 @@ async function reviewRecord(db, collectionName, id, reviewer, decision, action, 
         at: reviewedAt,
         detail: decision,
         result: "ok",
+        reviewedContentSha256: expectedDigest,
         ...operatorField(operator),
       });
     });
@@ -546,12 +550,47 @@ async function reviewRecord(db, collectionName, id, reviewer, decision, action, 
   }
 }
 
+function assertPolicyIdentity(current, policyId, policyVersion) {
+  if (
+    typeof current.policyId !== "string" ||
+    current.policyId !== policyId ||
+    typeof current.policyVersion !== "string" ||
+    current.policyVersion !== policyVersion
+  ) {
+    throw new Error("policyId or policyVersion does not match the policy document");
+  }
+}
+
 export async function reviewCatalogLink(db, input, options = {}) {
-  await reviewRecord(db, LINKS, input.academyItemId, input.reviewer, input.decision, "link_review", options.target, options.operator);
+  assertFlowProject(db, options.target);
+  const expectedContentSha256 = requireText(input.expectedContentSha256, "expectedContentSha256");
+  await reviewRecord(
+    db,
+    LINKS,
+    input.academyItemId,
+    input.reviewer,
+    input.decision,
+    "link_review",
+    options.target,
+    options.operator,
+    expectedContentSha256,
+  );
 }
 
 export async function reviewKnowledgeArticle(db, input, options = {}) {
-  await reviewRecord(db, KNOWLEDGE_ARTICLES, input.articleId, input.reviewer, input.decision, "article_review", options.target, options.operator);
+  assertFlowProject(db, options.target);
+  const expectedContentSha256 = requireText(input.expectedContentSha256, "expectedContentSha256");
+  await reviewRecord(
+    db,
+    KNOWLEDGE_ARTICLES,
+    input.articleId,
+    input.reviewer,
+    input.decision,
+    "article_review",
+    options.target,
+    options.operator,
+    expectedContentSha256,
+  );
 }
 
 export function policyDocId(policyId, policyVersion) {
@@ -559,8 +598,10 @@ export function policyDocId(policyId, policyVersion) {
 }
 
 export async function reviewSafetyPolicy(db, input, options = {}) {
+  assertFlowProject(db, options.target);
   const policyId = requireText(input.policyId, "policyId");
   const policyVersion = requireText(input.policyVersion, "policyVersion");
+  const expectedContentSha256 = requireText(input.expectedContentSha256, "expectedContentSha256");
   await reviewRecord(
     db,
     POLICIES,
@@ -570,6 +611,8 @@ export async function reviewSafetyPolicy(db, input, options = {}) {
     "policy_review",
     options.target,
     options.operator,
+    expectedContentSha256,
+    (current) => assertPolicyIdentity(current, policyId, policyVersion),
   );
 }
 
@@ -648,6 +691,7 @@ export async function publishSafetyPolicy(db, input, options = {}) {
     "policy does not exist",
     "policy is not approved",
     (current) => {
+      assertPolicyIdentity(current, policyId, policyVersion);
       // parseSafetyPolicy requires status published, and this transaction has not written it yet.
       const parsed = parseSafetyPolicy({ ...current, status: "published" });
       if (!parsed.ok) throw new Error("safety policy is invalid");
@@ -1021,17 +1065,37 @@ function flowInput(args) {
   return input;
 }
 
+async function inputWithExpectedDigest(db, collectionName, id, input) {
+  const current = await readDoc(db, `${collectionPath(collectionName)}/${id}`);
+  if (current === null) throw new Error("document does not exist");
+  return { ...input, expectedContentSha256: contentHash(current) };
+}
+
 async function dispatchFlow(db, command, input, options) {
   if (command === "review") return reviewCatalogVersion(db, input, options);
   if (command === "publish") return publishCatalogVersionFlow(db, input, options);
   if (command === "withdraw") return withdrawCatalogVersion(db, input, options);
   if (command === "revoke") return revokeCatalogApprovalFlow(db, input, options);
-  if (command === "link-review") return reviewCatalogLink(db, input, options);
+  if (command === "link-review") {
+    const academyItemId = requireText(input.academyItemId, "academyItemId");
+    return reviewCatalogLink(db, await inputWithExpectedDigest(db, LINKS, academyItemId, input), options);
+  }
   if (command === "link-publish") return publishCatalogLink(db, input, options);
   if (command === "link-withdraw") return withdrawCatalogLink(db, input, options);
-  if (command === "article-review") return reviewKnowledgeArticle(db, input, options);
+  if (command === "article-review") {
+    const articleId = requireText(input.articleId, "articleId");
+    return reviewKnowledgeArticle(db, await inputWithExpectedDigest(db, KNOWLEDGE_ARTICLES, articleId, input), options);
+  }
   if (command === "article-publish") return publishKnowledgeArticle(db, input, options);
-  if (command === "policy-review") return reviewSafetyPolicy(db, input, options);
+  if (command === "policy-review") {
+    const policyId = requireText(input.policyId, "policyId");
+    const policyVersion = requireText(input.policyVersion, "policyVersion");
+    return reviewSafetyPolicy(
+      db,
+      await inputWithExpectedDigest(db, POLICIES, policyDocId(policyId, policyVersion), input),
+      options,
+    );
+  }
   if (command === "policy-publish") return publishSafetyPolicy(db, input, options);
   if (command === "policy-enable") return enablePolicyPointer(db, input, options);
   if (command === "policy-disable") return disablePolicyPointer(db, input, options);

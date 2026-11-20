@@ -17,6 +17,7 @@ import {
   assertCatalogProject,
   publishCatalogLink,
   publishCatalogVersionFlow,
+  contentHash,
   reviewCatalogLink,
   reviewCatalogVersion,
   revokeCatalogApprovalFlow,
@@ -456,7 +457,12 @@ describe.sequential("trusted catalog review and publish", () => {
   });
 
   it("publishes a link projection only after the target is published, then withdraws it", async () => {
-    await reviewCatalogLink(db, { academyItemId: "academy-p23", reviewer: "reviewer-1", decision: "approved" });
+    await reviewCatalogLink(db, {
+      academyItemId: "academy-p23",
+      reviewer: "reviewer-1",
+      decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${LINKS}/academy-p23`).get()).data() ?? {}),
+    });
     await expect(publishCatalogLink(db, { academyItemId: "academy-p23", actor: "publisher-1" })).rejects.toThrow(
       /not published/,
     );
@@ -493,6 +499,7 @@ describe.sequential("trusted catalog review and publish", () => {
       academyItemId: "academy-implicit",
       reviewer: "reviewer-1",
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${LINKS}/academy-implicit`).get()).data() ?? {}),
     });
     const approved = (await db.doc(`${LINKS}/academy-implicit`).get()).data();
     expect(approved?.reviewStatus).toBe("approved");
@@ -506,7 +513,12 @@ describe.sequential("trusted catalog review and publish", () => {
     ] as const) {
       await db.doc(`${LINKS}/${id}`).set({ catalogRef, reviewStatus });
       await expect(
-        reviewCatalogLink(db, { academyItemId: id, reviewer: "reviewer-1", decision: "approved" }),
+        reviewCatalogLink(db, {
+          academyItemId: id,
+          reviewer: "reviewer-1",
+          decision: "approved",
+          expectedContentSha256: contentHash((await db.doc(`${LINKS}/${id}`).get()).data() ?? {}),
+        }),
       ).rejects.toThrow(/pending or rejected/);
       const stored = (await db.doc(`${LINKS}/${id}`).get()).data();
       expect(stored?.reviewer).toBeUndefined();
