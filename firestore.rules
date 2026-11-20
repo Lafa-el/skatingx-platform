@@ -535,11 +535,12 @@ service cloud.firestore {
         && request.resource.data.status == "draft"
         && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
         && !("reviewer" in request.resource.data)
-        && !("reviewedAt" in request.resource.data);
+        && !("reviewedAt" in request.resource.data)
+        && !("reviewedContentSha256" in request.resource.data);
       allow update: if catalogAdmin()
         && resource.data.status == "draft"
         && request.resource.data.status == "draft"
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt"]);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "reviewedContentSha256"]);
       allow delete: if catalogAdmin() && resource.data.status == "draft";
     }
 
@@ -550,11 +551,12 @@ service cloud.firestore {
         && request.resource.data.status == "draft"
         && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
         && !("reviewer" in request.resource.data)
-        && !("reviewedAt" in request.resource.data);
+        && !("reviewedAt" in request.resource.data)
+        && !("reviewedContentSha256" in request.resource.data);
       allow update: if catalogAdmin()
         && resource.data.status == "draft"
         && request.resource.data.status == "draft"
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt"]);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "reviewedContentSha256"]);
       allow delete: if catalogAdmin() && resource.data.status == "draft";
     }
 
@@ -565,11 +567,12 @@ service cloud.firestore {
         && request.resource.data.status == "draft"
         && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
         && !("reviewer" in request.resource.data)
-        && !("reviewedAt" in request.resource.data);
+        && !("reviewedAt" in request.resource.data)
+        && !("reviewedContentSha256" in request.resource.data);
       allow update: if catalogAdmin()
         && resource.data.status == "draft"
         && request.resource.data.status == "draft"
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt"]);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "reviewedContentSha256"]);
       allow delete: if catalogAdmin() && resource.data.status == "draft";
     }
 
@@ -580,11 +583,12 @@ service cloud.firestore {
         && request.resource.data.status == "draft"
         && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
         && !("reviewer" in request.resource.data)
-        && !("reviewedAt" in request.resource.data);
+        && !("reviewedAt" in request.resource.data)
+        && !("reviewedContentSha256" in request.resource.data);
       allow update: if catalogAdmin()
         && resource.data.status == "draft"
         && request.resource.data.status == "draft"
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt"]);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "reviewedContentSha256"]);
       allow delete: if catalogAdmin() && resource.data.status == "draft";
     }
 
@@ -595,11 +599,12 @@ service cloud.firestore {
         && request.resource.data.status == "draft"
         && (!("reviewStatus" in request.resource.data) || request.resource.data.reviewStatus == "pending")
         && !("reviewer" in request.resource.data)
-        && !("reviewedAt" in request.resource.data);
+        && !("reviewedAt" in request.resource.data)
+        && !("reviewedContentSha256" in request.resource.data);
       allow update: if catalogAdmin()
         && resource.data.status == "draft"
         && request.resource.data.status == "draft"
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "policyVersion"]);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status", "reviewStatus", "reviewer", "reviewedAt", "policyVersion", "reviewedContentSha256"]);
       allow delete: if catalogAdmin() && resource.data.status == "draft";
     }
 

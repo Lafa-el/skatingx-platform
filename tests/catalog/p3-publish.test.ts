@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { parseSafetyPolicy } from "@skatingx/training-catalog";
 import {
+  contentHash,
   policyDocId,
   publishKnowledgeArticle,
   publishSafetyPolicy,
@@ -139,6 +140,7 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
       articleId: "KA-PREICE-001",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-PREICE-001`).get()).data() ?? {}),
     });
     const reviewed = await readArticle(db, "KA-PREICE-001");
 
@@ -259,6 +261,7 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
       policyVersion: "synth-pub-1",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${POLICIES}/${PUB_DOC}`).get()).data() ?? {}),
     });
 
     const policy = await readPolicy(db, PUB_DOC);
@@ -291,6 +294,7 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
       policyVersion: "synth-pub-1",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${POLICIES}/${PUB_DOC}`).get()).data() ?? {}),
     });
 
     await publishSafetyPolicy(db, { policyId: "synth-pub-1", policyVersion: "synth-pub-1", actor: ACTOR });
@@ -349,6 +353,7 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
       articleId: "KA-PREICE-CHANGED",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${ARTICLES}/KA-PREICE-CHANGED`).get()).data() ?? {}),
     });
     await db.doc(`${ARTICLES}/KA-PREICE-CHANGED`).update({ bodyZh: "改过的正文" });
 
@@ -382,6 +387,7 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
       policyVersion: "synth-invalid",
       reviewer: REVIEWER,
       decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${POLICIES}/${INVALID_DOC}`).get()).data() ?? {}),
     });
 
     await expect(publishSafetyPolicy(db, {
@@ -396,5 +402,132 @@ describe("P3 knowledge article and safety policy publish on the emulator", () =>
     const rejected = (await audits(db, INVALID_DOC, "policy_publish")).filter((entry) => entry.result === "rejected");
     expect(rejected).toHaveLength(1);
     expect(String(rejected[0]?.detail)).toMatch(/safety policy is invalid/);
+  });
+
+  it("binds an article review to the expected content digest", async () => {
+    const id = "KA-DIGEST-OK";
+    await seedArticle(db, { ...ARTICLE, id });
+    const digest = contentHash((await db.doc(`${ARTICLES}/${id}`).get()).data() ?? {});
+    await reviewKnowledgeArticle(db, {
+      articleId: id,
+      reviewer: REVIEWER,
+      decision: "approved",
+      expectedContentSha256: digest,
+    });
+    const reviewed = await readArticle(db, id);
+    expect(reviewed?.reviewStatus).toBe("approved");
+    expect(reviewed?.reviewedContentSha256).toBe(digest);
+    await db.doc(`${ARTICLES}/${id}`).delete();
+  });
+
+  it("rejects a review whose expected digest does not match the document", async () => {
+    const id = "KA-DIGEST-WRONG";
+    await seedArticle(db, { ...ARTICLE, id });
+    const before = await readArticle(db, id);
+    await expect(reviewKnowledgeArticle(db, {
+      articleId: id,
+      reviewer: REVIEWER,
+      decision: "approved",
+      expectedContentSha256: "0".repeat(64),
+    })).rejects.toThrow(/content changed since review/);
+    expect(await readArticle(db, id)).toEqual(before);
+    const rejected = (await audits(db, id, "article_review")).filter((entry) => entry.result === "rejected");
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]).not.toHaveProperty("reviewedContentSha256");
+    await db.doc(`${ARTICLES}/${id}`).delete();
+  });
+
+  it("rejects a review that omits the expected digest", async () => {
+    const id = "KA-DIGEST-MISSING";
+    await seedArticle(db, { ...ARTICLE, id });
+    await expect(reviewKnowledgeArticle(db, {
+      articleId: id,
+      reviewer: REVIEWER,
+      decision: "approved",
+    } as never)).rejects.toThrow(/expectedContentSha256 is required/);
+    expect((await readArticle(db, id))?.reviewStatus).toBe("pending");
+    await db.doc(`${ARTICLES}/${id}`).delete();
+  });
+
+  it("rejects a review that reuses a digest from before the content changed", async () => {
+    const id = "KA-DIGEST-STALE";
+    await seedArticle(db, { ...ARTICLE, id });
+    const digest = contentHash((await db.doc(`${ARTICLES}/${id}`).get()).data() ?? {});
+    await db.doc(`${ARTICLES}/${id}`).update({ bodyZh: "改过之后再审核" });
+    await expect(reviewKnowledgeArticle(db, {
+      articleId: id,
+      reviewer: REVIEWER,
+      decision: "approved",
+      expectedContentSha256: digest,
+    })).rejects.toThrow(/content changed since review/);
+    const article = await readArticle(db, id);
+    expect(article?.bodyZh).toBe("改过之后再审核");
+    expect(article?.reviewStatus).toBe("pending");
+    expect(article).not.toHaveProperty("reviewedContentSha256");
+    await db.doc(`${ARTICLES}/${id}`).delete();
+  });
+
+  it("rejects review and publish when the policy body identity does not match the request", async () => {
+    const reviewId = policyDocId("identity-review", "1");
+    await db.doc(`${POLICIES}/${reviewId}`).set({
+      ...POLICY_CONTENT,
+      policyId: "other-policy",
+      policyVersion: "1",
+      status: "draft",
+      reviewStatus: "pending",
+    });
+    await expect(reviewSafetyPolicy(db, {
+      policyId: "identity-review",
+      policyVersion: "1",
+      reviewer: REVIEWER,
+      decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${POLICIES}/${reviewId}`).get()).data() ?? {}),
+    })).rejects.toThrow(/policyId or policyVersion does not match/);
+    expect((await readPolicy(db, reviewId))?.reviewStatus).toBe("pending");
+
+    const versionId = policyDocId("identity-version", "1");
+    await db.doc(`${POLICIES}/${versionId}`).set({
+      ...POLICY_CONTENT,
+      policyId: "identity-version",
+      policyVersion: "9",
+      status: "draft",
+      reviewStatus: "pending",
+    });
+    await expect(reviewSafetyPolicy(db, {
+      policyId: "identity-version",
+      policyVersion: "1",
+      reviewer: REVIEWER,
+      decision: "approved",
+      expectedContentSha256: contentHash((await db.doc(`${POLICIES}/${versionId}`).get()).data() ?? {}),
+    })).rejects.toThrow(/policyId or policyVersion does not match/);
+
+    const publishId = policyDocId("identity-publish", "1");
+    const mismatched = {
+      ...POLICY_CONTENT,
+      policyId: "other-policy",
+      policyVersion: "1",
+      status: "draft",
+      reviewStatus: "approved",
+      reviewer: REVIEWER,
+      reviewedAt: "2026-11-18T00:00:00.000Z",
+    };
+    await db.doc(`${POLICIES}/${publishId}`).set({
+      ...mismatched,
+      reviewedContentSha256: contentHash(mismatched),
+    });
+    await expect(publishSafetyPolicy(db, {
+      policyId: "identity-publish",
+      policyVersion: "1",
+      actor: ACTOR,
+    })).rejects.toThrow(/policyId or policyVersion does not match/);
+    expect((await readPolicy(db, publishId))?.status).toBe("draft");
+
+    for (const id of [reviewId, versionId, publishId]) {
+      const logs = await db.collection(AUDIT).where("target.id", "==", id).get();
+      const batch = db.batch();
+      batch.delete(db.doc(`${POLICIES}/${id}`));
+      for (const item of logs.docs) batch.delete(item.ref);
+      await batch.commit();
+    }
   });
 });

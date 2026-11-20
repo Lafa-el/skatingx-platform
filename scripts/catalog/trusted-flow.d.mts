@@ -11,6 +11,8 @@ export function assessEmulatorSafety(
   },
 ): Promise<SafetyEvaluation>;
 
+export function contentHash(doc: object): string;
+
 export function assertCatalogProject(projectId: string): void;
 
 export function parseArgs(argv: string[]): { command: string; args: Record<string, string> };
@@ -61,13 +63,23 @@ export function revokeCatalogApprovalFlow(
 
 export function reviewCatalogLink(
   db: Firestore,
-  input: { academyItemId: string; reviewer: string; decision: "approved" | "rejected" },
+  input: {
+    academyItemId: string;
+    reviewer: string;
+    decision: "approved" | "rejected";
+    expectedContentSha256?: string;
+  },
   options?: FlowOptions,
 ): Promise<void>;
 
 export function reviewKnowledgeArticle(
   db: Firestore,
-  input: { articleId: string; reviewer: string; decision: "approved" | "rejected" },
+  input: {
+    articleId: string;
+    reviewer: string;
+    decision: "approved" | "rejected";
+    expectedContentSha256?: string;
+  },
   options?: FlowOptions,
 ): Promise<void>;
 
@@ -79,7 +91,13 @@ export function publishKnowledgeArticle(
 
 export function reviewSafetyPolicy(
   db: Firestore,
-  input: { policyId: string; policyVersion: string; reviewer: string; decision: "approved" | "rejected" },
+  input: {
+    policyId: string;
+    policyVersion: string;
+    reviewer: string;
+    decision: "approved" | "rejected";
+    expectedContentSha256?: string;
+  },
   options?: FlowOptions,
 ): Promise<void>;
 

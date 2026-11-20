@@ -128,7 +128,7 @@ describe("live ruleset check", () => {
     expect(approved.baselineSha256).toBe(APPROVED_BASELINE_SHA256);
     expect(approved.baselineSha256).toBe("68b6a84684fe1753c454b000dacc18933e25f50b7a065d03597d1453ecc149e8");
     expect(sha256Text(normalizeRulesContent(approved.baseline))).toBe(NORMALIZED_BASELINE_SHA256);
-    expect(APPROVED_CANDIDATE_SHA256).toBe("b8a8fde9bd8233338425429adaa05b051dbe331f085e33e897dbbc4255045c20");
+    expect(APPROVED_CANDIDATE_SHA256).toBe("fd795a9ae52de8189211187226613dd8be04bcc8ff6267d671650576e1c01581");
     expect(approved.candidateSha256).toBe(APPROVED_CANDIDATE_SHA256);
 
     const strippedBaseline = compareRulesRelease({

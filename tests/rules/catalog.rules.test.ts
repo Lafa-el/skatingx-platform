@@ -520,4 +520,33 @@ describe("catalog rules", () => {
     )));
     expect(releases.docs.map((row) => row.id)).toEqual(["rel-new", "rel-old"]);
   });
+
+  it("refuses a client-created draft that already carries reviewedContentSha256", async () => {
+    const db = adminDb();
+    const collections = [ARTICLES, EVIDENCE, MEDIA, CORRECTIONS, POLICIES];
+    for (const collectionPath of collections) {
+      await assertFails(setDoc(doc(db, `${collectionPath}/hash-create`), {
+        status: "draft",
+        reviewStatus: "pending",
+        title: "Draft",
+        reviewedContentSha256: "abc",
+      }));
+    }
+  });
+
+  it("refuses a client update of reviewedContentSha256 and still allows ordinary draft edits", async () => {
+    const db = adminDb();
+    for (const collectionPath of [ARTICLES, POLICIES]) {
+      const path = `${collectionPath}/hash-update`;
+      await assertSucceeds(setDoc(doc(db, path), {
+        status: "draft",
+        reviewStatus: "pending",
+        title: "Draft",
+      }));
+      await assertSucceeds(updateDoc(doc(db, path), { title: "Edited" }));
+      await assertFails(updateDoc(doc(db, path), { reviewedContentSha256: "abc" }));
+      await assertFails(updateDoc(doc(db, path), { status: "published" }));
+      await assertFails(updateDoc(doc(db, path), { reviewer: "client" }));
+    }
+  });
 });
