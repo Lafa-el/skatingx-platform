@@ -24,8 +24,11 @@ const AUDIT = `${ROOT}/trainingCatalogAuditLogs`;
 const PROBE = "KA-PROD-GATE";
 const POINTER_PROBE = "gate-pointer";
 const IMPORTER = "catalog-importer@skatingx-prod.iam.gserviceaccount.com";
+const POLICY_OPERATOR = "catalog-policy-operator@skatingx-prod.iam.gserviceaccount.com";
 const IMPERSONATION_URL =
   "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/catalog-importer@skatingx-prod.iam.gserviceaccount.com:generateAccessToken";
+const POLICY_IMPERSONATION_URL =
+  "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/catalog-policy-operator@skatingx-prod.iam.gserviceaccount.com:generateAccessToken";
 const SOURCE = {
   type: "authorized_user",
   client_id: "synthetic-client",
@@ -297,7 +300,7 @@ describe("P3-14 production execution context", () => {
             type: "impersonated_service_account",
             delegates: [],
             source_credentials: SOURCE,
-            service_account_impersonation_url: IMPERSONATION_URL,
+            service_account_impersonation_url: POLICY_IMPERSONATION_URL,
           }),
           openProductionFirestore: async () => {
             opened = true;
@@ -321,7 +324,7 @@ describe("P3-14 production execution context", () => {
         expect.objectContaining({
           action: "article_review",
           actor: "reviewer-1",
-          operator: IMPORTER,
+          operator: POLICY_OPERATOR,
           result: "ok",
           reviewedContentSha256: digest,
         }),
@@ -343,7 +346,7 @@ describe("P3-14 production execution context", () => {
       type: "impersonated_service_account",
       delegates: [],
       source_credentials: SOURCE,
-      service_account_impersonation_url: IMPERSONATION_URL,
+      service_account_impersonation_url: POLICY_IMPERSONATION_URL,
     });
     try {
       for (const entered of ["IMPORT", "wrong", "", "Skatingx-Prod", undefined]) {
@@ -366,6 +369,43 @@ describe("P3-14 production execution context", () => {
         )).rejects.toThrow(/policy operations require the exact target project id/);
         expect(opened).toBe(false);
       }
+    } finally {
+      if (savedAdc === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      else process.env.GOOGLE_APPLICATION_CREDENTIALS = savedAdc;
+      if (savedHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+      else process.env.FIRESTORE_EMULATOR_HOST = savedHost;
+    }
+  });
+
+  it("refuses the importer identity on the policy path and opens nothing", async () => {
+    const savedHost = process.env.FIRESTORE_EMULATOR_HOST;
+    const savedAdc = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.FIRESTORE_EMULATOR_HOST;
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/p3-15-not-read.json";
+    let opened = false;
+    try {
+      await expect(openProductionFlowDb(
+        "skatingx-prod",
+        "skatingx-prod",
+        async () => "skatingx-prod",
+        {
+          bindVerifiedAdc: () => ({
+            type: "impersonated_service_account",
+            delegates: [],
+            source_credentials: SOURCE,
+            service_account_impersonation_url: IMPERSONATION_URL,
+          }),
+          openProductionFirestore: async () => {
+            opened = true;
+            return { name: "app" };
+          },
+          productionFirestore: () => {
+            opened = true;
+            return db;
+          },
+        },
+      )).rejects.toThrow(/service account is not allowed/);
+      expect(opened).toBe(false);
     } finally {
       if (savedAdc === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
       else process.env.GOOGLE_APPLICATION_CREDENTIALS = savedAdc;

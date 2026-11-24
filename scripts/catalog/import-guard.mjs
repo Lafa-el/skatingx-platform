@@ -30,6 +30,10 @@ export const ALLOWED_PRODUCTION_SERVICE_ACCOUNTS = [
   "catalog-importer@skatingx-prod.iam.gserviceaccount.com",
 ];
 
+export const ALLOWED_POLICY_PRODUCTION_SERVICE_ACCOUNTS = [
+  "catalog-policy-operator@skatingx-prod.iam.gserviceaccount.com",
+];
+
 export function parseImportArgs(argv) {
   const args = {
     mode: "initial",

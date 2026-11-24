@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
+  ALLOWED_POLICY_PRODUCTION_SERVICE_ACCOUNTS,
   ALLOWED_PRODUCTION_SERVICE_ACCOUNTS,
   FIRESTORE_USERS_COLLECTION,
   RACE_RESULT_PATH,
@@ -70,6 +71,38 @@ describe("catalog import target guards", () => {
         allowedEmails: ["import@skatingx-prod.iam.gserviceaccount.com"],
       }).clientEmail,
     ).toBe("import@skatingx-prod.iam.gserviceaccount.com");
+  });
+
+  it("splits the production allowlist by purpose", () => {
+    const importer = "catalog-importer@skatingx-prod.iam.gserviceaccount.com";
+    const policyOperator = "catalog-policy-operator@skatingx-prod.iam.gserviceaccount.com";
+    expect(ALLOWED_PRODUCTION_SERVICE_ACCOUNTS).toEqual([importer]);
+    expect(ALLOWED_POLICY_PRODUCTION_SERVICE_ACCOUNTS).toEqual([policyOperator]);
+    const credential = (clientEmail: string) => ({
+      type: "service_account",
+      clientEmail,
+      projectId: "skatingx-prod",
+    });
+    expect(assertServiceAccountIdentity({
+      credential: credential(policyOperator),
+      projectId: "skatingx-prod",
+      allowedEmails: ALLOWED_POLICY_PRODUCTION_SERVICE_ACCOUNTS,
+    }).clientEmail).toBe(policyOperator);
+    expect(() => assertServiceAccountIdentity({
+      credential: credential(importer),
+      projectId: "skatingx-prod",
+      allowedEmails: ALLOWED_POLICY_PRODUCTION_SERVICE_ACCOUNTS,
+    })).toThrow(/service account is not allowed/);
+    expect(assertServiceAccountIdentity({
+      credential: credential(importer),
+      projectId: "skatingx-prod",
+      allowedEmails: ALLOWED_PRODUCTION_SERVICE_ACCOUNTS,
+    }).clientEmail).toBe(importer);
+    expect(() => assertServiceAccountIdentity({
+      credential: credential(policyOperator),
+      projectId: "skatingx-prod",
+      allowedEmails: ALLOWED_PRODUCTION_SERVICE_ACCOUNTS,
+    })).toThrow(/service account is not allowed/);
   });
 
   it("refuses production when the emulator host is still set", () => {

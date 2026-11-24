@@ -5,6 +5,7 @@ export const RACE_RESULT_PATH: string;
 export const VIDEO_METADATA_PATH: string;
 export const RACE_VIDEO_PATH: string;
 export const ALLOWED_PRODUCTION_SERVICE_ACCOUNTS: readonly string[];
+export const ALLOWED_POLICY_PRODUCTION_SERVICE_ACCOUNTS: readonly string[];
 
 export interface ImportArgs {
   mode: "initial" | "resume";
