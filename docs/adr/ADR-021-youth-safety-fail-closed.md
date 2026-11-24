@@ -99,6 +99,16 @@ P4 消费端只使用当前指针对应的结果。禁用或读取失败后，�
 
 M-E1、M-E2、M-E3、M-E6 的生产接线属于 P4。M-E4 和 M-E5 的信号在 `trainingCatalogAuditLogs`。监控失败不得把评估改成放行，也不得挡住评估。
 
+## 生产门控
+
+生产写入口不接受调用方自己提供的 operator 字符串，也不接受只模仿字段的普通对象。`openProductionFlowDb` 在执行目标、ADC 文件、ADC 身份、服务账号身份和项目 ID 确认都通过之后，才签发执行上下文。上下文带已核验的 operator（ADC 身份邮箱）。签发标记留在模块内部，调用方不能自己造一个有效上下文。
+
+这 7 个写函数在 `target === "production"` 时要求该上下文：`reviewKnowledgeArticle`、`publishKnowledgeArticle`、`reviewSafetyPolicy`、`publishSafetyPolicy`、`enablePolicyPointer`、`disablePolicyPointer`、`rollbackPolicyPointer`。没有上下文，或上下文是伪造的，在任何 Firestore 读或写之前拒绝，不改文档，不记审计。生产审计里的 operator 和指针的 `updatedBy` 只取上下文里的 operator。调用方再传 `options.operator` 会被忽略，不能覆盖上下文。CLI 的 `main()` 把 `openProductionFlowDb` 返回的上下文传给 `dispatchFlow`。
+
+仿真器调用不需要上下文。`showPolicyPointer`（`policy-status`）只读，不要求上下文；生产 CLI 仍用 `openProductionFlowDb` 打开数据库。
+
+策略操作的标准输入确认只接受与 `skatingx-prod` 完全一致的项目 ID。不接受 `IMPORT`、空字符串、大小写不同的项目 ID，或其他字符串。`readLine` 得到非字符串（例如 EOF 的 `undefined`）也拒绝。确认被拒绝时不创建 Firestore 客户端，不建立生产连接。导入路径仍用 `confirmProjectOnStdin`，继续接受 `IMPORT`。
+
 ## IAM
 
 两个身份与本变更并行创建，不在本变更内创建，也不在本变更内配置生产 IAM。
