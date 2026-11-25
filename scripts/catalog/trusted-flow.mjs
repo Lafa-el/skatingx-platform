@@ -7,8 +7,9 @@
 // The CLI (main()) is the only supported production entry point. The exported
 // functions must not be called directly with a production database outside it.
 import { createHash } from "node:crypto";
-import { pathToFileURL } from "node:url";
+import { register } from "node:module";
 import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
@@ -24,15 +25,18 @@ import {
   readPolicyOpsConfirmation,
 } from "./import-guard.mjs";
 
-import {
+const here = path.dirname(fileURLToPath(import.meta.url));
+await register(pathToFileURL(path.join(here, "typescript-loader.mjs")).href, { parentURL: import.meta.url });
+
+const {
   contentChecksumPayload,
   publishCatalogVersion,
   revokeCatalogApproval,
-} from "../../packages/training-catalog/src/catalog-object.ts";
-import { checkPublishedBinding } from "../../packages/training-catalog/src/validate.ts";
-import { computeCatalogChecksum } from "../../packages/training-catalog/src/checksum.ts";
-import { CONDITIONAL_SAFETY_OBJECT_IDS, evaluateSafety } from "../../packages/training-catalog/src/safety-evaluate.ts";
-import { parseSafetyPolicy } from "../../packages/training-catalog/src/safety-policy.ts";
+} = await import("../../packages/training-catalog/src/catalog-object.ts");
+const { checkPublishedBinding } = await import("../../packages/training-catalog/src/validate.ts");
+const { computeCatalogChecksum } = await import("../../packages/training-catalog/src/checksum.ts");
+const { CONDITIONAL_SAFETY_OBJECT_IDS, evaluateSafety } = await import("../../packages/training-catalog/src/safety-evaluate.ts");
+const { parseSafetyPolicy } = await import("../../packages/training-catalog/src/safety-policy.ts");
 
 const ROOT = "artifacts/skatingx-production";
 const OBJECTS = "trainingCatalogObjects";

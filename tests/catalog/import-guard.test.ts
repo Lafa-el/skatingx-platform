@@ -26,6 +26,7 @@ import {
 
 const rootDir = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "../..");
 const runImportPath = path.join(rootDir, "scripts/catalog/run-import.mjs");
+const trustedFlowPath = path.join(rootDir, "scripts/catalog/trusted-flow.mjs");
 
 function runImport(args: string[], env: NodeJS.ProcessEnv, input = "") {
   return spawnSync(process.execPath, [runImportPath, ...args], {
@@ -284,5 +285,29 @@ describe("catalog import target guards", () => {
     expect(child.stderr).toMatch(/credential type is not service_account/);
     expect(child.stderr).not.toMatch(/actualContentWrites|privateKey|private_key/);
     expect(child.stdout).not.toContain("actualContentWrites");
+  });
+
+  it("loads the trusted-flow CLI under plain node and reaches the production gate", () => {
+    const env: NodeJS.ProcessEnv = { ...process.env };
+    delete env.FIRESTORE_EMULATOR_HOST;
+    const child = spawnSync(process.execPath, [
+      trustedFlowPath,
+      "policy-status",
+      "--target",
+      "production",
+      "--project",
+      "wrong",
+      "--confirm",
+      "wrong",
+      "--policyId",
+      "x",
+    ], {
+      cwd: rootDir,
+      encoding: "utf8",
+      env,
+    });
+    expect(child.status).toBe(1);
+    expect(child.stderr).toMatch(/production project id must be skatingx-prod/);
+    expect(child.stderr).not.toMatch(/ERR_MODULE_NOT_FOUND/);
   });
 });

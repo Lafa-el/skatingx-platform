@@ -1,5 +1,5 @@
-// Lets the plain-node import CLI load the frozen TypeScript catalog package.
-// Vitest transforms those imports itself; this hook is only for run-import.mjs.
+// Lets the plain-node CLIs load the frozen TypeScript catalog package.
+// Vitest transforms those imports itself; this hook serves run-import.mjs and trusted-flow.mjs.
 import { transformSync } from "esbuild";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
