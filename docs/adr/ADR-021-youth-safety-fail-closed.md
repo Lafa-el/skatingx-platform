@@ -113,7 +113,7 @@ M-E1、M-E2、M-E3、M-E6 的生产接线属于 P4。M-E4 和 M-E5 的信号在 
 
 两个身份与本变更并行创建，不在本变更内创建，也不在本变更内配置生产 IAM。
 
-- 专用策略运维写入身份：短时 impersonation，只向授权操作者开放。权限按实际 CLI 调用验证，限于读取、创建、更新和事务。不要 Firebase Auth 权限、删除权限和长期密钥。不再用 `catalog-importer` 做策略写操作。
+- 专用策略运维写入身份：短时 impersonation，只向授权操作者开放。权限按实际 CLI 调用验证，限于读取、创建、更新和事务。不要 Firebase Auth 权限、删除权限和长期密钥。不再用 `catalog-importer` 做策略写操作。两个 allowlist 按用途分开：策略写操作只接受 `catalog-policy-operator@skatingx-prod.iam.gserviceaccount.com`，由 `openProductionFlowDb` 把该名单传给 `assertServiceAccountIdentity`；导入写操作只接受 `catalog-importer@skatingx-prod.iam.gserviceaccount.com`，由 `grantProductionWrite` 和 `verifiedProductionIdentity` 强制。两边互相拒绝。仿真器测试验证了名单内容、策略入口接受 D-03 并拒绝 importer、以及确认失败时不打开数据库。
 - 独立只读评估身份：首选自定义角色，限制在目标数据库，按文档 ID 点读。不把 `roles/datastore.viewer` 授给共享生产库。剩余风险：数据库级 IAM 条件不能把 `get` 限定到指针和策略两个集合；应用只读指定路径也不能缩小 IAM 本身的权限。若业务要求集合级隔离，再评估独立数据库或服务边界。
 
 服务端 SDK 由 IAM 授权，客户端 Rules 不能限制这些服务账号。凭证只用 impersonation，不落地长期 JSON key。

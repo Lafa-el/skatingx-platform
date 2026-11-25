@@ -14,6 +14,7 @@ import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 
 import {
+  ALLOWED_POLICY_PRODUCTION_SERVICE_ACCOUNTS,
   EXPECTED_DATABASE_ID,
   PRODUCTION_PROJECT_ID,
   assertExecutionTarget,
@@ -1155,7 +1156,11 @@ export async function openProductionFlowDb(project, confirm, readLine = readPoli
   const openProductionFirestore = dependencies.openProductionFirestore ?? runtime.openProductionFirestore;
   const productionFirestore = dependencies.productionFirestore ?? runtime.productionFirestore;
   const identity = identityFromAdcPayload(bindVerifiedAdc(adcFile));
-  assertServiceAccountIdentity({ credential: identity, projectId: PRODUCTION_PROJECT_ID });
+  assertServiceAccountIdentity({
+    credential: identity,
+    projectId: PRODUCTION_PROJECT_ID,
+    allowedEmails: ALLOWED_POLICY_PRODUCTION_SERVICE_ACCOUNTS,
+  });
   await confirmPolicyOpsProject(PRODUCTION_PROJECT_ID, readLine);
   const db = productionFirestore(await openProductionFirestore(adcFile));
   const executionContext = issueProductionExecutionContext(identity.clientEmail);
