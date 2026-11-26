@@ -1,0 +1,46 @@
+{
+  "policyId": "youth-conditional-v1",
+  "policyVersion": "1",
+  "status": "draft",
+  "reviewStatus": "pending",
+  "objectIds": ["EX-L039", "EX-L078", "EX-L079", "EX-L080"],
+  "ageBands": ["age8_10", "age11_13", "age14_16"],
+  "knownRestrictions": [
+    "medical_exercise_restriction",
+    "no_high_impact",
+    "active_lower_limb_injury",
+    "current_joint_pain",
+    "vascular_or_clotting_risk"
+  ],
+  "blockingRestrictions": [
+    "medical_exercise_restriction",
+    "no_high_impact",
+    "active_lower_limb_injury",
+    "current_joint_pain",
+    "vascular_or_clotting_risk"
+  ],
+  "knownRecoveryFlags": [
+    "current_injury",
+    "acute_illness",
+    "significant_fatigue",
+    "persistent_pain",
+    "dizziness_or_fainting",
+    "inadequate_recovery",
+    "dehydration"
+  ],
+  "blockingRecoveryFlags": [
+    "current_injury",
+    "acute_illness",
+    "significant_fatigue",
+    "persistent_pain",
+    "dizziness_or_fainting",
+    "inadequate_recovery",
+    "dehydration"
+  ],
+  "objectConditions": [
+    { "objectId": "EX-L039", "decisionMode": "manual_review_only" },
+    { "objectId": "EX-L078", "decisionMode": "blocked" },
+    { "objectId": "EX-L079", "decisionMode": "blocked" },
+    { "objectId": "EX-L080", "decisionMode": "blocked" }
+  ]
+}

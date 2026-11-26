@@ -59,7 +59,7 @@ P4 消费端只使用当前指针对应的结果。禁用或读取失败后，�
 
 文章、链接和安全策略的审核必须带上审核人看到的内容摘要 `expectedContentSha256`。事务内用同一套 `contentHash` 计算当前正文。不一致则拒绝，不改文档，不写 `ok` 审计，另记 `rejected` 审计。一致时写入的 `reviewedContentSha256` 就是这份已核验摘要。
 
-`article-review`、`policy-review`、`link-review` 先读当前文档并计算摘要，再调用审核。没有摘要不得调用审核。
+`article-review` 和 `link-review` 先读当前文档并计算摘要，再调用审核。`policy-review` 使用审核人传入的已确认摘要，见「审核摘要来源」。没有摘要不得调用审核。
 
 策略审核和发布都核对正文 `policyId`、`policyVersion` 为字符串且与请求一致。不一致则拒绝。发布在此之后仍做 `parseSafetyPolicy`。
 
@@ -98,6 +98,18 @@ P4 消费端只使用当前指针对应的结果。禁用或读取失败后，�
 | M-E6 | 10 分钟内零评估，或最近 10 分钟达到此前 1 小时折算成 10 分钟均值的 10 倍，且当前窗口至少 20 次。零量告警必须有上游请求或定时探针证明该窗口应该有评估。20 次是初始运营值，P4 接线后用真实流量校准 | 低 |
 
 M-E1、M-E2、M-E3、M-E6 的生产接线属于 P4。M-E4 和 M-E5 的信号在 `trainingCatalogAuditLogs`。监控失败不得把评估改成放行，也不得挡住评估。
+
+## 策略创建门禁
+
+`policy-create` 是受生产门禁约束的创建命令。它只写入钉死的策略版本。当前只钉死 `youth-conditional-v1` 版本 `"1"`，文档 ID `youth-conditional-v1--v1`，内容摘要 `3a80313cd55a4a5e2f386077d00397cfbb89f65fa49dd68fd81e22c96097797f`。摘要是 `contentHash`：除 `status`、`reviewStatus`、`reviewer`、`reviewedAt`、`publishedAt`、`reviewedContentSha256` 之外的规范 JSON 的 SHA-256。
+
+命令从 `scripts/catalog/policies/youth-conditional-v1--v1.json` 读取固定正文。正文的 `policyId`、`policyVersion` 必须与参数一致，`status` 必须是 `draft`，`reviewStatus` 必须是 `pending`，并且不得包含 `reviewer`、`reviewedAt`、`reviewedContentSha256`、`publishedAt`。摘要必须等于钉死值。未钉死的版本直接拒绝。创建是 create-only：文档已存在则拒绝，不覆盖。成功时同一事务写入文档和一条 `policy_create` 的 `ok` 审计。失败时文档不变，另记 `rejected` 审计。
+
+## 审核摘要来源
+
+`policy-review` 不再由 CLI 读取 live 文档后重算摘要。审核人必须传入已经确认的 `--expectedContentSha256`。缺失则拒绝，不会调用审核。事务内仍用 `contentHash` 比对当前正文；不一致则拒绝，文档不动，并记 `rejected` 审计。`article-review` 和 `link-review` 仍由 CLI 读取当前文档并计算摘要。
+
+`policy-digest --file <本地 JSON>` 只在本地输出 `contentHash`。它不访问数据库，不走生产门禁。带 `--target production` 时拒绝。
 
 ## 生产门控
 

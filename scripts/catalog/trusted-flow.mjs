@@ -7,6 +7,7 @@
 // The CLI (main()) is the only supported production entry point. The exported
 // functions must not be called directly with a production database outside it.
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { register } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -1027,6 +1028,81 @@ export async function rollbackPolicyPointer(db, input, options = {}) {
   }
 }
 
+const PINNED_POLICY_CONTENT_SHA256 = {
+  "youth-conditional-v1--v1": "3a80313cd55a4a5e2f386077d00397cfbb89f65fa49dd68fd81e22c96097797f",
+};
+const POLICY_CONTENT_FORBIDDEN_KEYS = ["reviewer", "reviewedAt", "reviewedContentSha256", "publishedAt"];
+
+function pinnedPolicyPath(policyId, policyVersion) {
+  return path.join(here, "policies", `${policyDocId(policyId, policyVersion)}.json`);
+}
+
+function readPinnedPolicyContent(policyId, policyVersion) {
+  const docId = policyDocId(policyId, policyVersion);
+  if (!Object.prototype.hasOwnProperty.call(PINNED_POLICY_CONTENT_SHA256, docId)) {
+    throw new Error("no pinned content for this policy version");
+  }
+  const file = pinnedPolicyPath(policyId, policyVersion);
+  let raw;
+  try {
+    raw = readFileSync(file, "utf8");
+  } catch {
+    throw new Error("policy content file is missing");
+  }
+  let content;
+  try {
+    content = JSON.parse(raw);
+  } catch {
+    throw new Error("policy content file is not valid JSON");
+  }
+  if (content === null || typeof content !== "object" || Array.isArray(content)) {
+    throw new Error("policy content file is not valid JSON");
+  }
+  if (content.policyId !== policyId) throw new Error("policy content does not match policyId");
+  if (content.policyVersion !== policyVersion) throw new Error("policy content does not match policyVersion");
+  if (content.status !== "draft") throw new Error("policy content status must be draft");
+  if (content.reviewStatus !== "pending") throw new Error("policy content reviewStatus must be pending");
+  for (const key of POLICY_CONTENT_FORBIDDEN_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(content, key)) {
+      throw new Error("policy content must not include review metadata");
+    }
+  }
+  if (contentHash(content) !== PINNED_POLICY_CONTENT_SHA256[docId]) {
+    throw new Error("policy content hash does not match the pinned digest");
+  }
+  return content;
+}
+
+export async function createSafetyPolicy(db, input, options = {}) {
+  const operator = operatorForWrite(db, options, false);
+  const policyId = requireText(input.policyId, "policyId");
+  const policyVersion = requireText(input.policyVersion, "policyVersion");
+  const actor = requireText(input.actor, "actor");
+  const docId = policyDocId(policyId, policyVersion);
+  const target = auditTarget(POLICIES, docId);
+  try {
+    const content = readPinnedPolicyContent(policyId, policyVersion);
+    const docRef = db.doc(`${collectionPath(POLICIES)}/${docId}`);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(docRef);
+      if (snap.exists) throw new Error("policy already exists");
+      const at = nowIso();
+      tx.set(docRef, content);
+      tx.set(db.collection(collectionPath(AUDIT)).doc(), {
+        action: "policy_create",
+        actor,
+        target,
+        at,
+        result: "ok",
+        ...operatorField(operator),
+      });
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("refusing to run")) throw error;
+    await reject(db, "policy_create", actor, target, error, operator);
+  }
+}
+
 const FLOW_COMMANDS = new Set([
   "review",
   "publish",
@@ -1038,6 +1114,8 @@ const FLOW_COMMANDS = new Set([
   "article-review",
   "article-publish",
   "policy-review",
+  "policy-create",
+  "policy-digest",
   "policy-publish",
   "policy-enable",
   "policy-disable",
@@ -1048,6 +1126,7 @@ const PRODUCTION_COMMANDS = new Set([
   "article-review",
   "article-publish",
   "policy-review",
+  "policy-create",
   "policy-publish",
   "policy-enable",
   "policy-disable",
@@ -1070,6 +1149,8 @@ const FLOW_ARG_KEYS = new Set([
   "policyVersion",
   "reason",
   "expectedRevision",
+  "expectedContentSha256",
+  "file",
 ]);
 const FLOW_USAGE = `usage: ${[...FLOW_COMMANDS].join(" | ")}`;
 
@@ -1126,14 +1207,18 @@ async function dispatchFlow(db, command, input, options) {
     return reviewKnowledgeArticle(db, await inputWithExpectedDigest(db, KNOWLEDGE_ARTICLES, articleId, input), options);
   }
   if (command === "article-publish") return publishKnowledgeArticle(db, input, options);
-  if (command === "policy-review") {
+  if (command === "policy-create") {
     const policyId = requireText(input.policyId, "policyId");
     const policyVersion = requireText(input.policyVersion, "policyVersion");
-    return reviewSafetyPolicy(
-      db,
-      await inputWithExpectedDigest(db, POLICIES, policyDocId(policyId, policyVersion), input),
-      options,
-    );
+    requireText(input.actor, "actor");
+    readPinnedPolicyContent(policyId, policyVersion);
+    return createSafetyPolicy(db, input, options);
+  }
+  if (command === "policy-review") {
+    requireText(input.policyId, "policyId");
+    requireText(input.policyVersion, "policyVersion");
+    requireText(input.expectedContentSha256, "expectedContentSha256");
+    return reviewSafetyPolicy(db, input, options);
   }
   if (command === "policy-publish") return publishSafetyPolicy(db, input, options);
   if (command === "policy-enable") return enablePolicyPointer(db, input, options);
@@ -1174,6 +1259,20 @@ export async function openProductionFlowDb(project, confirm, readLine = readPoli
 async function main() {
   const { command, args } = parseArgs(process.argv.slice(2));
   if (!FLOW_COMMANDS.has(command)) throw new Error(FLOW_USAGE);
+  if (command === "policy-digest") {
+    if (args.target === "production") {
+      throw new Error("refusing to run: policy-digest does not run against production");
+    }
+    const file = requireText(args.file, "file");
+    let content;
+    try {
+      content = JSON.parse(readFileSync(file, "utf8"));
+    } catch {
+      throw new Error("policy content file is not valid JSON");
+    }
+    console.log(contentHash(content));
+    return;
+  }
   const flowTarget = args.target ?? "emulator";
   if (flowTarget !== "emulator" && flowTarget !== "production") {
     throw new Error("--target emulator|production is required");
