@@ -95,7 +95,10 @@ export function sourceFromRuleset(ruleset, projectId) {
 export async function fetchRulesRelease(fetchImpl, { projectId, token }) {
   if (projectId !== LIVE_RULES_PROJECT) throw new Error(`refusing rules read for project ${projectId}`);
   if (typeof token !== "string" || token.trim() === "") throw new Error("refusing live rules read: no token");
-  const headers = { Authorization: `Bearer ${token}` };
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "X-Goog-User-Project": LIVE_RULES_PROJECT,
+  };
   const releaseUrl = `https://firebaserules.googleapis.com/v1/projects/${projectId}/releases/cloud.firestore`;
   const releaseResponse = await fetchImpl(releaseUrl, { method: "GET", headers });
   if (!releaseResponse.ok) throw new Error(`rules read failed: ${releaseResponse.status}`);

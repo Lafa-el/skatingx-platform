@@ -111,10 +111,21 @@ export function assertCatalogProject(projectId) {
   }
 }
 
-function projectIdOf(db) {
-  const settings = db._settings;
-  if (settings && typeof settings.projectId === "string" && settings.projectId !== "") {
-    return settings.projectId;
+export function projectIdOf(db) {
+  // firebase-admin 14.5.0 / @google-cloud/firestore 9.3.1 stores the app project
+  // on the client as projectId (_projectId). _settings.projectId is not set on
+  // every production client, so the env fallback alone is not the project check.
+  if (db != null && typeof db === "object") {
+    try {
+      if (typeof db.projectId === "string" && db.projectId !== "") return db.projectId;
+    } catch {
+      // The getter throws until _projectId is assigned.
+    }
+    if (typeof db._projectId === "string" && db._projectId !== "") return db._projectId;
+    const settings = db._settings;
+    if (settings && typeof settings.projectId === "string" && settings.projectId !== "") {
+      return settings.projectId;
+    }
   }
   return process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "";
 }
@@ -883,6 +894,7 @@ async function assertPolicyTarget(tx, db, policyId, policyVersion) {
   if (data.reviewStatus !== "approved") throw new Error("reviewStatus must be approved");
   const parsed = parseSafetyPolicy({ ...data, status: "published" });
   if (!parsed.ok) throw new Error("safety policy is invalid");
+  assertReviewedContent(data);
   return data;
 }
 

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { getApps, initializeApp } from "firebase-admin/app";
+import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { type Firestore, getFirestore } from "firebase-admin/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -17,6 +17,7 @@ import {
   assertProductionCommand,
   assertProductionProject,
   contentHash,
+  projectIdOf,
   enablePolicyPointer,
   openProductionFlowDb,
   parseArgs,
@@ -361,7 +362,7 @@ describe("P3-14 production execution context", () => {
     const savedAdc = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     delete process.env.FIRESTORE_EMULATOR_HOST;
     process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/p3-17-not-read.json";
-    const firestore = { doc: () => ({ path: "doc" }) };
+    const firestore = { doc: () => ({ path: "doc" }) } as unknown as Firestore;
     try {
       const opened = await openProductionFlowDb(
         "skatingx-prod",
@@ -413,7 +414,7 @@ describe("P3-14 production execution context", () => {
               opened = true;
               return { name: "app" };
             },
-            productionFirestore: () => {
+            productionFirestore: async () => {
               opened = true;
               return db;
             },
@@ -451,7 +452,7 @@ describe("P3-14 production execution context", () => {
             opened = true;
             return { name: "app" };
           },
-          productionFirestore: () => {
+          productionFirestore: async () => {
             opened = true;
             return db;
           },
@@ -570,6 +571,39 @@ describe("P3-14 production execution context", () => {
     const production = runTrustedFlow(["policy-digest", "--file", policyFile, "--target", "production"]);
     expect(production.status).toBe(1);
     expect(production.stderr).toMatch(/policy-digest does not run against production/);
+  });
+});
+
+describe("project id from a real Firestore client", () => {
+  async function withProject(projectId: string, run: (db: Firestore) => void): Promise<void> {
+    const savedCloud = process.env.GCLOUD_PROJECT;
+    const savedGoogle = process.env.GOOGLE_CLOUD_PROJECT;
+    delete process.env.GCLOUD_PROJECT;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    const app = initializeApp({ projectId }, `p3-18-${projectId}`);
+    try {
+      run(getFirestore(app));
+    } finally {
+      await deleteApp(app);
+      if (savedCloud === undefined) delete process.env.GCLOUD_PROJECT;
+      else process.env.GCLOUD_PROJECT = savedCloud;
+      if (savedGoogle === undefined) delete process.env.GOOGLE_CLOUD_PROJECT;
+      else process.env.GOOGLE_CLOUD_PROJECT = savedGoogle;
+    }
+  }
+
+  it("reads skatingx-prod from the client without GCLOUD_PROJECT", async () => {
+    await withProject("skatingx-prod", (db) => {
+      expect(projectIdOf(db)).toBe("skatingx-prod");
+    });
+  });
+
+  it("refuses a real client for a different project", async () => {
+    await withProject("not-skatingx-prod", (db) => {
+      expect(() => assertProductionProject(db)).toThrow(
+        /refusing to run: production project id must be skatingx-prod/,
+      );
+    });
   });
 });
 
