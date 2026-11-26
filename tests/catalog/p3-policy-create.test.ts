@@ -194,7 +194,7 @@ describe("P3-16 gated policy create", () => {
             opened = true;
             return { name: "app" };
           },
-          productionFirestore: () => {
+          productionFirestore: async () => {
             opened = true;
             return db;
           },

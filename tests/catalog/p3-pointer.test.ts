@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   assertProductionCommand,
   assessPointerSafety,
+  contentHash,
   disablePolicyPointer,
   enablePolicyPointer,
   parseArgs,
@@ -60,7 +61,7 @@ const ATHLETE = {
  */
 function policy(version: "1" | "2", status = "published") {
   const testRelease = version === "2";
-  return {
+  const body = {
     policyId: POLICY_ID,
     policyVersion: version,
     status,
@@ -83,6 +84,8 @@ function policy(version: "1" | "2", status = "published") {
       { objectId: "EX-L080", decisionMode: "blocked" },
     ],
   };
+  if (status !== "published") return body;
+  return { ...body, reviewedContentSha256: contentHash(body) };
 }
 
 function openFirestore(): Firestore {
@@ -630,6 +633,21 @@ describe("P3-10 safety policy pointer", () => {
       pointerState: "disabled",
       alertEvents: [],
     });
+  });
+
+  it("rejects enable when the stored policy no longer matches its reviewed digest", async () => {
+    await seed(db, "1");
+    await enablePolicyPointer(db, { policyId: POLICY_ID, policyVersion: "1", reason: "enable v1" }, OPTIONS);
+    expect((await readPolicyPointer(db, POLICY_ID))?.activePolicyVersion).toBe("1");
+
+    const before = await readPolicyPointer(db, POLICY_ID);
+    await db.doc(`${POLICIES}/${policyDocId(POLICY_ID, "1")}`).update({ ageBands: ["age8_10"] });
+    await expect(enablePolicyPointer(db, {
+      policyId: POLICY_ID,
+      policyVersion: "1",
+      reason: "enable after edit",
+    }, OPTIONS)).rejects.toThrow(/content changed since review/);
+    expect(await readPolicyPointer(db, POLICY_ID)).toEqual(before);
   });
 
   it("rejects a reader result whose policy identity does not match the request", async () => {

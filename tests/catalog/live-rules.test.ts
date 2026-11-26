@@ -34,6 +34,20 @@ function ruleset(content: string, files = [{ name: "firestore.rules", content }]
 }
 
 describe("live ruleset check", () => {
+  it("sends the skatingx-prod quota project on rules API reads", async () => {
+    const headers: Array<Record<string, string> | undefined> = [];
+    const fetchImpl = async (url: string, init: { headers?: Record<string, string> }) => {
+      headers.push(init.headers);
+      if (url.endsWith("/releases/cloud.firestore")) return response(release());
+      return response(ruleset("rules-v181"));
+    };
+    await fetchRulesRelease(fetchImpl, { projectId: "skatingx-prod", token: "token" });
+    expect(headers).toEqual([
+      expect.objectContaining({ Authorization: "Bearer token", "X-Goog-User-Project": "skatingx-prod" }),
+      expect.objectContaining({ Authorization: "Bearer token", "X-Goog-User-Project": "skatingx-prod" }),
+    ]);
+  });
+
   it("accepts the current live rules when they match the #181 baseline", async () => {
     const calls: Array<{ url: string; method: string }> = [];
     const fetchImpl = async (url: string, init: { method?: string }) => {

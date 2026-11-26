@@ -38,11 +38,13 @@ export function openProductionFlowDb(
   dependencies?: {
     bindVerifiedAdc?: (adcFile: string) => unknown;
     openProductionFirestore?: (adcFile: string) => Promise<unknown>;
-    productionFirestore?: (app: unknown) => Firestore;
+    productionFirestore?: (app: unknown) => Promise<Firestore>;
   },
 ): Promise<{ db: Firestore; operator: string; executionContext: ProductionExecutionContext }>;
 
 export function assertProductionProject(db: Firestore): void;
+
+export function projectIdOf(db: Firestore): string;
 
 type FlowOptions = {
   target?: "emulator" | "production";
