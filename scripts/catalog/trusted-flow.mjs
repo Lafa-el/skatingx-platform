@@ -1251,7 +1251,7 @@ export async function openProductionFlowDb(project, confirm, readLine = readPoli
     allowedEmails: ALLOWED_POLICY_PRODUCTION_SERVICE_ACCOUNTS,
   });
   await confirmPolicyOpsProject(PRODUCTION_PROJECT_ID, readLine);
-  const db = productionFirestore(await openProductionFirestore(adcFile));
+  const db = await productionFirestore(await openProductionFirestore(adcFile));
   const executionContext = issueProductionExecutionContext(identity.clientEmail);
   return { db, operator: identity.clientEmail, executionContext };
 }

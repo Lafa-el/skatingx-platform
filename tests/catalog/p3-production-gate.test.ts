@@ -356,6 +356,39 @@ describe("P3-14 production execution context", () => {
     }
   });
 
+  it("awaits productionFirestore and returns the Firestore instance", async () => {
+    const savedHost = process.env.FIRESTORE_EMULATOR_HOST;
+    const savedAdc = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.FIRESTORE_EMULATOR_HOST;
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/p3-17-not-read.json";
+    const firestore = { doc: () => ({ path: "doc" }) };
+    try {
+      const opened = await openProductionFlowDb(
+        "skatingx-prod",
+        "skatingx-prod",
+        async () => "skatingx-prod",
+        {
+          bindVerifiedAdc: () => ({
+            type: "impersonated_service_account",
+            delegates: [],
+            source_credentials: SOURCE,
+            service_account_impersonation_url: POLICY_IMPERSONATION_URL,
+          }),
+          openProductionFirestore: async () => ({ name: "app" }),
+          productionFirestore: async () => firestore,
+        },
+      );
+      expect(opened.db).toBe(firestore);
+      expect(opened.db).not.toBeInstanceOf(Promise);
+      expect(typeof opened.db.doc).toBe("function");
+    } finally {
+      if (savedAdc === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      else process.env.GOOGLE_APPLICATION_CREDENTIALS = savedAdc;
+      if (savedHost === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+      else process.env.FIRESTORE_EMULATOR_HOST = savedHost;
+    }
+  });
+
   it("does not open a database when the policy confirmation is rejected or EOF", async () => {
     const savedHost = process.env.FIRESTORE_EMULATOR_HOST;
     const savedAdc = process.env.GOOGLE_APPLICATION_CREDENTIALS;
