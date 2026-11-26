@@ -103,6 +103,12 @@ export function publishKnowledgeArticle(
   options?: FlowOptions,
 ): Promise<void>;
 
+export function createSafetyPolicy(
+  db: Firestore,
+  input: { policyId: string; policyVersion: string; actor: string },
+  options?: FlowOptions,
+): Promise<void>;
+
 export function reviewSafetyPolicy(
   db: Firestore,
   input: {

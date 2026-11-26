@@ -1,3 +1,9 @@
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { getApps, initializeApp } from "firebase-admin/app";
 import { type Firestore, getFirestore } from "firebase-admin/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -21,6 +27,13 @@ const PROJECT_ID = "demo-skatingx-import";
 const ROOT = "artifacts/skatingx-production";
 const ARTICLES = `${ROOT}/trainingCatalogKnowledgeArticles`;
 const AUDIT = `${ROOT}/trainingCatalogAuditLogs`;
+const POLICIES = `${ROOT}/trainingCatalogSafetyPolicies`;
+const POLICY_ID = "youth-conditional-v1";
+const POLICY_DOC = "youth-conditional-v1--v1";
+const PINNED_DIGEST = "3a80313cd55a4a5e2f386077d00397cfbb89f65fa49dd68fd81e22c96097797f";
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const trustedFlowPath = path.join(rootDir, "scripts/catalog/trusted-flow.mjs");
+const policyFile = path.join(rootDir, "scripts/catalog/policies/youth-conditional-v1--v1.json");
 const PROBE = "KA-PROD-GATE";
 const POINTER_PROBE = "gate-pointer";
 const IMPORTER = "catalog-importer@skatingx-prod.iam.gserviceaccount.com";
@@ -214,6 +227,12 @@ describe("P3-14 production execution context", () => {
     await db.doc(`${ARTICLES}/${PROBE}`).delete();
     await db.doc(`${ROOT}/trainingCatalogSafetyPolicyPointers/${POINTER_PROBE}`).delete();
   });
+
+  async function clearPolicyProbe(): Promise<void> {
+    await db.doc(`${POLICIES}/${POLICY_DOC}`).delete();
+    const logs = await db.collection(AUDIT).where("target.id", "==", POLICY_DOC).get();
+    await Promise.all(logs.docs.map((doc) => doc.ref.delete()));
+  }
 
   async function untouched(id: string): Promise<void> {
     expect((await db.doc(`${ARTICLES}/${id}`).get()).exists).toBe(false);
@@ -413,4 +432,118 @@ describe("P3-14 production execution context", () => {
       else process.env.FIRESTORE_EMULATOR_HOST = savedHost;
     }
   });
+
+  it("R1 refuses policy-review without a reviewer-confirmed digest", () => {
+    const result = runTrustedFlow([
+      "policy-review",
+      "--target",
+      "emulator",
+      "--policyId",
+      POLICY_ID,
+      "--policyVersion",
+      "1",
+      "--reviewer",
+      "reviewer-1",
+      "--decision",
+      "approved",
+    ]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/expectedContentSha256 is required/);
+  });
+
+  it("R2 rejects a review when the live document no longer matches the confirmed digest", async () => {
+    await clearPolicyProbe();
+    const content = JSON.parse(readFileSync(policyFile, "utf8")) as Record<string, unknown>;
+    content.ageBands = ["age8_10"];
+    await db.doc(`${POLICIES}/${POLICY_DOC}`).set(content);
+    const result = runTrustedFlow([
+      "policy-review",
+      "--target",
+      "emulator",
+      "--policyId",
+      POLICY_ID,
+      "--policyVersion",
+      "1",
+      "--reviewer",
+      "reviewer-1",
+      "--decision",
+      "approved",
+      "--expectedContentSha256",
+      PINNED_DIGEST,
+    ]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/content changed since review/);
+    const saved = (await db.doc(`${POLICIES}/${POLICY_DOC}`).get()).data();
+    expect(saved?.ageBands).toEqual(["age8_10"]);
+    expect(saved?.reviewStatus).toBe("pending");
+    const logs = await db.collection(AUDIT).where("target.id", "==", POLICY_DOC).get();
+    expect(logs.docs.map((doc) => doc.data())).toEqual([
+      expect.objectContaining({ action: "policy_review", result: "rejected" }),
+    ]);
+    await clearPolicyProbe();
+  });
+
+  it("R3 approves a review when the confirmed digest matches the live document", async () => {
+    await clearPolicyProbe();
+    const content = JSON.parse(readFileSync(policyFile, "utf8")) as Record<string, unknown>;
+    await db.doc(`${POLICIES}/${POLICY_DOC}`).set(content);
+    const result = runTrustedFlow([
+      "policy-review",
+      "--target",
+      "emulator",
+      "--policyId",
+      POLICY_ID,
+      "--policyVersion",
+      "1",
+      "--reviewer",
+      "reviewer-1",
+      "--decision",
+      "approved",
+      "--expectedContentSha256",
+      PINNED_DIGEST,
+    ]);
+    expect(result.status, result.stderr).toBe(0);
+    const saved = (await db.doc(`${POLICIES}/${POLICY_DOC}`).get()).data();
+    expect(saved?.reviewStatus).toBe("approved");
+    expect(saved?.reviewedContentSha256).toBe(PINNED_DIGEST);
+    const logs = await db.collection(AUDIT).where("target.id", "==", POLICY_DOC).get();
+    expect(logs.docs.map((doc) => doc.data())).toEqual([
+      expect.objectContaining({ action: "policy_review", result: "ok", reviewedContentSha256: PINNED_DIGEST }),
+    ]);
+    await clearPolicyProbe();
+  });
+
+  it("R4 prints the content hash locally and refuses production", () => {
+    const unchanged = runTrustedFlow(["policy-digest", "--file", policyFile]);
+    expect(unchanged.status, unchanged.stderr).toBe(0);
+    expect(unchanged.stdout.trim()).toBe(PINNED_DIGEST);
+
+    const dir = mkdtempSync(path.join(tmpdir(), "policy-digest-"));
+    const statusOnly = path.join(dir, "status.json");
+    const changed = JSON.parse(readFileSync(policyFile, "utf8")) as Record<string, unknown>;
+    changed.status = "published";
+    changed.reviewStatus = "approved";
+    writeFileSync(statusOnly, JSON.stringify(changed));
+    const ignored = runTrustedFlow(["policy-digest", "--file", statusOnly]);
+    expect(ignored.stdout.trim()).toBe(PINNED_DIGEST);
+
+    changed.ageBands = ["age8_10"];
+    const contentChanged = path.join(dir, "content.json");
+    writeFileSync(contentChanged, JSON.stringify(changed));
+    const moved = runTrustedFlow(["policy-digest", "--file", contentChanged]);
+    expect(moved.stdout.trim()).not.toBe(PINNED_DIGEST);
+    expect(moved.stdout.trim()).toBe(contentHash(changed));
+
+    const production = runTrustedFlow(["policy-digest", "--file", policyFile, "--target", "production"]);
+    expect(production.status).toBe(1);
+    expect(production.stderr).toMatch(/policy-digest does not run against production/);
+  });
 });
+
+function runTrustedFlow(args: string[]) {
+  return spawnSync(process.execPath, [trustedFlowPath, ...args], {
+    cwd: rootDir,
+    env: process.env,
+    encoding: "utf8",
+  });
+}
