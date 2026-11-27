@@ -18,7 +18,8 @@ import {
   publishCatalogLink,
   publishCatalogVersionFlow,
   contentHash,
-  editorRecordId,
+  importAuditId,
+  INITIAL_IMPORT_RUN_ID,
   reviewCatalogLink,
   reviewCatalogVersion,
   revokeCatalogApprovalFlow,
@@ -117,11 +118,14 @@ async function seedObject(
   batch.set(db.doc(`${OBJECTS}/${options.id}`), parent);
   batch.set(db.doc(`${OBJECTS}/${options.id}/versions/${CONTENT_VERSION}`), version);
   if (options.editor) {
-    batch.set(db.doc(`${AUDIT}/${editorRecordId(options.id)}`), {
-      action: "edit",
+    batch.set(db.doc(`${AUDIT}/${importAuditId(options.id)}`), {
+      action: "import",
       actor: options.editor,
-      target: { collection: "trainingCatalogObjects", id: options.id },
+      operator: "catalog-import",
+      target: { collection: "trainingCatalogObjects", id: options.id, contentVersion: CONTENT_VERSION },
       at: STARTED,
+      runId: INITIAL_IMPORT_RUN_ID,
+      checksum: version.checksum,
       result: "ok",
     });
   }
@@ -363,33 +367,19 @@ describe.sequential("trusted catalog review and publish", () => {
       }),
     ).rejects.toThrow(/checksum does not match/);
 
-    await reviewDraft(db, {
+    await expect(reviewDraft(db, {
       objectId: "EX-SAME",
       contentVersion: CONTENT_VERSION,
       reviewer: "same-person",
       decision: "approved",
-    });
-    await expect(
-      publishDraft(db, {
-        objectId: "EX-SAME",
-        contentVersion: CONTENT_VERSION,
-        reviewer: "publisher-1",
-      }),
-    ).rejects.toThrow(/last editor/);
+    })).rejects.toThrow(/last editor/);
 
-    await reviewDraft(db, {
+    await expect(reviewDraft(db, {
       objectId: "EX-NOLOG",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-1",
       decision: "approved",
-    });
-    await expect(
-      publishDraft(db, {
-        objectId: "EX-NOLOG",
-        contentVersion: CONTENT_VERSION,
-        reviewer: "publisher-1",
-      }),
-    ).rejects.toThrow(/no create, edit, or import/);
+    })).rejects.toThrow(/import audit does not exist/);
 
     await reviewDraft(db, {
       objectId: "EX-L039",
@@ -405,8 +395,15 @@ describe.sequential("trusted catalog review and publish", () => {
       }),
     ).rejects.toThrow(/review_required/);
 
-    for (const id of ["EX-UNREV", "EX-SUM", "EX-SAME", "EX-NOLOG", "EX-L039"]) {
+    for (const id of ["EX-UNREV", "EX-SUM", "EX-L039"]) {
       const rejected = (await audits(db, id)).filter((entry) => entry.action === "publish" && entry.result === "rejected");
+      expect(rejected.length).toBeGreaterThan(0);
+      const parent = (await db.doc(`${OBJECTS}/${id}`).get()).data();
+      expect(parent?.status).not.toBe("published");
+      expect((await db.doc(`${RELEASES}/rel-${id}-${CONTENT_VERSION}`).get()).exists).toBe(false);
+    }
+    for (const id of ["EX-SAME", "EX-NOLOG"]) {
+      const rejected = (await audits(db, id)).filter((entry) => entry.action === "review" && entry.result === "rejected");
       expect(rejected.length).toBeGreaterThan(0);
       const parent = (await db.doc(`${OBJECTS}/${id}`).get()).data();
       expect(parent?.status).not.toBe("published");
