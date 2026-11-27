@@ -49,14 +49,9 @@ const POLICIES = "trainingCatalogSafetyPolicies";
 const POINTERS = "trainingCatalogSafetyPolicyPointers";
 const KNOWLEDGE_ARTICLES = "trainingCatalogKnowledgeArticles";
 const EDITOR_ACTIONS = new Set(["create", "edit", "import"]);
-// One get, not a collection query. D-03 has datastore.entities.get and not list.
-// The 257 imported objects (run initial-20261115) store action "import" at
-// imp-initial-20261115-{objectId}. actor and operator are the role name
-// "catalog-import", not a person; serviceAccount is
-// catalog-importer@skatingx-prod.iam.gserviceaccount.com. Those ids are not
-// this record. Until a later backfill copies them here, lastEditor is missing
-// and publish is refused. This module does not write that backfill.
-const EDITOR_RECORD_PREFIX = "editor-";
+// The only import run that produced the 257 catalog objects.
+// Document ids are imp-${INITIAL_IMPORT_RUN_ID}-{objectId}. Do not scatter the run id.
+export const INITIAL_IMPORT_RUN_ID = "initial-20261115";
 const CONTENT_HASH_OMIT = new Set([
   "status",
   "reviewStatus",
@@ -185,22 +180,56 @@ function recomputeChecksum(snapshot) {
   return computeCatalogChecksum(contentChecksumPayload(input));
 }
 
-export function editorRecordId(objectId) {
-  return `${EDITOR_RECORD_PREFIX}${objectId}`;
+export function importAuditId(objectId) {
+  return `imp-${INITIAL_IMPORT_RUN_ID}-${objectId}`;
 }
 
-function editorRecordPath(objectId) {
-  return `${collectionPath(AUDIT)}/${editorRecordId(objectId)}`;
+// A future edit command, not this module, writes this document in the same
+// transaction as the snapshot change. This module only reads it.
+// Required fields: action "create" or "edit"; non-empty actor and operator;
+// target { collection: trainingCatalogObjects, id, contentVersion };
+// checksum equal to recomputeChecksum of the new snapshot; at; and
+// supersedesAuditId naming the import audit or the previous edit audit.
+// It must not copy or imitate the import audit.
+export function editRecordId(objectId, contentVersion) {
+  return `edit-${objectId}--${contentVersion}`;
 }
 
-function lastEditorFromSnap(snap, objectId) {
-  if (!snap.exists) return null;
-  const data = snap.data();
-  if (!data) return null;
-  if (!EDITOR_ACTIONS.has(data.action)) return null;
-  if (data.target?.collection !== OBJECTS || data.target?.id !== objectId) return null;
-  if (typeof data.actor !== "string" || data.actor.trim() === "") return null;
+function editorEvidence(data, label, objectId, contentVersion, snapshot) {
+  if (!data || typeof data !== "object") throw new Error(`${label} does not exist`);
+  if (!EDITOR_ACTIONS.has(data.action)) throw new Error(`${label} action is not an editor action`);
+  if (typeof data.actor !== "string" || data.actor.trim() === "") throw new Error(`${label} actor is missing`);
+  if (typeof data.operator !== "string" || data.operator.trim() === "") throw new Error(`${label} operator is missing`);
+  if (typeof data.at !== "string" || data.at.trim() === "") throw new Error(`${label} timestamp is missing`);
+  if (data.target?.collection !== OBJECTS || data.target?.id !== objectId) {
+    throw new Error(`${label} target does not match the object`);
+  }
+  if (data.target?.contentVersion !== contentVersion) throw new Error(`${label} contentVersion does not match`);
+  if (data.checksum !== recomputeChecksum(snapshot)) throw new Error(`${label} checksum does not match content`);
   return data.actor.trim();
+}
+
+// Last editor is two fixed gets, never a collection query.
+// 1. edit-{objectId}--{contentVersion}, when present, is the last editor.
+//    An invalid edit record rejects. It does not fall through to the import.
+// 2. Otherwise imp-${INITIAL_IMPORT_RUN_ID}-{objectId} is the last editor,
+//    and only when its contentVersion and checksum still match this snapshot.
+//    A changed snapshot with no edit record is rejected.
+async function resolveLastEditor(get, objectId, contentVersion, snapshot) {
+  const editSnap = await get(`${collectionPath(AUDIT)}/${editRecordId(objectId, contentVersion)}`);
+  if (editSnap.exists) {
+    const data = editSnap.data();
+    if (data?.action === "import") throw new Error("edit audit must not reuse an import action");
+    if (typeof data?.supersedesAuditId !== "string" || data.supersedesAuditId.trim() === "") {
+      throw new Error("edit audit does not name the audit it supersedes");
+    }
+    return editorEvidence(data, "edit audit", objectId, contentVersion, snapshot);
+  }
+  const importSnap = await get(`${collectionPath(AUDIT)}/${importAuditId(objectId)}`);
+  if (!importSnap.exists) throw new Error("import audit does not exist");
+  const data = importSnap.data();
+  if (data?.runId !== INITIAL_IMPORT_RUN_ID) throw new Error("import audit runId does not match initial-20261115");
+  return editorEvidence(data, "import audit", objectId, contentVersion, snapshot);
 }
 
 async function writeAudit(db, entry) {
@@ -256,32 +285,37 @@ export async function reviewCatalogVersion(db, input, options = {}) {
     if (input.decision !== "approved" && input.decision !== "rejected") {
       throw new Error("decision must be approved or rejected");
     }
-    const snapshot = await readDoc(db, versionPath(objectId, contentVersion));
-    if (snapshot === null) throw new Error("snapshot does not exist");
-    if (contentHash(snapshot) !== expectedDigest) throw new Error("content changed since review");
-    if (snapshot.status !== "draft") throw new Error("snapshot status must be draft");
-    if (snapshot.reviewStatus !== "pending" && snapshot.reviewStatus !== "rejected") {
-      throw new Error("reviewStatus must be pending or rejected");
-    }
-    const reviewedAt = nowIso();
-    const batch = db.batch();
-    batch.update(db.doc(versionPath(objectId, contentVersion)), {
-      reviewStatus: input.decision,
-      reviewer,
-      reviewedAt,
-      reviewedContentSha256: expectedDigest,
+    await db.runTransaction(async (tx) => {
+      const get = (docPath) => tx.get(db.doc(docPath));
+      const snap = await get(versionPath(objectId, contentVersion));
+      if (!snap.exists) throw new Error("snapshot does not exist");
+      const snapshot = snap.data();
+      if (!snapshot) throw new Error("snapshot does not exist");
+      if (snapshot.status !== "draft") throw new Error("snapshot status must be draft");
+      if (snapshot.reviewStatus !== "pending" && snapshot.reviewStatus !== "rejected") {
+        throw new Error("reviewStatus must be pending or rejected");
+      }
+      if (contentHash(snapshot) !== expectedDigest) throw new Error("content changed since review");
+      const editor = await resolveLastEditor(get, objectId, contentVersion, snapshot);
+      if (editor === reviewer) throw new Error("reviewer matches the last editor");
+      const reviewedAt = nowIso();
+      tx.update(db.doc(versionPath(objectId, contentVersion)), {
+        reviewStatus: input.decision,
+        reviewer,
+        reviewedAt,
+        reviewedContentSha256: expectedDigest,
+      });
+      tx.set(db.collection(collectionPath(AUDIT)).doc(), {
+        action: "review",
+        actor: reviewer,
+        target,
+        at: reviewedAt,
+        detail: input.decision,
+        result: "ok",
+        reviewedContentSha256: expectedDigest,
+        ...operatorField(operator),
+      });
     });
-    batch.set(db.collection(collectionPath(AUDIT)).doc(), {
-      action: "review",
-      actor: reviewer,
-      target,
-      at: reviewedAt,
-      detail: input.decision,
-      result: "ok",
-      reviewedContentSha256: expectedDigest,
-      ...operatorField(operator),
-    });
-    await batch.commit();
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("refusing to run")) throw error;
     await reject(db, "review", input.reviewer, target, error, operator);
@@ -361,25 +395,46 @@ function assertSafetyFlag(value, label) {
 // Drill documents have no refs to exercises. Master has Block to Drill edges only.
 // This check does not infer whether a Drill contains EX-L039, EX-L078, EX-L079, or
 // EX-L080. A later pilot list has to confirm that against the source workbook.
+async function assertPublishedDrill(get, ref) {
+  if (typeof ref?.id !== "string" || ref.id.trim() === "") throw new Error("catalog ref is missing an id");
+  const id = ref.id.trim();
+  if (typeof ref.contentVersion !== "string" || ref.contentVersion.trim() === "") {
+    throw new Error(`referenced drill ${id} is missing contentVersion`);
+  }
+  const snap = await get(objectPath(id));
+  if (!snap.exists) throw new Error(`referenced drill ${id} does not exist`);
+  const drill = snap.data();
+  if (!drill) throw new Error(`referenced drill ${id} does not exist`);
+  if (drill.kind !== "drill") throw new Error(`referenced ${id} is not a drill`);
+  if (drill.contentVersion !== ref.contentVersion) {
+    throw new Error(`referenced drill ${id} contentVersion does not match`);
+  }
+  if (drill.status !== "published") throw new Error(`referenced drill ${id} is not published`);
+  if (drill.reviewStatus !== "approved") throw new Error(`referenced drill ${id} reviewStatus is not approved`);
+  if (typeof drill.publishedVersion !== "string" || drill.publishedVersion !== ref.contentVersion) {
+    throw new Error(`referenced drill ${id} publishedVersion does not match`);
+  }
+  assertSafetyFlag(drill, id);
+  const versionSnap = await get(versionPath(id, drill.publishedVersion));
+  if (!versionSnap.exists) throw new Error(`referenced drill ${id} published snapshot does not exist`);
+  const version = versionSnap.data();
+  if (!version) throw new Error(`referenced drill ${id} published snapshot does not exist`);
+  if (version.status !== "published" || version.contentVersion !== drill.publishedVersion) {
+    throw new Error(`referenced drill ${id} published snapshot is not published`);
+  }
+  assertChecksum(version);
+  if (version.checksum !== drill.checksum) {
+    throw new Error(`referenced drill ${id} checksum does not match the published snapshot`);
+  }
+  assertReviewedContent(version);
+  assertSafetyFlag(version, id);
+}
+
 async function assertPublishReferences(get, parent, snapshot) {
   assertSafetyFlag(snapshot);
   if (parent.kind !== "block") return;
   const refs = Array.isArray(snapshot.refs) ? snapshot.refs : [];
-  for (const ref of refs) {
-    if (typeof ref?.id !== "string" || ref.id.trim() === "") throw new Error("catalog ref is missing an id");
-    if (typeof ref.contentVersion !== "string" || ref.contentVersion.trim() === "") {
-      throw new Error(`referenced drill ${ref.id} is missing contentVersion`);
-    }
-    const snap = await get(objectPath(ref.id));
-    if (!snap.exists) throw new Error(`referenced drill ${ref.id} does not exist`);
-    const drill = snap.data();
-    if (!drill) throw new Error(`referenced drill ${ref.id} does not exist`);
-    if (drill.kind !== "drill") throw new Error(`referenced ${ref.id} is not a drill`);
-    if (drill.contentVersion !== ref.contentVersion) {
-      throw new Error(`referenced drill ${ref.id} contentVersion does not match`);
-    }
-    assertSafetyFlag(drill, ref.id);
-  }
+  for (const ref of refs) await assertPublishedDrill(get, ref);
 }
 
 async function assertReadyToPublish(get, objectId, contentVersion, snapshot, parent, release) {
@@ -397,8 +452,7 @@ async function assertReadyToPublish(get, objectId, contentVersion, snapshot, par
   }
   assertChecksum(snapshot);
   assertReviewedContent(snapshot);
-  const editor = lastEditorFromSnap(await get(editorRecordPath(objectId)), objectId);
-  if (editor === null) throw new Error("no create, edit, or import audit record");
+  const editor = await resolveLastEditor(get, objectId, contentVersion, snapshot);
   if (editor === String(snapshot.reviewer).trim()) throw new Error("reviewer matches the last editor");
   await assertPublishReferences(get, parent, snapshot);
   if (release !== null && !isSamePublishedRelease(release, snapshot, objectId)) {

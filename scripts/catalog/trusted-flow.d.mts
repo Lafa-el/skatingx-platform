@@ -53,7 +53,11 @@ type FlowOptions = {
   executionContext?: ProductionExecutionContext;
 };
 
-export function editorRecordId(objectId: string): string;
+export const INITIAL_IMPORT_RUN_ID: string;
+
+export function importAuditId(objectId: string): string;
+
+export function editRecordId(objectId: string, contentVersion: string): string;
 
 export function reviewCatalogVersion(
   db: Firestore,

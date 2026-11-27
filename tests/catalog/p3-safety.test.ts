@@ -15,7 +15,8 @@ import { computeCatalogChecksum } from "../../packages/training-catalog/src/chec
 import {
   assessEmulatorSafety,
   contentHash,
-  editorRecordId,
+  importAuditId,
+  INITIAL_IMPORT_RUN_ID,
   policyDocId,
   publishCatalogVersionFlow,
   readPolicyDocument,
@@ -91,11 +92,14 @@ async function seedObject(
   const batch = db.batch();
   batch.set(db.doc(`${OBJECTS}/${options.id}`), parent);
   batch.set(db.doc(`${OBJECTS}/${options.id}/versions/${CONTENT_VERSION}`), version);
-  batch.set(db.doc(`${AUDIT}/${editorRecordId(options.id)}`), {
-    action: "edit",
+  batch.set(db.doc(`${AUDIT}/${importAuditId(options.id)}`), {
+    action: "import",
     actor: options.editor,
-    target: { collection: "trainingCatalogObjects", id: options.id },
+    operator: "catalog-import",
+    target: { collection: "trainingCatalogObjects", id: options.id, contentVersion: CONTENT_VERSION },
     at: STARTED,
+    runId: INITIAL_IMPORT_RUN_ID,
+    checksum: version.checksum,
     result: "ok",
   });
   await batch.commit();

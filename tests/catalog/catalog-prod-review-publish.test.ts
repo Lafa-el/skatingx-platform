@@ -11,7 +11,8 @@ import { contentChecksumPayload } from "@skatingx/training-catalog";
 import { computeCatalogChecksum } from "../../packages/training-catalog/src/checksum";
 import {
   contentHash,
-  editorRecordId,
+  importAuditId,
+  INITIAL_IMPORT_RUN_ID,
   openProductionFlowDb,
   publishCatalogVersionFlow,
   reviewCatalogVersion,
@@ -83,11 +84,14 @@ async function seed(
   batch.set(db.doc(`${OBJECTS}/${id}`), pair.parent);
   batch.set(db.doc(`${OBJECTS}/${id}/versions/${VERSION}`), pair.version);
   if (options.editor) {
-    batch.set(db.doc(`${AUDIT}/${editorRecordId(id)}`), {
+    batch.set(db.doc(`${AUDIT}/${importAuditId(id)}`), {
       action: "import",
       actor: options.editor,
-      target: { collection: "trainingCatalogObjects", id },
+      operator: "catalog-import",
+      target: { collection: "trainingCatalogObjects", id, contentVersion: VERSION },
       at: "2026-11-15T00:00:00.000Z",
+      runId: INITIAL_IMPORT_RUN_ID,
+      checksum: pair.version.checksum,
       result: "ok",
     });
   }
@@ -114,7 +118,7 @@ describe("catalog production review and publish", () => {
       batches[0].delete(db.doc(`${OBJECTS}/${id}`));
       batches[0].delete(db.doc(`${OBJECTS}/${id}/versions/${VERSION}`));
       batches[0].delete(db.doc(`${ROOT}/trainingCatalogReleases/rel-${id}-${VERSION}`));
-      batches[0].delete(db.doc(`${AUDIT}/${editorRecordId(id)}`));
+      batches[0].delete(db.doc(`${AUDIT}/${importAuditId(id)}`));
       const logs = await db.collection(AUDIT).where("target.id", "==", id).get();
       for (const item of logs.docs) batches[0].delete(item.ref);
     }
@@ -173,40 +177,32 @@ describe("catalog production review and publish", () => {
   it("rejects publish when the reviewer is the last editor", async () => {
     await seed(db, "DR-OK", "drill", { editor: "reviewer-1" });
     const version = (await db.doc(`${OBJECTS}/DR-OK/versions/${VERSION}`).get()).data() ?? {};
-    await reviewCatalogVersion(db, {
+    await expect(reviewCatalogVersion(db, {
       objectId: "DR-OK",
       contentVersion: VERSION,
       reviewer: "reviewer-1",
       decision: "approved",
       expectedContentSha256: contentHash(version),
-    }, FLOW);
-    await expect(publishCatalogVersionFlow(db, {
-      objectId: "DR-OK",
-      contentVersion: VERSION,
-      reviewer: "publisher-1",
     }, FLOW)).rejects.toThrow(/reviewer matches the last editor/);
-    expect(await rejectedAudits(db, "DR-OK", "publish")).toEqual([
-      expect.objectContaining({ result: "rejected" }),
+    expect((await db.doc(`${OBJECTS}/DR-OK/versions/${VERSION}`).get()).data()?.reviewStatus).toBe("pending");
+    expect(await rejectedAudits(db, "DR-OK", "review")).toEqual([
+      expect.objectContaining({ result: "rejected", operator: "emulator-operator" }),
     ]);
   });
 
   it("rejects publish when the fixed editor record is missing", async () => {
     await seed(db, "DR-OK", "drill");
     const version = (await db.doc(`${OBJECTS}/DR-OK/versions/${VERSION}`).get()).data() ?? {};
-    await reviewCatalogVersion(db, {
+    await expect(reviewCatalogVersion(db, {
       objectId: "DR-OK",
       contentVersion: VERSION,
       reviewer: "reviewer-1",
       decision: "approved",
       expectedContentSha256: contentHash(version),
-    }, FLOW);
-    await expect(publishCatalogVersionFlow(db, {
-      objectId: "DR-OK",
-      contentVersion: VERSION,
-      reviewer: "publisher-1",
-    }, FLOW)).rejects.toThrow(/no create, edit, or import audit record/);
-    expect(await rejectedAudits(db, "DR-OK", "publish")).toEqual([
-      expect.objectContaining({ result: "rejected" }),
+    }, FLOW)).rejects.toThrow(/import audit does not exist/);
+    expect((await db.doc(`${OBJECTS}/DR-OK/versions/${VERSION}`).get()).data()?.reviewStatus).toBe("pending");
+    expect(await rejectedAudits(db, "DR-OK", "review")).toEqual([
+      expect.objectContaining({ result: "rejected", operator: "emulator-operator" }),
     ]);
   });
 
@@ -231,8 +227,9 @@ describe("catalog production review and publish", () => {
       objectId: "BL-FLAG",
       contentVersion: VERSION,
       reviewer: "publisher-1",
-    }, FLOW)).rejects.toThrow(/safetyFlag review_required blocks publish/);
+    }, FLOW)).rejects.toThrow(/referenced drill DR-FLAG is not published/);
     expect((await db.doc(`${OBJECTS}/BL-FLAG`).get()).data()?.status).toBe("draft");
+    expect((await db.doc(`${OBJECTS}/BL-FLAG`).get()).data()?.publishedVersion).toBeUndefined();
     expect(await rejectedAudits(db, "BL-FLAG", "publish")).toEqual([
       expect.objectContaining({ result: "rejected" }),
     ]);
