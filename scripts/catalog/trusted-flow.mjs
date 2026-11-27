@@ -49,6 +49,14 @@ const POLICIES = "trainingCatalogSafetyPolicies";
 const POINTERS = "trainingCatalogSafetyPolicyPointers";
 const KNOWLEDGE_ARTICLES = "trainingCatalogKnowledgeArticles";
 const EDITOR_ACTIONS = new Set(["create", "edit", "import"]);
+// One get, not a collection query. D-03 has datastore.entities.get and not list.
+// The 257 imported objects (run initial-20261115) store action "import" at
+// imp-initial-20261115-{objectId}. actor and operator are the role name
+// "catalog-import", not a person; serviceAccount is
+// catalog-importer@skatingx-prod.iam.gserviceaccount.com. Those ids are not
+// this record. Until a later backfill copies them here, lastEditor is missing
+// and publish is refused. This module does not write that backfill.
+const EDITOR_RECORD_PREFIX = "editor-";
 const CONTENT_HASH_OMIT = new Set([
   "status",
   "reviewStatus",
@@ -177,17 +185,22 @@ function recomputeChecksum(snapshot) {
   return computeCatalogChecksum(contentChecksumPayload(input));
 }
 
-async function lastEditor(db, objectId) {
-  const snap = await db.collection(collectionPath(AUDIT)).where("target.id", "==", objectId).get();
-  let latest = null;
-  for (const item of snap.docs) {
-    const data = item.data();
-    if (!EDITOR_ACTIONS.has(data.action)) continue;
-    if (data.target?.collection !== OBJECTS) continue;
-    if (typeof data.actor !== "string" || data.actor.trim() === "") continue;
-    if (latest === null || String(data.at) > String(latest.at)) latest = data;
-  }
-  return latest === null ? null : latest.actor.trim();
+export function editorRecordId(objectId) {
+  return `${EDITOR_RECORD_PREFIX}${objectId}`;
+}
+
+function editorRecordPath(objectId) {
+  return `${collectionPath(AUDIT)}/${editorRecordId(objectId)}`;
+}
+
+function lastEditorFromSnap(snap, objectId) {
+  if (!snap.exists) return null;
+  const data = snap.data();
+  if (!data) return null;
+  if (!EDITOR_ACTIONS.has(data.action)) return null;
+  if (data.target?.collection !== OBJECTS || data.target?.id !== objectId) return null;
+  if (typeof data.actor !== "string" || data.actor.trim() === "") return null;
+  return data.actor.trim();
 }
 
 async function writeAudit(db, entry) {
@@ -231,7 +244,7 @@ function auditTarget(collection, id, contentVersion) {
 }
 
 export async function reviewCatalogVersion(db, input, options = {}) {
-  assertFlowProject(db, options.target);
+  const operator = operatorForWrite(db, options, true);
   const objectId = input.objectId;
   const contentVersion = input.contentVersion;
   const target = auditTarget(OBJECTS, objectId, contentVersion);
@@ -239,11 +252,13 @@ export async function reviewCatalogVersion(db, input, options = {}) {
     requireText(objectId, "objectId");
     requireText(contentVersion, "contentVersion");
     const reviewer = requireText(input.reviewer, "reviewer");
+    const expectedDigest = requireText(input.expectedContentSha256, "expectedContentSha256");
     if (input.decision !== "approved" && input.decision !== "rejected") {
       throw new Error("decision must be approved or rejected");
     }
     const snapshot = await readDoc(db, versionPath(objectId, contentVersion));
     if (snapshot === null) throw new Error("snapshot does not exist");
+    if (contentHash(snapshot) !== expectedDigest) throw new Error("content changed since review");
     if (snapshot.status !== "draft") throw new Error("snapshot status must be draft");
     if (snapshot.reviewStatus !== "pending" && snapshot.reviewStatus !== "rejected") {
       throw new Error("reviewStatus must be pending or rejected");
@@ -254,6 +269,7 @@ export async function reviewCatalogVersion(db, input, options = {}) {
       reviewStatus: input.decision,
       reviewer,
       reviewedAt,
+      reviewedContentSha256: expectedDigest,
     });
     batch.set(db.collection(collectionPath(AUDIT)).doc(), {
       action: "review",
@@ -262,11 +278,13 @@ export async function reviewCatalogVersion(db, input, options = {}) {
       at: reviewedAt,
       detail: input.decision,
       result: "ok",
+      reviewedContentSha256: expectedDigest,
+      ...operatorField(operator),
     });
     await batch.commit();
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("refusing to run")) throw error;
-    await reject(db, "review", input.reviewer, target, error);
+    await reject(db, "review", input.reviewer, target, error, operator);
   }
 }
 
@@ -323,16 +341,84 @@ function isSamePublishedRelease(release, snapshot, objectId) {
   );
 }
 
-async function validatePublish(db, input) {
-  const { objectId, contentVersion } = input;
-  const snapshot = await readDoc(db, versionPath(objectId, contentVersion));
-  if (snapshot === null) throw new Error("snapshot does not exist");
+function assertChecksum(snapshot) {
+  let recomputed;
+  try {
+    recomputed = recomputeChecksum(snapshot);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`checksum input is not canonical JSON: ${message}`, { cause: error });
+  }
+  if (recomputed !== snapshot.checksum) throw new Error("checksum does not match content");
+}
+
+function assertSafetyFlag(value, label) {
+  if (value?.legacyAttributes?.safetyFlag === "review_required") {
+    throw new Error(`safetyFlag review_required blocks publish${label ? `: ${label}` : ""}`);
+  }
+}
+
+// Drill documents have no refs to exercises. Master has Block to Drill edges only.
+// This check does not infer whether a Drill contains EX-L039, EX-L078, EX-L079, or
+// EX-L080. A later pilot list has to confirm that against the source workbook.
+async function assertPublishReferences(get, parent, snapshot) {
+  assertSafetyFlag(snapshot);
+  if (parent.kind !== "block") return;
+  const refs = Array.isArray(snapshot.refs) ? snapshot.refs : [];
+  for (const ref of refs) {
+    if (typeof ref?.id !== "string" || ref.id.trim() === "") throw new Error("catalog ref is missing an id");
+    if (typeof ref.contentVersion !== "string" || ref.contentVersion.trim() === "") {
+      throw new Error(`referenced drill ${ref.id} is missing contentVersion`);
+    }
+    const snap = await get(objectPath(ref.id));
+    if (!snap.exists) throw new Error(`referenced drill ${ref.id} does not exist`);
+    const drill = snap.data();
+    if (!drill) throw new Error(`referenced drill ${ref.id} does not exist`);
+    if (drill.kind !== "drill") throw new Error(`referenced ${ref.id} is not a drill`);
+    if (drill.contentVersion !== ref.contentVersion) {
+      throw new Error(`referenced drill ${ref.id} contentVersion does not match`);
+    }
+    assertSafetyFlag(drill, ref.id);
+  }
+}
+
+async function assertReadyToPublish(get, objectId, contentVersion, snapshot, parent, release) {
   if (snapshot.contentVersion !== contentVersion) {
     throw new Error("snapshot contentVersion does not match the path");
   }
-  const parent = await readDoc(db, objectPath(objectId));
-  if (parent === null) throw new Error("parent does not exist");
-  const release = await readDoc(db, `${collectionPath(RELEASES)}/${releaseDocId(objectId, contentVersion)}`);
+  if (snapshot.status !== "draft") throw new Error("snapshot status must be draft");
+  // Frozen check: draft + approved + a real reviewer and reviewedAt. Caller fields are ignored.
+  publishCatalogVersion(snapshot);
+  if (parent.status !== "draft" && parent.status !== "published") {
+    throw new Error("parent status must be draft or published");
+  }
+  if (parent.status === "published" && parent.publishedVersion === contentVersion) {
+    throw new Error("publishedVersion conflicts with this contentVersion");
+  }
+  assertChecksum(snapshot);
+  assertReviewedContent(snapshot);
+  const editor = lastEditorFromSnap(await get(editorRecordPath(objectId)), objectId);
+  if (editor === null) throw new Error("no create, edit, or import audit record");
+  if (editor === String(snapshot.reviewer).trim()) throw new Error("reviewer matches the last editor");
+  await assertPublishReferences(get, parent, snapshot);
+  if (release !== null && !isSamePublishedRelease(release, snapshot, objectId)) {
+    throw new Error("release does not match the version being published");
+  }
+}
+
+async function validatePublish(db, input) {
+  const { objectId, contentVersion } = input;
+  const get = (docPath) => db.doc(docPath).get();
+  const snapshotSnap = await get(versionPath(objectId, contentVersion));
+  if (!snapshotSnap.exists) throw new Error("snapshot does not exist");
+  const snapshot = snapshotSnap.data();
+  if (!snapshot) throw new Error("snapshot does not exist");
+  const parentSnap = await get(objectPath(objectId));
+  if (!parentSnap.exists) throw new Error("parent does not exist");
+  const parent = parentSnap.data();
+  if (!parent) throw new Error("parent does not exist");
+  const releaseSnap = await get(`${collectionPath(RELEASES)}/${releaseDocId(objectId, contentVersion)}`);
+  const release = releaseSnap.exists ? releaseSnap.data() ?? null : null;
 
   // Already published and bound: do not write again, including the success audit.
   if (
@@ -346,34 +432,12 @@ async function validatePublish(db, input) {
     return { idempotent: true };
   }
 
-  if (snapshot.status !== "draft") throw new Error("snapshot status must be draft");
-  // Frozen check: draft + approved + a real reviewer and reviewedAt. Caller fields are ignored.
-  const publishedSnapshot = publishCatalogVersion(snapshot);
-  if (parent.status !== "draft" && parent.status !== "published") {
-    throw new Error("parent status must be draft or published");
-  }
-  let recomputed;
-  try {
-    recomputed = recomputeChecksum(snapshot);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`checksum input is not canonical JSON: ${message}`, { cause: error });
-  }
-  if (recomputed !== snapshot.checksum) throw new Error("checksum does not match content");
-  const editor = await lastEditor(db, objectId);
-  if (editor === null) throw new Error("no create, edit, or import audit record");
-  if (editor === String(snapshot.reviewer).trim()) throw new Error("reviewer matches the last editor");
-  if (snapshot.legacyAttributes?.safetyFlag === "review_required") {
-    throw new Error("safetyFlag review_required blocks publish");
-  }
-  if (release !== null && !isSamePublishedRelease(release, snapshot, objectId)) {
-    throw new Error("release does not match the version being published");
-  }
-  return { idempotent: false, publishedSnapshot };
+  await assertReadyToPublish(get, objectId, contentVersion, snapshot, parent, release);
+  return { idempotent: false, publishedSnapshot: publishCatalogVersion(snapshot) };
 }
 
 export async function publishCatalogVersionFlow(db, input, options = {}) {
-  assertFlowProject(db, options.target);
+  const operator = operatorForWrite(db, options, true);
   const actor = requireText(input.reviewer, "reviewer");
   const objectId = requireText(input.objectId, "objectId");
   const contentVersion = requireText(input.contentVersion, "contentVersion");
@@ -382,29 +446,25 @@ export async function publishCatalogVersionFlow(db, input, options = {}) {
   try {
     plan = await validatePublish(db, { objectId, contentVersion });
   } catch (error) {
-    await reject(db, "publish", actor, target, error);
+    if (error instanceof Error && error.message.startsWith("refusing to run")) throw error;
+    await reject(db, "publish", actor, target, error, operator);
   }
   if (plan.idempotent) return;
 
   const publishedAt = nowIso();
   try {
     await db.runTransaction(async (tx) => {
-      const snapshotSnap = await tx.get(db.doc(versionPath(objectId, contentVersion)));
-      const parentSnap = await tx.get(db.doc(objectPath(objectId)));
+      const get = (docPath) => tx.get(db.doc(docPath));
+      const snapshotSnap = await get(versionPath(objectId, contentVersion));
+      const parentSnap = await get(objectPath(objectId));
       if (!snapshotSnap.exists || !parentSnap.exists) throw new Error("snapshot or parent disappeared");
       const snapshot = snapshotSnap.data();
       const parent = parentSnap.data();
-      if (snapshot.status !== "draft") throw new Error("snapshot status must be draft");
+      if (!snapshot || !parent) throw new Error("snapshot or parent disappeared");
+      const releaseSnap = await get(`${collectionPath(RELEASES)}/${releaseDocId(objectId, contentVersion)}`);
+      const release = releaseSnap.exists ? releaseSnap.data() ?? null : null;
+      await assertReadyToPublish(get, objectId, contentVersion, snapshot, parent, release);
       const publishedSnapshot = publishCatalogVersion(snapshot);
-      if (recomputeChecksum(snapshot) !== snapshot.checksum) {
-        throw new Error("checksum does not match content");
-      }
-      const editor = await lastEditor(db, objectId);
-      if (editor === null) throw new Error("no create, edit, or import audit record");
-      if (editor === String(snapshot.reviewer).trim()) throw new Error("reviewer matches the last editor");
-      if (snapshot.legacyAttributes?.safetyFlag === "review_required") {
-        throw new Error("safetyFlag review_required blocks publish");
-      }
       const nextParent = publishedParent(parent, snapshot, publishedAt);
       tx.set(db.doc(objectPath(objectId)), nextParent);
       tx.update(db.doc(versionPath(objectId, contentVersion)), { status: "published" });
@@ -418,6 +478,8 @@ export async function publishCatalogVersionFlow(db, input, options = {}) {
         target,
         at: publishedAt,
         result: "ok",
+        reviewedContentSha256: snapshot.reviewedContentSha256,
+        ...operatorField(operator),
         ...(typeof input.notes === "string" && input.notes !== "" ? { detail: input.notes } : {}),
       });
       const bindingErrors = checkPublishedBinding(nextParent, publishedSnapshot);
@@ -426,7 +488,8 @@ export async function publishCatalogVersionFlow(db, input, options = {}) {
       }
     });
   } catch (error) {
-    await reject(db, "publish", actor, target, error);
+    if (error instanceof Error && error.message.startsWith("refusing to run")) throw error;
+    await reject(db, "publish", actor, target, error, operator);
   }
 }
 
@@ -1135,6 +1198,8 @@ const FLOW_COMMANDS = new Set([
   "policy-status",
 ]);
 const PRODUCTION_COMMANDS = new Set([
+  "review",
+  "publish",
   "article-review",
   "article-publish",
   "policy-review",
@@ -1203,9 +1268,20 @@ async function inputWithExpectedDigest(db, collectionName, id, input) {
   return { ...input, expectedContentSha256: contentHash(current) };
 }
 
+function withEmulatorOperator(options) {
+  if (options?.target === "production") return options ?? {};
+  if (typeof options?.operator === "string" && options.operator.trim() !== "") return options;
+  return { ...(options ?? {}), operator: "emulator" };
+}
+
 async function dispatchFlow(db, command, input, options) {
-  if (command === "review") return reviewCatalogVersion(db, input, options);
-  if (command === "publish") return publishCatalogVersionFlow(db, input, options);
+  if (command === "review") {
+    requireText(input.objectId, "objectId");
+    requireText(input.contentVersion, "contentVersion");
+    requireText(input.expectedContentSha256, "expectedContentSha256");
+    return reviewCatalogVersion(db, input, withEmulatorOperator(options));
+  }
+  if (command === "publish") return publishCatalogVersionFlow(db, input, withEmulatorOperator(options));
   if (command === "withdraw") return withdrawCatalogVersion(db, input, options);
   if (command === "revoke") return revokeCatalogApprovalFlow(db, input, options);
   if (command === "link-review") {

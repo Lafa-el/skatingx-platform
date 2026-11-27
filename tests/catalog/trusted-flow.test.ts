@@ -18,6 +18,7 @@ import {
   publishCatalogLink,
   publishCatalogVersionFlow,
   contentHash,
+  editorRecordId,
   reviewCatalogLink,
   reviewCatalogVersion,
   revokeCatalogApprovalFlow,
@@ -116,7 +117,7 @@ async function seedObject(
   batch.set(db.doc(`${OBJECTS}/${options.id}`), parent);
   batch.set(db.doc(`${OBJECTS}/${options.id}/versions/${CONTENT_VERSION}`), version);
   if (options.editor) {
-    batch.set(db.collection(AUDIT).doc(), {
+    batch.set(db.doc(`${AUDIT}/${editorRecordId(options.id)}`), {
       action: "edit",
       actor: options.editor,
       target: { collection: "trainingCatalogObjects", id: options.id },
@@ -144,6 +145,27 @@ async function wipe(db: Firestore): Promise<void> {
     for (const docPath of unique.slice(index, index + 400)) batch.delete(db.doc(docPath));
     await batch.commit();
   }
+}
+
+const EMULATOR_FLOW = { operator: "emulator-operator" };
+
+async function reviewDraft(
+  db: Firestore,
+  input: { objectId: string; contentVersion: string; reviewer: string; decision: "approved" | "rejected" },
+): Promise<void> {
+  const snap = await db.doc(`${OBJECTS}/${input.objectId}/versions/${input.contentVersion}`).get();
+  const data = snap.data();
+  await reviewCatalogVersion(db, {
+    ...input,
+    expectedContentSha256: data ? contentHash(data) : "0".repeat(64),
+  }, EMULATOR_FLOW);
+}
+
+async function publishDraft(
+  db: Firestore,
+  input: { objectId: string; contentVersion: string; reviewer: string; notes?: string },
+): Promise<void> {
+  await publishCatalogVersionFlow(db, input, EMULATOR_FLOW);
 }
 
 async function audits(db: Firestore, id: string): Promise<Record<string, unknown>[]> {
@@ -204,7 +226,7 @@ describe.sequential("trusted catalog review and publish", () => {
   it("reviews a draft snapshot and refuses an empty or repeated approval", async () => {
     const before = (await db.doc(`${OBJECTS}/EX-REVIEW`).get()).data();
     await expect(
-      reviewCatalogVersion(db, {
+      reviewDraft(db, {
         objectId: "EX-REVIEW",
         contentVersion: CONTENT_VERSION,
         reviewer: "   ",
@@ -212,7 +234,7 @@ describe.sequential("trusted catalog review and publish", () => {
       }),
     ).rejects.toThrow(/reviewer is required/);
 
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-REVIEW",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-1",
@@ -223,7 +245,7 @@ describe.sequential("trusted catalog review and publish", () => {
     expect(rejected?.reviewer).toBe("reviewer-1");
     expect(rejected?.status).toBe("draft");
 
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-REVIEW",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-2",
@@ -238,7 +260,7 @@ describe.sequential("trusted catalog review and publish", () => {
     );
 
     await expect(
-      reviewCatalogVersion(db, {
+      reviewDraft(db, {
         objectId: "EX-REVIEW",
         contentVersion: CONTENT_VERSION,
         reviewer: "reviewer-3",
@@ -253,13 +275,13 @@ describe.sequential("trusted catalog review and publish", () => {
   });
 
   it("publishes a reviewed version and keeps the stored review record", async () => {
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-PUB",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-1",
       decision: "approved",
     });
-    await publishCatalogVersionFlow(db, {
+    await publishDraft(db, {
       objectId: "EX-PUB",
       contentVersion: CONTENT_VERSION,
       reviewer: "publisher-1",
@@ -319,14 +341,14 @@ describe.sequential("trusted catalog review and publish", () => {
 
   it("rejects publish when review, checksum, editor, audit, or safety flag fails", async () => {
     await expect(
-      publishCatalogVersionFlow(db, {
+      publishDraft(db, {
         objectId: "EX-UNREV",
         contentVersion: CONTENT_VERSION,
         reviewer: "publisher-1",
       }),
     ).rejects.toThrow(/reviewStatus approved/);
 
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-SUM",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-1",
@@ -334,49 +356,49 @@ describe.sequential("trusted catalog review and publish", () => {
     });
     await db.doc(`${OBJECTS}/EX-SUM/versions/${CONTENT_VERSION}`).update({ checksum: "tampered" });
     await expect(
-      publishCatalogVersionFlow(db, {
+      publishDraft(db, {
         objectId: "EX-SUM",
         contentVersion: CONTENT_VERSION,
         reviewer: "publisher-1",
       }),
     ).rejects.toThrow(/checksum does not match/);
 
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-SAME",
       contentVersion: CONTENT_VERSION,
       reviewer: "same-person",
       decision: "approved",
     });
     await expect(
-      publishCatalogVersionFlow(db, {
+      publishDraft(db, {
         objectId: "EX-SAME",
         contentVersion: CONTENT_VERSION,
         reviewer: "publisher-1",
       }),
     ).rejects.toThrow(/last editor/);
 
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-NOLOG",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-1",
       decision: "approved",
     });
     await expect(
-      publishCatalogVersionFlow(db, {
+      publishDraft(db, {
         objectId: "EX-NOLOG",
         contentVersion: CONTENT_VERSION,
         reviewer: "publisher-1",
       }),
     ).rejects.toThrow(/no create, edit, or import/);
 
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-L039",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-1",
       decision: "approved",
     });
     await expect(
-      publishCatalogVersionFlow(db, {
+      publishDraft(db, {
         objectId: "EX-L039",
         contentVersion: CONTENT_VERSION,
         reviewer: "publisher-1",
@@ -396,7 +418,7 @@ describe.sequential("trusted catalog review and publish", () => {
     const beforeParent = canonicalCatalogJson((await db.doc(`${OBJECTS}/EX-PUB`).get()).data());
     const beforeVersion = canonicalCatalogJson((await db.doc(`${OBJECTS}/EX-PUB/versions/${CONTENT_VERSION}`).get()).data());
     const beforeRelease = canonicalCatalogJson((await db.doc(`${RELEASES}/rel-EX-PUB-${CONTENT_VERSION}`).get()).data());
-    await publishCatalogVersionFlow(db, {
+    await publishDraft(db, {
       objectId: "EX-PUB",
       contentVersion: CONTENT_VERSION,
       reviewer: "publisher-1",
@@ -412,13 +434,13 @@ describe.sequential("trusted catalog review and publish", () => {
   });
 
   it("withdraws a published version without changing the snapshot", async () => {
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-WD",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-1",
       decision: "approved",
     });
-    await publishCatalogVersionFlow(db, {
+    await publishDraft(db, {
       objectId: "EX-WD",
       contentVersion: CONTENT_VERSION,
       reviewer: "publisher-1",
@@ -468,13 +490,13 @@ describe.sequential("trusted catalog review and publish", () => {
     );
     expect((await db.doc(`${PUBLIC_LINKS}/academy-p23`).get()).exists).toBe(false);
 
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-LINK",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-1",
       decision: "approved",
     });
-    await publishCatalogVersionFlow(db, {
+    await publishDraft(db, {
       objectId: "EX-LINK",
       contentVersion: CONTENT_VERSION,
       reviewer: "publisher-1",
