@@ -178,11 +178,11 @@ describe("P3-8 production gate tightening", () => {
     expect(() => parseArgs(["review", "--yes"])).toThrow(/--yes is not a confirmation/);
   });
 
-  it("allows only article and policy commands in production", () => {
-    for (const command of ["article-review", "article-publish", "policy-review", "policy-publish"]) {
+  it("allows catalog review, publish, article, and policy commands in production", () => {
+    for (const command of ["review", "publish", "article-review", "article-publish", "policy-review", "policy-publish"]) {
       expect(() => assertProductionCommand(command)).not.toThrow();
     }
-    for (const command of ["review", "publish", "withdraw", "revoke", "link-review", "link-publish", "link-withdraw"]) {
+    for (const command of ["withdraw", "revoke", "link-review", "link-publish", "link-withdraw"]) {
       expect(() => assertProductionCommand(command)).toThrow(/is not allowed with --target production/);
     }
   });

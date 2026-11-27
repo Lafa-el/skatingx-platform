@@ -53,9 +53,17 @@ type FlowOptions = {
   executionContext?: ProductionExecutionContext;
 };
 
+export function editorRecordId(objectId: string): string;
+
 export function reviewCatalogVersion(
   db: Firestore,
-  input: { objectId: string; contentVersion: string; reviewer: string; decision: "approved" | "rejected" },
+  input: {
+    objectId: string;
+    contentVersion: string;
+    reviewer: string;
+    decision: "approved" | "rejected";
+    expectedContentSha256: string;
+  },
   options?: FlowOptions,
 ): Promise<void>;
 

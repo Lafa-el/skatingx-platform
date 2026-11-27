@@ -14,6 +14,8 @@ import {
 import { computeCatalogChecksum } from "../../packages/training-catalog/src/checksum";
 import {
   assessEmulatorSafety,
+  contentHash,
+  editorRecordId,
   policyDocId,
   publishCatalogVersionFlow,
   readPolicyDocument,
@@ -89,7 +91,7 @@ async function seedObject(
   const batch = db.batch();
   batch.set(db.doc(`${OBJECTS}/${options.id}`), parent);
   batch.set(db.doc(`${OBJECTS}/${options.id}/versions/${CONTENT_VERSION}`), version);
-  batch.set(db.collection(AUDIT).doc(`p3-editor-${options.id}`), {
+  batch.set(db.doc(`${AUDIT}/${editorRecordId(options.id)}`), {
     action: "edit",
     actor: options.editor,
     target: { collection: "trainingCatalogObjects", id: options.id },
@@ -97,6 +99,27 @@ async function seedObject(
     result: "ok",
   });
   await batch.commit();
+}
+
+const EMULATOR_FLOW = { operator: "emulator-operator" };
+
+async function reviewDraft(
+  db: Firestore,
+  input: { objectId: string; contentVersion: string; reviewer: string; decision: "approved" | "rejected" },
+): Promise<void> {
+  const snap = await db.doc(`${OBJECTS}/${input.objectId}/versions/${input.contentVersion}`).get();
+  const data = snap.data();
+  await reviewCatalogVersion(db, {
+    ...input,
+    expectedContentSha256: data ? contentHash(data) : "0".repeat(64),
+  }, EMULATOR_FLOW);
+}
+
+async function publishDraft(
+  db: Firestore,
+  input: { objectId: string; contentVersion: string; reviewer: string },
+): Promise<void> {
+  await publishCatalogVersionFlow(db, input, EMULATOR_FLOW);
 }
 
 function conditionalCover(objectIds: readonly string[]) {
@@ -206,13 +229,13 @@ describe("P3 youth safety on the emulator", () => {
   });
 
   it("S1 publishes the ordinary draft after approval", async () => {
-    await reviewCatalogVersion(db, {
+    await reviewDraft(db, {
       objectId: "EX-L001",
       contentVersion: CONTENT_VERSION,
       reviewer: "reviewer-1",
       decision: "approved",
     });
-    await publishCatalogVersionFlow(db, {
+    await publishDraft(db, {
       objectId: "EX-L001",
       contentVersion: CONTENT_VERSION,
       reviewer: "publisher-1",
@@ -230,13 +253,13 @@ describe("P3 youth safety on the emulator", () => {
   it.each(["EX-L039", "EX-L078", "EX-L079", "EX-L080"])(
     "S2-S5 keeps %s draft when publish meets review_required",
     async (objectId) => {
-      await reviewCatalogVersion(db, {
+      await reviewDraft(db, {
         objectId,
         contentVersion: CONTENT_VERSION,
         reviewer: "reviewer-1",
         decision: "approved",
       });
-      await expect(publishCatalogVersionFlow(db, {
+      await expect(publishDraft(db, {
         objectId,
         contentVersion: CONTENT_VERSION,
         reviewer: "publisher-1",
