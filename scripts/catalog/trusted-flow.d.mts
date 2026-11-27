@@ -55,6 +55,24 @@ type FlowOptions = {
 
 export function editorRecordId(objectId: string): string;
 
+export function importAuditId(objectId: string): string;
+
+export function inventoryObjectIds(): string[];
+
+export function lastEditorFromSnap(
+  snap: { exists: boolean; data: () => Record<string, unknown> | undefined },
+  objectId: string,
+): string | null;
+
+export function backfillEditorRecords(
+  db: Firestore,
+  input?: { objectIds?: string[] },
+  options?: FlowOptions,
+): Promise<{
+  results: Array<{ objectId: string; status: string; detail?: string }>;
+  counts: { written: number; skipped: number; missing: number; refused: number; total: number };
+}>;
+
 export function reviewCatalogVersion(
   db: Firestore,
   input: {

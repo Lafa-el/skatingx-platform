@@ -179,7 +179,7 @@ describe("P3-8 production gate tightening", () => {
   });
 
   it("allows catalog review, publish, article, and policy commands in production", () => {
-    for (const command of ["review", "publish", "article-review", "article-publish", "policy-review", "policy-publish"]) {
+    for (const command of ["review", "publish", "backfill-editor-records", "article-review", "article-publish", "policy-review", "policy-publish"]) {
       expect(() => assertProductionCommand(command)).not.toThrow();
     }
     for (const command of ["withdraw", "revoke", "link-review", "link-publish", "link-withdraw"]) {

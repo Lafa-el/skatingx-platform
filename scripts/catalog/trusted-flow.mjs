@@ -53,10 +53,14 @@ const EDITOR_ACTIONS = new Set(["create", "edit", "import"]);
 // The 257 imported objects (run initial-20261115) store action "import" at
 // imp-initial-20261115-{objectId}. actor and operator are the role name
 // "catalog-import", not a person; serviceAccount is
-// catalog-importer@skatingx-prod.iam.gserviceaccount.com. Those ids are not
-// this record. Until a later backfill copies them here, lastEditor is missing
-// and publish is refused. This module does not write that backfill.
+// catalog-importer@skatingx-prod.iam.gserviceaccount.com.
+// backfill-editor-records copies that fixed import audit onto editor-{objectId}.
+// It writes audit records only. It does not change catalog object content,
+// status, or reviewStatus. Running it against production is a separate
+// authorized step; this change does not perform that write.
 const EDITOR_RECORD_PREFIX = "editor-";
+const INITIAL_IMPORT_RUN_ID = "initial-20261115";
+const INVENTORY_GROUPS = ["exercises", "drills", "blocks", "sessions"];
 const CONTENT_HASH_OMIT = new Set([
   "status",
   "reviewStatus",
@@ -193,7 +197,7 @@ function editorRecordPath(objectId) {
   return `${collectionPath(AUDIT)}/${editorRecordId(objectId)}`;
 }
 
-function lastEditorFromSnap(snap, objectId) {
+export function lastEditorFromSnap(snap, objectId) {
   if (!snap.exists) return null;
   const data = snap.data();
   if (!data) return null;
@@ -201,6 +205,144 @@ function lastEditorFromSnap(snap, objectId) {
   if (data.target?.collection !== OBJECTS || data.target?.id !== objectId) return null;
   if (typeof data.actor !== "string" || data.actor.trim() === "") return null;
   return data.actor.trim();
+}
+
+export function importAuditId(objectId) {
+  return `imp-${INITIAL_IMPORT_RUN_ID}-${objectId}`;
+}
+
+function inventoryPath() {
+  return path.join(here, "../../docs/skatingx-v2/inventory/workbook-inventory.json");
+}
+
+// Fixed workbook inventory. Not a Firestore collection list.
+export function inventoryObjectIds() {
+  let inventory;
+  try {
+    inventory = JSON.parse(readFileSync(inventoryPath(), "utf8"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`workbook inventory is not readable: ${message}`, { cause: error });
+  }
+  const objects = inventory?.objects;
+  const ids = [];
+  for (const group of INVENTORY_GROUPS) {
+    const rows = objects?.[group];
+    if (!Array.isArray(rows)) throw new Error(`workbook inventory is missing ${group}`);
+    for (const row of rows) {
+      if (typeof row?.id !== "string" || row.id.trim() === "") {
+        throw new Error(`workbook inventory ${group} has an empty id`);
+      }
+      ids.push(row.id);
+    }
+  }
+  if (new Set(ids).size !== ids.length) throw new Error("workbook inventory has duplicate object ids");
+  if (ids.length !== 257) throw new Error(`workbook inventory expected 257 object ids, found ${ids.length}`);
+  return ids;
+}
+
+function editorBackfillBody(source, objectId) {
+  if (!source || typeof source !== "object") throw new Error("import audit is missing");
+  if (!EDITOR_ACTIONS.has(source.action)) throw new Error("import audit action is not an editor action");
+  if (typeof source.actor !== "string" || source.actor.trim() === "") throw new Error("import audit actor is missing");
+  if (source.result !== "ok") throw new Error("import audit result is not ok");
+  if (source.target?.collection !== OBJECTS || source.target?.id !== objectId) {
+    throw new Error("import audit target does not match the object");
+  }
+  if (typeof source.at !== "string" || source.at.trim() === "") throw new Error("import audit timestamp is missing");
+  if (source.runId !== INITIAL_IMPORT_RUN_ID) throw new Error("import audit runId does not match initial-20261115");
+  const body = {
+    action: source.action,
+    actor: source.actor.trim(),
+    target: { collection: OBJECTS, id: objectId },
+    at: source.at,
+    runId: source.runId,
+    sourceAuditId: importAuditId(objectId),
+  };
+  if (typeof source.operator === "string" && source.operator.trim() !== "") body.operator = source.operator.trim();
+  return body;
+}
+
+function sameRecord(existing, expected) {
+  if (!existing || typeof existing !== "object") return false;
+  const expectedKeys = Object.keys(expected).sort();
+  const existingKeys = Object.keys(existing).sort();
+  if (expectedKeys.join("\0") !== existingKeys.join("\0")) return false;
+  for (const key of expectedKeys) {
+    if (key === "target") {
+      const left = existing.target ?? {};
+      const right = expected.target ?? {};
+      if (left.collection !== right.collection || left.id !== right.id) return false;
+      if (Object.keys(left).length !== Object.keys(right).length) return false;
+      continue;
+    }
+    if (existing[key] !== expected[key]) return false;
+  }
+  return true;
+}
+
+async function backfillOneEditorRecord(db, objectId) {
+  const sourceRef = db.doc(`${collectionPath(AUDIT)}/${importAuditId(objectId)}`);
+  const editorRef = db.doc(editorRecordPath(objectId));
+  try {
+    let status = "missing";
+    await db.runTransaction(async (tx) => {
+      const sourceSnap = await tx.get(sourceRef);
+      const editorSnap = await tx.get(editorRef);
+      if (!sourceSnap.exists) {
+        status = "missing";
+        return;
+      }
+      const body = editorBackfillBody(sourceSnap.data(), objectId);
+      if (editorSnap.exists) {
+        if (!sameRecord(editorSnap.data(), body)) {
+          throw new Error(`editor record conflicts for ${objectId}`);
+        }
+        status = "skipped";
+        return;
+      }
+      tx.set(editorRef, body);
+      status = "written";
+    });
+    return { objectId, status };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return { objectId, status: "refused", detail };
+  }
+}
+
+/**
+ * Copy each fixed import audit onto editor-{objectId}.
+ * Object ids come from the workbook inventory unless the caller passes a list.
+ * The CLI does not accept a list, so production cannot enumerate Firestore.
+ * This does not modify catalog objects.
+ */
+export async function backfillEditorRecords(db, input = {}, options = {}) {
+  const operator = operatorForWrite(db, options, true);
+  const objectIds = Array.isArray(input.objectIds) ? input.objectIds : inventoryObjectIds();
+  if (!Array.isArray(objectIds) || objectIds.length === 0) throw new Error("objectIds are required");
+  if (objectIds.some((id) => typeof id !== "string" || id.trim() === "")) throw new Error("objectIds are required");
+  const results = [];
+  for (const objectId of objectIds) results.push(await backfillOneEditorRecord(db, objectId));
+  const counts = { written: 0, skipped: 0, missing: 0, refused: 0, total: results.length };
+  for (const result of results) counts[result.status] += 1;
+  const report = { results, counts };
+  console.log(JSON.stringify(report));
+  await writeAudit(db, {
+    action: "backfill_editor_records",
+    actor: operator,
+    target: { collection: AUDIT, id: `backfill-${INITIAL_IMPORT_RUN_ID}` },
+    at: nowIso(),
+    result: counts.refused > 0 ? "rejected" : "ok",
+    detail: JSON.stringify(counts),
+    ...operatorField(operator),
+  });
+  if (counts.refused > 0) {
+    const error = new Error(`editor backfill refused ${counts.refused} record(s)`);
+    error.report = report;
+    throw error;
+  }
+  return report;
 }
 
 async function writeAudit(db, entry) {
@@ -1181,6 +1323,7 @@ export async function createSafetyPolicy(db, input, options = {}) {
 const FLOW_COMMANDS = new Set([
   "review",
   "publish",
+  "backfill-editor-records",
   "withdraw",
   "revoke",
   "link-review",
@@ -1200,6 +1343,7 @@ const FLOW_COMMANDS = new Set([
 const PRODUCTION_COMMANDS = new Set([
   "review",
   "publish",
+  "backfill-editor-records",
   "article-review",
   "article-publish",
   "policy-review",
@@ -1282,6 +1426,9 @@ async function dispatchFlow(db, command, input, options) {
     return reviewCatalogVersion(db, input, withEmulatorOperator(options));
   }
   if (command === "publish") return publishCatalogVersionFlow(db, input, withEmulatorOperator(options));
+  if (command === "backfill-editor-records") {
+    return backfillEditorRecords(db, {}, withEmulatorOperator(options));
+  }
   if (command === "withdraw") return withdrawCatalogVersion(db, input, options);
   if (command === "revoke") return revokeCatalogApprovalFlow(db, input, options);
   if (command === "link-review") {
